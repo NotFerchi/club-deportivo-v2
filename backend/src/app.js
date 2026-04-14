@@ -9,10 +9,13 @@ app.use(express.json());
 const authRoutes = require('./routes/auth.routes');
 const sociosRoutes = require('./routes/socios.routes');
 const usuariosRoutes = require('./routes/usuarios.routes');
+const espaciosRoutes = require('./routes/espacios.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/socios', sociosRoutes);
 app.use('/api/usuarios-internos', usuariosRoutes);
+app.use('/api/espacios', espaciosRoutes);
+
 // health
 app.get('/api/health', (req, res) => {
   res.json({ status: "ok" });

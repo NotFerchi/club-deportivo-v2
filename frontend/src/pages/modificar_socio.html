@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="../js/auth-guard.js"></script>
+    <script>
+        // Solo permite entrar si el rol es 'gerente'
+    protegerPagina(['gerente', 'admin', 'recepcion']);    
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modificar Socio | Club Social y Deportivo</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../css/modificar_socio.css">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+    <header class="main-navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">Club Deportivo</a>
+            <div class="nav-user-info">
+                <span id="role-badge" class="badge-role">Cargando rol...</span>
+                <button id="btn-logout" class="logout-btn">
+                    <i data-lucide="log-out"></i>
+                    Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="content-wrapper">
+        <div class="modal-contenedor">
+            <div class="modal-cabecera">
+                <h2>Modificar Datos del Socio</h2>
+                <p>Actualice la información del perfil. Los campos de membresía están protegidos para roles no administrativos.</p>
+                <a href="index.html" class="btn-cerrar" style="text-decoration: none;">&times;</a>
+            </div>
+
+            <form id="form-modificar-socio">
+                
+                <div class="seccion-formulario">
+                    <h3>Información Personal</h3>
+                    
+                    <div class="fila-grid">
+                        <div class="grupo-input">
+                            <label for="nombreCompleto">Nombre Completo *</label>
+                            <input type="text" id="nombreCompleto" value="Aaron Telles Magaña" required>
+                        </div>
+                        <div class="grupo-input">
+                            <label for="curp">CURP (Llave del sistema)</label>
+                            <input type="text" id="curp" value="TEMA010203HMNRRR01" readonly class="input-locked">
+                        </div>
+                    </div>
+
+                    <div class="fila-grid">
+                        <div class="grupo-input">
+                            <label for="correo">Correo Electrónico *</label>
+                            <input type="email" id="correo" value="aaron.telles@club.com" required>
+                        </div>
+                        <div class="grupo-input">
+                            <label for="telefono">Teléfono *</label>
+                            <input type="tel" id="telefono" value="443-123-4567" required>
+                        </div>
+                    </div>
+
+                    <div class="grupo-input ancho-completo">
+                        <label for="direccion">Dirección *</label>
+                        <input type="text" id="direccion" value="Calle Principal #123, Morelia, Mich." required>
+                    </div>
+                </div>
+
+                <div class="seccion-formulario">
+                    <h3>Datos de Membresía (Acceso Restringido)</h3>
+                    
+                    <div class="fila-grid">
+                        <div class="grupo-input">
+                            <label for="rol">Rol del Usuario *</label>
+                            <select id="rol" class="campo-critico" required>
+                                <option value="socio">Socio</option>
+                                <option value="instructor">Instructor</option>
+                                <option value="recepcionista">Recepcionista</option>
+                                <option value="administrador">Administrador</option>
+                            </select>
+                        </div>
+                        <div class="grupo-input">
+                            <label for="fechaAlta">Fecha de Registro *</label>
+                            <input type="date" id="fechaAlta" value="2026-02-05" class="campo-critico" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="caja-info">
+                    <strong>Aviso de seguridad:</strong> Como 
+                    <span id="info-role-text">usuario</span>, solo puedes modificar tus datos de contacto. Los cambios en el rol o fecha de alta deben ser autorizados por un administrador.
+                </div>
+
+                <div class="acciones-formulario">
+                    <button type="button" class="btn-cancelar" onclick="window.location.href='index.html'">Descartar</button>
+                    <button type="submit" class="btn-registrar">Guardar Cambios</button>
+                </div>
+
+            </form>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // Corregido: Redirección de Logout al index local
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            if(confirm('¿Desea cerrar su sesión de edición?')) {
+                window.location.href = 'index.html';
+            }
+        });
+
+        const currentRole = 'recepcionista'; 
+        const badge = document.getElementById('role-badge');
+        const infoText = document.getElementById('info-role-text');
+        const camposCriticos = document.querySelectorAll('.campo-critico');
+
+        badge.textContent = `Rol: ${currentRole.charAt(0).toUpperCase() + currentRole.slice(1)}`;
+        infoText.textContent = currentRole;
+
+        if (currentRole === 'administrador') {
+            badge.style.backgroundColor = '#e0f2fe';
+            badge.style.color = '#0369a1';
+        } else {
+            camposCriticos.forEach(campo => {
+                campo.disabled = true;
+                campo.classList.add('input-locked');
+            });
+            badge.style.backgroundColor = '#edf2f7';
+            badge.style.color = '#718096';
+        }
+
+        // Corregido: Redirección después de guardar
+        document.getElementById('form-modificar-socio').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert("¡Cambios guardados exitosamente!");
+            window.location.href = 'index.html';
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="../js/auth-guard.js"></script>
+    <script>
+        // Solo permite entrar si el rol es 'recepcion'
+        protegerPagina(['recepcion', 'admin', 'gerente']); // Recepcion, admin y Gerente pueden acceder
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recepción | Club Social y Deportivo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="../css/homepage_recepcion.css">
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="logo-box">CS</div>
+            <div style="line-height: 1.2;">
+                <p style="font-weight: 800; font-size: 14px;">Club Social</p>
+                <p style="font-size: 10px; opacity: 0.6;">y Deportivo</p>
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <span class="nav-section-label">Navegación</span>
+            <a href="#" class="nav-item"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+            <a href="#" class="nav-item"><i data-lucide="users"></i> Socios</a>
+            <a href="#" class="nav-item active"><i data-lucide="clipboard-list"></i> Recepcion y Visitas</a>
+            <a href="#" class="nav-item"><i data-lucide="calendar"></i> Reservas</a>
+            <a href="#" class="nav-item"><i data-lucide="puzzle"></i> Ludoteca</a>
+            <a href="#" class="nav-item"><i data-lucide="dumbbell"></i> Disciplinas</a>
+            <a href="#" class="nav-item"><i data-lucide="shield-alert"></i> Sanciones</a>
+        </nav>
+
+        <div style="padding: 1.5rem; margin-top: auto; border-top: 1px solid #1e293b; display: flex; align-items: center; gap: 10px;">
+            <div style="width:32px; height:32px; background:#2dd4bf; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;">AM</div>
+            <div style="flex:1">
+                <p style="font-size: 12px; font-weight: 700;">Adriana Molina</p>
+                <p style="font-size: 10px; color: #64748b;">Admin</p>
+            </div>
+            <i data-lucide="chevron-down" size="14"></i>
+        </div>
+    </aside>
+
+    <main class="content">
+        <header class="page-header">
+            <h1>Recepcion y Visitas</h1>
+            <p>Registro de pases de un día y control de visitantes</p>
+        </header>
+
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <div class="icon-circle" style="background:#dcfce7; color:#22c55e;"><i data-lucide="user-check"></i></div>
+                <div><h3 style="font-size:22px;">3</h3><p style="font-size:11px; color:#64748b;">Visitas Activas</p></div>
+            </div>
+            <div class="kpi-card">
+                <div class="icon-circle" style="background:#f1f5f9; color:#64748b;"><i data-lucide="clock"></i></div>
+                <div><h3 style="font-size:22px;">1</h3><p style="font-size:11px; color:#64748b;">Finalizadas Hoy</p></div>
+            </div>
+            <div class="kpi-card">
+                <div class="icon-circle" style="background:#eff6ff; color:#3b82f6;"><i data-lucide="ticket"></i></div>
+                <div><h3 style="font-size:22px;">3</h3><p style="font-size:11px; color:#64748b;">Pases de un Día</p></div>
+            </div>
+            <div class="kpi-card">
+                <div class="icon-circle" style="background:#dcfce7; color:#22c55e;"><i data-lucide="users"></i></div>
+                <div><h3 style="font-size:22px;">1</h3><p style="font-size:11px; color:#64748b;">Invitados</p></div>
+            </div>
+        </section>
+
+        <div class="register-banner">
+            <div>
+                <h4 style="font-size:14px; font-weight:800;">Registro Rápido de Visitante</h4>
+                <p style="font-size:11px; color:#64748b;">Registra un nuevo pase de un día o invitado</p>
+            </div>
+            <button class="btn-green"><i data-lucide="plus"></i> Nuevo Pase</button>
+        </div>
+
+        <div class="data-table-container">
+            <div class="table-top">
+                <h4 style="font-size:15px; font-weight:800;">Registro de Visitas del Día</h4>
+                <input type="text" class="search-box" placeholder="Buscar visitante o socio...">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Visitante</th>
+                        <th>Socio Responsable</th>
+                        <th>Tipo</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Pedro Alvarez</strong></td>
+                        <td>Carlos Mendoza R.</td>
+                        <td><span class="badge bg-blue-light">Pase de Día</span></td>
+                        <td>09:30</td>
+                        <td>-- : --</td>
+                        <td><span class="badge bg-green-light">Vigente</span></td>
+                        <td><button class="btn-table-action">Registrar Salida</button></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Laura Jimenez</strong></td>
+                        <td>Ana Patricia Reyes F.</td>
+                        <td><span class="badge bg-green-light">Invitado</span></td>
+                        <td>10:15</td>
+                        <td>-- : --</td>
+                        <td><span class="badge bg-green-light">Vigente</span></td>
+                        <td><button class="btn-table-action">Registrar Salida</button></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ricardo Torres</strong></td>
+                        <td>Sofia Herrera C.</td>
+                        <td><span class="badge bg-blue-light">Pase de Día</span></td>
+                        <td>08:00</td>
+                        <td>12:30</td>
+                        <td><span class="badge bg-gray-light">Finalizada</span></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

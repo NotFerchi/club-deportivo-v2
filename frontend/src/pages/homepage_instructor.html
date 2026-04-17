@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="../js/auth-guard.js"></script>
+    <script>
+        // Solo permite entrar si el rol es 'instructor'
+        protegerPagina(['instructor', 'admin', 'gerente']); // Instructor, admin y Gerente pueden acceder
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda del Instructor | Club Deportivo</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link rel="stylesheet" href="../css/homepage_instructor.css">
+</head>
+<body>
+
+    <header class="header-instructor">
+        <div class="perfil-instructor-header">
+            <div class="avatar-instructor">AR</div>
+            <div class="instructor-text">
+                <h2 id="js-inst-nombre">Cargando...</h2>
+                <span id="js-inst-esp">Especialista</span>
+            </div>
+        </div>
+
+        <nav>
+            <ul class="nav-instructor-tabs">
+                <li><a href="#" class="tab-link active"><i data-lucide="calendar"></i> Agenda</a></li>
+                <li><a href="#" class="tab-link"><i data-lucide="users"></i> Visitas</a></li>
+                <li><a href="#" class="tab-link"><i data-lucide="trending-up"></i> Métricas</a></li>
+            </ul>
+        </nav>
+
+        <div class="header-utils">
+            <i data-lucide="bell"></i>
+            <i id="btn-logout" data-lucide="log-out" style="color: #ef4444; cursor: pointer;"></i>        </div>
+    </header>
+
+    <main class="main-agenda-container">
+        
+        <section class="agenda-header-title">
+            <h1>Agenda del Día</h1>
+            <p id="js-fecha-display"></p>
+        </section>
+
+        <section id="contenedor-sesiones">
+            
+            <article class="clase-card">
+                <div class="clase-info-primaria">
+                    <span class="horario-destacado">08:00 - 09:00</span>
+                    <div class="clase-detalles">
+                        <h3>Natación</h3>
+                        <p><i data-lucide="droplets" size="14"></i> Alberca 1</p>
+                    </div>
+                </div>
+                <div class="clase-metricas">
+                    <span class="badge-participantes">2 / 6 inscritos</span><br>
+                    <button class="btn-accion-lista" onclick="verLista('Natación')">Ver participantes</button>
+                </div>
+            </article>
+
+            <article class="clase-card">
+                <div class="clase-info-primaria">
+                    <span class="horario-destacado">10:00 - 11:00</span>
+                    <div class="clase-detalles">
+                        <h3>Tenis</h3>
+                        <p><i data-lucide="map-pin" size="14"></i> Cancha 2</p>
+                    </div>
+                </div>
+                <div class="clase-metricas">
+                    <span class="badge-participantes">0 / 6 inscritos</span><br>
+                    <button class="btn-accion-lista" onclick="verLista('Tenis')">Ver participantes</button>
+                </div>
+            </article>
+
+            <article class="clase-card">
+                <div class="clase-info-primaria">
+                    <span class="horario-destacado">12:00 - 13:00</span>
+                    <div class="clase-detalles">
+                        <h3>Pádel</h3>
+                        <p><i data-lucide="target" size="14"></i> Cancha Pádel A</p>
+                    </div>
+                </div>
+                <div class="clase-metricas">
+                    <span class="badge-participantes">4 / 6 inscritos</span><br>
+                    <button class="btn-accion-lista" onclick="verLista('Pádel')">Ver participantes</button>
+                </div>
+            </article>
+
+        </section>
+    </main>
+
+    <script>
+        // Si no hay token, se regresa al login
+        if (!localStorage.getItem('token')) {
+            window.location.href = '/login.html';
+        }
+
+        // Iniciar Iconos
+        lucide.createIcons();
+
+        /* --- VARIABLES DE CONTROL (JavaScript) --- */
+        
+        // Variable Objeto: Datos del instructor para poblar la UI
+        const sesionInstructor = {
+            nombre: "NOMBRE INSTRUCTOR FALTA PONER",
+            especialidad: "ESPECIALIDAD FALTA PONER"
+        };
+
+        // Variable Formato: Configuración regional de fecha
+        const localDateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+
+        // 1. Asignar datos al header
+        document.getElementById('js-inst-nombre').innerText = sesionInstructor.nombre;
+        document.getElementById('js-inst-esp').innerText = sesionInstructor.especialidad;
+
+        // 2. Generar fecha dinámica
+        document.getElementById('js-fecha-display').innerText = new Date().toLocaleDateString('es-ES', localDateOptions);
+
+        /**
+         * Función: verLista
+         * Simula la navegación a la lista de participantes solicitada en el ERS.
+         */
+        function verLista(nombreClase) {
+            alert(`Accediendo a la lista de participantes de: ${nombreClase}\n(Funcionalidad reservada para el Sprint 3)`);
+        }
+        // BOTON DE CERRAR SESIÓN
+        const btnLogout = document.getElementById('btn-logout');
+
+        if (btnLogout) {
+            btnLogout.addEventListener('click', () => {
+                // 1. Borramos los datos de la sesión del navegador
+                localStorage.removeItem('token');
+                localStorage.removeItem('usuario');
+                
+                // 2. Lo mandamos de regreso a la pantalla de login
+                window.location.href = '../pages/login.html'; 
+            });
+        }
+    </script>
+</body>
+</html>

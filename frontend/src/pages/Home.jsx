@@ -9,7 +9,7 @@ function Home() {
         <div className="container navbar">
           <Link to="/" className="logo">Club Deportivo</Link>
           <div className="header-actions">
-            <Link to="/login.html" className="cta-btn">Ingresar ↗</Link>
+            <Link to="/login" className="cta-btn">Ingresar ↗</Link>
           </div>
         </div>
       </header>

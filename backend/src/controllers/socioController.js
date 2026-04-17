@@ -2,7 +2,7 @@ const pool = require('../config/database');
 const { validarSocio } = require('./validacionSocios');
 const { validarCURP } = require('../utils/validacionCurp');
 // Importamos bcrypt para encriptar la contraseña antes de guardarla en usuarios
-const bcrypt = require('bcrypt'); 
+const bcrypt = require('bcryptjs'); 
 
 const crearSocio = async (req, res) => {
     // Recibimos los campos con los nombres exactos que manda el frontend

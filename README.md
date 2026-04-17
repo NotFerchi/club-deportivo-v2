@@ -5,3 +5,6 @@ COMANDOS QUE DEBES CORRER PARA REACT Y NUEVO BCRYPT
 * npm install react react-dom
 * npm install -D vite @vitejs/plugin-react
 * npm run dev
+
+* EXTRAS
+* npm install lucide-react

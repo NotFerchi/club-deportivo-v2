@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="../js/auth-guard.js"></script>
+    <script>
+        // Solo permite entrar si el rol es 'coordinador'
+        protegerPagina(['coordinador', 'admin', 'gerente']); // Coordinador, admin y Gerente pueden acceder
+    </script>
+    <meta charset="UTF-8">
+    <title>Disciplinas e Instructores | ERS 4.6.19</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="../css/Homepage_coordinador.css">
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="logo-section">
+            <div class="logo-box"></div>
+            <div style="line-height: 1.1;">
+                <p style="font-weight: 800; font-size: 14px;">Club Social</p>
+                <p style="font-size: 10px; opacity: 0.6;">y Deportivo</p>
+            </div>
+        </div>
+
+        <nav style="flex: 1;">
+            <p style="padding: 0 1.5rem; font-size: 10px; color: #475569; font-weight: 700; margin-bottom: 1rem;">NAVEGACIÓN</p>
+            <a href="#" class="nav-link"><i data-lucide="layout-dashboard" size="18"></i> Dashboard</a>
+            <a href="#" class="nav-link"><i data-lucide="users" size="18"></i> Socios</a>
+            <a href="#" class="nav-link"><i data-lucide="clipboard-list" size="18"></i> Recepción y Visitas</a>
+            <a href="#" class="nav-link"><i data-lucide="calendar" size="18"></i> Reservas</a>
+            <a href="#" class="nav-link"><i data-lucide="puzzle" size="18"></i> Ludoteca</a>
+            <a href="#" class="nav-link active"><i data-lucide="dumbbell" size="18"></i> Disciplinas</a>
+            <a href="#" class="nav-link"><i data-lucide="shield-alert" size="18"></i> Sanciones <span class="notif-badge">3</span></a>
+        </nav>
+
+        <div class="profile-bottom">
+            <div class="avatar-circle">AM</div>
+            <div style="flex:1">
+                <p style="font-size: 12px; font-weight: 700;">Adriana Molina</p>
+                <p style="font-size: 10px; color: #64748b;">Admin</p>
+            </div>
+            <i data-lucide="chevron-down" size="14"></i>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header-row">
+            <div>
+                <h2 style="font-size: 20px; font-weight: 800;">Disciplinas e Instructores</h2>
+                <p style="font-size: 12px; color: #64748b;">Programación de sesiones, cupos y asignación de espacios</p>
+            </div>
+            <button class="btn-nueva" onclick="openModal()">+ Nueva Sesión</button>
+        </header>
+
+        <div class="tab-nav">
+            <button id="t-disc" class="tab-btn active" onclick="switchTab('disciplinas')">Disciplinas</button>
+            <button id="t-inst" class="tab-btn" onclick="switchTab('instructores')">Instructores</button>
+        </div>
+
+        <section id="view-disciplinas" class="disciplines-grid">
+            <div class="card"><span class="card-status" style="color:var(--status-orange)">Casi lleno</span><h3>Yoga Matutino</h3><div class="card-info"><i data-lucide="user" size="14"></i> Gabriela Flores</div><div class="card-info"><i data-lucide="clock" size="14"></i> 07:00 - 08:00</div><div class="card-info"><i data-lucide="calendar" size="14"></i> Lun, Mie, Vie</div><div class="progress-group"><p style="font-size:11px; font-weight:700;">Cupo 22/25</p><div class="progress-bg"><div class="progress-fill" style="width: 88%;"></div></div></div></div>
+            <div class="card"><span class="card-status" style="color:var(--status-orange)">Casi lleno</span><h3>Pilates</h3><div class="card-info"><i data-lucide="user" size="14"></i> Gabriela Flores</div><div class="card-info"><i data-lucide="clock" size="14"></i> 09:00 - 10:00</div><div class="card-info"><i data-lucide="calendar" size="14"></i> Mar, Jue</div><div class="progress-group"><p style="font-size:11px; font-weight:700;">Cupo 18/20</p><div class="progress-bg"><div class="progress-fill" style="width: 90%;"></div></div></div></div>
+            <div class="card"><span class="card-status" style="color:var(--status-orange)">Casi lleno</span><h3>Natacion Adultos</h3><div class="card-info"><i data-lucide="user" size="14"></i> David Guerrero</div><div class="card-info"><i data-lucide="clock" size="14"></i> 06:00 - 07:00</div><div class="card-info"><i data-lucide="calendar" size="14"></i> Lun a Vie</div><div class="progress-group"><p style="font-size:11px; font-weight:700;">Cupo 12/15</p><div class="progress-bg"><div class="progress-fill" style="width: 80%;"></div></div></div></div>
+            <div class="card"><span class="card-status" style="color:var(--status-red)">Lleno</span><h3>Spinning</h3><div class="card-info"><i data-lucide="user" size="14"></i> Monica Salazar</div><div class="card-info"><i data-lucide="clock" size="14"></i> 18:00 - 19:00</div><div class="card-info"><i data-lucide="calendar" size="14"></i> Lun a Vie</div><div class="progress-group"><p style="font-size:11px; font-weight:700;">Cupo 20/20</p><div class="progress-bg"><div class="progress-fill" style="width: 100%; background:var(--status-red);"></div></div></div></div>
+            <div class="card"><span class="card-status" style="color:var(--status-green)">Disponible</span><h3>Tenis Avanzado</h3><div class="card-info"><i data-lucide="user" size="14"></i> Alejandro Ruiz</div><div class="card-info"><i data-lucide="clock" size="14"></i> 16:00 - 17:00</div><div class="card-info"><i data-lucide="calendar" size="14"></i> Mar, Jue, Sab</div><div class="progress-group"><p style="font-size:11px; font-weight:700;">Cupo 6/8</p><div class="progress-bg"><div class="progress-fill" style="width: 75%;"></div></div></div></div>
+            <div class="card"><span class="card-status" style="color:var(--status-orange)">Casi lleno</span><h3>Funcional</h3><div class="card-info"><i data-lucide="user" size="14"></i> Monica Salazar</div><div class="card-info"><i data-lucide="clock" size="14"></i> 07:00 - 08:00</div><div class="card-info"><i data-lucide="calendar" size="14"></i> Mar, Jue, Sab</div><div class="progress-group"><p style="font-size:11px; font-weight:700;">Cupo 27/30</p><div class="progress-bg"><div class="progress-fill" style="width: 90%;"></div></div></div></div>
+        </section>
+
+        <section id="view-instructores" class="table-card" style="display: none;">
+            <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 1.5rem;">Directorio de Instructores (5)</h4>
+            <table class="table-inst">
+                <thead><tr><th>Instructor</th><th>Especialidades</th><th>Contacto</th><th>Estado</th></tr></thead>
+                <tbody>
+                    <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-circle" style="background:#e2e8f0;color:#475569;">AR</div> Alejandro Ruiz</div></td><td><span class="spec-badge">Padel</span><span class="spec-badge">Tenis</span></td><td>55-1111-2222<br><small>a.ruiz@club.com</small></td><td><span style="color:var(--status-green);font-weight:700;">Activo</span></td></tr>
+                    <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-circle" style="background:#e2e8f0;color:#475569;">GF</div> Gabriela Flores</div></td><td><span class="spec-badge">Yoga</span><span class="spec-badge">Pilates</span></td><td>55-3333-4444<br><small>g.flores@club.com</small></td><td><span style="color:var(--status-green);font-weight:700;">Activo</span></td></tr>
+                    <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-circle" style="background:#e2e8f0;color:#475569;">DG</div> David Guerrero</div></td><td><span class="spec-badge">Natación</span></td><td>55-5555-6666<br><small>d.guerrero@club.com</small></td><td><span style="color:var(--status-green);font-weight:700;">Activo</span></td></tr>
+                    <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-circle" style="background:#e2e8f0;color:#475569;">MS</div> Monica Salazar</div></td><td><span class="spec-badge">Spinning</span><span class="spec-badge">Funcional</span></td><td>55-7777-8888<br><small>m.salazar@club.com</small></td><td><span style="color:var(--status-green);font-weight:700;">Activo</span></td></tr>
+                    <tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-circle" style="background:#e2e8f0;color:#475569;">RD</div> Raul Dominguez</div></td><td><span class="spec-badge">Box</span><span class="spec-badge">Defensa Personal</span></td><td>55-9999-0000<br><small>r.dominguez@club.com</small></td><td><span style="color:var(--text-muted);font-weight:700;">Inactivo</span></td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <div id="modal-sesion" class="modal-overlay">
+        <div class="modal-card">
+            <h3 style="margin-bottom: 1.5rem; font-weight: 800;">Registrar Nueva Sesión</h3>
+            <form id="form-new">
+                <div class="form-field"><label>Disciplina</label><input type="text" id="m-name" required placeholder="Ej. Boxeo"></div>
+                <div class="form-field"><label>Instructor</label><input type="text" id="m-profe" required placeholder="Nombre del profesor"></div>
+                <div style="display: flex; gap: 10px;"><div class="form-field" style="flex:1;"><label>Horario</label><input type="text" id="m-time" required placeholder="10:00 - 11:30"></div><div class="form-field" style="flex:1;"><label>Cupo</label><input type="number" id="m-cupo" required placeholder="20"></div></div>
+                <div class="form-field"><label>Días de la semana</label><input type="text" id="m-days" required placeholder="Mar, Jue"></div>
+                <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                    <button type="button" onclick="closeModal()" style="flex:1; padding:10px; border-radius:8px; border:1px solid #ccc; cursor:pointer;">Cancelar</button>
+                    <button type="submit" style="flex:1; padding:10px; border-radius:8px; background:#0f172a; color:white; border:none; cursor:pointer; font-weight:700;">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        function switchTab(view) {
+            document.getElementById('view-disciplinas').style.display = (view === 'disciplinas' ? 'grid' : 'none');
+            document.getElementById('view-instructores').style.display = (view === 'instructores' ? 'block' : 'none');
+            document.getElementById('t-disc').classList.toggle('active', view === 'disciplinas');
+            document.getElementById('t-inst').classList.toggle('active', view === 'instructores');
+        }
+        function openModal() { document.getElementById('modal-sesion').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal-sesion').style.display = 'none'; }
+
+        document.getElementById('form-new').onsubmit = function(e) {
+            e.preventDefault();
+            const n = document.getElementById('m-name').value;
+            const p = document.getElementById('m-profe').value;
+            const t = document.getElementById('m-time').value;
+            const c = document.getElementById('m-cupo').value;
+            const d = document.getElementById('m-days').value;
+
+            const cardHtml = `
+                <div class="card">
+                    <span class="card-status" style="color: var(--status-green);">Disponible</span>
+                    <h3>${n}</h3>
+                    <div class="card-info"><i data-lucide="user" size="14"></i> ${p}</div>
+                    <div class="card-info"><i data-lucide="clock" size="14"></i> ${t}</div>
+                    <div class="card-info"><i data-lucide="calendar" size="14"></i> ${d}</div>
+                    <div class="progress-group"><p style="font-size: 11px; font-weight: 700;">Cupo 0/${c}</p><div class="progress-bg"><div class="progress-fill" style="width: 0%;"></div></div></div>
+                </div>`;
+            document.getElementById('view-disciplinas').insertAdjacentHTML('beforeend', cardHtml);
+            lucide.createIcons();
+            this.reset();
+            closeModal();
+            alert('¡Sesión guardada y reflejada!');
+        };
+    </script>
+</body>
+</html>

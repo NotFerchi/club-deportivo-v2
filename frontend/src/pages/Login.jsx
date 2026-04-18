@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import '../../css/login.css';
 
 const rutasPorRol = {
-  gerente: '/homepage-gerente',
-  admin: '/homepage-gerente',
-  coordinador: 'homepage_coordinador.html',
-  instructor: 'homepage_instructor.html',
-  recepcion: 'homepage_recepcion.html',
-  socio: 'homepage_socio.html'
+  gerente: '/dashboard-gerente',
+  admin: '/dashboard-admin',
+  coordinador: '/dashboard-coordinador',
+  instructor: '/dashboard-instructor',
+  recepcion: '/dashboard-recepcion',
+  socio: '/dashboard-socio'
 };
 
 const ShieldIcon = () => (

@@ -13,9 +13,10 @@ import {
   CalendarDays,
   User,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  LogOut
 } from 'lucide-react'
-import './Dashboard.css'
+import '../../../css/Dashboard.css'
 
 function Dashboard() {
   const navigate = useNavigate()
@@ -38,6 +39,13 @@ function Dashboard() {
     document.title = 'Dashboard Ejecutivo | Club Social y Deportivo'
   }, [])
 
+  const handleLogout = (e) => {
+    e.preventDefault()
+    localStorage.removeItem('token')
+    localStorage.removeItem('usuario')
+    navigate('/')
+  }
+
   return (
     <div className="dashboard-root">
       <aside className="sidebar">
@@ -56,6 +64,18 @@ function Dashboard() {
           <a href="/disciplinas" className="nav-link"><Dumbbell className="nav-icon" /> Disciplinas</a>
           <a href="/sanciones" className="nav-link"><ShieldAlert className="nav-icon" /> Sanciones</a>
         </nav>
+
+        {/* Cerrar Sesión - FUERA del nav pero dentro del sidebar */}
+        <div style={{ marginTop: 'auto', padding: '1rem' }}>
+          <a 
+            href="#" 
+            className="nav-link" 
+            onClick={handleLogout}
+            style={{ color: '#ef4444' }}
+          >
+            <LogOut className="nav-icon" /> Cerrar Sesión
+          </a>
+        </div>
       </aside>
 
       <main className="main-content">

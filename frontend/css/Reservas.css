@@ -1,0 +1,388 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --rs-navy: #0f2146;
+    --rs-cyan: #06b6d4;
+    --rs-bg: #f8faff;
+    --rs-white: #ffffff;
+    --rs-text: #1e293b;
+    --rs-text-light: #64748b;
+    --rs-border: #eef2f6;
+    --rs-success: #22c55e;
+    --rs-danger: #ef4444;
+    --rs-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* --- RESET & SCROLL FIX --- */
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--rs-bg);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--rs-text);
+    overflow-y: auto !important; /* Aseguramos scroll */
+}
+
+.rs-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- TOP BAR (Sticky) --- */
+.rs-top-bar {
+    background: var(--rs-white);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--rs-border);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.rs-container-fluid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.rs-brand-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--rs-navy);
+    margin: 0;
+}
+
+/* --- USER ACTIONS & DROPDOWN --- */
+.rs-user-actions { display: flex; align-items: center; gap: 1rem; }
+
+.rs-notif-badge-btn {
+    background: #f1f5f9;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    color: var(--rs-navy);
+}
+
+.notification-ping {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 7px;
+    height: 7px;
+    background: var(--rs-danger);
+    border-radius: 50%;
+    border: 1.5px solid white;
+}
+
+.rs-avatar-circle {
+    width: 34px;
+    height: 34px;
+    background: var(--rs-navy);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.7rem;
+}
+
+/* --- MAIN CONTENT AREA --- */
+.rs-body {
+    flex: 1;
+    padding: 1.5rem 1rem 6rem 1rem; /* El padding-bottom de 6rem es para que el Nav de abajo no tape nada */
+}
+
+.rs-content-wrapper { max-width: 1000px; margin: 0 auto; }
+
+/* Welcome Card Mobile-First */
+.rs-welcome-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 20px;
+    box-shadow: var(--rs-shadow);
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.rs-title-serif { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--rs-navy); margin: 0; }
+.rs-subtitle { color: var(--rs-text-light); font-size: 0.8rem; margin: 0.5rem 0 0; }
+.tag-category { display: inline-block; margin-top: 1rem; font-size: 0.7rem; font-weight: 700; color: var(--rs-cyan); }
+
+/* --- GRILLA DE CANCHAS (2 COLUMNAS EN MÓVIL) --- */
+.section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; color: var(--rs-navy); }
+.section-header h3 { font-size: 0.9rem; margin: 0; font-weight: 800; }
+
+.rs-espacios-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.rs-espacio-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid var(--rs-border);
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.rs-espacio-card.active { border: 2px solid var(--rs-cyan); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.1); }
+
+.espacio-img {
+    height: 80px;
+    background: #f8fafc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.5rem;
+}
+
+.espacio-img img { max-height: 50px; object-fit: contain; }
+
+.espacio-info { padding: 0.75rem; text-align: center; }
+.espacio-info h4 { margin: 0; font-size: 0.8rem; font-weight: 700; }
+.espacio-info p { margin: 2px 0 0; font-size: 0.7rem; color: var(--rs-text-light); }
+
+/* --- BOOKING CONTAINER (VERTICAL EN MÓVIL) --- */
+.rs-booking-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.rs-calendar-wrapper, .rs-time-slots-wrapper {
+    background: white;
+    padding: 1rem;
+    border-radius: 20px;
+    box-shadow: var(--rs-shadow);
+}
+
+.rs-calendar-wrapper h4, .rs-time-slots-wrapper h4 { font-size: 0.85rem; margin-bottom: 1rem; color: var(--rs-navy); }
+
+/* Calendar Library Override */
+.react-calendar {
+    width: 100% !important;
+    border: none !important;
+    font-family: inherit !important;
+}
+
+.react-calendar__tile--active { background: var(--rs-navy) !important; border-radius: 8px; }
+
+/* Slots Grid 2 col en móvil */
+.rs-slots-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.rs-slot-btn {
+    padding: 0.75rem;
+    border-radius: 10px;
+    border: 1px solid var(--rs-border);
+    background: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.rs-slot-btn.active { background: var(--rs-navy); color: white; border-color: var(--rs-navy); }
+
+/* --- NAV TABS (estilos alineados con DashboardSocio) --- */
+.rs-nav-tabs {
+    background: var(--rs-white);
+    width: 100%;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px solid var(--rs-border);
+    transition: all 0.3s ease;
+}
+
+.rs-tabs-container {
+    width: 100%;
+    max-width: 1200px; /* En PC se alinea al contenido */
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0.5rem 1rem;
+}
+
+.rs-tab-item {
+    text-decoration: none;
+    color: var(--rs-text-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.rs-tab-item.active {
+    background: var(--rs-navy);
+    color: var(--rs-white) !important;
+    box-shadow: 0 4px 12px rgba(15, 33, 70, 0.15);
+}
+
+.rs-tab-item span { display: none; }
+/* --- MODAL --- */
+.rs-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 33, 70, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: flex-end; /* En móvil sale de abajo */
+    z-index: 3000;
+}
+
+.rs-modal {
+    background: white;
+    width: 100%;
+    border-radius: 25px 25px 0 0;
+    padding: 1.5rem;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.rs-book-btn {
+    width: 100%;
+    background: var(--rs-navy);
+    color: white;
+    padding: 1rem;
+    border-radius: 12px;
+    font-weight: 800;
+    border: none;
+    margin-top: 1rem;
+}
+
+/* --- MEDIA QUERY PARA PC (DESKTOP) --- */
+@media (min-width: 768px) {
+    .rs-top-bar { padding: 0.75rem 2rem; }
+    .rs-brand-logo { font-size: 1.25rem; }
+
+    /* Nav Tabs arriba en PC */
+    .rs-nav-tabs {
+        position: sticky;
+        top: 60px; /* Justo debajo del top-bar */
+        border-bottom: 1px solid var(--rs-border);
+        height: 65px;
+    }
+
+    .rs-tabs-container {
+        justify-content: center;
+        gap: 3rem; /* Espaciado elegante en pantallas grandes */
+    }
+
+    .rs-tab-item:hover:not(.active) {
+        background-color: #f1f5f9;
+        color: var(--rs-navy);
+    }
+
+    .rs-tab-item {
+        flex-direction: row;
+        font-size: 0.85rem;
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+    }
+
+    /* Mostrar texto de las pestañas en desktop */
+    .rs-tab-item span { display: inline-block; }
+
+    .rs-tab-item.active { background: var(--rs-navy); color: white; }
+
+    .rs-body { padding: 2rem 1rem; }
+
+    .rs-welcome-card {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: left;
+        padding: 2.5rem;
+    }
+
+    .rs-title-serif { font-size: 1.75rem; }
+
+    .rs-espacios-grid { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+    .espacio-img { height: 120px; }
+    .espacio-img img { max-height: 80px; }
+
+    .rs-booking-container {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 2rem;
+    }
+
+    .rs-modal-overlay { align-items: center; }
+    .rs-modal { border-radius: 20px; max-width: 450px; }
+    
+    .rs-book-btn { width: auto; padding: 0.75rem 2.5rem; }
+}
+/* --- COMPORTAMIENTO MOBILE-FIRST (ABAJO) --- */
+@media (max-width: 768px) {
+    .ds-brand-logo { font-size: 1rem; }
+    .ds-user-text, .tab-text { display: none; }
+    
+    .ds-nav-tabs { position: fixed; bottom: 0; left: 0; width: 100%; border-top: 1px solid var(--ds-border); z-index: 1000; padding: 0.75rem 0; }
+    .ds-tabs-container { max-width: 100%; }
+    
+    .ds-body { padding-bottom: 5rem; }
+    .ds-welcome-card { flex-direction: column; text-align: center; gap: 1.5rem; }
+    .ds-grid-kpi { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+}
+/* --- MOBILE: fija la nav abajo y oculta textos (solo iconos) --- */
+@media (max-width: 768px) {
+    .rs-nav-tabs {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        border-top: 1px solid var(--rs-border);
+        z-index: 1000;
+        padding: 0.5rem 0;
+        background: var(--rs-white);
+    }
+
+    .rs-tabs-container {
+        max-width: 100%;
+        display: flex;
+        justify-content: space-around;
+        padding: 0 0.5rem;
+        gap: 0.5rem;
+    }
+
+    .rs-tab-item {
+        width: 54px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        font-size: 0.9rem;
+        gap: 0;
+        padding: 0;
+    }
+
+    .rs-tab-item span { display: none; }
+
+    .rs-tab-item.active {
+        background-color: var(--rs-navy);
+        color: var(--rs-white) !important;
+        box-shadow: 0 4px 12px rgba(15, 33, 70, 0.12);
+    }
+
+    /* Asegurar que el body tenga espacio inferior para la nav fija */
+    .rs-body { padding-bottom: 5.5rem; }
+}

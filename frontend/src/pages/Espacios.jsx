@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import CardEspacio from ''; //Poner ruta correcta del componente CardEspacio.jsx
+import CardEspacio from '../components/CardEspacio'
 
 const Espacios = () => {
 

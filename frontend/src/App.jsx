@@ -9,6 +9,9 @@ import DashboardInstructor from './pages/dashboards/DashboardInstructor'
 import DashboardRecepcion from './pages/dashboards/DashboardRecepcion'
 import DashboardSocio from './pages/dashboards/DashboardSocio'
 
+import Reservas from './pages/dashboards/socio/Reservas'
+import Espacios from './pages/Espacios'
+
 function App() {
   return (
     <BrowserRouter>
@@ -21,6 +24,9 @@ function App() {
         <Route path="/dashboard-instructor" element={<DashboardInstructor />} />
         <Route path="/dashboard-recepcion" element={<DashboardRecepcion />} />
         <Route path="/dashboard-socio" element={<DashboardSocio />} />
+                {/* 2. AGREGA LA RUTA PARA ESPACIOS */}
+        <Route path="/espacios" element={<Espacios />} />
+        <Route path="/reservas" element={<Reservas />} />
       </Routes>
     </BrowserRouter>
   )

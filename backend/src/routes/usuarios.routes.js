@@ -1,24 +1,19 @@
 const express = require('express');
 const router = express.Router();
-
-// Importamos todas las funciones (la que tenías + las 3 nuevas)
-const { 
-    crearUsuario,
-    listarUsuarios, 
-    actualizarUsuario, 
-    cambiarEstadoUsuario 
-} = require('../controllers/usuarios.controller');
-
+const usuariosController = require('../controllers/usuariosController');
 const { verifyToken, checkRole } = require('../middleware/auth.middleware');
 
-// Blindaje global: Todo lo que esté debajo de estas líneas exige token y rol admin
+// Todas las rutas requieren autenticación
 router.use(verifyToken);
-router.use(checkRole(['admin', 'gerente'])); // Solo admin e gerente pueden gestionar usuarios internos
 
-// Tus rutas limpias y protegidas
-router.post('/', crearUsuario);
-router.get('/', listarUsuarios);
-router.put('/:id', actualizarUsuario);
-router.patch('/:id/estado', cambiarEstadoUsuario);
+// Solo admin y gerente pueden gestionar usuarios
+router.use(checkRole(['admin', 'gerente']));
+
+router.get('/', usuariosController.getUsuarios);
+router.get('/roles', usuariosController.getRoles);
+router.get('/:id', usuariosController.getUsuarioById);
+router.post('/', usuariosController.createUsuario);
+router.put('/:id', usuariosController.updateUsuario);
+router.delete('/:id', usuariosController.deleteUsuario);
 
 module.exports = router;

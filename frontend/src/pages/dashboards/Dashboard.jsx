@@ -20,16 +20,37 @@ import {
 } from 'lucide-react';
 import '../../../css/Dashboard.css';
 
-// Importar componentes de las nuevas pestañas
+// Importar componentes
+import GestionSocios from './admin/GestionSocios';
+import RecepcionVisitas from './admin/RecepcionVisitas';
+import Reservas from './admin/Reservas';
+import Disciplinas from './admin/Disciplinas';
+import Ludoteca from './admin/Ludoteca';
+import Sanciones from './admin/Sanciones';
 import GestionUsuarios from './admin/GestionUsuarios';
 import ConfiguracionEspacios from './admin/ConfiguracionEspacios';
 import AuditoriaLogs from './admin/AuditoriaLogs';
-import ReporteSanciones from './admin/ReporteSanciones';
 
 function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userName, setUserName] = useState('');
+  
+  // Estados para los KPIs
+  const [kpis, setKpis] = useState({
+    totalSocios: 0,
+    accionistas: 0,
+    rentistas: 0,
+    reservasHoy: 0,
+    sancionesActivas: 0,
+    visitasHoy: 0,
+    ludotecaActivos: 0,
+    ocupacionPromedio: 0,
+    noShowsMes: 0
+  });
+  
+  const [reservasRecientes, setReservasRecientes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -47,7 +68,43 @@ function Dashboard() {
     }
     
     setUserName(usuario.nombres || 'Administrador');
+    fetchDashboardData();
   }, [navigate]);
+
+  const fetchDashboardData = async () => {
+    const token = localStorage.getItem('token');
+    
+    try {
+      // Obtener socios
+      const sociosRes = await fetch('http://localhost:3000/api/socios', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const socios = await sociosRes.json();
+      
+      const sociosActivos = Array.isArray(socios) ? socios.filter(s => s.activo === true || s.activo === 'true') : [];
+      const accionistas = sociosActivos.filter(s => s.tipo === 'Accionista');
+      const rentistas = sociosActivos.filter(s => s.tipo === 'Rentista');
+      
+      setKpis({
+        totalSocios: sociosActivos.length,
+        accionistas: accionistas.length,
+        rentistas: rentistas.length,
+        reservasHoy: 0,
+        sancionesActivas: 0,
+        visitasHoy: 0,
+        ludotecaActivos: 0,
+        ocupacionPromedio: 65,
+        noShowsMes: 8
+      });
+      
+      setReservasRecientes([]);
+      
+    } catch (error) {
+      console.error('Error cargando dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     document.title = 'Dashboard Ejecutivo | Club Social y Deportivo';
@@ -60,6 +117,16 @@ function Dashboard() {
   };
 
   const getNavClass = (tab) => `nav-link ${activeTab === tab ? 'active' : ''}`;
+
+  if (loading) {
+    return (
+      <div className="dashboard-root">
+        <div className="chart-box" style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Cargando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-root">
@@ -101,7 +168,7 @@ function Dashboard() {
             <ShieldAlert className="nav-icon" /> Sanciones
           </button>
 
-          {/* Nuevas opciones para Admin/Gerente */}
+          {/* Administración */}
           <span className="nav-section-label" style={{ marginTop: '1rem' }}>ADMINISTRACIÓN</span>
           
           <button onClick={() => setActiveTab('usuarios')} className={getNavClass('usuarios')}>
@@ -109,15 +176,11 @@ function Dashboard() {
           </button>
           
           <button onClick={() => setActiveTab('espacios')} className={getNavClass('espacios')}>
-            <Settings className="nav-icon" /> Configuración
+            <Settings className="nav-icon" /> Configuración de espacios
           </button>
           
           <button onClick={() => setActiveTab('logs')} className={getNavClass('logs')}>
             <FileText className="nav-icon" /> Auditoría
-          </button>
-          
-          <button onClick={() => setActiveTab('reporte-sanciones')} className={getNavClass('reporte-sanciones')}>
-            <AlertTriangle className="nav-icon" /> Reporte Sanciones
           </button>
         </nav>
 
@@ -133,32 +196,47 @@ function Dashboard() {
         <header className="page-header">
           <div>
             <h2>Dashboard Ejecutivo</h2>
-            <p>Vista general del club - {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p>Bienvenido, {userName} - {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
           <Link to="/" className="back-link">Volver al inicio</Link>
         </header>
 
-        {/* Dashboard Principal (KPIs y gráficas) */}
+        {/* Dashboard Principal */}
         {activeTab === 'dashboard' && (
           <>
             <section className="top-kpi-grid">
-              <div className="kpi-card"><Users className="kpi-icon" /><div><h3>1,247</h3><p>Total Socios</p></div></div>
-              <div className="kpi-card"><UserCheck className="kpi-icon green" /><div><h3>834</h3><p>Accionistas</p></div></div>
-              <div className="kpi-card"><UserPlus className="kpi-icon blue" /><div><h3>413</h3><p>Rentistas</p></div></div>
-              <div className="kpi-card"><CalendarDays className="kpi-icon amber" /><div><h3>86</h3><p>Reservas Hoy</p></div></div>
-              <div className="kpi-card"><ShieldAlert className="kpi-icon red" /><div><h3>14</h3><p>Sanciones Activas</p></div></div>
+              <div className="kpi-card">
+                <Users className="kpi-icon" />
+                <div><h3>{kpis.totalSocios}</h3><p>Total Socios</p></div>
+              </div>
+              <div className="kpi-card">
+                <UserCheck className="kpi-icon green" />
+                <div><h3>{kpis.accionistas}</h3><p>Accionistas</p></div>
+              </div>
+              <div className="kpi-card">
+                <UserPlus className="kpi-icon blue" />
+                <div><h3>{kpis.rentistas}</h3><p>Rentistas</p></div>
+              </div>
+              <div className="kpi-card">
+                <CalendarDays className="kpi-icon amber" />
+                <div><h3>{kpis.reservasHoy}</h3><p>Reservas Hoy</p></div>
+              </div>
+              <div className="kpi-card">
+                <ShieldAlert className="kpi-icon red" />
+                <div><h3>{kpis.sancionesActivas}</h3><p>Sanciones Activas</p></div>
+              </div>
             </section>
 
             <section className="charts-row">
               <div className="chart-box">
                 <h4>Ocupación por Hora</h4>
-                <p>Porcentaje de uso de instalaciones hoy</p>
-                <div className="placeholder-visual">📊 Gráfico de Líneas (Próximamente)</div>
+                <p>Porcentaje de uso de instalaciones hoy: {kpis.ocupacionPromedio}%</p>
+                <div className="placeholder-visual">📊 Gráfico de Ocupación (Próximamente)</div>
               </div>
               <div className="chart-box">
                 <h4>Composición de Socios</h4>
                 <p>Accionistas vs Rentistas</p>
-                <div className="placeholder-visual">🥧 Gráfico Donut (Próximamente)</div>
+                <div className="placeholder-visual">🥧 Accionistas: {kpis.accionistas} | Rentistas: {kpis.rentistas}</div>
               </div>
             </section>
 
@@ -166,83 +244,43 @@ function Dashboard() {
               <div className="chart-box">
                 <h4>Resumen del Día</h4>
                 <div className="summary-grid">
-                  <div className="mini-card"><User className="mini-icon" /><div><p>23</p><p>Visitas hoy</p></div></div>
-                  <div className="mini-card"><Puzzle className="mini-icon" /><div><p>8</p><p>Ludoteca activos</p></div></div>
-                  <div className="mini-card"><TrendingUp className="mini-icon" /><div><p>71%</p><p>Ocupación prom.</p></div></div>
-                  <div className="mini-card"><AlertTriangle className="mini-icon" /><div><p>14</p><p>No-Shows mes</p></div></div>
+                  <div className="mini-card"><User className="mini-icon" /><div><p>{kpis.visitasHoy}</p><p>Visitas hoy</p></div></div>
+                  <div className="mini-card"><Puzzle className="mini-icon" /><div><p>{kpis.ludotecaActivos}</p><p>Ludoteca activos</p></div></div>
+                  <div className="mini-card"><TrendingUp className="mini-icon" /><div><p>{kpis.ocupacionPromedio}%</p><p>Ocupación prom.</p></div></div>
+                  <div className="mini-card"><AlertTriangle className="mini-icon" /><div><p>{kpis.noShowsMes}</p><p>No-Shows mes</p></div></div>
                 </div>
               </div>
               <div className="chart-box">
                 <h4>Reservas Recientes</h4>
-                <ul className="reservation-list">
-                  <li className="res-item"><div><p className="reservation-name">Carlos Mendoza R.</p><p className="reservation-detail">Cancha Tenis 1 - 08:00 a 09:30</p></div><span className="badge confirmada">Confirmada</span></li>
-                  <li className="res-item"><div><p className="reservation-name">Ana Patricia Reyes F.</p><p className="reservation-detail">Cancha Pádel 1 - 10:00 a 11:00</p></div><span className="badge pendiente">Pendiente</span></li>
-                  <li className="res-item"><div><p className="reservation-name">Jorge Vargas L.</p><p className="reservation-detail">Alberca Olímpica - 07:00 a 08:00</p></div><span className="badge confirmada">Confirmada</span></li>
-                </ul>
+                {reservasRecientes.length === 0 ? (
+                  <p style={{ textAlign: 'center', padding: '1rem' }}>No hay reservas recientes</p>
+                ) : (
+                  <ul className="reservation-list">
+                    {reservasRecientes.map((reserva, idx) => (
+                      <li key={idx} className="res-item">
+                        <div>
+                          <p className="reservation-name">Reserva #{reserva.reserva_id}</p>
+                          <p className="reservation-detail">Espacio - Hora</p>
+                        </div>
+                        <span className="badge confirmada">Confirmada</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </section>
           </>
         )}
-
-        {/* Socios - Pendiente de implementar */}
-        {activeTab === 'socios' && (
-          <div className="chart-box">
-            <h4>Gestión de Socios</h4>
-            <p className="empty-message">Próximamente: Módulo completo de gestión de socios</p>
-          </div>
-        )}
-
-        {/* Recepción y Visitas - Pendiente de implementar */}
-        {activeTab === 'recepcion' && (
-          <div className="chart-box">
-            <h4>Recepción y Visitas</h4>
-            <p className="empty-message">Próximamente: Control de visitas y pases de un día</p>
-          </div>
-        )}
-
-        {/* Reservas - Pendiente de implementar */}
-        {activeTab === 'reservas' && (
-          <div className="chart-box">
-            <h4>Central de Reservas</h4>
-            <p className="empty-message">Próximamente: Mapa de canchas y disponibilidad</p>
-          </div>
-        )}
-
-        {/* Ludoteca - Pendiente de implementar */}
-        {activeTab === 'ludoteca' && (
-          <div className="chart-box">
-            <h4>Control de Ludoteca</h4>
-            <p className="empty-message">Próximamente: Registro de entrada/salida de niños</p>
-          </div>
-        )}
-
-        {/* Disciplinas - Pendiente de implementar */}
-        {activeTab === 'disciplinas' && (
-          <div className="chart-box">
-            <h4>Disciplinas Deportivas</h4>
-            <p className="empty-message">Próximamente: Configuración de disciplinas y horarios</p>
-          </div>
-        )}
-
-        {/* Sanciones - Pendiente de implementar */}
-        {activeTab === 'sanciones' && (
-          <div className="chart-box">
-            <h4>Gestión de Sanciones</h4>
-            <p className="empty-message">Próximamente: Listado de socios sancionados</p>
-          </div>
-        )}
-
-        {/* Gestión de Usuarios (Empleados) */}
+        
+        {activeTab === 'socios' && <GestionSocios />}
+        {activeTab === 'recepcion' && <RecepcionVisitas />}
+        {activeTab === 'reservas' && <Reservas />}
+        {activeTab === 'disciplinas' && <Disciplinas />}
+        {activeTab === 'ludoteca' && <Ludoteca />}
+        {activeTab === 'sanciones' && <Sanciones />}
         {activeTab === 'usuarios' && <GestionUsuarios />}
-
-        {/* Configuración de Espacios */}
         {activeTab === 'espacios' && <ConfiguracionEspacios />}
-
-        {/* Auditoría de Logs */}
         {activeTab === 'logs' && <AuditoriaLogs />}
-
-        {/* Reporte de Sanciones */}
-        {activeTab === 'reporte-sanciones' && <ReporteSanciones />}
       </main>
     </div>
   );

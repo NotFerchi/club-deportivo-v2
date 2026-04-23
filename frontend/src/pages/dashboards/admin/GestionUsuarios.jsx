@@ -1,196 +1,348 @@
 import React, { useEffect, useState } from 'react';
-import { Edit2, Trash2, X, Search, UserPlus } from 'lucide-react';
+import { Edit2, Trash2, X, Search, Plus, RotateCcw } from 'lucide-react';
 
-function GestionUsuarios() {
-  const [usuarios, setUsuarios] = useState([]);
-  const [filteredUsuarios, setFilteredUsuarios] = useState([]);
+function ConfiguracionEspacios() {
+  const [espacios, setEspacios] = useState([]);
+  const [filteredEspacios, setFilteredEspacios] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({
-    nombres: '',
-    apellidoPaterno: '',
-    apellidoMaterno: '',
-    email: '',
-    telefono: '',
-    curp: '',
-    rol: '',
-    password: ''
-  });
-  const [roles, setRoles] = useState([]);
+  const [editingEspacio, setEditingEspacio] = useState(null);
+  const [disciplinas, setDisciplinas] = useState([]);
 
-  // Cargar usuarios
-  const fetchUsuarios = async () => {
+  const [formData, setFormData] = useState({
+    nombre: '',
+    disciplina_id: '',
+    capacidad_maxima: '',
+    activo: true
+  });
+
+  const [formErrors, setFormErrors] = useState({});
+  const [loadError, setLoadError] = useState('');
+
+  const getInputStyles = (field) => formErrors[field] ? { borderColor: '#ef4444', backgroundColor: '#fff1f0' } : {};
+
+  // ==============================
+  // VALIDACIÓN
+  // ==============================
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.nombre.trim()) {
+      errors.nombre = 'El nombre es obligatorio';
+    }
+
+    if (!formData.capacidad_maxima || Number(formData.capacidad_maxima) <= 0) {
+      errors.capacidad = 'Capacidad inválida';
+    }
+
+    return errors;
+  };
+
+  // ==============================
+  // FETCH
+  // ==============================
+  const fetchEspacios = async () => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      setLoadError('No hay sesión activa');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/usuarios', {
-    headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch('http://localhost:3000/api/espacios/todos', {
+        headers: { Authorization: `Bearer ${token}` }
       });
+
+      if (!res.ok) {
+        throw new Error('Error al cargar espacios');
+      }
+
       const data = await res.json();
-      setUsuarios(data);
-      setFilteredUsuarios(data);
+      const lista = Array.isArray(data) ? data : [];
+
+      setEspacios(lista);
+      setFilteredEspacios(lista);
     } catch (error) {
-      console.error('Error:', error);
+      console.error(error);
+      setLoadError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Cargar roles disponibles
-  const fetchRoles = async () => {
+  const fetchDisciplinas = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/roles', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch('http://localhost:3000/api/espacios/disciplinas', {
+        headers: { Authorization: `Bearer ${token}` }
       });
+
+      if (!res.ok) {
+        throw new Error('Error al cargar disciplinas');
+      }
+
       const data = await res.json();
-      setRoles(data);
+      const lista = Array.isArray(data) ? data : [];
+      setDisciplinas(lista);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('fetchDisciplinas error:', error);
     }
   };
 
   useEffect(() => {
-    fetchUsuarios();
-    fetchRoles();
+    fetchEspacios();
+    fetchDisciplinas();
   }, []);
 
-  // Búsqueda
+  // ==============================
+  // BUSCADOR
+  // ==============================
   useEffect(() => {
-    if (searchTerm === '') {
-      setFilteredUsuarios(usuarios);
+    if (!searchTerm) {
+      setFilteredEspacios(espacios);
     } else {
-      const filtered = usuarios.filter(u =>
-        u.nombres?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.apellido_paterno?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.rol?.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = espacios.filter(e =>
+        e.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.disciplina?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredUsuarios(filtered);
+      setFilteredEspacios(filtered);
     }
-  }, [searchTerm, usuarios]);
+  }, [searchTerm, espacios]);
 
-  // Crear o actualizar usuario
+  // ==============================
+  // GUARDAR (CREAR/EDITAR)
+  // ==============================
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      const url = editingUser
-        ? `http://localhost:3000/api/usuarios/${editingUser.usuario_id}`
-        : 'http://localhost:3000/api/usuarios';
-      const method = editingUser ? 'PUT' : 'POST';
 
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('No hay sesión activa');
+      return;
+    }
+
+    const url = editingEspacio
+      ? `http://localhost:3000/api/espacios/${editingEspacio.espacio_id}`
+      : 'http://localhost:3000/api/espacios';
+
+    const method = editingEspacio ? 'PUT' : 'POST';
+
+    const datosEnviar = {
+      nombre: formData.nombre.trim(),
+      disciplina_id: formData.disciplina_id ? parseInt(formData.disciplina_id) : null,
+      capacidad_maxima: parseInt(formData.capacidad_maxima),
+      activo: formData.activo
+    };
+
+    try {
       const res = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(datosEnviar)
       });
 
       if (res.ok) {
-        fetchUsuarios();
+        await fetchEspacios();
         setShowModal(false);
-        setEditingUser(null);
-        setFormData({ nombres: '', apellidoPaterno: '', apellidoMaterno: '', email: '', telefono: '', curp: '', rol: '', password: '' });
-        alert(editingUser ? 'Usuario actualizado' : 'Usuario creado. Contraseña: ' + (formData.password || 'empleado123'));
+        setEditingEspacio(null);
+        setFormErrors({});
+        setFormData({ nombre: '', disciplina_id: '', capacidad_maxima: '', activo: true });
       } else {
-        const error = await res.json();
-        alert(error.error || 'Error al guardar');
+        const data = await res.json();
+        alert(data.error || 'Error al guardar');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error(error);
+      alert('Error de conexión');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('¿Eliminar este usuario?')) return;
+  // ==============================
+  // INACTIVAR/REACTIVAR
+  // ==============================
+  const handleToggleActivo = async (espacio, activo) => {
+    const confirmMessage = activo
+      ? '¿Reactivar este espacio?'
+      : '¿Inactivar este espacio?';
+    if (!confirm(confirmMessage)) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('No hay sesión activa');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3000/api/usuarios/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`http://localhost:3000/api/espacios/${espacio.espacio_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nombre: espacio.nombre,
+          disciplina_id: espacio.disciplina_id,
+          capacidad_maxima: espacio.capacidad_maxima,
+          activo: activo
+        })
       });
-      fetchUsuarios();
+
+      if (res.ok) {
+        await fetchEspacios();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Error al actualizar estado del espacio');
+      }
     } catch (error) {
-      console.error('Error:', error);
+      console.error(error);
+      alert('Error de conexión');
     }
   };
 
-  const handleEdit = (user) => {
-    setEditingUser(user);
+  // ==============================
+  // ELIMINAR PERMANENTE
+  // ==============================
+  const handlePermanentDelete = async (id) => {
+    if (!confirm('¿Eliminar definitivamente este espacio? Esta acción no se puede deshacer.')) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('No hay sesión activa');
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/espacios/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        await fetchEspacios();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Error al eliminar el espacio');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error de conexión');
+    }
+  };
+
+  // ==============================
+  // EDITAR
+  // ==============================
+  const handleEdit = (espacio) => {
+    setEditingEspacio(espacio);
     setFormData({
-      nombres: user.nombres,
-      apellidoPaterno: user.apellido_paterno,
-      apellidoMaterno: user.apellido_materno || '',
-      email: user.email,
-      telefono: user.telefono || '',
-      curp: user.curp || '',
-      rol: user.rol_id?.toString() || '',
-      password: ''
+      nombre: espacio.nombre,
+      disciplina_id: espacio.disciplina_id?.toString() || '',
+      capacidad_maxima: espacio.capacidad_maxima?.toString() || '',
+      activo: espacio.activo
     });
+    setFormErrors({});
     setShowModal(true);
   };
 
-  const getRolColor = (rol) => {
-    const colores = {
-      admin: '#ef4444',
-      gerente: '#3b82f6',
-      instructor: '#10b981',
-      recepcion: '#f59e0b',
-      socio: '#8b5cf6'
-    };
-    return colores[rol?.toLowerCase()] || '#64748b';
-  };
-
-  if (loading) return <div className="chart-box"><p>Cargando usuarios...</p></div>;
+  if (loading) return <div className="chart-box"><p>Cargando espacios...</p></div>;
+  if (loadError) return <div className="chart-box"><p style={{ color: '#b91c1c' }}>{loadError}</p></div>;
 
   return (
     <div className="chart-box">
-      <div className="flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h4>👥 Gestión de Usuarios ({filteredUsuarios.length})</h4>
+
+      {/* HEADER */}
+      <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
+        <h4>🏟️ Configuración de Espacios ({filteredEspacios.length})</h4>
+
         <div className="flex-gap">
           <div className="search-wrapper">
             <Search className="search-icon" />
             <input
               type="text"
-              placeholder="Buscar por nombre, email o rol..."
+              placeholder="Buscar por nombre o disciplina..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
             />
           </div>
-          <button onClick={() => { setEditingUser(null); setFormData({ nombres: '', apellidoPaterno: '', apellidoMaterno: '', email: '', telefono: '', curp: '', rol: '', password: '' }); setShowModal(true); }} className="btn-primary">
-            <UserPlus size={16} /> Nuevo Empleado
+
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setEditingEspacio(null);
+              setFormData({ nombre: '', disciplina_id: '', capacidad_maxima: '', activo: true });
+              setFormErrors({});
+              setShowModal(true);
+            }}
+          >
+            <Plus size={16} /> Nuevo Espacio
           </button>
         </div>
       </div>
 
+      {/* TABLA */}
       <div className="table-wrapper">
         <table className="data-table">
           <thead>
             <tr>
               <th>Nombre</th>
-              <th>Email</th>
-              <th>Rol</th>
-              <th>Teléfono</th>
+              <th>Disciplina</th>
+              <th>Capacidad</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
+
           <tbody>
-            {filteredUsuarios.map(user => (
-              <tr key={user.usuario_id}>
-                <td><strong>{user.nombres} {user.apellido_paterno}</strong><br /><span style={{ fontSize: '11px', color: '#64748b' }}>{user.curp}</span></td>
-                <td>{user.email}</td>
-                <td><span style={{ background: getRolColor(user.rol), color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '11px' }}>{user.rol}</span></td>
-                <td>{user.telefono || '—'}</td>
-                <td><span className={user.activo ? 'badge-success' : 'badge-warning'}>{user.activo ? 'Activo' : 'Inactivo'}</span></td>
+            {filteredEspacios.map(espacio => (
+              <tr key={espacio.espacio_id}>
                 <td>
-                  <button onClick={() => handleEdit(user)} className="btn-icon" style={{ color: '#3b82f6' }}><Edit2 size={16} /></button>
-                  <button onClick={() => handleDelete(user.usuario_id)} className="btn-icon" style={{ color: '#ef4444' }}><Trash2 size={16} /></button>
+                  <strong>{espacio.nombre}</strong>
+                </td>
+                <td>
+                  {espacio.disciplina || '—'}
+                </td>
+                <td>
+                  {espacio.capacidad_maxima} personas
+                </td>
+                <td>
+                  <span className={espacio.activo ? 'badge-success' : 'badge-warning'}>
+                    {espacio.activo ? 'Activo' : 'Inactivo'}
+                  </span>
+                </td>
+                <td style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                  <button onClick={() => handleEdit(espacio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar espacio">
+                    <Edit2 size={16} />
+                  </button>
+
+                  {espacio.activo ? (
+                    <button onClick={() => handleToggleActivo(espacio, false)} className="btn-icon" style={{ color: '#ef4444' }} title="Inactivar espacio">
+                      <Trash2 size={16} />
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => handleToggleActivo(espacio, true)} className="btn-icon" style={{ color: '#10b981' }} title="Reactivar espacio">
+                        <RotateCcw size={16} />
+                      </button>
+                      <button onClick={() => handlePermanentDelete(espacio.espacio_id)} className="btn-icon" style={{ color: '#b91c1c' }} title="Eliminar permanentemente">
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
@@ -198,66 +350,71 @@ function GestionUsuarios() {
         </table>
       </div>
 
-      {/* Modal Nuevo/Editar Usuario */}
+      {/* MODAL */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h3>{editingUser ? 'Editar Empleado' : 'Nuevo Empleado'}</h3>
-              <button onClick={() => setShowModal(false)} className="close-modal"><X size={24} /></button>
+              <div>
+                <h3>{editingEspacio ? 'Editar Espacio' : 'Nuevo Espacio'}</h3>
+                <p className="form-alert" style={{ margin: 0 }}>
+                  Los campos marcados con * son obligatorios.
+                </p>
+              </div>
             </div>
+
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                <div className="form-section-title">INFORMACIÓN PERSONAL</div>
                 <div className="form-row">
-                  <div className="form-group">
-                    <label className="required">Nombres</label>
-                    <input type="text" value={formData.nombres} onChange={(e) => setFormData({...formData, nombres: e.target.value})} required />
+                  <div className="form-group form-group-full">
+                    <label className="required">Nombre del espacio</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: Auditorio Principal, Cancha de Fútbol"
+                      value={formData.nombre}
+                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                      style={getInputStyles('nombre')}
+                    />
+                    {formErrors.nombre && <p className="field-error">{formErrors.nombre}</p>}
                   </div>
-                  <div className="form-group">
-                    <label className="required">Apellido Paterno</label>
-                    <input type="text" value={formData.apellidoPaterno} onChange={(e) => setFormData({...formData, apellidoPaterno: e.target.value})} required />
-                  </div>
-                  <div className="form-group">
-                    <label>Apellido Materno</label>
-                    <input type="text" value={formData.apellidoMaterno} onChange={(e) => setFormData({...formData, apellidoMaterno: e.target.value})} />
-                  </div>
-                  <div className="form-group">
-                    <label className="required">CURP</label>
-                    <input type="text" value={formData.curp} onChange={(e) => setFormData({...formData, curp: e.target.value})} maxLength="18" required />
-                  </div>
-                  <div className="form-group">
-                    <label className="required">Correo Electrónico</label>
-                    <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
-                  </div>
-                  <div className="form-group">
-                    <label>Teléfono</label>
-                    <input type="tel" value={formData.telefono} onChange={(e) => setFormData({...formData, telefono: e.target.value})} />
-                  </div>
-                </div>
 
-                <div className="form-section-title">DATOS LABORALES</div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="required">Rol en la Empresa</label>
-                    <select value={formData.rol} onChange={(e) => setFormData({...formData, rol: e.target.value})} required>
-                      <option value="">Seleccione un rol...</option>
-                      {roles.map(r => <option key={r.rol_id} value={r.rol_id}>{r.nombre}</option>)}
+                  <div className="form-group form-group-full">
+                    <label>Disciplina (opcional)</label>
+                    <select
+                      value={formData.disciplina_id}
+                      onChange={(e) => setFormData({ ...formData, disciplina_id: e.target.value })}
+                    >
+                      <option value="">Seleccione una disciplina</option>
+                      {disciplinas.map(d => (
+                        <option key={d.disciplina_id} value={d.disciplina_id}>
+                          {d.nombre}
+                        </option>
+                      ))}
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="required">Contraseña Temporal</label>
-                    <input type="text" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} placeholder="Dejar vacío para auto-generar" />
+
+                  <div className="form-group form-group-full">
+                    <label className="required">Capacidad máxima</label>
+                    <input
+                      type="number"
+                      placeholder="Ej: 100"
+                      value={formData.capacidad_maxima}
+                      onChange={(e) => setFormData({ ...formData, capacidad_maxima: e.target.value })}
+                      style={getInputStyles('capacidad')}
+                      min="1"
+                    />
+                    {formErrors.capacidad && <p className="field-error">{formErrors.capacidad}</p>}
                   </div>
                 </div>
-
-                <div className="form-alert" style={{ marginTop: '1rem' }}>
-                  El estado del usuario se asignará como "Activo" automáticamente al confirmar el registro.
-                </div>
               </div>
+
               <div className="modal-footer">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-outline">Cancelar</button>
-                <button type="submit" className="btn-primary">{editingUser ? 'Actualizar' : 'Registrar Usuario'}</button>
+                <button type="button" onClick={() => { setShowModal(false); setFormErrors({}); }} className="btn-outline">
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary">
+                  Guardar
+                </button>
               </div>
             </form>
           </div>
@@ -267,4 +424,4 @@ function GestionUsuarios() {
   );
 }
 
-export default GestionUsuarios;
+export default ConfiguracionEspacios;

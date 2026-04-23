@@ -1,9 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { crearSocio, editarSocio } = require('../controllers/socioController');
+const socioController = require('../controllers/socioController');
 const { verifyToken } = require('../middleware/auth.middleware');
 
-router.post('/', verifyToken, crearSocio);
-router.put('/:id', verifyToken, editarSocio);
+// Rutas de socios
+router.get('/', verifyToken, socioController.getSocios);
+router.get('/:id', verifyToken, socioController.getSocioById);
+router.post('/', verifyToken, socioController.createSocio);
+router.put('/:id', verifyToken, socioController.updateSocio);
+router.delete('/:id', verifyToken, socioController.deleteSocio);
+router.delete('/:id/permanente', verifyToken, socioController.deletePermanente);
+router.put('/:id/reactivar', verifyToken, socioController.reactivar);
 
 module.exports = router;

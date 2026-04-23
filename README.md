@@ -8,3 +8,4 @@ COMANDOS QUE DEBES CORRER PARA REACT Y NUEVO BCRYPT
 
 * EXTRAS
 * npm install lucide-react
+* pip install react-calendar

@@ -1,88 +1,99 @@
-import React, { useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { Users, Calendar, Dumbbell, Clock, LogOut } from 'lucide-react'
-import '../../../css/Dashboard.css'
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Users, Calendar, Dumbbell, BarChart3, LogOut, Home } from 'lucide-react';
+import '../../../css/Dashboard.css';
+
+// Importar componentes de las pestañas
+import GestionInstructores from './coordinador/GestionInstructores';
+import GestionHorarios from './coordinador/GestionHorarios';
+import GestionDisciplinas from './coordinador/GestionDisciplinas';
+import ReportesAsistencia from './coordinador/ReportesAsistencia';
 
 function DashboardCoordinador() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('instructores');
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const usuarioSesion = localStorage.getItem('usuario')
-    if (!token || !usuarioSesion) {
-      navigate('/login')
-      return
+    const token = localStorage.getItem('token');
+    const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+    
+    if (!token) {
+      navigate('/login');
+      return;
     }
-    const usuario = JSON.parse(usuarioSesion)
-    if (usuario.rol !== 'coordinador') {
-      navigate('/login')
+    
+    // Verificar rol (coordinador o admin pueden ver)
+    if (usuario.rol !== 'coordinador' && usuario.rol !== 'admin') {
+      navigate('/login');
+      return;
     }
-    document.title = 'Coordinación | Club'
-  }, [navigate])
+    
+    setUserName(usuario.nombres || 'Coordinador');
+    document.title = 'Coordinación Deportiva | Club Social';
+  }, [navigate]);
 
-  const handleLogout = (e) => {
-    e.preventDefault()
-    localStorage.removeItem('token')
-    localStorage.removeItem('usuario')
-    navigate('/')
-  }
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
+
+  const getNavClass = (tab) => `nav-link ${activeTab === tab ? 'active' : ''}`;
 
   return (
     <div className="dashboard-root">
+      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-brand">
           <div className="brand-mark" />
           <span>Club Social</span>
         </div>
-        
         <nav>
           <span className="nav-section-label">COORDINACIÓN</span>
-          <a href="#" className="nav-link active"><Users className="nav-icon" /> Instructores</a>
-          <a href="#" className="nav-link"><Calendar className="nav-icon" /> Horarios</a>
-          <a href="#" className="nav-link"><Dumbbell className="nav-icon" /> Disciplinas</a>
-          <a href="#" className="nav-link"><Clock className="nav-icon" /> Asignaciones</a>
+          
+          <button onClick={() => setActiveTab('instructores')} className={getNavClass('instructores')}>
+            <Users className="nav-icon" /> Instructores
+          </button>
+          
+          <button onClick={() => setActiveTab('horarios')} className={getNavClass('horarios')}>
+            <Calendar className="nav-icon" /> Horarios
+          </button>
+          
+          <button onClick={() => setActiveTab('disciplinas')} className={getNavClass('disciplinas')}>
+            <Dumbbell className="nav-icon" /> Disciplinas
+          </button>
+          
+          <button onClick={() => setActiveTab('reportes')} className={getNavClass('reportes')}>
+            <BarChart3 className="nav-icon" /> Reportes
+          </button>
         </nav>
-
-        {/* Cerrar Sesión - FUERA del nav */}
         <div style={{ marginTop: 'auto', padding: '1rem' }}>
-          <a 
-            href="#" 
-            className="nav-link" 
-            onClick={handleLogout}
-            style={{ color: '#ef4444' }}
-          >
+          <Link to="/" className="nav-link" style={{ color: '#94a3b8' }}>
+            <Home className="nav-icon" /> Inicio
+          </Link>
+          <button onClick={handleLogout} className="nav-link" style={{ color: '#ef4444' }}>
             <LogOut className="nav-icon" /> Cerrar Sesión
-          </a>
+          </button>
         </div>
       </aside>
 
+      {/* Contenido principal */}
       <main className="main-content">
         <header className="page-header">
           <div>
-            <h2>Panel del Coordinador</h2>
-            <p>Gestión de instructores y horarios</p>
+            <h2>Panel de Coordinación Deportiva</h2>
+            <p>Bienvenido, {userName}</p>
           </div>
           <Link to="/" className="back-link">Volver al inicio</Link>
         </header>
 
-        <section className="top-kpi-grid">
-          <div className="kpi-card"><Users className="kpi-icon" /><div><h3>12</h3><p>Instructores</p></div></div>
-          <div className="kpi-card"><Calendar className="kpi-icon green" /><div><h3>28</h3><p>Clases semanales</p></div></div>
-          <div className="kpi-card"><Dumbbell className="kpi-icon blue" /><div><h3>8</h3><p>Disciplinas</p></div></div>
-        </section>
-
-        <section className="bottom-row">
-          <div className="chart-box">
-            <h4>Instructores Activos</h4>
-            <ul className="reservation-list">
-              <li className="res-item"><div><p className="reservation-name">Ana Torres</p><p className="reservation-detail">Yoga - 6 clases/semana</p></div><span className="badge confirmada">Activo</span></li>
-              <li className="res-item"><div><p className="reservation-name">Luis Méndez</p><p className="reservation-detail">Natación - 8 clases/semana</p></div><span className="badge confirmada">Activo</span></li>
-            </ul>
-          </div>
-        </section>
+        {activeTab === 'instructores' && <GestionInstructores />}
+        {activeTab === 'horarios' && <GestionHorarios />}
+        {activeTab === 'disciplinas' && <GestionDisciplinas />}
+        {activeTab === 'reportes' && <ReportesAsistencia />}
       </main>
     </div>
-  )
+  );
 }
 
-export default DashboardCoordinador
+export default DashboardCoordinador;

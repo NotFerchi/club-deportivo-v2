@@ -1,97 +1,165 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Calendar, Dumbbell, Clock, AlertCircle, Users, Baby, History, LogOut } from 'lucide-react'
-import '../../../css/Dashboard.css'
+import { 
+  LayoutDashboard, Calendar, GraduationCap, Baby, 
+  AlertCircle, LogOut, CheckCircle, ChevronDown, Bell 
+} from 'lucide-react'
+import '../../../css/DashboardSocio.css'
 
 function DashboardSocio() {
+  document.body.style.overflow = 'auto';
   const navigate = useNavigate()
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [userName, setUserName] = useState("Carlos Mendoza")
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
     const usuarioSesion = localStorage.getItem('usuario')
-    if (!token || !usuarioSesion) {
-      navigate('/login')
-      return
+    if (usuarioSesion) {
+      const usuario = JSON.parse(usuarioSesion)
+      setUserName(usuario.nombre || "Socio")
     }
-    const usuario = JSON.parse(usuarioSesion)
-    if (usuario.rol !== 'socio') {
-      navigate('/login')
-    }
-    document.title = 'Mi Club | Socio'
+    document.title = 'Club Social y Deportivo | Inicio'
   }, [navigate])
 
-  const handleLogout = (e) => {
-    e.preventDefault()
+  const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('usuario')
     navigate('/')
   }
 
   return (
-    <div className="dashboard-root">
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <div className="brand-mark" />
-          <span>Club Social</span>
+    <div className="ds-wrapper">
+      {/* --- HEADER PRINCIPAL --- */}
+      <header className="ds-top-bar">
+        <div className="ds-container-fluid">
+          <h1 className="ds-brand-logo">Club Social y Deportivo</h1>
+          
+          <div className="ds-user-actions">
+            <button className="ds-notif-badge-btn">
+              <Bell size={20} />
+              <span className="notification-ping"></span>
+            </button>
+            <div className="ds-profile-dropdown-container">
+              <div className="ds-profile-trigger" onClick={() => setIsProfileOpen(!isProfileOpen)}>
+                <div className="ds-user-text">
+                  <span className="ds-name">{userName}</span>
+                  <span className="ds-role">Socio Familiar</span>
+                </div>
+                <div className="ds-avatar-circle">CM</div>
+                <ChevronDown size={16} className={`ds-arrow ${isProfileOpen ? 'up' : ''}`} />
+              </div>
+
+              {isProfileOpen && (
+                <div className="ds-dropdown-menu">
+                  <button onClick={handleLogout} className="ds-logout-item">
+                    <LogOut size={16} /> Cerrar Sesión
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        
-        <nav>
-          <span className="nav-section-label">MI ACTIVIDAD</span>
-          <a href="#" className="nav-link active"><Calendar className="nav-icon" /> Mis Reservas</a>
-          <a href="#" className="nav-link"><Dumbbell className="nav-icon" /> Mis Clases</a>
-          <a href="#" className="nav-link"><Clock className="nav-icon" /> Próximas Actividades</a>
-          <a href="#" className="nav-link"><Baby className="nav-icon" /> Ludoteca</a>
-          <a href="#" className="nav-link"><History className="nav-icon" /> Historial</a>
-          <a href="#" className="nav-link"><AlertCircle className="nav-icon" /> Mis Sanciones</a>
-        </nav>
+      </header>
 
-        {/* Cerrar Sesión - FUERA del nav */}
-        <div style={{ marginTop: 'auto', padding: '1rem' }}>
-          <a 
-            href="#" 
-            className="nav-link" 
-            onClick={handleLogout}
-            style={{ color: '#ef4444' }}
-          >
-            <LogOut className="nav-icon" /> Cerrar Sesión
-          </a>
+      {/* --- NAV TABS (Menu principal) --- */}
+      <nav className="ds-nav-tabs">
+        <div className="ds-tabs-container">
+          <Link to="#" className="ds-tab-item active">
+            <LayoutDashboard size={20} /> <span className="tab-text">Inicio</span>
+          </Link>
+          <Link to="/reservas" className="ds-tab-item">
+            <Calendar size={20} /> <span className="tab-text">Reservas</span>
+          </Link>
+          <Link to="#" className="ds-tab-item">
+            <GraduationCap size={20} /> <span className="tab-text">Clases</span>
+          </Link>
+          <Link to="#" className="ds-tab-item">
+            <Baby size={20} /> <span className="tab-text">Ludoteca</span>
+          </Link>
+          <Link to="#" className="ds-tab-item">
+            <AlertCircle size={20} /> <span className="tab-text">Historial</span>
+          </Link>
         </div>
-      </aside>
+      </nav>
 
-      <main className="main-content">
-        <header className="page-header">
-          <div>
-            <h2>Bienvenido, Socio</h2>
-            <p>Gestiona tus actividades deportivas</p>
-          </div>
-          <Link to="/" className="back-link">Volver al inicio</Link>
-        </header>
+      {/* --- MAIN CONTENT --- */}
+      <main className="ds-body">
+        <div className="ds-content-wrapper">
+          
+          {/* Card Hero */}
+          <section className="ds-welcome-card">
+            <div className="ds-welcome-info">
+              <h2 className="ds-title-serif">Buen dia, {userName.split(' ')[0]}</h2>
+              <p className="ds-subtitle">Martes, 21 De Abril De 2026 - 6:23 P.M.</p>
+            </div>
+            <div className="ds-status-tags">
+              <span className="tag-active"><CheckCircle size={14} /> Activo</span>
+              <span className="tag-category">Accion Familiar</span>
+            </div>
+          </section>
 
-        <section className="top-kpi-grid">
-          <div className="kpi-card"><Calendar className="kpi-icon" /><div><h3>2</h3><p>Reservas activas</p></div></div>
-          <div className="kpi-card"><Dumbbell className="kpi-icon green" /><div><h3>3</h3><p>Clases esta semana</p></div></div>
-          <div className="kpi-card"><AlertCircle className="kpi-icon amber" /><div><h3>0</h3><p>Sanciones</p></div></div>
-        </section>
+          {/* KPI Cards */}
+          <div className="ds-grid-kpi">
+            <div className="ds-card-stat">
+              <div className="stat-icon gray"><Calendar size={20} /></div>
+              <div className="stat-data">
+                <span className="stat-number">2</span>
+                <span className="stat-label">Clases hoy</span>
+              </div>
+            </div>
+            <div className="ds-card-stat">
+              <div className="stat-icon teal"><LayoutDashboard size={20} /></div>
+              <div className="stat-data">
+                <span className="stat-number">2</span>
+                <span className="stat-label">Canchas libres</span>
+              </div>
+            </div>
+            <div className="ds-card-stat">
+              <div className="stat-icon amber"><Baby size={20} /></div>
+              <div className="stat-data">
+                <span className="stat-number">2</span>
+                <span className="stat-label">Hijos registrados</span>
+              </div>
+            </div>
+            <div className="ds-card-stat">
+              <div className="stat-icon red"><AlertCircle size={20} /></div>
+              <div className="stat-data">
+                <span className="stat-number">1</span>
+                <span className="stat-label">No-Shows (30 dias)</span>
+              </div>
+            </div>
+          </div>
 
-        <section className="bottom-row">
-          <div className="chart-box">
-            <h4>Próximas Reservas</h4>
-            <ul className="reservation-list">
-              <li className="res-item"><div><p className="reservation-name">Cancha Tenis 1</p><p className="reservation-detail">Hoy - 17:00 a 18:30</p></div><span className="badge confirmada">Confirmada</span></li>
-              <li className="res-item"><div><p className="reservation-name">Clase de Natación</p><p className="reservation-detail">Mañana - 09:00 a 10:00</p></div><span className="badge confirmada">Confirmada</span></li>
-            </ul>
-          </div>
-          <div className="chart-box">
-            <h4>Actividades Recomendadas</h4>
-            <ul className="reservation-list">
-              <li className="res-item"><div><p className="reservation-name">Yoga</p><p className="reservation-detail">Lunes y Miércoles - 18:00</p></div><span className="badge pendiente">Disponible</span></li>
-              <li className="res-item"><div><p className="reservation-name">Spinning</p><p className="reservation-detail">Martes y Jueves - 19:00</p></div><span className="badge pendiente">Disponible</span></li>
-            </ul>
-          </div>
-        </section>
+          {/* Seccion Listado */}
+          <section className="ds-section-card">
+            <header className="section-header">
+              <ClockIcon size={18} /> <h3>Proximas 24 horas</h3>
+            </header>
+            <div className="ds-list">
+              <div className="ds-list-item">
+                <div className="item-info">
+                  <h4>Yoga Matutino</h4>
+                  <p>7:00 AM - 8:00 AM - Salon A</p>
+                </div>
+                <div className="item-badge">8/15</div>
+              </div>
+              <div className="ds-list-item">
+                <div className="item-info">
+                  <h4>Zumba Intenso</h4>
+                  <p>9:00 AM - 10:00 AM - Salon B</p>
+                </div>
+                <div className="item-badge">15/15</div>
+              </div>
+            </div>
+          </section>
+
+        </div>
       </main>
     </div>
   )
 }
+
+// Icono pequeño auxiliar
+const ClockIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
 
 export default DashboardSocio

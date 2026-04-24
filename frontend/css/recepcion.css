@@ -1,0 +1,766 @@
+:root {
+    --sidebar-bg: #0f172a;
+    --bg-main: #f1f5f9;
+    --accent-blue: #3b82f6;
+    --accent-green: #22c55e;
+    --accent-amber: #f59e0b;
+    --border-color: #e2e8f0;
+    --card-bg: #ffffff;
+}
+
+html,
+body,
+#root {
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: var(--bg-main) !important;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* ============================================
+   LAYOUT PRINCIPAL
+   ============================================ */
+.dashboard-root {
+    height: 100vh;
+    display: flex;
+    background-color: var(--bg-main);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+.dashboard-root .sidebar {
+    width: 260px;
+    height: 100vh;
+    background: var(--sidebar-bg);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 0;
+    flex-shrink: 0;
+}
+
+.dashboard-root .sidebar-brand {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dashboard-root .brand-mark {
+    width: 32px;
+    height: 32px;
+    background: #06b6d4;
+    border-radius: 6px;
+}
+
+.dashboard-root .sidebar-brand span {
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.dashboard-root nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dashboard-root .nav-section-label {
+    padding: 0 1.5rem;
+    font-size: 10px;
+    color: #94a3b8;
+    font-weight: 700;
+}
+
+.dashboard-root .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0.8rem 1.5rem;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dashboard-root .nav-link.active {
+    background: #1e293b;
+    color: white;
+    border-right: 4px solid #06b6d4;
+}
+
+.dashboard-root .nav-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+.dashboard-root .main-content {
+    flex: 1;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 1.5rem 2rem;
+    flex-shrink: 0;
+}
+
+.dashboard-root .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-root h2 {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: #0f172a;
+}
+
+.dashboard-root .page-header p {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.dashboard-root .back-link {
+    color: #0f172a;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 13px;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.dashboard-root .back-link:hover {
+    background: #f1f5f9;
+}
+
+/* ============================================
+   KPIS (TARJETAS DE MÉTRICAS)
+   ============================================ */
+.dashboard-root .top-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-root .kpi-card {
+    background: var(--card-bg);
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+}
+
+.dashboard-root .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-root .kpi-icon {
+    width: 26px;
+    height: 26px;
+    color: #64748b;
+}
+
+.dashboard-root .kpi-icon.green { color: var(--accent-green); }
+.dashboard-root .kpi-icon.blue { color: var(--accent-blue); }
+.dashboard-root .kpi-icon.amber { color: var(--accent-amber); }
+.dashboard-root .kpi-icon.red { color: #ef4444; }
+
+.dashboard-root .kpi-card h3 {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    color: #0f172a;
+}
+
+.dashboard-root .kpi-card p {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* ============================================
+   TARJETAS DE CONTENIDO
+   ============================================ */
+.dashboard-root .chart-box {
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-root .chart-box h4 {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 1rem;
+}
+
+.dashboard-root .chart-box h5 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.75rem;
+}
+
+/* ============================================
+   TABLAS
+   ============================================ */
+.dashboard-root .table-wrapper {
+    overflow-x: auto;
+}
+
+.dashboard-root .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.dashboard-root .data-table th {
+    text-align: left;
+    padding: 12px;
+    background: #f8fafc;
+    color: #0f172a;
+    font-weight: 700;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-root .data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.dashboard-root .data-table tr:hover {
+    background: #f8fafc;
+}
+
+/* ============================================
+   FORMULARIOS
+   ============================================ */
+.dashboard-root .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.dashboard-root .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dashboard-root .form-group label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.dashboard-root .form-group input,
+.dashboard-root .form-group select,
+.dashboard-root .form-group textarea {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-family: inherit;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.dashboard-root .form-group input:focus,
+.dashboard-root .form-group select:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* ============================================
+   BOTONES
+   ============================================ */
+.dashboard-root .btn-primary {
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dashboard-root .btn-primary:hover {
+    background: #2563eb;
+}
+
+.dashboard-root .btn-success {
+    background: var(--accent-green);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dashboard-root .btn-success:hover {
+    background: #16a34a;
+}
+
+.dashboard-root .btn-danger {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dashboard-root .btn-danger:hover {
+    background: #dc2626;
+}
+
+.dashboard-root .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dashboard-root .btn-outline:hover {
+    background: #f1f5f9;
+}
+
+.dashboard-root .btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.dashboard-root .btn-icon:hover {
+    background: #f1f5f9;
+}
+
+/* ============================================
+   BADGES / ETIQUETAS
+   ============================================ */
+.dashboard-root .badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.dashboard-root .badge-success,
+.dashboard-root .confirmada {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.dashboard-root .badge-warning,
+.dashboard-root .pendiente {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.dashboard-root .badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.dashboard-root .badge-info {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+/* ============================================
+   LISTAS (Reservas, alumnos, etc)
+   ============================================ */
+.dashboard-root .reservation-list {
+    list-style: none;
+    margin-top: 1rem;
+    padding: 0;
+}
+
+.dashboard-root .res-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.dashboard-root .reservation-name {
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0;
+    color: #0f172a;
+}
+
+.dashboard-root .reservation-detail {
+    font-size: 11px;
+    color: #64748b;
+    margin: 4px 0 0;
+}
+
+/* ============================================
+   GRIDS Y TARJETAS
+   ============================================ */
+.dashboard-root .grid-auto {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.dashboard-root .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.dashboard-root .espacio-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    transition: all 0.2s;
+}
+
+.dashboard-root .espacio-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-root .espacio-nombre {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.dashboard-root .espacio-detalle {
+    font-size: 11px;
+    color: #64748b;
+}
+
+/* ============================================
+   ALUMNOS / LISTA DE ASISTENCIA
+   ============================================ */
+.dashboard-root .alumno-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.dashboard-root .alumno-item:last-child {
+    border-bottom: none;
+}
+
+.dashboard-root .alumno-nombre {
+    font-weight: 600;
+    font-size: 13px;
+    color: #0f172a;
+}
+
+/* ============================================
+   BÚSQUEDA Y FILTROS
+   ============================================ */
+.dashboard-root .search-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.dashboard-root .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    width: 16px;
+    height: 16px;
+}
+
+.dashboard-root .search-input {
+    padding: 8px 12px 8px 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 13px;
+    width: 250px;
+}
+
+.dashboard-root .date-picker {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 13px;
+    background: white;
+}
+
+/* ============================================
+   MODALES
+   ============================================ */
+.dashboard-root .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.dashboard-root .modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 500px;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.dashboard-root .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-root .modal-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.dashboard-root .close-modal {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+}
+
+.dashboard-root .close-modal:hover {
+    color: #ef4444;
+}
+
+.dashboard-root .modal-body {
+    padding: 1.5rem;
+}
+
+.dashboard-root .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ============================================
+   UTILIDADES
+   ============================================ */
+.dashboard-root .flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dashboard-root .flex-gap {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-root .text-center {
+    text-align: center;
+}
+
+.dashboard-root .empty-message {
+    text-align: center;
+    padding: 3rem;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.dashboard-root .mt-2 { margin-top: 0.5rem; }
+.dashboard-root .mt-3 { margin-top: 1rem; }
+.dashboard-root .mb-2 { margin-bottom: 0.5rem; }
+.dashboard-root .mb-3 { margin-bottom: 1rem; }
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+    .dashboard-root .top-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .dashboard-root .grid-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-root .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-root .sidebar {
+        width: 80px;
+    }
+    
+    .dashboard-root .sidebar-brand span,
+    .dashboard-root .nav-section-label,
+    .dashboard-root .nav-link span:not(.nav-icon) {
+        display: none;
+    }
+    
+    .dashboard-root .main-content {
+        padding: 1rem;
+    }
+    
+    .dashboard-root .top-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-root .search-input {
+        width: 100%;
+    }
+}
+/* ============================================
+   ESTILOS ESPECIALES PARA FORMULARIOS
+   ============================================ */
+
+/* Títulos de sección en formularios */
+.dashboard-root .form-section-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 1.5rem 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent-blue);
+    display: inline-block;
+}
+
+.dashboard-root .form-section-title:first-of-type {
+    margin-top: 0;
+}
+
+/* Grid de 2 columnas para formularios */
+.dashboard-root .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Grupo de campo completo (ocupa 2 columnas) */
+.dashboard-root .form-group-full {
+    grid-column: span 2;
+}
+
+/* Estilo para campos de texto largos */
+.dashboard-root .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Alerta/Advertencia */
+.dashboard-root .form-alert {
+    background: #fef3c7;
+    border-left: 4px solid var(--accent-amber);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-size: 12px;
+    color: #92400e;
+}
+
+.dashboard-root .form-alert-warning {
+    background: #fee2e2;
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
+}
+
+/* Campo requerido (asterisco rojo) */
+.dashboard-root .required::after {
+    content: " *";
+    color: #ef4444;
+}
+
+.dashboard-root .field-error {
+    margin: 0.25rem 0 0;
+    font-size: 12px;
+    color: #b91c1c;
+}
+
+/* Estilo para campos deshabilitados */
+.dashboard-root .form-group input:disabled,
+.dashboard-root .form-group select:disabled {
+    background: #f1f5f9;
+    cursor: not-allowed;
+}
+
+/* Responsive para formularios */
+@media (max-width: 768px) {
+    .dashboard-root .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-root .form-group-full {
+        grid-column: span 1;
+    }
+}

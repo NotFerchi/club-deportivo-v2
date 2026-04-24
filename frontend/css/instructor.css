@@ -1,0 +1,235 @@
+/* ============================================
+   ESTILOS PARA DASHBOARD DE INSTRUCTOR
+   ============================================ */
+
+/* Tarjeta de clase en agenda */
+.dashboard-root .clase-agenda-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.2s;
+}
+
+.dashboard-root .clase-agenda-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.dashboard-root .clase-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-root .clase-titulo {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.dashboard-root .clase-horario-badge {
+    background: var(--accent-blue);
+    color: white;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.dashboard-root .clase-detalle {
+    font-size: 0.75rem;
+    color: var(--text-gray);
+    margin-bottom: 0.5rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-root .clase-cupo-bar {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+
+.dashboard-root .clase-cupo-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+.dashboard-root .clase-cupo-fill.bajo { background: #10b981; }
+.dashboard-root .clase-cupo-fill.medio { background: #f59e0b; }
+.dashboard-root .clase-cupo-fill.alto { background: #ef4444; }
+
+/* Pase de lista digital */
+.dashboard-root .pase-lista-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.dashboard-root .alumno-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
+.dashboard-root .alumno-row:hover {
+    background: #f8fafc;
+}
+
+.dashboard-root .alumno-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dashboard-root .alumno-avatar {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--accent-blue), var(--info));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.dashboard-root .alumno-tipo {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+/* Botones de asistencia */
+.dashboard-root .asistencia-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.dashboard-root .btn-asistir {
+    background: var(--accent-green);
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dashboard-root .btn-asistir:hover {
+    background: #16a34a;
+}
+
+.dashboard-root .btn-no-asistir {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dashboard-root .btn-no-asistir:hover {
+    background: #dc2626;
+}
+
+/* Resumen de asistencia */
+.dashboard-root .asistencia-resumen {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.dashboard-root .resumen-item {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.dashboard-root .resumen-numero {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.dashboard-root .resumen-label {
+    font-size: 0.7rem;
+    color: var(--text-gray);
+}
+
+/* Métricas - gráficos */
+.dashboard-root .metricas-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.dashboard-root .metrica-card {
+    background: linear-gradient(135deg, var(--card-bg), #f8fafc);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.dashboard-root .metrica-valor {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent-blue);
+}
+
+.dashboard-root .grafica-barras {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    height: 200px;
+    margin-top: 1rem;
+}
+
+.dashboard-root .barra {
+    flex: 1;
+    background: var(--accent-blue);
+    border-radius: 8px 8px 0 0;
+    transition: height 0.3s;
+    position: relative;
+}
+
+.dashboard-root .barra-label {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: var(--text-gray);
+}
+
+.dashboard-root .barra-valor {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}

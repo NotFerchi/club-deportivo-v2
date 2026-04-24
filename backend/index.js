@@ -2,24 +2,23 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config({ path: '../.env' });
 
-// Importar conexión DB
 require('./src/config/database');
 
-// Importar rutas (comenta las que no están listas)
+// COMENTA TEMPORALMENTE LAS QUE NO TIENEN CONTROLADOR
+// const sesionesRoutes = require('./src/routes/sesiones.routes');
+// const ludotecaRoutes = require('./src/routes/ludoteca.routes');
+
+// --- IMPORTAR RUTAS ---
 const authRoutes = require('./src/routes/auth.routes');
-const sociosRoutes = require('./src/routes/socio.routes');
+const socioRoutes = require('./src/routes/socio.routes'); // Verifica si es socio o socios
 const usuariosRoutes = require('./src/routes/usuarios.routes');
 const rolesRoutes = require('./src/routes/roles.routes');
 const espaciosRoutes = require('./src/routes/espacios.routes');
 const recepcionRoutes = require('./src/routes/recepcion.routes');
 const disciplinasRoutes = require('./src/routes/disciplinas.routes');
-
-// COMENTA TEMPORALMENTE LAS QUE NO TIENEN CONTROLADOR
-// const instructorRoutes = require('./src/routes/instructor.routes');
-// const instructoresRoutes = require('./src/routes/instructores.routes');
-// const sesionesRoutes = require('./src/routes/sesiones.routes');
+const instructorRoutes = require('./src/routes/instructor.routes');
+const instructoresRoutes = require('./src/routes/instructores.routes');
 const reservasRoutes = require('./src/routes/reservas.routes');
-// const ludotecaRoutes = require('./src/routes/ludoteca.routes');
 const sancionesRoutes = require('./src/routes/sanciones.routes');
 const logsRoutes = require('./src/routes/logs.routes');
 
@@ -31,7 +30,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Logging
+// Logging para debugging (Muy útil en desarrollo)
 app.use((req, res, next) => {
   console.log(`📡 ${req.method} ${req.url}`);
   next();
@@ -42,7 +41,7 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: '🚀 Servidor funcionando' });
 });
 
-// Registrar rutas (solo las que están disponibles)
+// --- REGISTRAR RUTAS ---
 app.use('/api/auth', authRoutes);
 app.use('/api/socios', sociosRoutes);
 app.use('/api/usuarios', usuariosRoutes);
@@ -51,14 +50,18 @@ app.use('/api/espacios', espaciosRoutes);
 app.use('/api/recepcion', recepcionRoutes);
 app.use('/api/disciplinas', disciplinasRoutes);
 
-// Comentadas temporalmente
-// app.use('/api/instructor', instructorRoutes);
-// app.use('/api/instructores', instructoresRoutes);
-// app.use('/api/sesiones', sesionesRoutes);
+// Rutas de Instructores (Activadas de la rama de funcionalidades)
+app.use('/api/instructor', instructorRoutes);
+app.use('/api/instructores', instructoresRoutes);
+
+// Otras rutas del sistema
 app.use('/api/reservas', reservasRoutes);
-// app.use('/api/ludoteca', ludotecaRoutes);
 app.use('/api/sanciones', sancionesRoutes);
 app.use('/api/logs', logsRoutes);
+
+// Comentadas temporalmente
+// app.use('/api/sesiones', sesionesRoutes);
+// app.use('/api/ludoteca', ludotecaRoutes);
 // app.use('/api/reportes', reportesRoutes);
 
 // Error handler
@@ -74,11 +77,15 @@ app.listen(PORT, () => {
   console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
   console.log('\n📋 Endpoints activos:');
   console.log('  - GET  /api/health');
-  console.log('  - GET  /api/socios');
-  console.log('  - GET  /api/usuarios');
-  console.log('  - GET  /api/roles');
-  console.log('  - GET  /api/espacios/todos');
-  console.log('  - GET  /api/recepcion/visitas/activas');
-  console.log('  - GET  /api/disciplinas');
+  console.log('  - ALL  /api/auth');
+  console.log('  - ALL  /api/usuarios');
+  console.log('  - ALL  /api/roles');
+  console.log('  - ALL  /api/espacios/todos');
+  console.log('  - ALL  /api/recepcion/visitas/activas');
+  console.log('  - ALL  /api/disciplinas');
+  console.log('  - ALL  /api/socios');
+  console.log('  - ALL  /api/instructor');
+  console.log('  - ALL  /api/instructores');
+  console.log('  - ALL  /api/reservas');
   console.log('\n⚡ Otros endpoints están comentados temporalmente');
 });

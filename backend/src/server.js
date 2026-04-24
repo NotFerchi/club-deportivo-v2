@@ -1,3 +1,16 @@
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js
+
+
 // Dependencias requeridas para levantar la API
 const express = require('express');
 const cors = require('cors');
@@ -45,3 +58,5 @@ app.get('/api/health', (req, res) => {
 app.listen(puerto, () => {
     console.log(`API activa y escuchando en http://localhost:${puerto}`);
 });
+
+//ESTE ARCHIVO NO SE ESTA USANDO, USA index.js

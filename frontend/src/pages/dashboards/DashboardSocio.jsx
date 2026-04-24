@@ -1,165 +1,91 @@
-import React, { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { 
-  LayoutDashboard, Calendar, GraduationCap, Baby, 
-  AlertCircle, LogOut, CheckCircle, ChevronDown, Bell 
-} from 'lucide-react'
-import '../../../css/DashboardSocio.css'
+import React from 'react'
+import SocioLayout from '../../components/SocioLayout'
+import { CheckCircle } from 'lucide-react'
 
 function DashboardSocio() {
-  document.body.style.overflow = 'auto';
-  const navigate = useNavigate()
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [userName, setUserName] = useState("Carlos Mendoza")
-
-  useEffect(() => {
-    const usuarioSesion = localStorage.getItem('usuario')
-    if (usuarioSesion) {
-      const usuario = JSON.parse(usuarioSesion)
-      setUserName(usuario.nombre || "Socio")
-    }
-    document.title = 'Club Social y Deportivo | Inicio'
-  }, [navigate])
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('usuario')
-    navigate('/')
-  }
+  // Obtener el nombre del usuario desde localStorage
+  const usuarioSesion = localStorage.getItem('usuario')
+  const userName = usuarioSesion ? JSON.parse(usuarioSesion).nombre || "Socio" : "Socio"
 
   return (
-    <div className="ds-wrapper">
-      {/* --- HEADER PRINCIPAL --- */}
-      <header className="ds-top-bar">
-        <div className="ds-container-fluid">
-          <h1 className="ds-brand-logo">Club Social y Deportivo</h1>
-          
-          <div className="ds-user-actions">
-            <button className="ds-notif-badge-btn">
-              <Bell size={20} />
-              <span className="notification-ping"></span>
-            </button>
-            <div className="ds-profile-dropdown-container">
-              <div className="ds-profile-trigger" onClick={() => setIsProfileOpen(!isProfileOpen)}>
-                <div className="ds-user-text">
-                  <span className="ds-name">{userName}</span>
-                  <span className="ds-role">Socio Familiar</span>
-                </div>
-                <div className="ds-avatar-circle">CM</div>
-                <ChevronDown size={16} className={`ds-arrow ${isProfileOpen ? 'up' : ''}`} />
-              </div>
+    <SocioLayout activeTab="inicio" title="Club Social y Deportivo | Inicio">
+      
+      {/* Card Hero */}
+      <section className="ds-welcome-card">
+        <div className="ds-welcome-info">
+          <h2 className="ds-title-serif">Buen dia, {userName.split(' ')[0]}</h2>
+          <p className="ds-subtitle">Martes, 21 De Abril De 2026 - 6:23 P.M.</p>
+        </div>
+        <div className="ds-status-tags">
+          <span className="tag-active"><CheckCircle size={14} /> Activo</span>
+          <span className="tag-category">Accion Familiar</span>
+        </div>
+      </section>
 
-              {isProfileOpen && (
-                <div className="ds-dropdown-menu">
-                  <button onClick={handleLogout} className="ds-logout-item">
-                    <LogOut size={16} /> Cerrar Sesión
-                  </button>
-                </div>
-              )}
-            </div>
+      {/* KPI Cards */}
+      <div className="ds-grid-kpi">
+        <div className="ds-card-stat">
+          <div className="stat-icon gray"><CalendarIcon size={20} /></div>
+          <div className="stat-data">
+            <span className="stat-number">2</span>
+            <span className="stat-label">Clases hoy</span>
           </div>
         </div>
-      </header>
-
-      {/* --- NAV TABS (Menu principal) --- */}
-      <nav className="ds-nav-tabs">
-        <div className="ds-tabs-container">
-          <Link to="#" className="ds-tab-item active">
-            <LayoutDashboard size={20} /> <span className="tab-text">Inicio</span>
-          </Link>
-          <Link to="/reservas" className="ds-tab-item">
-            <Calendar size={20} /> <span className="tab-text">Reservas</span>
-          </Link>
-          <Link to="#" className="ds-tab-item">
-            <GraduationCap size={20} /> <span className="tab-text">Clases</span>
-          </Link>
-          <Link to="#" className="ds-tab-item">
-            <Baby size={20} /> <span className="tab-text">Ludoteca</span>
-          </Link>
-          <Link to="#" className="ds-tab-item">
-            <AlertCircle size={20} /> <span className="tab-text">Historial</span>
-          </Link>
-        </div>
-      </nav>
-
-      {/* --- MAIN CONTENT --- */}
-      <main className="ds-body">
-        <div className="ds-content-wrapper">
-          
-          {/* Card Hero */}
-          <section className="ds-welcome-card">
-            <div className="ds-welcome-info">
-              <h2 className="ds-title-serif">Buen dia, {userName.split(' ')[0]}</h2>
-              <p className="ds-subtitle">Martes, 21 De Abril De 2026 - 6:23 P.M.</p>
-            </div>
-            <div className="ds-status-tags">
-              <span className="tag-active"><CheckCircle size={14} /> Activo</span>
-              <span className="tag-category">Accion Familiar</span>
-            </div>
-          </section>
-
-          {/* KPI Cards */}
-          <div className="ds-grid-kpi">
-            <div className="ds-card-stat">
-              <div className="stat-icon gray"><Calendar size={20} /></div>
-              <div className="stat-data">
-                <span className="stat-number">2</span>
-                <span className="stat-label">Clases hoy</span>
-              </div>
-            </div>
-            <div className="ds-card-stat">
-              <div className="stat-icon teal"><LayoutDashboard size={20} /></div>
-              <div className="stat-data">
-                <span className="stat-number">2</span>
-                <span className="stat-label">Canchas libres</span>
-              </div>
-            </div>
-            <div className="ds-card-stat">
-              <div className="stat-icon amber"><Baby size={20} /></div>
-              <div className="stat-data">
-                <span className="stat-number">2</span>
-                <span className="stat-label">Hijos registrados</span>
-              </div>
-            </div>
-            <div className="ds-card-stat">
-              <div className="stat-icon red"><AlertCircle size={20} /></div>
-              <div className="stat-data">
-                <span className="stat-number">1</span>
-                <span className="stat-label">No-Shows (30 dias)</span>
-              </div>
-            </div>
+        <div className="ds-card-stat">
+          <div className="stat-icon teal"><LayoutIcon size={20} /></div>
+          <div className="stat-data">
+            <span className="stat-number">2</span>
+            <span className="stat-label">Canchas libres</span>
           </div>
-
-          {/* Seccion Listado */}
-          <section className="ds-section-card">
-            <header className="section-header">
-              <ClockIcon size={18} /> <h3>Proximas 24 horas</h3>
-            </header>
-            <div className="ds-list">
-              <div className="ds-list-item">
-                <div className="item-info">
-                  <h4>Yoga Matutino</h4>
-                  <p>7:00 AM - 8:00 AM - Salon A</p>
-                </div>
-                <div className="item-badge">8/15</div>
-              </div>
-              <div className="ds-list-item">
-                <div className="item-info">
-                  <h4>Zumba Intenso</h4>
-                  <p>9:00 AM - 10:00 AM - Salon B</p>
-                </div>
-                <div className="item-badge">15/15</div>
-              </div>
-            </div>
-          </section>
-
         </div>
-      </main>
-    </div>
+        <div className="ds-card-stat">
+          <div className="stat-icon amber"><BabyIcon size={20} /></div>
+          <div className="stat-data">
+            <span className="stat-number">2</span>
+            <span className="stat-label">Hijos registrados</span>
+          </div>
+        </div>
+        <div className="ds-card-stat">
+          <div className="stat-icon red"><AlertIcon size={20} /></div>
+          <div className="stat-data">
+            <span className="stat-number">1</span>
+            <span className="stat-label">No-Shows (30 dias)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Seccion Listado */}
+      <section className="ds-section-card">
+        <header className="section-header">
+          <ClockIcon size={18} /> <h3>Proximas 24 horas</h3>
+        </header>
+        <div className="ds-list">
+          <div className="ds-list-item">
+            <div className="item-info">
+              <h4>Yoga Matutino</h4>
+              <p>7:00 AM - 8:00 AM - Salon A</p>
+            </div>
+            <div className="item-badge">8/15</div>
+          </div>
+          <div className="ds-list-item">
+            <div className="item-info">
+              <h4>Zumba Intenso</h4>
+              <p>9:00 AM - 10:00 AM - Salon B</p>
+            </div>
+            <div className="item-badge">15/15</div>
+          </div>
+        </div>
+      </section>
+
+    </SocioLayout>
   )
 }
 
-// Icono pequeño auxiliar
+// Iconos auxiliares
+const CalendarIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+const LayoutIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+const BabyIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 19c4 0 6-2 8-2"/><path d="M12 2v2"/><path d="M12 20v2"/></svg>
+const AlertIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
 const ClockIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
 
 export default DashboardSocio

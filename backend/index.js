@@ -43,7 +43,7 @@ app.get('/api/health', (req, res) => {
 
 // --- REGISTRAR RUTAS ---
 app.use('/api/auth', authRoutes);
-app.use('/api/socios', sociosRoutes);
+app.use('/api/socios', socioRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/espacios', espaciosRoutes);

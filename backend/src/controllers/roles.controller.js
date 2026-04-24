@@ -4,7 +4,7 @@ const obtenerRoles = async (req, res) => {
     try {
         // actulizamos la consulta pa q no traiga al socio en el form interno
         const result = await pool.query(
-            "SELECT rol_id, nombre AS nombre_rol FROM roles WHERE nombre != 'socio' ORDER BY rol_id"
+        "SELECT rol_id, nombre FROM roles WHERE nombre != 'socio' ORDER BY rol_id"
         );
         res.json(result.rows);
     } catch (error) {

@@ -10,5 +10,6 @@ router.use(checkRole(['admin', 'gerente', 'coordinador']));
 router.get('/asistencia', reportesController.getReporteAsistencia);
 router.get('/ocupacion', reportesController.getReporteOcupacion);
 router.get('/sanciones', reportesController.getReporteSanciones);
+router.get('/sanciones', verifyToken, reportesController.sanciones);
 
 module.exports = router;

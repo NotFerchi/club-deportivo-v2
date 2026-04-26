@@ -19,7 +19,7 @@ function GestionSocios() {
     fechaNacimiento: '',
     genero: '',
     direccion: '',
-    tipo_socio: 'rentista', // accionista o rentista
+    tipo_socio: 'rentista',
     password: ''
   });
 
@@ -44,20 +44,64 @@ function GestionSocios() {
     return errors;
   };
 
+  // ==============================
+  // 🔹 CARGAR SOCIOS - CORREGIDO
+  // ==============================
   const fetchSocios = async () => {
     const token = localStorage.getItem('token');
+    
+    if (!token) {
+      console.error('No hay token');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('http://localhost:3000/api/socios', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Error al cargar socios');
+      
+      console.log('Status socios:', res.status);
+      
+      if (!res.ok) {
+        if (res.status === 401) {
+          alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('usuario');
+          window.location.href = '/login';
+          return;
+        }
+        if (res.status === 404) {
+          alert('El endpoint de socios no está disponible. Contacta al administrador.');
+          setSocios([]);
+          setFilteredSocios([]);
+          setLoading(false);
+          return;
+        }
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+      
       const data = await res.json();
-      // Asumimos que la API devuelve array de socios
-      setSocios(data);
-      setFilteredSocios(data);
+      console.log('Respuesta socios:', data);
+      
+      // Verificar si data es un array
+      let listaSocios = [];
+      if (Array.isArray(data)) {
+        listaSocios = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        listaSocios = data.data;
+      } else if (data.socios && Array.isArray(data.socios)) {
+        listaSocios = data.socios;
+      } else {
+        console.error('La respuesta no es un array:', data);
+        listaSocios = [];
+      }
+      
+      setSocios(listaSocios);
+      setFilteredSocios(listaSocios);
     } catch (error) {
-      console.error(error);
-      alert('No se pudieron cargar los socios');
+      console.error('Error en fetchSocios:', error);
+      alert('Error al cargar socios: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -67,9 +111,13 @@ function GestionSocios() {
     fetchSocios();
   }, []);
 
+  // ==============================
+  // 🔍 BUSCADOR
+  // ==============================
   useEffect(() => {
-    if (!searchTerm) setFilteredSocios(socios);
-    else {
+    if (!searchTerm) {
+      setFilteredSocios(socios);
+    } else {
       const filtered = socios.filter(s =>
         s.nombres?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.apellido_paterno?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -80,6 +128,9 @@ function GestionSocios() {
     }
   }, [searchTerm, socios]);
 
+  // ==============================
+  // ➕ CREAR / EDITAR
+  // ==============================
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errors = validateForm();
@@ -87,15 +138,37 @@ function GestionSocios() {
       setFormErrors(errors);
       return;
     }
+    
     const token = localStorage.getItem('token');
+    if (!token) {
+      alert('No hay sesión activa');
+      return;
+    }
+    
     const url = editingSocio
       ? `http://localhost:3000/api/socios/${editingSocio.socio_id}`
       : 'http://localhost:3000/api/socios';
     const method = editingSocio ? 'PUT' : 'POST';
+    
     const payload = {
-      ...formData,
+      nombres: formData.nombres,
+      apellidoPaterno: formData.apellidoPaterno,
+      apellidoMaterno: formData.apellidoMaterno,
+      email: formData.email,
+      telefono: formData.telefono,
+      curp: formData.curp,
+      fechaNacimiento: formData.fechaNacimiento,
+      genero: formData.genero,
+      direccion: formData.direccion,
+      tipo_socio: formData.tipo_socio,
       activo: editingSocio ? editingSocio.activo : true
     };
+    
+    // Solo incluir password si no está vacío
+    if (formData.password) {
+      payload.password = formData.password;
+    }
+    
     try {
       const res = await fetch(url, {
         method,
@@ -105,6 +178,7 @@ function GestionSocios() {
         },
         body: JSON.stringify(payload)
       });
+      
       if (res.ok) {
         fetchSocios();
         setShowModal(false);
@@ -114,6 +188,7 @@ function GestionSocios() {
           nombres: '', apellidoPaterno: '', apellidoMaterno: '', email: '', telefono: '',
           curp: '', fechaNacimiento: '', genero: '', direccion: '', tipo_socio: 'rentista', password: ''
         });
+        alert(editingSocio ? 'Socio actualizado correctamente' : 'Socio creado correctamente');
       } else {
         const data = await res.json();
         alert(data.error || 'Error al guardar socio');
@@ -124,38 +199,86 @@ function GestionSocios() {
     }
   };
 
+  // ==============================
+  // ❌ INACTIVAR
+  // ==============================
   const handleDelete = async (id) => {
     if (!confirm('¿Inactivar este socio?')) return;
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:3000/api/socios/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (res.ok) fetchSocios();
-    else alert('Error al inactivar socio');
+    if (!token) return;
+    
+    try {
+      const res = await fetch(`http://localhost:3000/api/socios/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchSocios();
+        alert('Socio inactivado correctamente');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Error al inactivar socio');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error de conexión');
+    }
   };
 
+  // ==============================
+  // 🗑️ ELIMINAR PERMANENTEMENTE
+  // ==============================
   const handlePermanentDelete = async (id) => {
     if (!confirm('¿Eliminar permanentemente? Esta acción no se puede deshacer.')) return;
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:3000/api/socios/${id}/permanente`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (res.ok) fetchSocios();
-    else alert('Error al eliminar socio');
+    if (!token) return;
+    
+    try {
+      const res = await fetch(`http://localhost:3000/api/socios/${id}/permanente`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchSocios();
+        alert('Socio eliminado permanentemente');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Error al eliminar socio');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error de conexión');
+    }
   };
 
+  // ==============================
+  // ♻️ REACTIVAR
+  // ==============================
   const handleReactivate = async (socio) => {
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:3000/api/socios/${socio.socio_id}/reactivar`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (res.ok) fetchSocios();
-    else alert('Error al reactivar socio');
+    if (!token) return;
+    
+    try {
+      const res = await fetch(`http://localhost:3000/api/socios/${socio.socio_id}/reactivar`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchSocios();
+        alert('Socio reactivado correctamente');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Error al reactivar socio');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error de conexión');
+    }
   };
 
+  // ==============================
+  // ✏️ EDITAR
+  // ==============================
   const handleEdit = (socio) => {
     setEditingSocio(socio);
     setFormData({
@@ -243,7 +366,7 @@ function GestionSocios() {
         </table>
       </div>
 
-      {/* Modal igual al de GestionUsuarios pero con campos de socio y tipo_socio */}
+      {/* MODAL */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '760px' }}>

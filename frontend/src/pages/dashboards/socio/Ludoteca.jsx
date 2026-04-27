@@ -120,7 +120,7 @@ function Ludoteca() {
 
   // ==================== HANDLERS ====================
   const getAforoPorcentaje = () => {
-    return Math.round((aforoActual / aforMaximo) * 100)
+    return Math.round((aforoActual / aforoMaximo) * 100)
   }
 
   const getAforoColor = () => {

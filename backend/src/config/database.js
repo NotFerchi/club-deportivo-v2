@@ -2,7 +2,9 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 console.log('📡 Conectando a Neon...');
-
+console.log('🔍 DATABASE_URL actual:', process.env.DATABASE_URL ? 'Cargada correctamente' : 'ESTÁ VACÍA');
+console.log('📡 DATABASE_URL detectada:', process.env.DATABASE_URL ? 'SI' : 'NO');
+console.log('📡 Puerto detectado:', process.env.PORT || 'No detectado');
 // Configuración para Neon
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,

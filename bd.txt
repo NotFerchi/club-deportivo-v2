@@ -1,0 +1,319 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model acciones_familiares {
+  accion_id      Int       @id @default(autoincrement())
+  codigo_accion  String    @unique @db.VarChar(20)
+  fecha_registro DateTime? @default(now()) @db.Timestamp(6)
+  socios         socios[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model asistencia {
+  asistencia_id        Int                   @id @default(autoincrement())
+  sesion_id            Int?
+  socio_id             Int?
+  visita_id            Int?
+  fecha                DateTime?             @default(dbgenerated("CURRENT_DATE")) @db.Date
+  presente             Boolean?              @default(true)
+  registro             DateTime?             @default(now()) @db.Timestamp(6)
+  sesiones_programadas sesiones_programadas? @relation(fields: [sesion_id], references: [sesion_id], onDelete: NoAction, onUpdate: NoAction)
+  socios               socios?               @relation(fields: [socio_id], references: [socio_id], onDelete: NoAction, onUpdate: NoAction)
+  visitas              visitas?              @relation(fields: [visita_id], references: [visita_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model categorias_torneo {
+  categoria_id Int    @id @default(autoincrement())
+  nombre       String @db.VarChar(50)
+}
+
+model disciplinas {
+  disciplina_id        Int                    @id @default(autoincrement())
+  nombre               String                 @unique @db.VarChar(100)
+  espacios             espacios[]
+  sesiones_programadas sesiones_programadas[]
+  torneos              torneos[]
+}
+
+model encuentros_torneo {
+  encuentro_id    Int       @id @default(autoincrement())
+  torneo_id       Int?
+  participante_1  String    @db.VarChar(100)
+  participante_2  String    @db.VarChar(100)
+  ronda           Int?      @default(1)
+  ganador         String?   @db.VarChar(100)
+  cancha_asignada String?   @db.VarChar(50)
+  hora_programada DateTime? @db.Timestamp(6)
+  arbitro         String?   @db.VarChar(100)
+  torneos         torneos?  @relation(fields: [torneo_id], references: [torneo_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model equipos {
+  equipo_id       Int               @id @default(autoincrement())
+  nombre_equipo   String            @db.VarChar(100)
+  capitan_id      Int?
+  fecha_registro  DateTime?         @default(dbgenerated("CURRENT_DATE")) @db.Date
+  socios          socios?           @relation(fields: [capitan_id], references: [socio_id], onDelete: NoAction, onUpdate: NoAction)
+  miembros_equipo miembros_equipo[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model espacios {
+  espacio_id             Int                      @id @default(autoincrement())
+  nombre                 String                   @db.VarChar(100)
+  disciplina_id          Int?
+  capacidad_maxima       Int?
+  activo                 Boolean?                 @default(true)
+  disciplinas            disciplinas?             @relation(fields: [disciplina_id], references: [disciplina_id], onDelete: NoAction, onUpdate: NoAction)
+  lista_espera           lista_espera[]
+  mantenimiento_espacios mantenimiento_espacios[]
+  reservaciones          reservaciones[]
+  sesiones_programadas   sesiones_programadas[]
+}
+
+model instructores {
+  instructor_id        Int                    @id @default(autoincrement())
+  especialidad         String?                @db.VarChar(100)
+  activo               Boolean?               @default(true)
+  usuario_id           Int?
+  usuarios             usuarios?              @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction)
+  sesiones_programadas sesiones_programadas[]
+}
+
+model lista_espera {
+  espera_id      Int       @id @default(autoincrement())
+  espacio_id     Int?
+  socio_id       Int?
+  fecha_reserva  DateTime  @db.Date
+  hora_inicio    DateTime  @db.Time(6)
+  hora_fin       DateTime  @db.Time(6)
+  fecha_registro DateTime? @default(now()) @db.Timestamp(6)
+  notificado     Boolean?  @default(false)
+  espacios       espacios? @relation(fields: [espacio_id], references: [espacio_id], onDelete: NoAction, onUpdate: NoAction)
+  socios         socios?   @relation(fields: [socio_id], references: [socio_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model logs_sistema {
+  log_id         Int       @id @default(autoincrement())
+  usuario_id     Int?
+  accion         String    @db.VarChar(100)
+  tabla_afectada String?   @db.VarChar(100)
+  fecha          DateTime? @default(now()) @db.Timestamp(6)
+  ip_origen      String?   @db.VarChar(45)
+  detalles       String?
+  registro_id    Int?
+  usuarios       usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model mantenimiento_espacios {
+  mantenimiento_id Int       @id @default(autoincrement())
+  espacio_id       Int?
+  fecha_inicio     DateTime  @db.Timestamp(6)
+  fecha_fin        DateTime? @db.Timestamp(6)
+  motivo           String?
+  usuario_id       Int?
+  espacios         espacios? @relation(fields: [espacio_id], references: [espacio_id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios         usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model miembros_equipo {
+  miembro_id Int      @id @default(autoincrement())
+  equipo_id  Int?
+  socio_id   Int?
+  visita_id  Int?
+  equipos    equipos? @relation(fields: [equipo_id], references: [equipo_id], onDelete: NoAction, onUpdate: NoAction)
+  socios     socios?  @relation(fields: [socio_id], references: [socio_id], onDelete: NoAction, onUpdate: NoAction)
+  visitas    visitas? @relation(fields: [visita_id], references: [visita_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model participantes_torneo {
+  participante_id Int      @id @default(autoincrement())
+  torneo_id       Int?
+  socio_id        Int?
+  visita_id       Int?
+  nombre_externo  String?  @db.VarChar(150)
+  categoria       String?  @db.VarChar(50)
+  resultado_final String?  @db.VarChar(100)
+  socios          socios?  @relation(fields: [socio_id], references: [socio_id], onDelete: NoAction, onUpdate: NoAction)
+  torneos         torneos? @relation(fields: [torneo_id], references: [torneo_id], onDelete: NoAction, onUpdate: NoAction)
+  visitas         visitas? @relation(fields: [visita_id], references: [visita_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model permisos {
+  permiso_id     Int              @id @default(autoincrement())
+  nombre         String           @unique @db.VarChar(100)
+  roles_permisos roles_permisos[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model registro_ludoteca {
+  registro_id      Int         @id @default(autoincrement())
+  socio_padre_id   Int?
+  nombre_hijo      String      @db.VarChar(100)
+  fecha_nacimiento DateTime    @db.Date
+  hora_entrada     DateTime?   @default(now()) @db.Timestamp(6)
+  hora_salida      DateTime?   @db.Timestamp(6)
+  socios           socios?     @relation(fields: [socio_padre_id], references: [socio_id], onDelete: NoAction, onUpdate: NoAction)
+  sanciones        sanciones[]
+}
+
+model reservaciones {
+  reserva_id           Int                   @id @default(autoincrement())
+  espacio_id           Int?
+  socio_id             Int
+  fecha_reserva        DateTime              @db.Date
+  hora_inicio          DateTime              @db.Time(6)
+  hora_fin             DateTime              @db.Time(6)
+  estado               estado_reserva?       @default(Confirmada)
+  no_show              Boolean?              @default(false)
+  fecha_creacion       DateTime?             @default(now()) @db.Timestamp(6)
+  created_by           Int?
+  sesion_id            Int?
+  usuarios             usuarios?             @relation(fields: [created_by], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction)
+  espacios             espacios?             @relation(fields: [espacio_id], references: [espacio_id], onDelete: NoAction, onUpdate: NoAction)
+  sesiones_programadas sesiones_programadas? @relation(fields: [sesion_id], references: [sesion_id], onDelete: NoAction, onUpdate: NoAction)
+  socios               socios                @relation(fields: [socio_id], references: [socio_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model roles {
+  rol_id         Int              @id @default(autoincrement())
+  nombre         String           @unique @db.VarChar(50)
+  roles_permisos roles_permisos[]
+  usuarios       usuarios[]
+}
+
+model roles_permisos {
+  rol_id     Int
+  permiso_id Int
+  permisos   permisos @relation(fields: [permiso_id], references: [permiso_id], onDelete: NoAction, onUpdate: NoAction)
+  roles      roles    @relation(fields: [rol_id], references: [rol_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([rol_id, permiso_id])
+}
+
+model sanciones {
+  sancion_id           Int                @id @default(autoincrement())
+  socio_id             Int
+  origen               String             @db.VarChar(50)
+  motivo               String
+  fecha                DateTime?          @default(now()) @db.Timestamp(6)
+  estado               String?            @default("Activo") @db.VarChar(20)
+  resuelto_por         Int?
+  fecha_resolucion     DateTime?          @db.Timestamp(6)
+  registro_ludoteca_id Int?
+  registro_ludoteca    registro_ludoteca? @relation(fields: [registro_ludoteca_id], references: [registro_id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios             usuarios?          @relation(fields: [resuelto_por], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction)
+  socios               socios             @relation(fields: [socio_id], references: [socio_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sesiones_programadas {
+  sesion_id     Int             @id @default(autoincrement())
+  disciplina_id Int?
+  espacio_id    Int?
+  instructor_id Int?
+  dia_semana    Int?
+  hora_inicio   DateTime        @db.Time(6)
+  hora_fin      DateTime        @db.Time(6)
+  cupo_maximo   Int?
+  asistencia    asistencia[]
+  reservaciones reservaciones[]
+  disciplinas   disciplinas?    @relation(fields: [disciplina_id], references: [disciplina_id], onDelete: NoAction, onUpdate: NoAction)
+  espacios      espacios?       @relation(fields: [espacio_id], references: [espacio_id], onDelete: NoAction, onUpdate: NoAction)
+  instructores  instructores?   @relation(fields: [instructor_id], references: [instructor_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model socios {
+  socio_id             Int                    @id @default(autoincrement())
+  accion_id            Int?
+  tipo                 tipo_socio
+  modalidad            modalidad_socio
+  es_titular           Boolean?               @default(false)
+  activo               Boolean?               @default(true)
+  fecha_alta           DateTime?              @default(now()) @db.Timestamp(6)
+  numero_socio         String?                @unique @db.VarChar(20)
+  usuario_id           Int?
+  nombre_emergencia    String?                @db.VarChar(150)
+  tel_emergencia       String?                @db.VarChar(20)
+  asistencia           asistencia[]
+  equipos              equipos[]
+  lista_espera         lista_espera[]
+  miembros_equipo      miembros_equipo[]
+  participantes_torneo participantes_torneo[]
+  registro_ludoteca    registro_ludoteca[]
+  reservaciones        reservaciones[]
+  sanciones            sanciones[]
+  acciones_familiares  acciones_familiares?   @relation(fields: [accion_id], references: [accion_id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios             usuarios?              @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model torneos {
+  torneo_id            Int                    @id @default(autoincrement())
+  disciplina_id        Int?
+  nombre               String                 @db.VarChar(150)
+  fecha_inicio         DateTime?              @db.Date
+  fecha_fin            DateTime?              @db.Date
+  encuentros_torneo    encuentros_torneo[]
+  participantes_torneo participantes_torneo[]
+  disciplinas          disciplinas?           @relation(fields: [disciplina_id], references: [disciplina_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model usuarios {
+  usuario_id             Int                      @id @default(autoincrement())
+  username               String                   @unique @db.VarChar(50)
+  password_hash          String
+  rol_id                 Int?
+  activo                 Boolean?                 @default(true)
+  fecha_creacion         DateTime?                @default(now()) @db.Timestamp(6)
+  nombres                String?                  @db.VarChar(100)
+  apellido_paterno       String?                  @db.VarChar(100)
+  apellido_materno       String?                  @db.VarChar(100)
+  curp                   String?                  @unique @db.VarChar(18)
+  telefono               String?                  @db.VarChar(20)
+  fecha_nacimiento       DateTime?                @db.Date
+  genero                 String?                  @db.VarChar(20)
+  direccion              String?
+  instructores           instructores[]
+  logs_sistema           logs_sistema[]
+  mantenimiento_espacios mantenimiento_espacios[]
+  reservaciones          reservaciones[]
+  sanciones              sanciones[]
+  socios                 socios[]
+  roles                  roles?                   @relation(fields: [rol_id], references: [rol_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model visitas {
+  visita_id            Int                    @id @default(autoincrement())
+  nombre_completo      String                 @db.VarChar(150)
+  identificacion_tipo  String?                @db.VarChar(50)
+  fecha_visita         DateTime?              @default(dbgenerated("CURRENT_DATE")) @db.Date
+  hora_entrada         DateTime?              @default(now()) @db.Timestamp(6)
+  hora_salida          DateTime?              @db.Timestamp(6)
+  vigente              Boolean?               @default(true)
+  asistencia           asistencia[]
+  miembros_equipo      miembros_equipo[]
+  participantes_torneo participantes_torneo[]
+}
+
+enum estado_reserva {
+  Confirmada
+  Cancelada
+  No_Show    @map("No-Show")
+  Sancionada
+}
+
+enum modalidad_socio {
+  Individual
+  Familiar
+}
+
+enum tipo_socio {
+  Accionista
+  Rentista
+}

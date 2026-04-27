@@ -538,3 +538,43 @@
         align-items: flex-start;
     }
 }
+
+/* ==================== TABS DE NAVEGACIÓN ==================== */
+.clases-tabs-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    background: white;
+    padding: 0.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.clases-tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    color: var(--ds-text-light);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.clases-tab-btn:hover {
+    background: #f1f5f9;
+}
+
+.clases-tab-btn.active {
+    background: var(--ds-navy);
+    color: white;
+}
+
+.clases-tab-btn.active svg {
+    color: white;
+}

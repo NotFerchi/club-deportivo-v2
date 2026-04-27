@@ -7,6 +7,17 @@ import {
 } from 'lucide-react'
 import '../../../../css/socio/Clases.css'
 
+// Constante para mapeo de días
+const DIAS_SEMANA = [
+  { valor: 1, nombre: 'Lunes' },
+  { valor: 2, nombre: 'Martes' },
+  { valor: 3, nombre: 'Miércoles' },
+  { valor: 4, nombre: 'Jueves' },
+  { valor: 5, nombre: 'Viernes' },
+  { valor: 6, nombre: 'Sábado' },
+  { valor: 7, nombre: 'Domingo' }
+]
+
 function Clases() {
   // Obtener datos del usuario desde localStorage
   const usuarioSesion = localStorage.getItem('usuario')
@@ -15,15 +26,19 @@ function Clases() {
   const socioId = usuario?.socio_id
 
   // ==================== ESTADOS ====================
-  const [vista, setVista] = useState('mis-clases') // 'mis-clases' | 'catalogo'
+  const [vista, setVista] = useState('catalogo') // 'mis-clases' | 'catalogo'
   const [misClases, setMisClases] = useState([])
   const [catalogoClases, setCatalogoClases] = useState([])
   const [loading, setLoading] = useState(true)
   
+  // Listas para filtros (cargadas desde BD)
+  const [disciplinas, setDisciplinas] = useState([])
+  const [instructores, setInstructores] = useState([])
+  
   // Filtros del catálogo
   const [filtros, setFiltros] = useState({
     disciplina: '',
-    nivel: '',
+    dia: '',
     instructor: ''
   })
   
@@ -36,177 +51,163 @@ function Clases() {
   const [claseABaja, setClaseABaja] = useState(null)
   const [showModalBaja, setShowModalBaja] = useState(false)
 
-  // ==================== DATOS HARDCODEADOS ====================
-  const disciplinas = ['Natación', 'Zumba', 'Tenis', 'Yoga', 'Pilates', 'Box', 'Spinning', 'Funcional']
-  const niveles = ['Principiante', 'Intermedio', 'Avanzado']
-  
-  const instructores = [
-    { id: 1, nombre: 'María González', foto: 'https://i.pravatar.cc/150?img=1', especialidad: 'Natación' },
-    { id: 2, nombre: 'Carlos Ruiz', foto: 'https://i.pravatar.cc/150?img=2', especialidad: 'Zumba' },
-    { id: 3, nombre: 'Ana López', foto: 'https://i.pravatar.cc/150?img=3', especialidad: 'Yoga' },
-    { id: 4, nombre: 'Pedro Sánchez', foto: 'https://i.pravatar.cc/150?img=4', especialidad: 'Tenis' },
-    { id: 5, nombre: 'Laura Martínez', foto: 'https://i.pravatar.cc/150?img=5', especialidad: 'Pilates' },
-  ]
-
-  // Mis clases inscritas (hardcodeado para demo)
-  const misClasesData = [
-    {
-      id: 1,
-      clase_id: 101,
-      nombre: 'Yoga Matutino',
-      disciplina: 'Yoga',
-      instructor: 'Ana López',
-      instructorFoto: 'https://i.pravatar.cc/150?img=3',
-      horario: '07:00 - 08:00',
-      dias: 'Lun, Mie, Vie',
-      salon: 'Salón A',
-      estatus: 'confirmado', // confirmado | pendiente | cambio
-      materiales: 'Tapete, toalla, agua',
-      intensidad: 'Media',
-      duracion: '60 min'
-    },
-    {
-      id: 2,
-      clase_id: 102,
-      nombre: 'Zumba Intenso',
-      disciplina: 'Zumba',
-      instructor: 'Carlos Ruiz',
-      instructorFoto: 'https://i.pravatar.cc/150?img=2',
-      horario: '09:00 - 10:00',
-      dias: 'Mar, Jue, Vie',
-      salon: 'Salón B',
-      estatus: 'confirmado',
-      materiales: 'Tenis, agua, ropa deportiva',
-      intensidad: 'Alta',
-      duracion: '60 min'
-    },
-    {
-      id: 3,
-      clase_id: 103,
-      nombre: 'Natación Avanzada',
-      disciplina: 'Natación',
-      instructor: 'María González',
-      instructorFoto: 'https://i.pravatar.cc/150?img=1',
-      horario: '18:00 - 19:00',
-      dias: 'Lun, Mie',
-      salon: 'Alberca',
-      estatus: 'cambio', // Ejemplo de cambio de instructor
-      materiales: 'Traje de baño, goggles, toalla',
-      intensidad: 'Alta',
-      duracion: '60 min'
-    }
-  ]
-
-  // Catálogo de clases disponibles
-  const catalogoData = [
-    {
-      id: 201,
-      nombre: 'Yoga para Principiantes',
-      disciplina: 'Yoga',
-      nivel: 'Principiante',
-      instructor: 'Ana López',
-      instructorFoto: 'https://i.pravatar.cc/150?img=3',
-      horario: '08:00 - 09:00',
-      dias: 'Lun, Mie, Vie',
-      salon: 'Salón A',
-      cupos: { total: 20, disponibles: 15 },
-      duracion: '60 min',
-      intensidad: 'Baja',
-      descripcion: 'Clase ideal para quienes inician en el mundo del yoga. Enfoque en posturas básicas y respiración.',
-      materiales: 'Tapete, toalla, agua'
-    },
-    {
-      id: 202,
-      nombre: 'Zumba Fitness',
-      disciplina: 'Zumba',
-      nivel: 'Intermedio',
-      instructor: 'Carlos Ruiz',
-      instructorFoto: 'https://i.pravatar.cc/150?img=2',
-      horario: '10:00 - 11:00',
-      dias: 'Mar, Jue',
-      salon: 'Salón B',
-      cupos: { total: 25, disponibles: 3 }, // Casi lleno
-      duracion: '60 min',
-      intensidad: 'Alta',
-      descripcion: 'Bailes contagiosos con música latina para quemar calorías divirtiéndote.',
-      materiales: 'Tenis, agua, ropa deportiva'
-    },
-    {
-      id: 203,
-      nombre: 'Tenis Intermedio',
-      disciplina: 'Tenis',
-      nivel: 'Intermedio',
-      instructor: 'Pedro Sánchez',
-      instructorFoto: 'https://i.pravatar.cc/150?img=4',
-      horario: '16:00 - 17:30',
-      dias: 'Lun, Mie',
-      salon: 'Cancha 1',
-      cupos: { total: 4, disponibles: 0 }, // Lleno
-      duracion: '90 min',
-      intensidad: 'Media',
-      descripcion: 'Mejora tu técnica con ejercicios de golpeo y juegos tácticos.',
-      materiales: 'Raqueta, pelotas, agua'
-    },
-    {
-      id: 204,
-      nombre: 'Pilates Reformer',
-      disciplina: 'Pilates',
-      nivel: 'Avanzado',
-      instructor: 'Laura Martínez',
-      instructorFoto: 'https://i.pravatar.cc/150?img=5',
-      horario: '19:00 - 20:00',
-      dias: 'Mar, Jue, Vie',
-      salon: 'Salón C',
-      cupos: { total: 12, disponibles: 8 },
-      duracion: '60 min',
-      intensidad: 'Media',
-      descripcion: 'Ejercicios en máquina reformer para fortalecer core y mejorar postura.',
-      materiales: 'Ropa cómoda, calcetines, agua'
-    },
-    {
-      id: 205,
-      nombre: 'Natación para Bebés',
-      disciplina: 'Natación',
-      nivel: 'Principiante',
-      instructor: 'María González',
-      instructorFoto: 'https://i.pravatar.cc/150?img=1',
-      horario: '09:00 - 09:45',
-      dias: 'Sáb',
-      salon: 'Alberca',
-      cupos: { total: 10, disponibles: 2 }, // Casi lleno
-      duracion: '45 min',
-      intensidad: 'Baja',
-      descripcion: 'Clase acuática para bebés de 6 meses a 3 años con acompañante.',
-      materiales: 'Traje de baño para bebé y acompañante, toalla'
-    },
-    {
-      id: 206,
-      nombre: 'Box Funcional',
-      disciplina: 'Box',
-      nivel: 'Intermedio',
-      instructor: 'Carlos Ruiz',
-      instructorFoto: 'https://i.pravatar.cc/150?img=2',
-      horario: '20:00 - 21:00',
-      dias: 'Lun, Mie',
-      salon: 'Ring',
-      cupos: { total: 20, disponibles: 18 },
-      duracion: '60 min',
-      intensidad: 'Alta',
-      descripcion: 'Entrenamiento de boxeo combinado con ejercicios funcionales.',
-      materiales: 'Guantes de box (opcional), toalla, agua'
-    }
-  ]
+  // ==================== API BASE URL ====================
+  const API_BASE = 'http://localhost:3000/api'
 
   // ==================== EFECTOS ====================
+  
+  // Cargar listas para filtros (disciplinas e instructores)
   useEffect(() => {
-    // Simular carga de datos
-    setLoading(true)
-    setTimeout(() => {
-      setMisClases(misClasesData)
-      setCatalogoClases(catalogoData)
-      setLoading(false)
-    }, 500)
+    const fetchListas = async () => {
+      try {
+        // Cargar disciplinas
+        const discRes = await fetch(`${API_BASE}/disciplinas`)
+        const discData = await discRes.json()
+        setDisciplinas(discData)
+        
+        // Cargar instructores con datos del usuario
+        const instRes = await fetch(`${API_BASE}/instructores`)
+        const instData = await instRes.json()
+        setInstructores(instData)
+      } catch (error) {
+        console.error('Error cargando listas:', error)
+      }
+    }
+    fetchListas()
   }, [])
+
+  // Cargar clases inscritas del socio (Mis Clases)
+  useEffect(() => {
+    const fetchMisClases = async () => {
+      if (vista !== 'mis-clases') return
+      
+      setLoading(true)
+      try {
+        // Obtener socioId del usuario en localStorage
+        const usuarioSesion = localStorage.getItem('usuario')
+        const usuarioData = usuarioSesion ? JSON.parse(usuarioSesion) : null
+        const socioId = usuarioData?.id || usuarioData?.socio_id
+        
+        if (!socioId) {
+          console.warn('No se encontró ID del socio')
+          setMisClases([])
+          setLoading(false)
+          return
+        }
+        
+        const response = await fetch(`${API_BASE}/inscripciones/mis-inscripciones?socioId=${socioId}`)
+        const data = await response.json()
+        
+        // Transformar datos al formato de la UI
+        const misClasesTransformadas = data.map(inscripcion => ({
+          id: inscripcion.inscripcion_id,
+          sesion_id: inscripcion.sesion_id,
+          nombre: inscripcion.disciplina,
+          disciplina: inscripcion.disciplina,
+          instructor: inscripcion.instructor || 'Por asignar',
+          instructorFoto: `https://i.pravatar.cc/150?img=1`,
+          horario: `${inscripcion.hora_inicio?.slice(0, 5)} - ${inscripcion.hora_fin?.slice(0, 5)}`,
+          dias: getNombreDia(inscripcion.dia_semana),
+          salon: inscripcion.espacio,
+          estatus: 'confirmado',
+          materiales: 'Ropa deportiva, toalla, agua',
+          intensidad: 'Media',
+          duracion: calcularDuracion(inscripcion.hora_inicio, inscripcion.hora_fin)
+        }))
+        
+        setMisClases(misClasesTransformadas)
+      } catch (error) {
+        console.error('Error cargando mis clases:', error)
+        setMisClases([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchMisClases()
+  }, [vista])
+
+  // Cargar catálogo de clases desde la API
+  useEffect(() => {
+    const fetchCatalogo = async () => {
+      setLoading(true)
+      try {
+        // Construir query params
+        const params = new URLSearchParams()
+        if (filtros.disciplina) params.append('disciplina', filtros.disciplina)
+        if (filtros.dia) params.append('dia', filtros.dia)
+        if (filtros.instructor) params.append('instructor', filtros.instructor)
+        
+        const queryString = params.toString()
+        const url = queryString 
+          ? `${API_BASE}/sesiones?${queryString}` 
+          : `${API_BASE}/sesiones`
+        
+        const response = await fetch(url)
+        const data = await response.json()
+        
+        // Transformar datos de la BD al formato de la UI
+        const clasesTransformadas = data.map(sesion => ({
+          id: sesion.sesion_id,
+          sesion_id: sesion.sesion_id,
+          nombre: sesion.disciplina, // Título: Nombre de la disciplina
+          disciplina: sesion.disciplina,
+          instructor: sesion.instructor || 'Por asignar',
+          instructorFoto: `https://i.pravatar.cc/150?img=${(sesion.instructor_id % 10) + 1}`,
+          horario: `${sesion.hora_inicio?.slice(0, 5)} - ${sesion.hora_fin?.slice(0, 5)}`,
+          dias: getNombreDia(sesion.dia_semana),
+          dia_semana: sesion.dia_semana,
+          salon: sesion.espacio, // Ubicación: Nombre del espacio
+          cupos: {
+              total: sesion.cupo_maximo || 20,
+              // CAMBIO: Usar 'inscritos_actuales' que es el nombre que pusimos en el SQL
+              disponibles: (sesion.cupo_maximo || 20) - (parseInt(sesion.inscritos_actuales) || 0)
+          },
+          duracion: calcularDuracion(sesion.hora_inicio, sesion.hora_fin),
+          intensidad: 'Media',
+          descripcion: `Clase de ${sesion.disciplina} impartida por ${sesion.instructor || 'instructor por asignar'}`,
+          materiales: 'Ropa deportiva, toalla, agua',
+          instructor_id: sesion.instructor_id,
+          espacio_id: sesion.espacio_id,
+          disciplina_id: sesion.disciplina_id
+        }))
+        
+        setCatalogoClases(clasesTransformadas)
+      } catch (error) {
+        console.error('Error cargando catálogo:', error)
+        // Fallback: datos vacíos
+        setCatalogoClases([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    // Solo cargar catálogo cuando estamos en esa vista
+    if (vista === 'catalogo') {
+      fetchCatalogo()
+    }
+  }, [vista, filtros])
+
+  // ==================== HELPERS ====================
+  const getNombreDia = (diaSemana) => {
+    const dia = DIAS_SEMANA.find(d => d.valor === diaSemana)
+    return dia ? dia.nombre : 'Por definir'
+  }
+
+  const calcularDuracion = (horaInicio, horaFin) => {
+    if (!horaInicio || !horaFin) return '60 min'
+    try {
+      const [h1, m1] = horaInicio.split(':').map(Number)
+      const [h2, m2] = horaFin.split(':').map(Number)
+      const minutos = (h2 * 60 + m2) - (h1 * 60 + m1)
+      if (minutos >= 60) {
+        return `${Math.floor(minutos / 60)}h ${minutos % 60 > 0 ? minutos % 60 + 'min' : ''}`
+      }
+      return `${minutos} min`
+    } catch {
+      return '60 min'
+    }
+  }
 
   // ==================== HANDLERS ====================
   const handleFiltroChange = (campo, valor) => {
@@ -214,7 +215,7 @@ function Clases() {
   }
 
   const handleLimpiarFiltros = () => {
-    setFiltros({ disciplina: '', nivel: '', instructor: '' })
+    setFiltros({ disciplina: '', dia: '', instructor: '' })
   }
 
   const handleInscribirse = (clase) => {
@@ -222,11 +223,114 @@ function Clases() {
     setShowModalInscripcion(true)
   }
 
-  const handleConfirmarInscripcion = () => {
-    // Aquí iría la llamada a la API
-    console.log('Inscripción confirmada para:', claseSeleccionada.nombre)
-    setShowModalInscripcion(false)
-    setShowModalConfirmacion(true)
+  // Función para inscribir al socio en una clase
+  const handleInscripcion = async (sesionId) => {
+    // Obtener socioId del usuario en localStorage
+    const usuarioSesion = localStorage.getItem('usuario')
+    const usuarioData = usuarioSesion ? JSON.parse(usuarioSesion) : null
+    const socioId = usuarioData?.id;
+    
+    if (!socioId) {
+    console.error("No se encontró el ID del usuario. ¿Iniciaste sesión?");
+    return { success: false, message: "Error de sesión: ID no encontrado" };
+}
+    console.log("Inscribiendo al socio real:", socioId);
+    try {
+      const response = await fetch(`${API_BASE}/inscripciones/inscribir`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sesionId: sesionId,
+          socioId: socioId
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.status === 201) {
+        // Éxito: actualizar el contador de inscritos en el estado
+          setCatalogoClases(prev => prev.map(clase => 
+            clase.sesion_id === sesionId 
+              ? { 
+                  ...clase, 
+                  // Sumamos 1 al contador de inscritos actuales
+                  inscritos_actuales: parseInt(clase.inscritos_actuales) + 1 
+                } 
+              : clase
+          ))
+        return { success: true, message: data.message }
+      } else {
+        // Error: clase llena o ya inscrito
+        return { success: false, message: data.error }
+      }
+    } catch (error) {
+      console.error('Error en inscripción:', error)
+      return { success: false, message: 'Error de conexión' }
+    }
+  }
+
+  const handleConfirmarInscripcion = async () => {
+    if (!claseSeleccionada) return
+    
+    // Mostrar estado de carga
+    const btnConfirm = document.querySelector('.modal-btn.confirm')
+    if (btnConfirm) {
+      btnConfirm.disabled = true
+      btnConfirm.textContent = 'Inscribiendo...'
+    }
+    
+    const result = await handleInscripcion(claseSeleccionada.sesion_id)
+    
+    if (result.success) {
+      setShowModalInscripcion(false)
+      setShowModalConfirmacion(true)
+      // Recargar mis clases después de una inscripción exitosa
+      setTimeout(() => {
+        const fetchMisClases = async () => {
+          try {
+            const usuarioSesion = localStorage.getItem('usuario')
+            const usuarioData = usuarioSesion ? JSON.parse(usuarioSesion) : null
+            const socioId = usuarioData?.id || usuarioData?.socio_id
+            
+            if (socioId) {
+              const response = await fetch(`${API_BASE}/inscripciones/mis-inscripciones?socioId=${socioId}`)
+              const data = await response.json()
+              
+              const misClasesTransformadas = data.map(inscripcion => ({
+                id: inscripcion.inscripcion_id,
+                sesion_id: inscripcion.sesion_id,
+                nombre: inscripcion.disciplina,
+                disciplina: inscripcion.disciplina,
+                instructor: inscripcion.instructor || 'Por asignar',
+                instructorFoto: `https://i.pravatar.cc/150?img=1`,
+                horario: `${inscripcion.hora_inicio?.slice(0, 5)} - ${inscripcion.hora_fin?.slice(0, 5)}`,
+                dias: getNombreDia(inscripcion.dia_semana),
+                salon: inscripcion.espacio,
+                estatus: 'confirmado',
+                materiales: 'Ropa deportiva, toalla, agua',
+                intensidad: 'Media',
+                duracion: calcularDuracion(inscripcion.hora_inicio, inscripcion.hora_fin)
+              }))
+              
+              setMisClases(misClasesTransformadas)
+            }
+          } catch (error) {
+            console.error('Error recargando mis clases:', error)
+          }
+        }
+        fetchMisClases()
+      }, 500)
+    } else {
+      alert(result.message)
+    }
+    
+    // Restaurar botón
+    if (btnConfirm) {
+      btnConfirm.disabled = false
+      btnConfirm.textContent = 'Confirmar Inscripción'
+    }
   }
 
   const handleCancelarInscripcion = (clase) => {
@@ -234,11 +338,42 @@ function Clases() {
     setShowModalBaja(true)
   }
 
-  const handleConfirmarBaja = () => {
-    // Aquí iría la llamada a la API
-    console.log('Baja confirmada para:', claseABaja.nombre)
-    setMisClases(prev => prev.filter(c => c.id !== claseABaja.id))
-    setShowModalBaja(false)
+  const handleConfirmarBaja = async () => {
+    try {
+      // Obtener socioId del usuario en localStorage
+      const usuarioSesion = localStorage.getItem('usuario')
+      const usuarioData = usuarioSesion ? JSON.parse(usuarioSesion) : null
+      const socioId = usuarioData?.id || usuarioData?.socio_id
+      
+      if (!socioId) {
+        alert('Error de sesión')
+        return
+      }
+      
+      const response = await fetch(`${API_BASE}/inscripciones/cancelar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sesionId: claseABaja.sesion_id,
+          socioId: socioId
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        // Eliminar la clase de la lista local
+        setMisClases(prev => prev.filter(c => c.id !== claseABaja.id))
+        setShowModalBaja(false)
+      } else {
+        alert(data.error || 'Error al cancelar')
+      }
+    } catch (error) {
+      console.error('Error en baja:', error)
+      alert('Error de conexión')
+    }
   }
 
   const getEstatusBadge = (estatus) => {
@@ -255,23 +390,22 @@ function Clases() {
   }
 
   const getCupoIndicator = (cupos) => {
-    const porcentaje = cupos.disponibles / cupos.total
-    if (cupos.disponibles === 0) {
+    if (!cupos) {
+      return <span className="badge-disponible">Consultar</span>
+    }
+    const { total, disponibles } = cupos
+    const porcentaje = total > 0 ? disponibles / total : 0
+    if (disponibles === 0) {
       return <span className="badge-lleno"><XCircle size={14} /> Lleno</span>
     } else if (porcentaje <= 0.15) {
-      return <span className="badge-casi-lleno"><AlertCircle size={14} /> Casi lleno ({cupos.disponibles})</span>
+      return <span className="badge-casi-lleno"><AlertCircle size={14} /> Casi lleno ({disponibles})</span>
     } else {
-      return <span className="badge-disponible">{cupos.disponibles} de {cupos.total}</span>
+      return <span className="badge-disponible">{disponibles} de {total}</span>
     }
   }
 
-  // Filtrar catálogo
-  const catalogoFiltrado = catalogoClases.filter(clase => {
-    if (filtros.disciplina && clase.disciplina !== filtros.disciplina) return false
-    if (filtros.nivel && clase.nivel !== filtros.nivel) return false
-    if (filtros.instructor && clase.instructor !== filtros.instructor) return false
-    return true
-  })
+  // El catálogo ya viene filtrado del backend
+  const catalogoFiltrado = catalogoClases
 
   return (
     <SocioLayout activeTab="clases" title="Club Social | Mis Clases">
@@ -377,18 +511,18 @@ function Clases() {
                 onChange={(e) => handleFiltroChange('disciplina', e.target.value)}
               >
                 <option value="">Todas</option>
-                {disciplinas.map(d => <option key={d} value={d}>{d}</option>)}
+                {disciplinas.map(d => <option key={d.disciplina_id} value={d.nombre}>{d.nombre}</option>)}
               </select>
             </div>
             
             <div className="filtro-group">
-              <label><Users size={16} /> Nivel</label>
+              <label><Calendar size={16} /> Día</label>
               <select 
-                value={filtros.nivel}
-                onChange={(e) => handleFiltroChange('nivel', e.target.value)}
+                value={filtros.dia}
+                onChange={(e) => handleFiltroChange('dia', e.target.value)}
               >
                 <option value="">Todos</option>
-                {niveles.map(n => <option key={n} value={n}>{n}</option>)}
+                {DIAS_SEMANA.map(d => <option key={d.valor} value={d.valor}>{d.nombre}</option>)}
               </select>
             </div>
             
@@ -398,12 +532,12 @@ function Clases() {
                 value={filtros.instructor}
                 onChange={(e) => handleFiltroChange('instructor', e.target.value)}
               >
-                <option value="">Todos</option>
-                {instructores.map(i => <option key={i.id} value={i.nombre}>{i.nombre}</option>)}
+                <option value=" ">Todos</option>
+                {instructores.map(i => <option key={i.instructor_id} value={i.nombre}>{i.nombre}</option>)}
               </select>
             </div>
 
-            {(filtros.disciplina || filtros.nivel || filtros.instructor) && (
+            {(filtros.disciplina || filtros.dia || filtros.instructor) && (
               <button className="btn-limpiar-filtros" onClick={handleLimpiarFiltros}>
                 Limpiar Filtros
               </button>
@@ -415,7 +549,7 @@ function Clases() {
             {catalogoFiltrado.map(clase => (
               <div key={clase.id} className="clase-card">
                 <div className="clase-card-header">
-                  <span className="clase-nivel">{clase.nivel}</span>
+                  <span className="clase-nivel">{clase.dias}</span>
                   {getCupoIndicator(clase.cupos)}
                 </div>
                 
@@ -424,7 +558,7 @@ function Clases() {
                 
                 <div className="clase-instructor">
                   <img src={clase.instructorFoto} alt={clase.instructor} className="instructor-foto" />
-                  <span>{clase.instructor}</span>
+                  <span>{clase.instructor || "Por asignar"}</span>
                 </div>
                 
                 <div className="clase-detalles">
@@ -452,11 +586,11 @@ function Clases() {
                 </div>
 
                 <button 
-                  className={`btn-inscribirse ${clase.cupos.disponibles === 0 ? 'disabled' : ''}`}
+                  className={`btn-inscribirse ${clase.cupos?.disponibles === 0 ? 'disabled' : ''}`}
                   onClick={() => handleInscribirse(clase)}
-                  disabled={clase.cupos.disponibles === 0}
+                  disabled={clase.cupos?.disponibles === 0}
                 >
-                  {clase.cupos.disponibles === 0 ? 'Clase Llena' : <><Zap size={16} /> Inscribirme</>}
+                  {clase.cupos?.disponibles === 0 ? 'Clase Llena' : <><Zap size={16} /> Inscribirme</>}
                 </button>
               </div>
             ))}

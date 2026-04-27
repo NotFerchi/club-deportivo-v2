@@ -1,6 +1,7 @@
+require('dotenv').config(); // <-- ESTA DEBE SER LA LÍNEA 1
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config({ path: '../.env' });
+//require('dotenv').config({ path: '../.env' });
 
 // Importar conexión DB
 require('./src/config/database');
@@ -10,6 +11,10 @@ const socioRoutes   = require('./src/routes/socio.routes');
 // 1. Importamos el archivo de rutas que creamos
 const usuariosRoutes = require('./src/routes/usuarios.routes');
 const rolesRoutes    = require('./src/routes/roles.routes'); // <-- Agregada esta línea
+const sesionesRoutes = require('./src/routes/sesiones.routes');
+const disciplinasRoutes = require('./src/routes/disciplinas.routes');
+const instructoresRoutes = require('./src/routes/instructores.routes');
+const inscripcionesRoutes = require('./src/routes/inscripciones.routes');
 const errorHandler  = require('./src/middleware/errorHandler'); 
 
 const app = express();
@@ -27,6 +32,11 @@ app.use('/api/socios',   socioRoutes);
 // 2. Conectamos la ruta exacta que pide tu frontend
 app.use('/api/usuarios-internos', usuariosRoutes); 
 app.use('/api/roles',    rolesRoutes); // <-- Agregada para roles
+// Rutas para el módulo de clases
+app.use('/api/sesiones', sesionesRoutes);
+app.use('/api/disciplinas', disciplinasRoutes);
+app.use('/api/instructores', instructoresRoutes);
+app.use('/api/inscripciones', inscripcionesRoutes);
 
 app.use(errorHandler);                     
 

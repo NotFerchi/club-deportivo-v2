@@ -28,13 +28,28 @@
     color: var(--ds-navy);
 }
 
+/* Fix: Remove border and background on hover for active tab */
+.clases-tab-btn.active:hover {
+    background: var(--ds-navy) !important;
+    color: white !important;
+    box-shadow: none !important;
+    border: none !important;
+    outline: none !important;
+}
 .clases-tab-btn.active {
-    color: var(--ds-navy);
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Fix: Active tab button text color for dark backgrounds */
+.clases-tab-btn.active {
+    color: white !important;
     border-bottom-color: var(--ds-navy);
 }
 
 .clases-tab-btn.active svg {
-    color: var(--ds-navy);
+    color: white !important;
 }
 
 /* Vista de Mis Clases */

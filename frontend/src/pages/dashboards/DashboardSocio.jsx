@@ -1,11 +1,67 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../components/SocioLayout'
 import { CheckCircle } from 'lucide-react'
 
 function DashboardSocio() {
-  // Obtener el nombre del usuario desde localStorage
+  // Estados para datos reales
+  const [clasesHoy, setClasesHoy] = useState(0)
+  const [espaciosLibres, setEspaciosLibres] = useState(0)
+  const [proximasClases, setProximasClases] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Obtener día actual en formato para la API
+  const getDiaActual = () => {
+    const dias = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado']
+    return dias[new Date().getDay()]
+  }
+
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    const fetchDatos = async () => {
+      const token = localStorage.getItem('token')
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+
+      try {
+        // Obtener clases del día y espacios
+        const [sesionesRes, espaciosRes] = await Promise.all([
+          fetch(`http://localhost:3000/api/sesiones/dia/${getDiaActual()}`, { headers }),
+          fetch('http://localhost:3000/api/espacios', { headers })
+        ])
+
+        const sesionesData = sesionesRes.ok ? await sesionesRes.json() : []
+        const espaciosData = espaciosRes.ok ? await espaciosRes.json() : []
+
+        setClasesHoy(sesionesData.length)
+        setEspaciosLibres(espaciosData.filter(e => e.activo).length)
+        setProximasClases(sesionesData.slice(0, 5))
+      } catch (err) {
+        setError('Error al cargar datos')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDatos()
+  }, [])
+
+  // Obtener nombre del usuario
   const usuarioSesion = localStorage.getItem('usuario')
   const userName = usuarioSesion ? JSON.parse(usuarioSesion).nombre || "Socio" : "Socio"
+
+  // Formatear fecha actual
+  const fechaActual = new Date().toLocaleDateString('es-ES', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 
   return (
     <SocioLayout activeTab="inicio" title="Club Social y Deportivo | Inicio">
@@ -14,7 +70,7 @@ function DashboardSocio() {
       <section className="ds-welcome-card">
         <div className="ds-welcome-info">
           <h2 className="ds-title-serif">Buen dia, {userName.split(' ')[0]}</h2>
-          <p className="ds-subtitle">Martes, 21 De Abril De 2026 - 6:23 P.M.</p>
+          <p className="ds-subtitle">{fechaActual}</p>
         </div>
         <div className="ds-status-tags">
           <span className="tag-active"><CheckCircle size={14} /> Activo</span>
@@ -22,58 +78,76 @@ function DashboardSocio() {
         </div>
       </section>
 
-      {/* KPI Cards */}
+      {/* KPI Cards - Ahora con datos reales */}
       <div className="ds-grid-kpi">
         <div className="ds-card-stat">
           <div className="stat-icon gray"><CalendarIcon size={20} /></div>
           <div className="stat-data">
-            <span className="stat-number">2</span>
+            {loading ? (
+              <span className="stat-number">...</span>
+            ) : (
+              <span className="stat-number">{clasesHoy}</span>
+            )}
             <span className="stat-label">Clases hoy</span>
           </div>
         </div>
         <div className="ds-card-stat">
           <div className="stat-icon teal"><LayoutIcon size={20} /></div>
           <div className="stat-data">
-            <span className="stat-number">2</span>
+            {loading ? (
+              <span className="stat-number">...</span>
+            ) : (
+              <span className="stat-number">{espaciosLibres}</span>
+            )}
             <span className="stat-label">Canchas libres</span>
           </div>
         </div>
         <div className="ds-card-stat">
           <div className="stat-icon amber"><BabyIcon size={20} /></div>
           <div className="stat-data">
-            <span className="stat-number">2</span>
+            <span className="stat-number">-</span>
             <span className="stat-label">Hijos registrados</span>
           </div>
         </div>
         <div className="ds-card-stat">
           <div className="stat-icon red"><AlertIcon size={20} /></div>
           <div className="stat-data">
-            <span className="stat-number">1</span>
+            <span className="stat-number">-</span>
             <span className="stat-label">No-Shows (30 dias)</span>
           </div>
         </div>
       </div>
 
-      {/* Seccion Listado */}
+      {/* Seccion Listado - Ahora con datos reales */}
       <section className="ds-section-card">
         <header className="section-header">
           <ClockIcon size={18} /> <h3>Proximas 24 horas</h3>
         </header>
         <div className="ds-list">
-          <div className="ds-list-item">
-            <div className="item-info">
-              <h4>Yoga Matutino</h4>
-              <p>7:00 AM - 8:00 AM - Salon A</p>
+          {loading ? (
+            <div className="ds-list-item">
+              <div className="item-info">
+                <h4>Cargando...</h4>
+              </div>
             </div>
-            <div className="item-badge">8/15</div>
-          </div>
-          <div className="ds-list-item">
-            <div className="item-info">
-              <h4>Zumba Intenso</h4>
-              <p>9:00 AM - 10:00 AM - Salon B</p>
+          ) : proximasClases.length > 0 ? (
+            proximasClases.map((sesion, index) => (
+              <div key={index} className="ds-list-item">
+                <div className="item-info">
+                  <h4>{sesion.disciplina}</h4>
+                  <p>{sesion.hora_inicio?.substring(0, 5)} - {sesion.hora_fin?.substring(0, 5)} - {sesion.espacio}</p>
+                </div>
+                <div className="item-badge">{sesion.cupo_actual || 0}/{sesion.cupo_maximo}</div>
+              </div>
+            ))
+          ) : (
+            <div className="ds-list-item">
+              <div className="item-info">
+                <h4>No hay clases programadas</h4>
+                <p>Hoy no hay sesiones disponibles</p>
+              </div>
             </div>
-            <div className="item-badge">15/15</div>
-          </div>
+          )}
         </div>
       </section>
 

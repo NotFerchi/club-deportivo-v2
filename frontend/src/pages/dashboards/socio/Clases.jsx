@@ -20,6 +20,7 @@ const DIAS_SEMANA = [
 
 function Clases() {
   // Obtener datos del usuario desde localStorage
+  const token = localStorage.getItem('token'); // O donde guardes el JWT
   const usuarioSesion = localStorage.getItem('usuario')
   const usuario = usuarioSesion ? JSON.parse(usuarioSesion) : null
   const userName = usuario?.nombre || "Socio"
@@ -56,24 +57,45 @@ function Clases() {
 
   // ==================== EFECTOS ====================
   
-  // Cargar listas para filtros (disciplinas e instructores)
+// Cargar listas para filtros (disciplinas e instructores)
   useEffect(() => {
     const fetchListas = async () => {
+      // 1. Recuperamos el token
+      const token = localStorage.getItem('token');
+      
+      // Creamos un objeto de configuración para no repetir código
+      const requestOptions = {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // <--- AQUÍ está la llave
+        }
+      };
+
       try {
-        // Cargar disciplinas
-        const discRes = await fetch(`${API_BASE}/disciplinas`)
-        const discData = await discRes.json()
-        setDisciplinas(discData)
+        // Cargar disciplinas con token
+        const discRes = await fetch(`${API_BASE}/disciplinas`, requestOptions);
+        if (discRes.ok) {
+          const discData = await discRes.json();
+          // Nos aseguramos de que sea un array antes de setearlo
+          setDisciplinas(Array.isArray(discData) ? discData : []);
+        }
+
+        // Cargar instructores con token
+        const instRes = await fetch(`${API_BASE}/instructores`, requestOptions);
+        if (instRes.ok) {
+          const instData = await instRes.json();
+          setInstructores(Array.isArray(instData) ? instData : []);
+        }
         
-        // Cargar instructores con datos del usuario
-        const instRes = await fetch(`${API_BASE}/instructores`)
-        const instData = await instRes.json()
-        setInstructores(instData)
       } catch (error) {
-        console.error('Error cargando listas:', error)
+        console.error('Error cargando listas:', error);
+        // Si truena, dejamos arreglos vacíos para que el .map no explote
+        setDisciplinas([]);
+        setInstructores([]);
       }
     }
-    fetchListas()
+    fetchListas();
   }, [])
 
   // Cargar clases inscritas del socio (Mis Clases)

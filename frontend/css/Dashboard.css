@@ -280,3 +280,27 @@ body {
     background: #fef3c7;
     color: #b45309;
 }
+
+/* ── COORDINADOR RESPONSIVE ── */
+.coord-header-mobile { display: none; }
+.coord-tabs-mobile { display: none; }
+
+@media (max-width: 768px) {
+  /* Ocultar sidebar desktop */
+  .dashboard-root > aside.sidebar { display: none !important; }
+
+  /* Mostrar header y tabs móvil */
+  .coord-header-mobile { display: flex !important; }
+  .coord-tabs-mobile { display: flex !important; }
+
+  /* Ocultar header desktop */
+  .page-header { display: none !important; }
+
+  /* Ajustar contenido */
+  .coord-main { padding: 1rem !important; }
+}
+
+@media (max-width: 768px) {
+  .socios-tabla { display: none !important; }
+  .socios-cards { display: flex !important; }
+}

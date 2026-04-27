@@ -9,7 +9,7 @@ router.get('/socio/:socioId/verificar', verifyToken, sancionesController.verific
 
 // Rutas protegidas solo para admin/gerente
 router.use(verifyToken);
-router.use(checkRole(['admin', 'gerente']));
+router.use(checkRole(['admin', 'gerente', 'coordinador']));
 
 router.get('/', sancionesController.getSanciones);
 router.post('/', sancionesController.createSancion);

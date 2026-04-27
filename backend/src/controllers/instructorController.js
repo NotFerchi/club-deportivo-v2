@@ -267,41 +267,42 @@ const instructorController = {
     },
 
     getClasesGeneral: async (req, res) => {
-        const { fecha } = req.query;
-        const fechaConsulta = fecha || new Date().toISOString().split('T')[0];
-        const [y, m, d] = fechaConsulta.split('-').map(Number);
-        const diaSemana = new Date(y, m - 1, d).getDay() + 1;
+    const { fecha } = req.query;
+    const fechaConsulta = fecha || new Date().toISOString().split('T')[0];
+    const [y, m, d] = fechaConsulta.split('-').map(Number);
+    const diaSemana = new Date(y, m - 1, d).getDay() + 1;
 
-        try {
-            const query = `
-                SELECT 
-                    sp.sesion_id,
-                    d.nombre as disciplina,
-                    e.nombre as espacio,
-                    sp.hora_inicio,
-                    sp.hora_fin,
-                    sp.cupo_maximo,
-                    u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as instructor,
-                    COUNT(r.reserva_id) as cupo_actual
-                FROM sesiones_programadas sp
-                JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id
-                JOIN espacios e ON sp.espacio_id = e.espacio_id
-                JOIN instructores i ON sp.instructor_id = i.instructor_id
-                JOIN usuarios u ON i.usuario_id = u.usuario_id
-                LEFT JOIN reservaciones r ON r.sesion_id = sp.sesion_id 
-                    AND r.fecha_reserva = $1
-                    AND r.estado = 'Confirmada'
-                WHERE sp.dia_semana = $2
-                GROUP BY sp.sesion_id, d.nombre, e.nombre, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, u.nombres, u.apellido_paterno
-                ORDER BY sp.hora_inicio
-            `;
+    try {
+        const query = `
+            SELECT 
+                sp.sesion_id,
+                d.nombre as disciplina,
+                e.nombre as espacio,
+                sp.hora_inicio,
+                sp.hora_fin,
+                sp.cupo_maximo,
+                sp.dia_semana,
+                COALESCE(u.nombres || ' ' || COALESCE(u.apellido_paterno, ''), 'Sin instructor') as instructor,
+                COUNT(r.reserva_id) as cupo_actual
+            FROM sesiones_programadas sp
+            JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id
+            JOIN espacios e ON sp.espacio_id = e.espacio_id
+            LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id
+            LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
+            LEFT JOIN reservaciones r ON r.sesion_id = sp.sesion_id 
+                AND r.fecha_reserva = $1
+                AND r.estado = 'Confirmada'
+            WHERE sp.dia_semana = $2
+            GROUP BY sp.sesion_id, d.nombre, e.nombre, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, sp.dia_semana, u.nombres, u.apellido_paterno
+            ORDER BY sp.hora_inicio
+        `;
 
-            const result = await pool.query(query, [fechaConsulta, diaSemana]);
-            res.json(result.rows);
-        } catch (error) {
-            console.error('Error en getClasesGeneral:', error);
-            res.status(500).json({ error: 'Error al obtener clases', detalle: error.message });
-        }
+        const result = await pool.query(query, [fechaConsulta, diaSemana]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error en getClasesGeneral:', error);
+        res.status(500).json({ error: 'Error al obtener clases', detalle: error.message });
+    }
     },
 
     getTorneos: async (req, res) => {

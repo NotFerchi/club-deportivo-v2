@@ -228,11 +228,8 @@ const recepcionController = {
                     v.fecha_visita,
                     v.hora_entrada,
                     v.hora_salida,
-                    v.vigente,
-                    u.nombres || ' ' || u.apellido_paterno as socio_responsable
-                FROM visitas v
-                LEFT JOIN socios s ON v.socio_responsable_id = s.socio_id
-                LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id
+                    v.vigente
+                FROM visitas v          
                 WHERE v.fecha_visita = $1
                 ORDER BY v.hora_entrada DESC
             `, [fechaConsulta]);

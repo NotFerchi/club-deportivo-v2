@@ -4,13 +4,17 @@ require('dotenv').config({ path: '../.env' });
 
 require('./src/config/database');
 
-const authRoutes       = require('./src/routes/auth.routes'); 
-const socioRoutes      = require('./src/routes/socio.routes');  
-const usuariosRoutes   = require('./src/routes/usuarios.routes');
-const rolesRoutes      = require('./src/routes/roles.routes');
-const instructorRoutes    = require('./src/routes/instructor.routes');
-const instructoresRoutes  = require('./src/routes/instructores.routes');
-const errorHandler     = require('./src/middleware/errorHandler'); 
+const authRoutes        = require('./src/routes/auth.routes'); 
+const socioRoutes       = require('./src/routes/socio.routes');  
+const usuariosRoutes    = require('./src/routes/usuarios.routes');
+const rolesRoutes       = require('./src/routes/roles.routes');
+const instructorRoutes  = require('./src/routes/instructor.routes');
+const instructoresRoutes = require('./src/routes/instructores.routes');
+const recepcionRoutes   = require('./src/routes/recepcion.routes');
+const sancionesRoutes   = require('./src/routes/sanciones.routes');
+const sesionesRoutes    = require('./src/routes/sesiones.routes');
+const espaciosRoutes    = require('./src/routes/espacios.routes');
+const errorHandler      = require('./src/middleware/errorHandler'); 
 
 const app = express();
 
@@ -27,6 +31,10 @@ app.use('/api/usuarios-internos', usuariosRoutes);
 app.use('/api/roles',             rolesRoutes);
 app.use('/api/instructor',        instructorRoutes);
 app.use('/api/instructores',      instructoresRoutes);
+app.use('/api/recepcion',         recepcionRoutes);
+app.use('/api/sanciones',         sancionesRoutes);
+app.use('/api/sesiones',          sesionesRoutes);
+app.use('/api/espacios',          espaciosRoutes);
 
 app.use(errorHandler);                     
 

@@ -1,22 +1,20 @@
 const pool = require('../config/database');
 
 const instructoresController = {
-    // ============================================
-    // OBTENER TODOS LOS INSTRUCTORES
-    // ============================================
+
     getInstructores: async (req, res) => {
         try {
             const query = `
                 SELECT 
                     i.instructor_id,
-                    i.nombre,
+                    u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as nombre,
                     i.especialidad,
                     i.activo,
-                    u.email,
+                    u.username as email,
                     u.telefono
                 FROM instructores i
                 LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
-                ORDER BY i.nombre
+                ORDER BY u.nombres
             `;
             const result = await pool.query(query);
             res.json(result.rows);
@@ -26,19 +24,16 @@ const instructoresController = {
         }
     },
 
-    // ============================================
-    // OBTENER INSTRUCTOR POR ID
-    // ============================================
     getInstructorById: async (req, res) => {
         const { id } = req.params;
         try {
             const query = `
                 SELECT 
                     i.instructor_id,
-                    i.nombre,
+                    u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as nombre,
                     i.especialidad,
                     i.activo,
-                    u.email,
+                    u.username as email,
                     u.telefono
                 FROM instructores i
                 LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
@@ -55,17 +50,11 @@ const instructoresController = {
         }
     },
 
-    // ============================================
-    // CREAR INSTRUCTOR
-    // ============================================
     createInstructor: async (req, res) => {
         const { nombre, especialidad, email, telefono } = req.body;
         const client = await pool.connect();
-        
         try {
             await client.query('BEGIN');
-            
-            // Crear usuario para el instructor si se proporciona email
             let usuarioId = null;
             if (email) {
                 const existe = await client.query('SELECT usuario_id FROM usuarios WHERE username = $1', [email]);
@@ -73,11 +62,9 @@ const instructoresController = {
                     const passwordDefault = 'instructor123';
                     const rolResult = await client.query(`SELECT rol_id FROM roles WHERE nombre = 'instructor'`);
                     const rolId = rolResult.rows[0].rol_id;
-                    
                     const userResult = await client.query(
                         `INSERT INTO usuarios (username, nombres, password_hash, rol_id, activo)
-                         VALUES ($1, $2, crypt($3, gen_salt('bf')), $4, true)
-                         RETURNING usuario_id`,
+                         VALUES ($1, $2, $3, $4, true) RETURNING usuario_id`,
                         [email, nombre, passwordDefault, rolId]
                     );
                     usuarioId = userResult.rows[0].usuario_id;
@@ -85,19 +72,13 @@ const instructoresController = {
                     usuarioId = existe.rows[0].usuario_id;
                 }
             }
-            
             const result = await client.query(
-                `INSERT INTO instructores (nombre, especialidad, usuario_id, activo)
-                 VALUES ($1, $2, $3, true)
-                 RETURNING instructor_id`,
-                [nombre, especialidad || null, usuarioId]
+                `INSERT INTO instructores (especialidad, usuario_id, activo)
+                 VALUES ($1, $2, true) RETURNING instructor_id`,
+                [especialidad || null, usuarioId]
             );
-            
             await client.query('COMMIT');
-            res.status(201).json({ 
-                message: 'Instructor creado exitosamente', 
-                instructor_id: result.rows[0].instructor_id 
-            });
+            res.status(201).json({ message: 'Instructor creado', instructor_id: result.rows[0].instructor_id });
         } catch (error) {
             await client.query('ROLLBACK');
             console.error('Error en createInstructor:', error);
@@ -107,21 +88,14 @@ const instructoresController = {
         }
     },
 
-    // ============================================
-    // ACTUALIZAR INSTRUCTOR
-    // ============================================
     updateInstructor: async (req, res) => {
         const { id } = req.params;
-        const { nombre, especialidad, activo } = req.body;
-        
+        const { especialidad, activo } = req.body;
         try {
             await pool.query(
-                `UPDATE instructores 
-                 SET nombre = $1, especialidad = $2, activo = $3
-                 WHERE instructor_id = $4`,
-                [nombre, especialidad || null, activo, id]
+                `UPDATE instructores SET especialidad = $1, activo = $2 WHERE instructor_id = $3`,
+                [especialidad || null, activo, id]
             );
-            
             res.json({ message: 'Instructor actualizado correctamente' });
         } catch (error) {
             console.error('Error en updateInstructor:', error);
@@ -129,12 +103,8 @@ const instructoresController = {
         }
     },
 
-    // ============================================
-    // ELIMINAR INSTRUCTOR
-    // ============================================
     deleteInstructor: async (req, res) => {
         const { id } = req.params;
-        
         try {
             await pool.query('DELETE FROM instructores WHERE instructor_id = $1', [id]);
             res.json({ message: 'Instructor eliminado correctamente' });

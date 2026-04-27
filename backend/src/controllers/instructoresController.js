@@ -7,17 +7,26 @@ const instructoresController = {
     getInstructores: async (req, res) => {
         try {
             const query = `
-                SELECT 
-                    i.instructor_id,
-                    i.nombre,
-                    i.especialidad,
-                    i.activo,
-                    u.email,
-                    u.telefono
-                FROM instructores i
-                LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
-                ORDER BY i.nombre
-            `;
+                        SELECT 
+                            i.instructor_id,
+                            -- TRIM quita espacios, NULLIF convierte string vacío en NULL
+                            COALESCE(
+                                NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 
+                                NULLIF(TRIM(i.especialidad), ''),
+                                'Instructor sin nombre'
+                            ) as nombre,
+                            i.especialidad,
+                            i.activo,
+                            u.username as email,
+                            u.telefono
+                        FROM instructores i
+                        -- Cambiamos a INNER JOIN si solo quieres mostrar gente con cuenta
+                        -- O dejamos LEFT JOIN pero filtramos en el WHERE
+                        LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
+                        WHERE i.activo = true 
+                        AND (u.nombres IS NOT NULL OR i.especialidad IS NOT NULL) -- Filtra los "fantasmas"
+                        ORDER BY nombre
+                    `;
             const result = await pool.query(query);
             res.json(result.rows);
         } catch (error) {
@@ -33,17 +42,21 @@ const instructoresController = {
         const { id } = req.params;
         try {
             const query = `
-                SELECT 
-                    i.instructor_id,
-                    i.nombre,
-                    i.especialidad,
-                    i.activo,
-                    u.email,
-                    u.telefono
-                FROM instructores i
-                LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
-                WHERE i.instructor_id = $1
-            `;
+                        SELECT 
+                            i.instructor_id,
+                            COALESCE(
+                                NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 
+                                NULLIF(TRIM(i.especialidad), ''),
+                                'Información pendiente'
+                            ) as nombre,
+                            i.especialidad,
+                            i.activo,
+                            u.username as email,
+                            u.telefono
+                        FROM instructores i
+                        LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
+                        WHERE i.instructor_id = $1
+                    `;
             const result = await pool.query(query, [id]);
             if (result.rows.length === 0) {
                 return res.status(404).json({ error: 'Instructor no encontrado' });

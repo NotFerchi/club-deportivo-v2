@@ -1,17 +1,19 @@
+require('dotenv').config(); // <-- ESTA DEBE SER LA LÍNEA 1
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config({ path: '../.env' });
+//require('dotenv').config({ path: '../.env' });
 
 require('./src/config/database');
 
 // COMENTA TEMPORALMENTE LAS QUE NO TIENEN CONTROLADOR
-// const sesionesRoutes = require('./src/routes/sesiones.routes');
 // const ludotecaRoutes = require('./src/routes/ludoteca.routes');
 
 // --- IMPORTAR RUTAS ---
 const authRoutes = require('./src/routes/auth.routes');
 const socioRoutes = require('./src/routes/socio.routes'); // Verifica si es socio o socios
 const usuariosRoutes = require('./src/routes/usuarios.routes');
+const sesionesRoutes = require('./src/routes/sesiones.routes');
+const inscripcionesRoutes = require('./src/routes/inscripciones.routes');
 const rolesRoutes = require('./src/routes/roles.routes');
 const espaciosRoutes = require('./src/routes/espacios.routes');
 const recepcionRoutes = require('./src/routes/recepcion.routes');
@@ -23,6 +25,7 @@ const sancionesRoutes = require('./src/routes/sanciones.routes');
 const logsRoutes = require('./src/routes/logs.routes');
 
 const errorHandler = require('./src/middleware/errorHandler');
+
 
 const app = express();
 
@@ -41,6 +44,11 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: '🚀 Servidor funcionando' });
 });
 
+// 2. Conectamos la ruta exacta que pide tu frontend
+app.use('/api/usuarios-internos', usuariosRoutes); 
+// Rutas para el módulo de clases
+app.use('/api/sesiones', sesionesRoutes);
+app.use('/api/inscripciones', inscripcionesRoutes);
 // --- REGISTRAR RUTAS ---
 app.use('/api/auth', authRoutes);
 app.use('/api/socios', socioRoutes);
@@ -60,7 +68,6 @@ app.use('/api/sanciones', sancionesRoutes);
 app.use('/api/logs', logsRoutes);
 
 // Comentadas temporalmente
-// app.use('/api/sesiones', sesionesRoutes);
 // app.use('/api/ludoteca', ludotecaRoutes);
 // app.use('/api/reportes', reportesRoutes);
 

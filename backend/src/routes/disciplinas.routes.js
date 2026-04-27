@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const disciplinasController = require('../controllers/disciplinasController');
+
 const { verifyToken } = require('../middleware/auth.middleware');
 
 // CRUD de disciplinas

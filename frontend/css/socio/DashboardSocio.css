@@ -161,6 +161,10 @@ html, body {
     color: white;
 }
 
+.ds-tab-item.active .tab-text {
+    color: white;
+}
+
 /* --- CARDS & GRID --- */
 .ds-body { padding: 2rem 1rem; }
 .ds-content-wrapper { max-width: 1000px; margin: 0 auto; }
@@ -178,6 +182,23 @@ html, body {
 
 .ds-title-serif { font-family: 'Playfair Display', serif; font-size: 1.75rem; color: var(--ds-navy); margin: 0; }
 .ds-subtitle { color: var(--ds-text-light); font-size: 0.85rem; margin-top: 0.5rem; }
+
+/* Alias for rs- prefixed classes used by views */
+.rs-welcome-card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.rs-welcome-info { flex: 1; }
+.rs-title-serif { font-family: 'Playfair Display', serif; font-size: 1.75rem; color: var(--ds-navy); margin: 0; }
+.rs-subtitle { color: var(--ds-text-light); font-size: 0.85rem; margin-top: 0.5rem; }
+.rs-status-tags { display: flex; gap: 0.75rem; }
 
 .ds-status-tags { display: flex; gap: 0.75rem; }
 .tag-active { background: #dcfce7; color: var(--ds-success); padding: 0.4rem 0.8rem; border-radius: 20px; font-weight: 700; font-size: 0.75rem; display: flex; align-items: center; gap: 4px; }

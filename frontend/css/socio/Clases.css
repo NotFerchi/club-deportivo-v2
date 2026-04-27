@@ -1,0 +1,551 @@
+/* ==================== VISTA DE CLASES ==================== */
+
+/* Tabs de navegación entre Mis Clases y Catálogo */
+.clases-tabs-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--ds-border);
+}
+
+.clases-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ds-text-light);
+    transition: all 0.2s;
+}
+
+.clases-tab-btn:hover {
+    color: var(--ds-navy);
+}
+
+/* Fix: Remove border and background on hover for active tab */
+.clases-tab-btn.active:hover {
+    background: var(--ds-navy) !important;
+    color: white !important;
+    box-shadow: none !important;
+    border: none !important;
+    outline: none !important;
+}
+.clases-tab-btn.active {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Fix: Active tab button text color for dark backgrounds */
+.clases-tab-btn.active {
+    color: white !important;
+    border-bottom-color: var(--ds-navy);
+}
+
+.clases-tab-btn.active svg {
+    color: white !important;
+}
+
+/* Vista de Mis Clases */
+.mis-clases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.mi-clase-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--ds-border);
+}
+
+.mi-clase-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.clase-disciplina {
+    background: var(--ds-cyan);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.mi-clase-nombre {
+    font-size: 1.25rem;
+    color: var(--ds-navy);
+    margin: 0 0 1rem 0;
+}
+
+.mi-clase-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--ds-text-light);
+    font-size: 0.9rem;
+}
+
+.mi-clase-materiales {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    background: #f8fafc;
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+    margin-bottom: 1rem;
+}
+
+.btn-baja-clase {
+    width: 100%;
+    padding: 0.75rem;
+    background: transparent;
+    border: 2px solid var(--ds-danger);
+    color: var(--ds-danger);
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-baja-clase:hover {
+    background: var(--ds-danger);
+    color: white;
+}
+
+/* Badges de estatus */
+.badge-confirmado {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #dcfce7;
+    color: #166534;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-pendiente {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-cambio {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Catálogo */
+.filtros-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.filtro-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 150px;
+}
+
+.filtro-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ds-text-light);
+}
+
+.filtro-group select {
+    padding: 0.75rem;
+    border: 1px solid var(--ds-border);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    color: var(--ds-text);
+    background: #f8fafc;
+}
+
+.btn-limpiar-filtros {
+    align-self: flex-end;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: 1px solid var(--ds-border);
+    border-radius: 10px;
+    color: var(--ds-text-light);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-limpiar-filtros:hover {
+    border-color: var(--ds-navy);
+    color: var(--ds-navy);
+}
+
+/* Catálogo Grid */
+.catalogo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.clase-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--ds-border);
+    display: flex;
+    flex-direction: column;
+}
+
+.clase-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.clase-nivel {
+    background: #e0e7ff;
+    color: #3730a3;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-lleno {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-casi-lleno {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #ffedd5;
+    color: #9a3412;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-disponible {
+    color: var(--ds-text-light);
+    font-size: 0.85rem;
+}
+
+.clase-nombre {
+    font-size: 1.1rem;
+    color: var(--ds-navy);
+    margin: 0 0 0.5rem 0;
+}
+
+.clase-descripcion {
+    font-size: 0.9rem;
+    color: var(--ds-text-light);
+    margin: 0 0 1rem 0;
+    line-height: 1.5;
+}
+
+.clase-instructor {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--ds-border);
+}
+
+.instructor-foto {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.clase-detalles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.detalle-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+}
+
+.clase-materiales {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--ds-text-light);
+    background: #f8fafc;
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.btn-inscribirse {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--ds-navy);
+    border: none;
+    color: white;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-inscribirse:hover {
+    background: #1a3a5c;
+    transform: translateY(-2px);
+}
+
+.btn-inscribirse.disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+}
+
+/* Modal Ficha Técnica */
+.modal-ficha .ficha-clase h2 {
+    margin: 0 0 0.5rem 0;
+    color: var(--ds-navy);
+}
+
+.ficha-disciplina {
+    display: inline-block;
+    background: var(--ds-cyan);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+}
+
+.ficha-instructor {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.ficha-instructor img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+
+.ficha-instructor div {
+    display: flex;
+    flex-direction: column;
+}
+
+.ficha-instructor strong {
+    color: var(--ds-navy);
+}
+
+.ficha-instructor span {
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+}
+
+.ficha-detalles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.ficha-detalle {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.ficha-detalle div {
+    display: flex;
+    flex-direction: column;
+}
+
+.ficha-detalle strong {
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+}
+
+.ficha-detalle span {
+    color: var(--ds-navy);
+    font-weight: 600;
+}
+
+.ficha-materiales {
+    background: #fef3c7;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.ficha-materiales h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #92400e;
+}
+
+.ficha-materiales p {
+    margin: 0;
+    color: #78350f;
+}
+
+.ficha-cupos {
+    text-align: center;
+    padding: 0.75rem;
+    background: #f0fdf4;
+    border-radius: 8px;
+    color: #166534;
+}
+
+/* Modal small */
+.modal-small {
+    max-width: 400px;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.success-icon {
+    color: #22c55e;
+    margin-bottom: 1rem;
+}
+
+.warning-icon {
+    color: #f59e0b;
+    margin-bottom: 1rem;
+}
+
+.text-muted {
+    color: var(--ds-text-light);
+    font-size: 0.9rem;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--ds-text-light);
+}
+
+.empty-state svg {
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--ds-text);
+}
+
+.empty-state p {
+    margin: 0 0 1.5rem 0;
+}
+
+.btn-primary {
+    padding: 0.75rem 1.5rem;
+    background: var(--ds-navy);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.loading-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--ds-text-light);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .clases-tabs-container {
+        flex-direction: column;
+    }
+    
+    .mis-clases-grid,
+    .catalogo-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filtros-container {
+        flex-direction: column;
+    }
+    
+    .ficha-detalles {
+        grid-template-columns: 1fr;
+    }
+}

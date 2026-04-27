@@ -1,28 +1,13 @@
 const pool = require('../config/database');
 
 const recepcionController = {
-    // ========== DASHBOARD (KPIs) ==========
+
     getDashboard: async (req, res) => {
         try {
             const hoy = new Date().toISOString().split('T')[0];
-            
-            // Ingresos hoy (asistencias registradas)
-            const ingresos = await pool.query(
-                `SELECT COUNT(*) FROM asistencia WHERE fecha = $1`,
-                [hoy]
-            );
-            
-            // Visitas activas (pases de 1 día vigentes)
-            const visitas = await pool.query(
-                `SELECT COUNT(*) FROM visitas WHERE vigente = true AND fecha_visita = $1`,
-                [hoy]
-            );
-            
-            // Niños en ludoteca (sin hora de salida)
-            const ludoteca = await pool.query(
-                `SELECT COUNT(*) FROM registro_ludoteca WHERE hora_salida IS NULL`
-            );
-            
+            const ingresos = await pool.query(`SELECT COUNT(*) FROM asistencia WHERE fecha = $1`, [hoy]);
+            const visitas = await pool.query(`SELECT COUNT(*) FROM visitas WHERE vigente = true AND fecha_visita = $1`, [hoy]);
+            const ludoteca = await pool.query(`SELECT COUNT(*) FROM registro_ludoteca WHERE hora_salida IS NULL`);
             res.json({
                 ingresosHoy: parseInt(ingresos.rows[0].count),
                 visitasActivas: parseInt(visitas.rows[0].count),
@@ -34,7 +19,6 @@ const recepcionController = {
         }
     },
 
-    // ========== GESTIÓN DE SOCIOS (CRUD) ==========
     listarSocios: async (req, res) => {
         try {
             const result = await pool.query(`
@@ -65,38 +49,28 @@ const recepcionController = {
     crearSocio: async (req, res) => {
         const { nombres, apellidoPaterno, apellidoMaterno, email, telefono, curp, tipo, modalidad } = req.body;
         const client = await pool.connect();
-        
         try {
             await client.query('BEGIN');
-            
             const existe = await client.query('SELECT usuario_id FROM usuarios WHERE username = $1', [email]);
             if (existe.rows.length > 0) {
                 await client.query('ROLLBACK');
                 return res.status(400).json({ error: 'El correo ya está registrado' });
             }
-            
             const passwordDefault = 'socio123';
             const rolResult = await client.query(`SELECT rol_id FROM roles WHERE nombre = 'socio'`);
             const rolId = rolResult.rows[0].rol_id;
-            
             const userResult = await client.query(
-                `INSERT INTO usuarios 
-                 (username, nombres, apellido_paterno, apellido_materno, curp, telefono, password_hash, rol_id, activo)
-                 VALUES ($1, $2, $3, $4, $5, $6, crypt($7, gen_salt('bf')), $8, true)
-                 RETURNING usuario_id`,
+                `INSERT INTO usuarios (username, nombres, apellido_paterno, apellido_materno, curp, telefono, password_hash, rol_id, activo)
+                 VALUES ($1, $2, $3, $4, $5, $6, crypt($7, gen_salt('bf')), $8, true) RETURNING usuario_id`,
                 [email, nombres, apellidoPaterno, apellidoMaterno || '', curp, telefono, passwordDefault, rolId]
             );
-            
             const usuarioId = userResult.rows[0].usuario_id;
             const numSocioResult = await client.query("SELECT COALESCE(MAX(CAST(SUBSTRING(numero_socio FROM 5) AS INTEGER)), 0) + 1 FROM socios");
             const numeroSocio = `SOC-${String(numSocioResult.rows[0].coalesce).padStart(4, '0')}`;
-            
             await client.query(
-                `INSERT INTO socios (usuario_id, tipo, modalidad, es_titular, numero_socio, activo)
-                 VALUES ($1, $2, $3, true, $4, true)`,
+                `INSERT INTO socios (usuario_id, tipo, modalidad, es_titular, numero_socio, activo) VALUES ($1, $2, $3, true, $4, true)`,
                 [usuarioId, tipo || 'Rentista', modalidad || 'Individual', numeroSocio]
             );
-            
             await client.query('COMMIT');
             res.status(201).json({ message: 'Socio creado exitosamente', password: passwordDefault });
         } catch (error) {
@@ -112,24 +86,18 @@ const recepcionController = {
         const { id } = req.params;
         const { nombres, apellidoPaterno, apellidoMaterno, email, telefono, activo } = req.body;
         const client = await pool.connect();
-        
         try {
             await client.query('BEGIN');
-            
             const socioResult = await client.query('SELECT usuario_id FROM socios WHERE socio_id = $1', [id]);
             if (socioResult.rows.length === 0) {
                 await client.query('ROLLBACK');
                 return res.status(404).json({ error: 'Socio no encontrado' });
             }
             const usuarioId = socioResult.rows[0].usuario_id;
-            
             await client.query(
-                `UPDATE usuarios 
-                 SET nombres = $1, apellido_paterno = $2, apellido_materno = $3, username = $4, telefono = $5, activo = $6
-                 WHERE usuario_id = $7`,
+                `UPDATE usuarios SET nombres = $1, apellido_paterno = $2, apellido_materno = $3, username = $4, telefono = $5, activo = $6 WHERE usuario_id = $7`,
                 [nombres, apellidoPaterno, apellidoMaterno, email, telefono, activo, usuarioId]
             );
-            
             await client.query('COMMIT');
             res.json({ message: 'Socio actualizado' });
         } catch (error) {
@@ -144,20 +112,16 @@ const recepcionController = {
     eliminarSocio: async (req, res) => {
         const { id } = req.params;
         const client = await pool.connect();
-        
         try {
             await client.query('BEGIN');
-            
             const socioResult = await client.query('SELECT usuario_id FROM socios WHERE socio_id = $1', [id]);
             if (socioResult.rows.length === 0) {
                 await client.query('ROLLBACK');
                 return res.status(404).json({ error: 'Socio no encontrado' });
             }
             const usuarioId = socioResult.rows[0].usuario_id;
-            
             await client.query('UPDATE socios SET activo = false WHERE socio_id = $1', [id]);
             await client.query('UPDATE usuarios SET activo = false WHERE usuario_id = $1', [usuarioId]);
-            
             await client.query('COMMIT');
             res.json({ message: 'Socio eliminado' });
         } catch (error) {
@@ -169,11 +133,9 @@ const recepcionController = {
         }
     },
 
-    // ========== CENTRAL DE RESERVAS ==========
     getReservasCentral: async (req, res) => {
         const { fecha } = req.query;
         const fechaConsulta = fecha || new Date().toISOString().split('T')[0];
-        
         try {
             const result = await pool.query(`
                 SELECT 
@@ -197,16 +159,9 @@ const recepcionController = {
         }
     },
 
-    // Obtener todos los espacios (para mapa de canchas)
     getEspacios: async (req, res) => {
         try {
-            const result = await pool.query(`
-                SELECT e.espacio_id, e.nombre, e.disciplina_id, d.nombre as disciplina, e.capacidad_maxima
-                FROM espacios e
-                JOIN disciplinas d ON e.disciplina_id = d.disciplina_id
-                WHERE e.activo = true
-                ORDER BY e.nombre
-            `);
+            const result = await pool.query(`SELECT espacio_id, nombre, capacidad_maxima FROM espacios ORDER BY nombre`);
             res.json(result.rows);
         } catch (error) {
             console.error(error);
@@ -214,22 +169,20 @@ const recepcionController = {
         }
     },
 
-    // ========== GESTIÓN DE VISITAS (pases de un día) ==========
     listarVisitas: async (req, res) => {
         const { fecha } = req.query;
         const fechaConsulta = fecha || new Date().toISOString().split('T')[0];
-        
         try {
             const result = await pool.query(`
                 SELECT 
                     v.visita_id,
                     v.nombre_completo,
-                    v.identificacion_tipo as tipo_visita,
+                    v.identificacion_tipo,
                     v.fecha_visita,
                     v.hora_entrada,
                     v.hora_salida,
                     v.vigente
-                FROM visitas v          
+                FROM visitas v
                 WHERE v.fecha_visita = $1
                 ORDER BY v.hora_entrada DESC
             `, [fechaConsulta]);
@@ -241,14 +194,12 @@ const recepcionController = {
     },
 
     crearVisita: async (req, res) => {
-        const { nombreCompleto, tipoVisita, socioResponsableId } = req.body;
-        
+        const { nombreCompleto, tipoVisita } = req.body;
         try {
             const result = await pool.query(
-                `INSERT INTO visitas (nombre_completo, identificacion_tipo, socio_responsable_id, fecha_visita, hora_entrada, vigente)
-                 VALUES ($1, $2, $3, CURRENT_DATE, NOW(), true)
-                 RETURNING visita_id`,
-                [nombreCompleto, tipoVisita, socioResponsableId]
+                `INSERT INTO visitas (nombre_completo, identificacion_tipo, fecha_visita, hora_entrada, vigente)
+                 VALUES ($1, $2, CURRENT_DATE, NOW(), true) RETURNING visita_id`,
+                [nombreCompleto, tipoVisita]
             );
             res.status(201).json({ message: 'Visita registrada', visitaId: result.rows[0].visita_id });
         } catch (error) {
@@ -259,7 +210,6 @@ const recepcionController = {
 
     registrarSalidaVisita: async (req, res) => {
         const { id } = req.params;
-        
         try {
             await pool.query(
                 `UPDATE visitas SET hora_salida = NOW(), vigente = false WHERE visita_id = $1 AND vigente = true`,
@@ -272,7 +222,6 @@ const recepcionController = {
         }
     },
 
-    // ========== LUDOTECA ==========
     getLudotecaActivos: async (req, res) => {
         try {
             const result = await pool.query(`
@@ -299,23 +248,10 @@ const recepcionController = {
 
     registrarEntradaLudoteca: async (req, res) => {
         const { socioId, nombreHijo, fechaNacimiento } = req.body;
-        
         try {
-            // Validar edad (3-6 años)
-            const hoy = new Date();
-            const nacimiento = new Date(fechaNacimiento);
-            let edad = hoy.getFullYear() - nacimiento.getFullYear();
-            const m = hoy.getMonth() - nacimiento.getMonth();
-            if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
-            
-            if (edad < 3 || edad > 6) {
-                return res.status(400).json({ error: 'El niño debe tener entre 3 y 6 años' });
-            }
-            
             const result = await pool.query(
                 `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada)
-                 VALUES ($1, $2, $3, NOW())
-                 RETURNING registro_id`,
+                 VALUES ($1, $2, $3, NOW()) RETURNING registro_id`,
                 [socioId, nombreHijo, fechaNacimiento]
             );
             res.status(201).json({ message: 'Entrada registrada', registroId: result.rows[0].registro_id });
@@ -327,13 +263,9 @@ const recepcionController = {
 
     registrarSalidaLudoteca: async (req, res) => {
         const { id } = req.params;
-        
         try {
             const result = await pool.query(
-                `UPDATE registro_ludoteca 
-                 SET hora_salida = NOW()
-                 WHERE registro_id = $1 AND hora_salida IS NULL
-                 RETURNING registro_id`,
+                `UPDATE registro_ludoteca SET hora_salida = NOW() WHERE registro_id = $1 AND hora_salida IS NULL RETURNING registro_id`,
                 [id]
             );
             if (result.rows.length === 0) {
@@ -346,12 +278,11 @@ const recepcionController = {
         }
     },
 
-    // ========== PASE DE LISTA (check-in manual) ==========
     getClasesDia: async (req, res) => {
         const { fecha } = req.query;
         const fechaConsulta = fecha || new Date().toISOString().split('T')[0];
-        const diaSemana = new Date(fechaConsulta).getDay() + 1;
-        
+        const [y, m, d] = fechaConsulta.split('-').map(Number);
+        const diaSemana = new Date(y, m - 1, d).getDay() + 1;
         try {
             const result = await pool.query(`
                 SELECT 
@@ -360,12 +291,10 @@ const recepcionController = {
                     e.nombre as espacio,
                     sp.hora_inicio,
                     sp.hora_fin,
-                    i.nombre as instructor,
                     sp.cupo_maximo
                 FROM sesiones_programadas sp
                 JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id
                 JOIN espacios e ON sp.espacio_id = e.espacio_id
-                JOIN instructores i ON sp.instructor_id = i.instructor_id
                 WHERE sp.dia_semana = $1
                 ORDER BY sp.hora_inicio
             `, [diaSemana]);
@@ -378,7 +307,6 @@ const recepcionController = {
 
     getAlumnosPorSesion: async (req, res) => {
         const { sesionId, fecha } = req.query;
-        
         try {
             const result = await pool.query(`
                 SELECT 
@@ -401,21 +329,16 @@ const recepcionController = {
 
     registrarAsistenciaManual: async (req, res) => {
         const { sesionId, socioId, fecha } = req.body;
-        
         try {
             const existe = await pool.query(
-                `SELECT asistencia_id FROM asistencia 
-                 WHERE sesion_id = $1 AND socio_id = $2 AND fecha = $3`,
+                `SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND socio_id = $2 AND fecha = $3`,
                 [sesionId, socioId, fecha]
             );
-            
             if (existe.rows.length > 0) {
                 return res.status(400).json({ error: 'La asistencia ya fue registrada' });
             }
-            
             await pool.query(
-                `INSERT INTO asistencia (sesion_id, socio_id, fecha, presente)
-                 VALUES ($1, $2, $3, true)`,
+                `INSERT INTO asistencia (sesion_id, socio_id, fecha, presente) VALUES ($1, $2, $3, true)`,
                 [sesionId, socioId, fecha]
             );
             res.json({ message: 'Asistencia registrada' });

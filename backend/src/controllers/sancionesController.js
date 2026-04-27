@@ -4,7 +4,7 @@ const sancionesController = {
 
     getSanciones: async (req, res) => {
         try {
-            const query = `
+            const result = await pool.query(`
                 SELECT 
                     s.sancion_id,
                     s.socio_id,
@@ -20,12 +20,30 @@ const sancionesController = {
                 JOIN socios soc ON s.socio_id = soc.socio_id
                 JOIN usuarios u ON soc.usuario_id = u.usuario_id
                 ORDER BY s.fecha DESC
-            `;
-            const result = await pool.query(query);
+            `);
             res.json(result.rows);
         } catch (error) {
             console.error('Error en getSanciones:', error);
             res.status(500).json({ error: 'Error al obtener sanciones' });
+        }
+    },
+
+    getSancionById: async (req, res) => {
+        const { id } = req.params;
+        try {
+            const result = await pool.query(`
+                SELECT s.*, soc.numero_socio,
+                    u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as socio_nombre
+                FROM sanciones s
+                JOIN socios soc ON s.socio_id = soc.socio_id
+                JOIN usuarios u ON soc.usuario_id = u.usuario_id
+                WHERE s.sancion_id = $1
+            `, [id]);
+            if (result.rows.length === 0) return res.status(404).json({ error: 'Sanción no encontrada' });
+            res.json(result.rows[0]);
+        } catch (error) {
+            console.error('Error en getSancionById:', error);
+            res.status(500).json({ error: 'Error al obtener sanción' });
         }
     },
 
@@ -52,8 +70,7 @@ const sancionesController = {
         const { socioId } = req.params;
         try {
             const result = await pool.query(
-                `SELECT COUNT(*) as total FROM sanciones 
-                 WHERE socio_id = $1 AND estado = 'Activa'`,
+                `SELECT COUNT(*) as total FROM sanciones WHERE socio_id = $1 AND estado = 'Activa'`,
                 [socioId]
             );
             res.json({ tiene_sancion: parseInt(result.rows[0].total) > 0 });
@@ -64,12 +81,13 @@ const sancionesController = {
     },
 
     createSancion: async (req, res) => {
-        const { socioId, motivo, origen } = req.body;
+        const { socioId, socio_id, motivo, origen } = req.body;
+        const id = socioId || socio_id;
         try {
             const result = await pool.query(
                 `INSERT INTO sanciones (socio_id, motivo, origen, estado, fecha)
                  VALUES ($1, $2, $3, 'Activa', CURRENT_DATE) RETURNING sancion_id`,
-                [socioId, motivo, origen || 'Administración']
+                [id, motivo, origen || 'Administración']
             );
             res.status(201).json({ message: 'Sanción creada', sancion_id: result.rows[0].sancion_id });
         } catch (error) {
@@ -78,18 +96,57 @@ const sancionesController = {
         }
     },
 
+    updateSancion: async (req, res) => {
+        const { id } = req.params;
+        const { motivo, origen, estado } = req.body;
+        try {
+            await pool.query(
+                `UPDATE sanciones SET motivo = COALESCE($1, motivo), origen = COALESCE($2, origen), estado = COALESCE($3, estado) WHERE sancion_id = $4`,
+                [motivo, origen, estado, id]
+            );
+            res.json({ message: 'Sanción actualizada' });
+        } catch (error) {
+            console.error('Error en updateSancion:', error);
+            res.status(500).json({ error: 'Error al actualizar sanción' });
+        }
+    },
+
+    deleteSancion: async (req, res) => {
+        const { id } = req.params;
+        try {
+            await pool.query('DELETE FROM sanciones WHERE sancion_id = $1', [id]);
+            res.json({ message: 'Sanción eliminada' });
+        } catch (error) {
+            console.error('Error en deleteSancion:', error);
+            res.status(500).json({ error: 'Error al eliminar sanción' });
+        }
+    },
+
     perdonarSancion: async (req, res) => {
         const { id } = req.params;
         try {
             await pool.query(
-                `UPDATE sanciones SET estado = 'Resuelta', fecha_resolucion = CURRENT_DATE
-                 WHERE sancion_id = $1`,
+                `UPDATE sanciones SET estado = 'Resuelta', fecha_resolucion = CURRENT_DATE WHERE sancion_id = $1`,
                 [id]
             );
             res.json({ message: 'Sanción resuelta' });
         } catch (error) {
             console.error('Error en perdonarSancion:', error);
             res.status(500).json({ error: 'Error al resolver sanción' });
+        }
+    },
+
+    levantarSancion: async (req, res) => {
+        const { id } = req.params;
+        try {
+            await pool.query(
+                `UPDATE sanciones SET estado = 'Resuelta', fecha_resolucion = CURRENT_DATE WHERE sancion_id = $1 AND estado = 'Activa'`,
+                [id]
+            );
+            res.json({ message: 'Sanción levantada' });
+        } catch (error) {
+            console.error('Error en levantarSancion:', error);
+            res.status(500).json({ error: 'Error al levantar sanción' });
         }
     }
 };

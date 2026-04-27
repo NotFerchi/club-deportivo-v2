@@ -15,5 +15,8 @@ router.get('/:id', usuariosController.getUsuarioById);
 router.post('/', usuariosController.createUsuario);
 router.put('/:id', usuariosController.updateUsuario);
 router.delete('/:id', usuariosController.deleteUsuario);
+router.put('/:id/desactivar', usuariosController.desactivarUsuario);
+router.put('/:id/reactivar', usuariosController.reactivarUsuario);
+router.delete('/:id/permanente', usuariosController.deleteUsuarioPermanente);
 
 module.exports = router;

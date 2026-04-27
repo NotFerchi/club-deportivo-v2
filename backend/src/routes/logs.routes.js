@@ -11,4 +11,8 @@ router.get('/', logsController.getLogs);
 router.get('/estadisticas', logsController.getLogsEstadisticas);
 router.get('/tabla/:tabla', logsController.getLogsByTabla);
 
+obtenerLogs: async (req, res) => {
+  const result = await pool.query('SELECT * FROM logs ORDER BY fecha DESC LIMIT 200');
+  res.json(result.rows);
+}
 module.exports = router;

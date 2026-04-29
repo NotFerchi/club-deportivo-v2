@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 function CentralReservas() {
   const [reservas, setReservas] = useState([]);
   const [espacios, setEspacios] = useState([]);
+  const [socios, setSocios] = useState([]);
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
   const [showReservaModal, setShowReservaModal] = useState(false);
@@ -11,49 +12,71 @@ function CentralReservas() {
     espacioId: '', socioId: '', fechaReserva: fecha, horaInicio: '', horaFin: ''
   });
 
+  const getTokenHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+  const asArray = (data) => (Array.isArray(data) ? data : []);
+
   const fetchReservas = async () => {
-    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/recepcion/reservas?fecha=${fecha}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch('http://localhost:3000/api/reservas', { headers: getTokenHeaders() });
+      if (!res.ok) throw new Error('No se pudieron cargar reservas');
       const data = await res.json();
-      setReservas(data);
+      const reservasDelDia = asArray(data).filter((reserva) => {
+        const reservaFecha = String(reserva.fecha || reserva.fecha_reserva || '').slice(0, 10);
+        return reservaFecha === fecha;
+      });
+      setReservas(reservasDelDia);
     } catch (error) {
       console.error('Error:', error);
-    } finally {
-      setLoading(false);
+      setReservas([]);
     }
   };
 
   const fetchEspacios = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/recepcion/espacios', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch('http://localhost:3000/api/espacios/todos', { headers: getTokenHeaders() });
+      if (!res.ok) throw new Error('No se pudieron cargar espacios');
       const data = await res.json();
-      setEspacios(data);
+      setEspacios(asArray(data).filter((espacio) => espacio.activo === true || espacio.activo === 'true'));
     } catch (error) {
       console.error('Error:', error);
+      setEspacios([]);
+    }
+  };
+
+  const fetchSocios = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/socios', { headers: getTokenHeaders() });
+      if (!res.ok) throw new Error('No se pudieron cargar socios');
+      const data = await res.json();
+      setSocios(asArray(data).filter((socio) => socio.activo === true || socio.activo === 'true'));
+    } catch (error) {
+      console.error('Error:', error);
+      setSocios([]);
     }
   };
 
   useEffect(() => {
-    fetchReservas();
-    fetchEspacios();
+    setLoading(true);
+    Promise.all([fetchReservas(), fetchEspacios(), fetchSocios()]).finally(() => setLoading(false));
   }, [fecha]);
 
   const handleSubmitReserva = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await fetch('http://localhost:3000/api/reservas', {
+      const res = await fetch('http://localhost:3000/api/reservas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          espacio_id: formData.espacioId,
+          socio_id: formData.socioId,
+          fecha: formData.fechaReserva,
+          hora_inicio: formData.horaInicio,
+          hora_fin: formData.horaFin,
+          estado: 'pendiente'
+        })
       });
+      if (!res.ok) throw new Error('No se pudo crear la reserva');
       setShowReservaModal(false);
       fetchReservas();
       setFormData({ espacioId: '', socioId: '', fechaReserva: fecha, horaInicio: '', horaFin: '' });
@@ -68,7 +91,15 @@ function CentralReservas() {
         <h4>Sistema de Reservas - {fecha}</h4>
         <div className="flex-gap">
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="date-picker" />
-          <button onClick={() => setShowReservaModal(true)} className="btn-primary">+ Nueva Reserva</button>
+          <button
+            onClick={() => {
+              setFormData((prev) => ({ ...prev, fechaReserva: fecha }));
+              setShowReservaModal(true);
+            }}
+            className="btn-primary"
+          >
+            + Nueva Reserva
+          </button>
         </div>
       </div>
 
@@ -82,8 +113,8 @@ function CentralReservas() {
               {espacios.map(esp => (
                 <div key={esp.espacio_id} className="espacio-card">
                   <div className="espacio-nombre">{esp.nombre}</div>
-                  <div className="espacio-detalle">{esp.disciplina}</div>
-                  <div className="espacio-detalle">Capacidad: {esp.capacidad_maxima}</div>
+                  <div className="espacio-detalle">{esp.disciplina || esp.tipo || 'Sin disciplina'}</div>
+                  <div className="espacio-detalle">Capacidad: {esp.capacidad_maxima || esp.capacidad || 'N/D'}</div>
                 </div>
               ))}
             </div>
@@ -160,7 +191,11 @@ function CentralReservas() {
           <div className="form-row">
             <div className="form-group form-group-full">
               <label className="required">Nombre del socio que invita</label>
-              <select required>
+              <select
+                required
+                value={formData.socioId}
+                onChange={(e) => setFormData({...formData, socioId: e.target.value})}
+              >
                 <option value="">Seleccione un socio</option>
                 {socios.map(s => <option key={s.socio_id} value={s.socio_id}>{s.nombres} {s.apellido_paterno}</option>)}
               </select>
@@ -179,7 +214,7 @@ function CentralReservas() {
               <label className="required">Tipo de Instalación</label>
               <select value={formData.espacioId} onChange={(e) => setFormData({...formData, espacioId: e.target.value})} required>
                 <option value="">Seleccione un espacio</option>
-                {espacios.map(e => <option key={e.espacio_id} value={e.espacio_id}>{e.nombre} - {e.disciplina}</option>)}
+                {espacios.map(e => <option key={e.espacio_id} value={e.espacio_id}>{e.nombre} - {e.disciplina || e.tipo || 'Sin disciplina'}</option>)}
               </select>
             </div>
             <div className="form-group">

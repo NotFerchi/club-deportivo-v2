@@ -7,17 +7,32 @@ function ControlLudoteca() {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ socioId: '', nombreHijo: '', fechaNacimiento: '' });
   const [loading, setLoading] = useState(true);
+  const asArray = (data) => (Array.isArray(data) ? data : []);
+
+  const calcularEdad = (fechaNacimiento) => {
+    if (!fechaNacimiento) return '';
+    const fecha = new Date(fechaNacimiento);
+    if (Number.isNaN(fecha.getTime())) return '';
+
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - fecha.getFullYear();
+    const mes = hoy.getMonth() - fecha.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < fecha.getDate())) edad -= 1;
+    return edad;
+  };
 
   const fetchNinos = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/recepcion/ludoteca/activos', {
+      const res = await fetch('http://localhost:3000/api/ludoteca/activos', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error('No se pudo cargar ludoteca');
       const data = await res.json();
-      setNinos(data);
+      setNinos(asArray(data));
     } catch (error) {
       console.error('Error:', error);
+      setNinos([]);
     } finally {
       setLoading(false);
     }
@@ -26,13 +41,15 @@ function ControlLudoteca() {
   const fetchSocios = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/recepcion/socios', {
+      const res = await fetch('http://localhost:3000/api/socios', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error('No se pudieron cargar socios');
       const data = await res.json();
-      setSocios(data.filter(s => s.socio_activo));
+      setSocios(asArray(data).filter(s => s.activo === true || s.activo === 'true' || s.socio_activo === true));
     } catch (error) {
       console.error('Error:', error);
+      setSocios([]);
     }
   };
 
@@ -43,13 +60,25 @@ function ControlLudoteca() {
 
   const handleRegistrarEntrada = async (e) => {
     e.preventDefault();
+    const edad = calcularEdad(formData.fechaNacimiento);
+
+    if (edad === '' || edad < 0) {
+      alert('Fecha de nacimiento invalida');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
-      await fetch('http://localhost:3000/api/recepcion/ludoteca/entrada', {
+      const res = await fetch('http://localhost:3000/api/ludoteca', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          socio_id: formData.socioId,
+          nombre_nino: formData.nombreHijo,
+          edad
+        })
       });
+      if (!res.ok) throw new Error('No se pudo registrar el ingreso');
       setShowModal(false);
       setFormData({ socioId: '', nombreHijo: '', fechaNacimiento: '' });
       fetchNinos();
@@ -61,10 +90,11 @@ function ControlLudoteca() {
   const handleRegistrarSalida = async (registroId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3000/api/recepcion/ludoteca/salida/${registroId}`, {
+      const res = await fetch(`http://localhost:3000/api/ludoteca/${registroId}/salida`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error('No se pudo registrar la salida');
       fetchNinos();
     } catch (error) {
       alert('Error: ' + error.message);
@@ -90,8 +120,10 @@ function ControlLudoteca() {
         <div className="grid-auto">
           {ninos.map(nino => (
             <div key={nino.registro_id} className="espacio-card">
-              <div className="espacio-nombre">{nino.nombre_hijo}</div>
-              <div className="espacio-detalle">Tutor: {nino.tutor_nombre}</div>
+              <div className="espacio-nombre">{nino.nombre_hijo || nino.nombre_nino}</div>
+              <div className="espacio-detalle">
+                Tutor: {nino.tutor_nombre || nino.socio_nombre || `${nino.nombres || ''} ${nino.apellido_paterno || ''}`.trim() || 'Sin tutor'}
+              </div>
               <div className="espacio-detalle">Entrada: {new Date(nino.hora_entrada).toLocaleTimeString()}</div>
               {nino.hora_salida && <div className="espacio-detalle">Salida: {new Date(nino.hora_salida).toLocaleTimeString()}</div>}
               {nino.minutos_transcurridos > 110 && !nino.hora_salida && (

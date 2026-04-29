@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
+
 const recepcionController = require('../controllers/recepcionController');
 const { verifyToken } = require('../middleware/auth.middleware');
 
+// Todas las rutas de recepción requieren token
 router.use(verifyToken);
 
 // Dashboard
@@ -19,9 +21,12 @@ router.get('/reservas', recepcionController.getReservasCentral);
 router.get('/espacios', recepcionController.getEspacios);
 
 // Visitas
+router.get('/visitas/activas', recepcionController.visitasActivas);
+router.get('/visitas/historial', recepcionController.historialVisitas);
 router.get('/visitas', recepcionController.listarVisitas);
 router.post('/visitas', recepcionController.crearVisita);
 router.put('/visitas/:id/salida', recepcionController.registrarSalidaVisita);
+router.get('/socios-lista', recepcionController.listaSociosParaVisitas);
 
 // Ludoteca
 router.get('/ludoteca/activos', recepcionController.getLudotecaActivos);

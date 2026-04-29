@@ -95,39 +95,27 @@ const queryPasesWithFallback = async (pasesQuery, pasesParams, visitasQuery, vis
 };
 
 const recepcionController = {
-<<<<<<< Updated upstream
-  // Obtener visitas activas (sin hora de salida)
-  visitasActivas: async (req, res) => {
-    try {
-      const result = await pool.query(`
-        SELECT 
-          v.*,
-          s.socio_id,
-          s.nombres as socio_anfitrion_nombre,
-          s.apellido_paterno as socio_anfitrion_apellido
-        FROM visitas v
-        LEFT JOIN socios s ON v.socio_anfitrion_id = s.socio_id
-        WHERE v.hora_salida IS NULL
-        ORDER BY v.hora_entrada DESC
-      `);
-      res.json(result.rows);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Error al obtener visitas activas' });
-=======
-
     getDashboard: async (req, res) => {
         try {
             const hoy = getToday();
-            const ingresos = await pool.query(`SELECT COUNT(*) FROM asistencia WHERE fecha = $1`, [hoy]);
-            const ludoteca = await pool.query(`SELECT COUNT(*) FROM registro_ludoteca WHERE hora_salida IS NULL`);
+
+            const ingresos = await pool.query(
+                `SELECT COUNT(*) FROM asistencia WHERE fecha = $1`,
+                [hoy]
+            );
+
+            const ludoteca = await pool.query(
+                `SELECT COUNT(*) FROM registro_ludoteca WHERE hora_salida IS NULL`
+            );
 
             let visitasActivas = 0;
+
             try {
                 const visitas = await pool.query(
                     `SELECT COUNT(*) FROM pases WHERE estado = 'activo' AND fecha_pase = $1`,
                     [hoy]
                 );
+
                 visitasActivas = parseInt(visitas.rows[0].count, 10);
             } catch (error) {
                 if (!isMissingPasesTable(error)) {
@@ -138,6 +126,7 @@ const recepcionController = {
                     `SELECT COUNT(*) FROM visitas WHERE vigente = true AND fecha_visita = $1`,
                     [hoy]
                 );
+
                 visitasActivas = parseInt(visitas.rows[0].count, 10);
             }
 
@@ -173,6 +162,7 @@ const recepcionController = {
                 JOIN usuarios u ON s.usuario_id = u.usuario_id
                 ORDER BY u.apellido_paterno, u.nombres
             `);
+
             res.json(result.rows);
         } catch (error) {
             console.error(error);
@@ -181,32 +171,99 @@ const recepcionController = {
     },
 
     crearSocio: async (req, res) => {
-        const { nombres, apellidoPaterno, apellidoMaterno, email, telefono, curp, tipo, modalidad } = req.body;
+        const {
+            nombres,
+            apellidoPaterno,
+            apellidoMaterno,
+            email,
+            telefono,
+            curp,
+            tipo,
+            modalidad
+        } = req.body;
+
         const client = await pool.connect();
+
         try {
             await client.query('BEGIN');
-            const existe = await client.query('SELECT usuario_id FROM usuarios WHERE username = $1', [email]);
+
+            const existe = await client.query(
+                'SELECT usuario_id FROM usuarios WHERE username = $1',
+                [email]
+            );
+
             if (existe.rows.length > 0) {
                 await client.query('ROLLBACK');
                 return res.status(400).json({ error: 'El correo ya esta registrado' });
             }
+
             const passwordDefault = 'socio123';
-            const rolResult = await client.query(`SELECT rol_id FROM roles WHERE nombre = 'socio'`);
+
+            const rolResult = await client.query(
+                `SELECT rol_id FROM roles WHERE nombre = 'socio'`
+            );
+
             const rolId = rolResult.rows[0].rol_id;
+
             const userResult = await client.query(
-                `INSERT INTO usuarios (username, nombres, apellido_paterno, apellido_materno, curp, telefono, password_hash, rol_id, activo)
-                 VALUES ($1, $2, $3, $4, $5, $6, crypt($7, gen_salt('bf')), $8, true) RETURNING usuario_id`,
-                [email, nombres, apellidoPaterno, apellidoMaterno || '', curp, telefono, passwordDefault, rolId]
+                `INSERT INTO usuarios (
+                    username,
+                    nombres,
+                    apellido_paterno,
+                    apellido_materno,
+                    curp,
+                    telefono,
+                    password_hash,
+                    rol_id,
+                    activo
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, crypt($7, gen_salt('bf')), $8, true)
+                RETURNING usuario_id`,
+                [
+                    email,
+                    nombres,
+                    apellidoPaterno,
+                    apellidoMaterno || '',
+                    curp,
+                    telefono,
+                    passwordDefault,
+                    rolId
+                ]
             );
+
             const usuarioId = userResult.rows[0].usuario_id;
-            const numSocioResult = await client.query("SELECT COALESCE(MAX(CAST(SUBSTRING(numero_socio FROM 5) AS INTEGER)), 0) + 1 FROM socios");
+
+            const numSocioResult = await client.query(`
+                SELECT COALESCE(MAX(CAST(SUBSTRING(numero_socio FROM 5) AS INTEGER)), 0) + 1
+                FROM socios
+            `);
+
             const numeroSocio = `SOC-${String(numSocioResult.rows[0].coalesce).padStart(4, '0')}`;
+
             await client.query(
-                `INSERT INTO socios (usuario_id, tipo, modalidad, es_titular, numero_socio, activo) VALUES ($1, $2, $3, true, $4, true)`,
-                [usuarioId, tipo || 'Rentista', modalidad || 'Individual', numeroSocio]
+                `INSERT INTO socios (
+                    usuario_id,
+                    tipo,
+                    modalidad,
+                    es_titular,
+                    numero_socio,
+                    activo
+                )
+                VALUES ($1, $2, $3, true, $4, true)`,
+                [
+                    usuarioId,
+                    tipo || 'Rentista',
+                    modalidad || 'Individual',
+                    numeroSocio
+                ]
             );
+
             await client.query('COMMIT');
-            res.status(201).json({ message: 'Socio creado exitosamente', password: passwordDefault });
+
+            res.status(201).json({
+                message: 'Socio creado exitosamente',
+                password: passwordDefault
+            });
         } catch (error) {
             await rollbackQuietly(client);
             console.error(error);
@@ -218,21 +275,54 @@ const recepcionController = {
 
     actualizarSocio: async (req, res) => {
         const { id } = req.params;
-        const { nombres, apellidoPaterno, apellidoMaterno, email, telefono, activo } = req.body;
+        const {
+            nombres,
+            apellidoPaterno,
+            apellidoMaterno,
+            email,
+            telefono,
+            activo
+        } = req.body;
+
         const client = await pool.connect();
+
         try {
             await client.query('BEGIN');
-            const socioResult = await client.query('SELECT usuario_id FROM socios WHERE socio_id = $1', [id]);
+
+            const socioResult = await client.query(
+                'SELECT usuario_id FROM socios WHERE socio_id = $1',
+                [id]
+            );
+
             if (socioResult.rows.length === 0) {
                 await client.query('ROLLBACK');
                 return res.status(404).json({ error: 'Socio no encontrado' });
             }
+
             const usuarioId = socioResult.rows[0].usuario_id;
+
             await client.query(
-                `UPDATE usuarios SET nombres = $1, apellido_paterno = $2, apellido_materno = $3, username = $4, telefono = $5, activo = $6 WHERE usuario_id = $7`,
-                [nombres, apellidoPaterno, apellidoMaterno, email, telefono, activo, usuarioId]
+                `UPDATE usuarios
+                 SET nombres = $1,
+                     apellido_paterno = $2,
+                     apellido_materno = $3,
+                     username = $4,
+                     telefono = $5,
+                     activo = $6
+                 WHERE usuario_id = $7`,
+                [
+                    nombres,
+                    apellidoPaterno,
+                    apellidoMaterno,
+                    email,
+                    telefono,
+                    activo,
+                    usuarioId
+                ]
             );
+
             await client.query('COMMIT');
+
             res.json({ message: 'Socio actualizado' });
         } catch (error) {
             await rollbackQuietly(client);
@@ -246,17 +336,34 @@ const recepcionController = {
     eliminarSocio: async (req, res) => {
         const { id } = req.params;
         const client = await pool.connect();
+
         try {
             await client.query('BEGIN');
-            const socioResult = await client.query('SELECT usuario_id FROM socios WHERE socio_id = $1', [id]);
+
+            const socioResult = await client.query(
+                'SELECT usuario_id FROM socios WHERE socio_id = $1',
+                [id]
+            );
+
             if (socioResult.rows.length === 0) {
                 await client.query('ROLLBACK');
                 return res.status(404).json({ error: 'Socio no encontrado' });
             }
+
             const usuarioId = socioResult.rows[0].usuario_id;
-            await client.query('UPDATE socios SET activo = false WHERE socio_id = $1', [id]);
-            await client.query('UPDATE usuarios SET activo = false WHERE usuario_id = $1', [usuarioId]);
+
+            await client.query(
+                'UPDATE socios SET activo = false WHERE socio_id = $1',
+                [id]
+            );
+
+            await client.query(
+                'UPDATE usuarios SET activo = false WHERE usuario_id = $1',
+                [usuarioId]
+            );
+
             await client.query('COMMIT');
+
             res.json({ message: 'Socio eliminado' });
         } catch (error) {
             await rollbackQuietly(client);
@@ -270,6 +377,7 @@ const recepcionController = {
     getReservasCentral: async (req, res) => {
         const { fecha } = req.query;
         const fechaConsulta = fecha || getToday();
+
         try {
             const result = await pool.query(`
                 SELECT
@@ -286,6 +394,7 @@ const recepcionController = {
                 WHERE r.fecha_reserva = $1
                 ORDER BY r.hora_inicio
             `, [fechaConsulta]);
+
             res.json(result.rows);
         } catch (error) {
             console.error(error);
@@ -295,7 +404,12 @@ const recepcionController = {
 
     getEspacios: async (req, res) => {
         try {
-            const result = await pool.query(`SELECT espacio_id, nombre, capacidad_maxima FROM espacios ORDER BY nombre`);
+            const result = await pool.query(`
+                SELECT espacio_id, nombre, capacidad_maxima
+                FROM espacios
+                ORDER BY nombre
+            `);
+
             res.json(result.rows);
         } catch (error) {
             console.error(error);
@@ -348,6 +462,7 @@ const recepcionController = {
     listarVisitas: async (req, res) => {
         const { fecha } = req.query;
         const fechaConsulta = fecha || getToday();
+
         try {
             const result = await queryPasesWithFallback(
                 `${pasesSelect}
@@ -373,12 +488,14 @@ const recepcionController = {
             socio_id,
             socio_anfitrion_id,
             nombre_completo,
+            nombreCompleto,
             nombre,
             apellido,
             apellidos,
             correo,
             telefono,
             identificacion,
+            tipoVisita,
             mayor_16,
             observaciones,
             motivo
@@ -386,8 +503,17 @@ const recepcionController = {
 
         const socioIdEntrada = socio_id || socio_anfitrion_id || null;
         const legacyPayload = !Object.prototype.hasOwnProperty.call(req.body, 'tipo_pase');
-        const tipoPaseNormalizado = String(tipo_pase || (socioIdEntrada ? 'visita' : 'dia')).trim().toLowerCase();
-        const nombreNormalizado = String(nombre_completo || [nombre, apellido || apellidos].filter(Boolean).join(' ')).trim();
+
+        const tipoPaseNormalizado = String(
+            tipo_pase || tipoVisita || (socioIdEntrada ? 'visita' : 'dia')
+        ).trim().toLowerCase();
+
+        const nombreNormalizado = String(
+            nombre_completo ||
+            nombreCompleto ||
+            [nombre, apellido || apellidos].filter(Boolean).join(' ')
+        ).trim();
+
         const correoNormalizado = String(correo || '').trim();
         const telefonoNormalizado = normalizeDigits(telefono);
         const identificacionNormalizada = String(identificacion || '').trim();
@@ -411,7 +537,11 @@ const recepcionController = {
             return res.status(400).json({ error: 'Debe indicar si es mayor de 16 anos' });
         }
 
-        const telefonoFinal = telefonoNormalizado || normalizeDigits(identificacionNormalizada).slice(0, 20) || '0000000000';
+        const telefonoFinal =
+            telefonoNormalizado ||
+            normalizeDigits(identificacionNormalizada).slice(0, 20) ||
+            '0000000000';
+
         const observacionesFinales = [
             identificacionNormalizada ? `Identificacion: ${identificacionNormalizada}` : '',
             observacionesNormalizadas
@@ -425,23 +555,29 @@ const recepcionController = {
             let socioIdFinal = null;
 
             if (tipoPaseNormalizado === 'visita') {
-                if (!socioIdEntrada) {
+                if (!socioIdEntrada && !legacyPayload) {
                     await client.query('ROLLBACK');
-                    return res.status(400).json({ error: 'Debe seleccionar un socio activo para una visita' });
+                    return res.status(400).json({
+                        error: 'Debe seleccionar un socio activo para una visita'
+                    });
                 }
 
-                const socioResult = await client.query(`
-                    SELECT s.socio_id
-                    FROM socios s
-                    WHERE s.socio_id = $1 AND s.activo = true
-                `, [socioIdEntrada]);
+                if (socioIdEntrada) {
+                    const socioResult = await client.query(`
+                        SELECT s.socio_id
+                        FROM socios s
+                        WHERE s.socio_id = $1 AND s.activo = true
+                    `, [socioIdEntrada]);
 
-                if (socioResult.rows.length === 0) {
-                    await client.query('ROLLBACK');
-                    return res.status(400).json({ error: 'El socio seleccionado no esta activo o no existe' });
+                    if (socioResult.rows.length === 0) {
+                        await client.query('ROLLBACK');
+                        return res.status(400).json({
+                            error: 'El socio seleccionado no esta activo o no existe'
+                        });
+                    }
+
+                    socioIdFinal = socioIdEntrada;
                 }
-
-                socioIdFinal = socioIdEntrada;
             }
 
             const result = await client.query(`
@@ -472,6 +608,7 @@ const recepcionController = {
             ]);
 
             await client.query('COMMIT');
+
             res.status(201).json({
                 ok: true,
                 id: result.rows[0].pase_id,
@@ -484,9 +621,19 @@ const recepcionController = {
             if (isMissingPasesTable(error)) {
                 try {
                     const legacyResult = await pool.query(
-                        `INSERT INTO visitas (nombre_completo, identificacion_tipo, fecha_visita, hora_entrada, vigente)
-                         VALUES ($1, $2, CURRENT_DATE, NOW(), true) RETURNING visita_id`,
-                        [nombreNormalizado, identificacionNormalizada || tipoPaseNormalizado]
+                        `INSERT INTO visitas (
+                            nombre_completo,
+                            identificacion_tipo,
+                            fecha_visita,
+                            hora_entrada,
+                            vigente
+                        )
+                        VALUES ($1, $2, CURRENT_DATE, NOW(), true)
+                        RETURNING visita_id`,
+                        [
+                            nombreNormalizado,
+                            identificacionNormalizada || tipoVisita || tipoPaseNormalizado
+                        ]
                     );
 
                     return res.status(201).json({
@@ -528,15 +675,23 @@ const recepcionController = {
             if (isMissingPasesTable(error)) {
                 try {
                     const result = await pool.query(
-                        `UPDATE visitas SET hora_salida = NOW(), vigente = false WHERE visita_id = $1 AND vigente = true RETURNING visita_id`,
+                        `UPDATE visitas
+                         SET hora_salida = NOW(), vigente = false
+                         WHERE visita_id = $1 AND vigente = true
+                         RETURNING visita_id`,
                         [id]
                     );
 
                     if (result.rows.length === 0) {
-                        return res.status(404).json({ error: 'Visita no encontrada o ya finalizada' });
+                        return res.status(404).json({
+                            error: 'Visita no encontrada o ya finalizada'
+                        });
                     }
 
-                    return res.json({ ok: true, message: 'Salida registrada correctamente' });
+                    return res.json({
+                        ok: true,
+                        message: 'Salida registrada correctamente'
+                    });
                 } catch (fallbackError) {
                     console.error(fallbackError);
                     return res.status(500).json({ error: 'Error al registrar salida' });
@@ -592,6 +747,7 @@ const recepcionController = {
                 JOIN usuarios u ON s.usuario_id = u.usuario_id
                 ORDER BY rl.hora_entrada
             `);
+
             res.json(result.rows);
         } catch (error) {
             console.error(error);
@@ -601,13 +757,24 @@ const recepcionController = {
 
     registrarEntradaLudoteca: async (req, res) => {
         const { socioId, nombreHijo, fechaNacimiento } = req.body;
+
         try {
             const result = await pool.query(
-                `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada)
-                 VALUES ($1, $2, $3, NOW()) RETURNING registro_id`,
+                `INSERT INTO registro_ludoteca (
+                    socio_padre_id,
+                    nombre_hijo,
+                    fecha_nacimiento,
+                    hora_entrada
+                )
+                VALUES ($1, $2, $3, NOW())
+                RETURNING registro_id`,
                 [socioId, nombreHijo, fechaNacimiento]
             );
-            res.status(201).json({ message: 'Entrada registrada', registroId: result.rows[0].registro_id });
+
+            res.status(201).json({
+                message: 'Entrada registrada',
+                registroId: result.rows[0].registro_id
+            });
         } catch (error) {
             console.error(error);
             res.status(500).json({ error: 'Error al registrar entrada' });
@@ -616,14 +783,22 @@ const recepcionController = {
 
     registrarSalidaLudoteca: async (req, res) => {
         const { id } = req.params;
+
         try {
             const result = await pool.query(
-                `UPDATE registro_ludoteca SET hora_salida = NOW() WHERE registro_id = $1 AND hora_salida IS NULL RETURNING registro_id`,
+                `UPDATE registro_ludoteca
+                 SET hora_salida = NOW()
+                 WHERE registro_id = $1 AND hora_salida IS NULL
+                 RETURNING registro_id`,
                 [id]
             );
+
             if (result.rows.length === 0) {
-                return res.status(404).json({ error: 'Registro no encontrado o ya finalizado' });
+                return res.status(404).json({
+                    error: 'Registro no encontrado o ya finalizado'
+                });
             }
+
             res.json({ message: 'Salida registrada' });
         } catch (error) {
             console.error(error);
@@ -735,7 +910,9 @@ const recepcionController = {
         const { sesionId, socioId, fecha, presente = true } = req.body;
 
         if (!sesionId || !socioId || !fecha) {
-            return res.status(400).json({ error: 'Sesion, socio y fecha son requeridos' });
+            return res.status(400).json({
+                error: 'Sesion, socio y fecha son requeridos'
+            });
         }
 
         try {
@@ -753,106 +930,26 @@ const recepcionController = {
                 `, [presente, existente.rows[0].asistencia_id]);
             } else {
                 await pool.query(`
-                    INSERT INTO asistencia (sesion_id, socio_id, fecha, presente, registro)
+                    INSERT INTO asistencia (
+                        sesion_id,
+                        socio_id,
+                        fecha,
+                        presente,
+                        registro
+                    )
                     VALUES ($1, $2, $3, $4, NOW())
                 `, [sesionId, socioId, fecha, presente]);
             }
 
-            res.json({ ok: true, message: 'Asistencia registrada correctamente' });
+            res.json({
+                ok: true,
+                message: 'Asistencia registrada correctamente'
+            });
         } catch (error) {
             console.error('Error en registrarAsistenciaManual:', error);
             res.status(500).json({ error: 'Error al registrar asistencia' });
         }
->>>>>>> Stashed changes
     }
-  },
-
-  // Historial de visitas (últimos días)
-  historialVisitas: async (req, res) => {
-    const { dias = 7 } = req.query;
-    try {
-      const result = await pool.query(`
-        SELECT 
-          v.*,
-          s.nombres as socio_anfitrion_nombre,
-          s.apellido_paterno as socio_anfitrion_apellido
-        FROM visitas v
-        LEFT JOIN socios s ON v.socio_anfitrion_id = s.socio_id
-        WHERE v.fecha_visita >= CURRENT_DATE - ($1 || ' days')::INTERVAL
-        ORDER BY v.hora_entrada DESC
-      `, [dias]);
-      res.json(result.rows);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Error al obtener historial' });
-    }
-  },
-
-  // Crear nueva visita
-  crearVisita: async (req, res) => {
-    const { nombre_completo, identificacion_tipo, socio_anfitrion_id, motivo } = req.body;
-    
-    if (!nombre_completo) {
-      return res.status(400).json({ error: 'Nombre completo es requerido' });
-    }
-
-    try {
-      const result = await pool.query(`
-        INSERT INTO visitas (nombre_completo, identificacion_tipo, socio_anfitrion_id, motivo, fecha_visita, hora_entrada, vigente)
-        VALUES ($1, $2, $3, $4, CURRENT_DATE, NOW(), true)
-        RETURNING visita_id
-      `, [nombre_completo, identificacion_tipo || null, socio_anfitrion_id || null, motivo || null]);
-      
-      res.json({ ok: true, id: result.rows[0].visita_id, message: 'Visita registrada correctamente' });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Error al registrar visita' });
-    }
-  },
-
-  // Registrar salida de visita
-  registrarSalida: async (req, res) => {
-    const { id } = req.params;
-    
-    try {
-      const result = await pool.query(`
-        UPDATE visitas 
-        SET hora_salida = NOW(), vigente = false
-        WHERE visita_id = $1 AND hora_salida IS NULL
-        RETURNING visita_id
-      `, [id]);
-      
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Visita no encontrada o ya finalizada' });
-      }
-      
-      res.json({ ok: true, message: 'Salida registrada correctamente' });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Error al registrar salida' });
-    }
-  },
-
-  // Lista de socios para selector en el frontend
-  listaSociosParaVisitas: async (req, res) => {
-    try {
-      const result = await pool.query(`
-        SELECT 
-          s.socio_id,
-          u.nombres,
-          u.apellido_paterno,
-          s.tipo as tipo_socio
-        FROM socios s
-        JOIN usuarios u ON s.usuario_id = u.usuario_id
-        WHERE s.activo = true
-        ORDER BY u.nombres
-      `);
-      res.json(result.rows);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Error al obtener lista de socios' });
-    }
-  }
 };
 
 module.exports = recepcionController;

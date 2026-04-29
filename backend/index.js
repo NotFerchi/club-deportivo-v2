@@ -1,4 +1,4 @@
-require('dotenv').config(); // <-- ESTA DEBE SER LA LÍNEA 1
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }); // <-- ESTA DEBE SER LA LÍNEA 1
 const express = require('express');
 const cors = require('cors');
 //require('dotenv').config({ path: '../.env' });
@@ -6,7 +6,7 @@ const cors = require('cors');
 require('./src/config/database');
 
 // COMENTA TEMPORALMENTE LAS QUE NO TIENEN CONTROLADOR
-// const ludotecaRoutes = require('./src/routes/ludoteca.routes');
+const ludotecaRoutes = require('./src/routes/ludoteca.routes');
 
 // --- IMPORTAR RUTAS ---
 const authRoutes = require('./src/routes/auth.routes');
@@ -44,10 +44,28 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: '🚀 Servidor funcionando' });
 });
 
+<<<<<<< Updated upstream
 // 2. Conectamos la ruta exacta que pide tu frontend
 app.use('/api/usuarios-internos', usuariosRoutes); 
 // Rutas para el módulo de clases
 app.use('/api/sesiones', sesionesRoutes);
+=======
+// --- REGISTRAR RUTAS ---
+
+app.use('/api/auth',              authRoutes);
+app.use('/api/socios',            socioRoutes);
+app.use('/api/usuarios-internos', usuariosRoutes);
+app.use('/api/roles',             rolesRoutes);
+app.use('/api/espacios',          espaciosRoutes);
+app.use('/api/recepcion',         recepcionRoutes);
+app.use('/api/instructor',        instructorRoutes);
+app.use('/api/instructores',      instructoresRoutes);
+app.use('/api/sanciones',         sancionesRoutes);
+app.use('/api/sesiones',          sesionesRoutes);
+app.use('/api/logs',              logsRoutes);
+app.use('/api/ludoteca',          ludotecaRoutes);
+
+>>>>>>> Stashed changes
 app.use('/api/inscripciones', inscripcionesRoutes);
 // --- REGISTRAR RUTAS ---
 app.use('/api/auth', authRoutes);
@@ -68,7 +86,6 @@ app.use('/api/sanciones', sancionesRoutes);
 app.use('/api/logs', logsRoutes);
 
 // Comentadas temporalmente
-// app.use('/api/ludoteca', ludotecaRoutes);
 // app.use('/api/reportes', reportesRoutes);
 
 // Error handler
@@ -94,5 +111,6 @@ app.listen(PORT, () => {
   console.log('  - ALL  /api/instructor');
   console.log('  - ALL  /api/instructores');
   console.log('  - ALL  /api/reservas');
+  console.log('  - ALL  /api/ludoteca');
   console.log('\n⚡ Otros endpoints están comentados temporalmente');
 });

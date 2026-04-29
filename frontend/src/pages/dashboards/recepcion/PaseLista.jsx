@@ -5,6 +5,7 @@ function PaseLista() {
   const [alumnos, setAlumnos] = useState([]);
   const [selectedSesion, setSelectedSesion] = useState('');
   const [loading, setLoading] = useState(true);
+  const asArray = (data) => (Array.isArray(data) ? data : []);
 
   const fetchClases = async () => {
     try {
@@ -13,10 +14,12 @@ function PaseLista() {
       const res = await fetch(`http://localhost:3000/api/recepcion/clases?fecha=${fecha}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error('No se pudieron cargar clases');
       const data = await res.json();
-      setClases(data);
+      setClases(asArray(data));
     } catch (error) {
       console.error('Error:', error);
+      setClases([]);
     } finally {
       setLoading(false);
     }
@@ -29,10 +32,12 @@ function PaseLista() {
       const res = await fetch(`http://localhost:3000/api/recepcion/clases/${sesionId}/alumnos?fecha=${fecha}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error('No se pudieron cargar alumnos');
       const data = await res.json();
-      setAlumnos(data);
+      setAlumnos(asArray(data));
     } catch (error) {
       console.error('Error:', error);
+      setAlumnos([]);
     }
   };
 
@@ -50,15 +55,17 @@ function PaseLista() {
   const handleRegistrarAsistencia = async (socioId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch('http://localhost:3000/api/recepcion/asistencia/manual', {
+      const res = await fetch('http://localhost:3000/api/recepcion/asistencia/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           sesionId: parseInt(selectedSesion),
           socioId: parseInt(socioId),
-          fecha: new Date().toISOString().split('T')[0]
+          fecha: new Date().toISOString().split('T')[0],
+          presente: true
         })
       });
+      if (!res.ok) throw new Error('No se pudo registrar la asistencia');
       alert('Asistencia registrada correctamente');
       fetchAlumnos(selectedSesion);
     } catch (error) {

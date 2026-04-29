@@ -20,10 +20,9 @@ const espaciosRoutes = require('./src/routes/espacios.routes');
 const recepcionRoutes = require('./src/routes/recepcion.routes');
 const disciplinasRoutes = require('./src/routes/disciplinas.routes');
 const instructorRoutes = require('./src/routes/instructor.routes');
-
+const reservasRoutes = require('./src/routes/reservas.routes');
 const instructoresRoutes = require('./src/routes/instructores.routes');
 const sancionesRoutes    = require('./src/routes/sanciones.routes');
-const sesionesRoutes     = require('./src/routes/sesiones.routes');
 const logsRoutes         = require('./src/routes/logs.routes');
 const errorHandler       = require('./src/middleware/errorHandler');
 

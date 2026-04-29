@@ -1,0 +1,580 @@
+/* ==================== LUDOTECA CSS ==================== */
+
+/* Botón QR flotante */
+.btn-qr-flotante {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--ds-navy);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-qr-flotante:hover {
+    background: #1a3a5c;
+    transform: translateY(-2px);
+}
+
+/* Aforo Card */
+.aforo-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.aforo-info h3 {
+    margin: 0 0 1rem 0;
+    color: var(--ds-navy);
+    font-size: 1rem;
+}
+
+.aforo-numeros {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.aforo-actual {
+    font-size: 2.5rem;
+    font-weight: 800;
+}
+
+.aforo-actual.verde { color: #22c55e; }
+.aforo-actual.naranja { color: #f59e0b; }
+.aforo-actual.rojo { color: #ef4444; }
+
+.aforo-separador {
+    font-size: 1.5rem;
+    color: var(--ds-text-light);
+}
+
+.aforo-maximo {
+    font-size: 1.5rem;
+    color: var(--ds-text-light);
+}
+
+.aforo-barra {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.aforo-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.aforo-fill.verde { background: #22c55e; }
+.aforo-fill.naranja { background: #f59e0b; }
+.aforo-fill.rojo { background: #ef4444; }
+
+.aforo-mensaje {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+}
+
+/* Instructor Card */
+.instructor-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    min-width: 250px;
+}
+
+.instructor-card img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.instructor-card div {
+    display: flex;
+    flex-direction: column;
+}
+
+.instructor-card strong {
+    color: var(--ds-navy);
+    font-size: 0.95rem;
+}
+
+.instructor-card span {
+    font-size: 0.8rem;
+    color: var(--ds-text-light);
+}
+
+/* Hijos Grid */
+.hijos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.hijo-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--ds-border);
+}
+
+.hijo-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.hijo-foto {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.hijo-info {
+    flex: 1;
+}
+
+.hijo-info h4 {
+    margin: 0;
+    color: var(--ds-navy);
+}
+
+.hijo-edad {
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+}
+
+.hijo-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.hijo-status.activo {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.hijo-status.inactivo {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Tiempo de estancia */
+.tiempo-estancia {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.tiempo-estancia.advertencia {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.tiempo-estancia.critico {
+    background: #fee2e2;
+    color: #991b1b;
+    font-weight: 600;
+}
+
+.tiempo-alerta {
+    margin-left: auto;
+    font-size: 0.8rem;
+}
+
+/* Alergias y cuidados */
+.hijo-alergias,
+.hijo-cuidados {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.hijo-alergias {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.hijo-cuidados {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.hijo-alergias div,
+.hijo-cuidados div {
+    display: flex;
+    flex-direction: column;
+}
+
+.hijo-alergias strong,
+.hijo-cuidados strong {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.hijo-qr {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+}
+
+/* Header actions */
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.header-actions h3 {
+    margin: 0;
+    color: var(--ds-navy);
+}
+
+.btn-agregar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--ds-navy);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Familiares section */
+.familiares-section {
+    margin-top: 2rem;
+}
+
+.familiares-section h3 {
+    margin: 0 0 1rem 0;
+    color: var(--ds-navy);
+    font-size: 1.1rem;
+}
+
+.familiares-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.familiar-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--ds-border);
+}
+
+.familiar-card div {
+    display: flex;
+    flex-direction: column;
+}
+
+.familiar-card strong {
+    color: var(--ds-navy);
+}
+
+.familiar-card span {
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+}
+
+/* Reservar view */
+.reservar-view {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.reservar-info-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #e0f2fe;
+    border-radius: 12px;
+    color: #0369a1;
+}
+
+.reservar-info-card h4 {
+    margin: 0 0 0.5rem 0;
+}
+
+.reservar-info-card p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.instrucciones-card {
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.instrucciones-card h4 {
+    margin: 0 0 1rem 0;
+    color: var(--ds-navy);
+}
+
+.instrucciones-card ol {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.instrucciones-card li {
+    margin-bottom: 0.5rem;
+    color: var(--ds-text-light);
+}
+
+.btn-reservar-qr {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    background: var(--ds-navy);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-reservar-qr:hover {
+    background: #1a3a5c;
+}
+
+/* Historial view */
+.historial-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.historial-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.historial-fecha {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+}
+
+.historial-fecha .dia {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ds-navy);
+}
+
+.historial-fecha .mes {
+    font-size: 0.8rem;
+    color: var(--ds-text-light);
+    text-transform: uppercase;
+}
+
+.historial-detalles {
+    flex: 1;
+}
+
+.historial-detalles h4 {
+    margin: 0 0 0.25rem 0;
+    color: var(--ds-navy);
+}
+
+.historial-detalles p {
+    margin: 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+}
+
+.historial-status {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.historial-status.completado {
+    background: #dcfce7;
+    color: #166534;
+}
+
+/* Modal QR */
+.modal-qr .qr-display {
+    padding: 2rem;
+    background: white;
+    border: 2px dashed var(--ds-border);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+.modal-qr .qr-instruccion {
+    color: var(--ds-text-light);
+    margin-bottom: 1rem;
+}
+
+.modal-qr .qr-codigo {
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+/* Form agregar hijo */
+.form-agregar-hijo {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--ds-navy);
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group textarea {
+    padding: 0.75rem;
+    border: 1px solid var(--ds-border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Loading state */
+.loading-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--ds-text-light);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .aforo-card {
+        grid-template-columns: 1fr;
+    }
+    
+    .instructor-card {
+        min-width: auto;
+    }
+    
+    .hijos-grid,
+    .familiares-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .historial-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* ==================== TABS DE NAVEGACIÓN ==================== */
+.clases-tabs-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    background: white;
+    padding: 0.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.clases-tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    color: var(--ds-text-light);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.clases-tab-btn:hover {
+    background: #f1f5f9;
+}
+
+.clases-tab-btn.active {
+    background: var(--ds-navy);
+    color: white;
+}
+
+.clases-tab-btn.active svg {
+    color: white;
+}

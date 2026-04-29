@@ -9,6 +9,8 @@ function ConfiguracionEspacios() {
   const [showModal, setShowModal] = useState(false);
   const [editingEspacio, setEditingEspacio] = useState(null);
   const [disciplinas, setDisciplinas] = useState([]);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -46,7 +48,7 @@ function ConfiguracionEspacios() {
   };
 
   // ==============================
-  // FETCH ESPACIOS
+  // FETCH ESPACIOS - CORREGIDO
   // ==============================
   const fetchEspacios = async () => {
     const token = localStorage.getItem('token');
@@ -62,17 +64,39 @@ function ConfiguracionEspacios() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      console.log('Status espacios:', res.status);
+
       if (!res.ok) {
-        throw new Error('Error al cargar espacios');
+        if (res.status === 401) {
+          alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('usuario');
+          window.location.href = '/login';
+          return;
+        }
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
 
       const data = await res.json();
-      const lista = Array.isArray(data) ? data : [];
+      console.log('Respuesta espacios:', data);
+      
+      // Verificar si data es un array
+      let listaEspacios = [];
+      if (Array.isArray(data)) {
+        listaEspacios = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        listaEspacios = data.data;
+      } else if (data.espacios && Array.isArray(data.espacios)) {
+        listaEspacios = data.espacios;
+      } else {
+        console.error('La respuesta no es un array:', data);
+        listaEspacios = [];
+      }
 
-      setEspacios(lista);
-      setFilteredEspacios(lista);
+      setEspacios(listaEspacios);
+      setFilteredEspacios(listaEspacios);
     } catch (error) {
-      console.error(error);
+      console.error('Error en fetchEspacios:', error);
       setLoadError(error.message);
     } finally {
       setLoading(false);
@@ -80,7 +104,7 @@ function ConfiguracionEspacios() {
   };
 
   // ==============================
-  // FETCH DISCIPLINAS
+  // FETCH DISCIPLINAS - CORREGIDO
   // ==============================
   const fetchDisciplinas = async () => {
     const token = localStorage.getItem('token');
@@ -92,12 +116,20 @@ function ConfiguracionEspacios() {
       });
 
       if (!res.ok) {
+        if (res.status === 401) return;
         throw new Error('Error al cargar disciplinas');
       }
 
       const data = await res.json();
-      const lista = Array.isArray(data) ? data : [];
-      setDisciplinas(lista);
+      let listaDisciplinas = [];
+      if (Array.isArray(data)) {
+        listaDisciplinas = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        listaDisciplinas = data.data;
+      } else if (data.disciplinas && Array.isArray(data.disciplinas)) {
+        listaDisciplinas = data.disciplinas;
+      }
+      setDisciplinas(listaDisciplinas);
     } catch (error) {
       console.error('fetchDisciplinas error:', error);
     }
@@ -124,7 +156,7 @@ function ConfiguracionEspacios() {
   }, [searchTerm, espacios]);
 
   // ==============================
-  // GUARDAR (CREAR/EDITAR)
+  // GUARDAR (CREAR/EDITAR) - CORREGIDO
   // ==============================
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -170,6 +202,9 @@ function ConfiguracionEspacios() {
         setEditingEspacio(null);
         setFormErrors({});
         setFormData({ nombre: '', disciplina_id: '', capacidad_maxima: '', activo: true });
+        setSuccessMessage(editingEspacio ? 'Espacio actualizado correctamente' : 'Espacio creado correctamente');
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
       } else {
         const data = await res.json();
         alert(data.error || 'Error al guardar');
@@ -181,7 +216,7 @@ function ConfiguracionEspacios() {
   };
 
   // ==============================
-  // INACTIVAR/REACTIVAR
+  // INACTIVAR/REACTIVAR - CORREGIDO
   // ==============================
   const handleToggleActivo = async (espacio, activo) => {
     const confirmMessage = activo
@@ -212,6 +247,9 @@ function ConfiguracionEspacios() {
 
       if (res.ok) {
         await fetchEspacios();
+        setSuccessMessage(activo ? 'Espacio reactivado correctamente' : 'Espacio inactivado correctamente');
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
       } else {
         const data = await res.json();
         alert(data.error || 'Error al actualizar estado del espacio');
@@ -223,10 +261,10 @@ function ConfiguracionEspacios() {
   };
 
   // ==============================
-  // ELIMINAR PERMANENTE
+  // ELIMINAR PERMANENTE - CORREGIDO
   // ==============================
   const handlePermanentDelete = async (id) => {
-    if (!confirm('¿Eliminar definitivamente este espacio? Esta acción no se puede deshacer.')) return;
+    if (!confirm('⚠️ ¿Eliminar DEFINITIVAMENTE este espacio?\n\nEsta acción no se puede deshacer.')) return;
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -242,6 +280,9 @@ function ConfiguracionEspacios() {
 
       if (res.ok) {
         await fetchEspacios();
+        setSuccessMessage('Espacio eliminado permanentemente');
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
       } else {
         const data = await res.json();
         alert(data.error || 'Error al eliminar el espacio');
@@ -272,6 +313,13 @@ function ConfiguracionEspacios() {
 
   return (
     <div className="chart-box">
+
+      {/* Mensaje de éxito */}
+      {showSuccess && (
+        <div className="success-toast">
+          <span>✅ {successMessage}</span>
+        </div>
+      )}
 
       {/* HEADER */}
       <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
@@ -480,12 +528,26 @@ function ConfiguracionEspacios() {
       )}
 
       <style jsx>{`
+        .success-toast {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #10b981;
+          color: white;
+          padding: 12px 20px;
+          border-radius: 8px;
+          z-index: 1000;
+          animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
         .grid-auto {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
           gap: 1.5rem;
         }
-
         .espacio-card-modern {
           background: white;
           border-radius: 12px;
@@ -493,36 +555,30 @@ function ConfiguracionEspacios() {
           box-shadow: 0 1px 3px rgba(0,0,0,0.1);
           transition: transform 0.2s, box-shadow 0.2s;
         }
-
         .espacio-card-modern:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-
         .espacio-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
           margin-bottom: 1rem;
         }
-
         .espacio-title {
           margin: 0;
           font-size: 1.125rem;
           font-weight: 600;
           color: #1f2937;
         }
-
         .espacio-sub {
           margin: 0.25rem 0 0;
           font-size: 0.75rem;
           color: #6b7280;
         }
-
         .espacio-body {
           margin-bottom: 1rem;
         }
-
         .espacio-stat {
           display: flex;
           justify-content: space-between;
@@ -530,18 +586,15 @@ function ConfiguracionEspacios() {
           padding: 0.5rem 0;
           border-bottom: 1px solid #e5e7eb;
         }
-
         .stat-label {
           font-size: 0.75rem;
           color: #6b7280;
         }
-
         .stat-value {
           font-size: 0.875rem;
           font-weight: 500;
           color: #1f2937;
         }
-
         .espacio-footer {
           display: flex;
           gap: 0.5rem;
@@ -550,12 +603,10 @@ function ConfiguracionEspacios() {
           padding-top: 1rem;
           border-top: 1px solid #e5e7eb;
         }
-
         .btn-group {
           display: flex;
           gap: 0.5rem;
         }
-
         .btn-icon-edit, .btn-icon-inactive, .btn-icon-reactivate, .btn-icon-delete {
           display: flex;
           align-items: center;
@@ -569,66 +620,17 @@ function ConfiguracionEspacios() {
           cursor: pointer;
           transition: all 0.2s;
         }
-
-        .btn-icon-edit {
-          background: #3b82f6;
-          color: white;
-        }
-
-        .btn-icon-edit:hover {
-          background: #2563eb;
-        }
-
-        .btn-icon-inactive {
-          background: #ef4444;
-          color: white;
-        }
-
-        .btn-icon-inactive:hover {
-          background: #dc2626;
-        }
-
-        .btn-icon-reactivate {
-          background: #10b981;
-          color: white;
-        }
-
-        .btn-icon-reactivate:hover {
-          background: #059669;
-        }
-
-        .btn-icon-delete {
-          background: #b91c1c;
-          color: white;
-        }
-
-        .btn-icon-delete:hover {
-          background: #991b1b;
-        }
-
-        .badge-success {
-          background: #d1fae5;
-          color: #065f46;
-          padding: 0.25rem 0.75rem;
-          border-radius: 9999px;
-          font-size: 0.75rem;
-          font-weight: 500;
-        }
-
-        .badge-warning {
-          background: #fed7aa;
-          color: #92400e;
-          padding: 0.25rem 0.75rem;
-          border-radius: 9999px;
-          font-size: 0.75rem;
-          font-weight: 500;
-        }
-
-        .field-hint {
-          font-size: 0.75rem;
-          color: #6b7280;
-          margin-top: 0.25rem;
-        }
+        .btn-icon-edit { background: #3b82f6; color: white; }
+        .btn-icon-edit:hover { background: #2563eb; }
+        .btn-icon-inactive { background: #ef4444; color: white; }
+        .btn-icon-inactive:hover { background: #dc2626; }
+        .btn-icon-reactivate { background: #10b981; color: white; }
+        .btn-icon-reactivate:hover { background: #059669; }
+        .btn-icon-delete { background: #b91c1c; color: white; }
+        .btn-icon-delete:hover { background: #991b1b; }
+        .badge-success { background: #d1fae5; color: #065f46; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+        .badge-warning { background: #fed7aa; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+        .field-hint { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
       `}</style>
     </div>
   );

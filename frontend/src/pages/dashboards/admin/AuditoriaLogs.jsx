@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Eye, Filter, Calendar, User, Table, Info, MapPin } from 'lucide-react';
+import { Search, Eye, Filter, Calendar, User, Table, Info, MapPin, Wifi } from 'lucide-react';
 
 function AuditoriaLogs() {
   const [logs, setLogs] = useState([]);
@@ -9,22 +9,56 @@ function AuditoriaLogs() {
   const [filterAccion, setFilterAccion] = useState('');
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchLogs = async () => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      setError('No hay sesión activa');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:3000/api/logs', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data);
-        setFilteredLogs(data);
-      } else {
-        console.error('Error al cargar logs');
+      
+      console.log('Status logs:', res.status);
+      
+      if (res.status === 401) {
+        alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+        window.location.href = '/login';
+        return;
       }
+      
+      if (!res.ok) {
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+      
+      const data = await res.json();
+      console.log('Respuesta logs:', data);
+      
+      // Manejar diferentes formatos de respuesta
+      let listaLogs = [];
+      if (Array.isArray(data)) {
+        listaLogs = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        listaLogs = data.data;
+      } else if (data.logs && Array.isArray(data.logs)) {
+        listaLogs = data.logs;
+      } else {
+        listaLogs = [];
+      }
+      
+      setLogs(listaLogs);
+      setFilteredLogs(listaLogs);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error en fetchLogs:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -43,7 +77,8 @@ function AuditoriaLogs() {
         l.usuario_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         l.usuario_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         l.detalles?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        l.tabla_afectada?.toLowerCase().includes(searchTerm.toLowerCase())
+        l.tabla_afectada?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        l.ip_origen?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -63,7 +98,8 @@ function AuditoriaLogs() {
     if (action.includes('insert') || action.includes('crear') || action.includes('create')) return '#10b981';
     if (action.includes('update') || action.includes('actualizar') || action.includes('edit')) return '#3b82f6';
     if (action.includes('delete') || action.includes('eliminar') || action.includes('remove')) return '#ef4444';
-    if (action.includes('login') || action.includes('logout')) return '#8b5cf6';
+    if (action.includes('login')) return '#8b5cf6';
+    if (action.includes('logout')) return '#f59e0b';
     if (action.includes('inactivar') || action.includes('reactivar')) return '#f59e0b';
     return '#64748b';
   };
@@ -75,13 +111,44 @@ function AuditoriaLogs() {
     if (action.includes('delete') || action.includes('eliminar')) return '🗑️';
     if (action.includes('login')) return '🔐';
     if (action.includes('logout')) return '🚪';
+    if (action.includes('reactivar')) return '🔄';
+    if (action.includes('inactivar')) return '⛔';
     return '📝';
+  };
+
+  // Formatear IP para mostrar (ocultar parcialmente por privacidad)
+  const formatIP = (ip) => {
+    if (!ip || ip === '—') return '—';
+    if (ip === '127.0.0.1' || ip === 'localhost') return '🏠 Local';
+    if (ip.includes('::1')) return '🏠 Local';
+    // Para IPv4, ocultar últimos octetos
+    const parts = ip.split('.');
+    if (parts.length === 4 && parts[0] !== '127') {
+      return `${parts[0]}.${parts[1]}.xxx.xxx`;
+    }
+    return ip;
+  };
+
+  // Obtener tipo de IP (local o pública)
+  const getIPTipo = (ip) => {
+    if (!ip || ip === '—') return 'unknown';
+    if (ip === '127.0.0.1' || ip === 'localhost' || ip.includes('::1')) return 'local';
+    if (ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) return 'local';
+    return 'public';
+  };
+
+  const getIPColor = (ip) => {
+    const tipo = getIPTipo(ip);
+    if (tipo === 'local') return '#10b981';
+    if (tipo === 'public') return '#f59e0b';
+    return '#6b7280';
   };
 
   const tablasUnicas = [...new Set(logs.map(l => l.tabla_afectada).filter(Boolean))];
   const accionesUnicas = [...new Set(logs.map(l => l.accion).filter(Boolean))];
 
   if (loading) return <div className="chart-box"><p>Cargando logs...</p></div>;
+  if (error) return <div className="chart-box"><p style={{ color: '#ef4444' }}>Error: {error}</p></div>;
 
   return (
     <div className="chart-box">
@@ -91,7 +158,7 @@ function AuditoriaLogs() {
         <div>
           <h4>📋 Auditoría del Sistema</h4>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#6b7280' }}>
-            Total de registros: {filteredLogs.length}
+            Total de registros: {filteredLogs.length} | Última actualización: {new Date().toLocaleString()}
           </p>
         </div>
 
@@ -100,7 +167,7 @@ function AuditoriaLogs() {
             <Search className="search-icon" />
             <input
               type="text"
-              placeholder="Buscar por acción, usuario, detalles..."
+              placeholder="Buscar por acción, usuario, IP, detalles..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
@@ -114,6 +181,15 @@ function AuditoriaLogs() {
           >
             <Filter size={16} /> Filtros
           </button>
+          
+          <button
+            onClick={() => fetchLogs()}
+            className="btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            title="Refrescar logs"
+          >
+            <Eye size={16} /> Refrescar
+          </button>
         </div>
       </div>
 
@@ -126,7 +202,8 @@ function AuditoriaLogs() {
           borderRadius: '8px',
           display: 'flex',
           gap: '1rem',
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
+          alignItems: 'flex-end'
         }}>
           <div style={{ flex: 1, minWidth: '200px' }}>
             <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: '0.25rem' }}>
@@ -135,7 +212,7 @@ function AuditoriaLogs() {
             <select
               value={filterTabla}
               onChange={(e) => setFilterTabla(e.target.value)}
-              className="date-picker"
+              className="filter-select"
               style={{ width: '100%' }}
             >
               <option value="">Todas las tablas</option>
@@ -152,7 +229,7 @@ function AuditoriaLogs() {
             <select
               value={filterAccion}
               onChange={(e) => setFilterAccion(e.target.value)}
-              className="date-picker"
+              className="filter-select"
               style={{ width: '100%' }}
             >
               <option value="">Todas las acciones</option>
@@ -163,7 +240,7 @@ function AuditoriaLogs() {
           </div>
 
           {(filterTabla || filterAccion) && (
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <div>
               <button
                 onClick={() => {
                   setFilterTabla('');
@@ -203,7 +280,7 @@ function AuditoriaLogs() {
                   </span>
                 </td>
                 <td>
-                  <strong>{log.usuario_nombre}</strong>
+                  <strong>{log.usuario_nombre || 'Sistema'}</strong>
                   <br />
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
                     {log.usuario_email || '—'}
@@ -238,13 +315,31 @@ function AuditoriaLogs() {
                 </td>
                 <td style={{ maxWidth: '300px', wordBreak: 'break-word' }}>
                   <span style={{ fontSize: '0.875rem' }}>{log.detalles || '—'}</span>
-                </td>
+                 </td>
                 <td>
-                  <code style={{ fontSize: '11px', background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>
-                    {log.ip_origen || '—'}
-                  </code>
-                </td>
-              </tr>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Wifi size={12} color={getIPColor(log.ip_origen)} />
+                    <code style={{ 
+                      fontSize: '11px', 
+                      background: '#f3f4f6', 
+                      padding: '2px 6px', 
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      transition: 'opacity 0.2s'
+                    }}
+                    title={`IP completa: ${log.ip_origen || 'No disponible'}`}
+                    >
+                      {formatIP(log.ip_origen)}
+                    </code>
+                    {getIPTipo(log.ip_origen) === 'local' && (
+                      <span style={{ fontSize: '9px', background: '#d1fae5', color: '#065f46', padding: '2px 4px', borderRadius: '4px' }}>Local</span>
+                    )}
+                    {getIPTipo(log.ip_origen) === 'public' && (
+                      <span style={{ fontSize: '9px', background: '#fed7aa', color: '#92400e', padding: '2px 4px', borderRadius: '4px' }}>Pública</span>
+                    )}
+                  </div>
+                 </td>
+               </tr>
             ))}
           </tbody>
         </table>
@@ -256,6 +351,9 @@ function AuditoriaLogs() {
           <Eye size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
           <p>No hay registros de auditoría</p>
           <p style={{ fontSize: '0.875rem' }}>Los logs aparecerán cuando los usuarios realicen acciones en el sistema</p>
+          <button onClick={() => fetchLogs()} className="btn-primary" style={{ marginTop: '1rem' }}>
+            Refrescar
+          </button>
         </div>
       )}
 
@@ -280,7 +378,7 @@ function AuditoriaLogs() {
           border-color: #3b82f6;
         }
 
-        .date-picker {
+        .filter-select {
           padding: 0.5rem;
           border-radius: 8px;
           border: 1px solid #e5e7eb;

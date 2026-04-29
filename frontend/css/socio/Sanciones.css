@@ -1,0 +1,362 @@
+/* ==================== SANCIONES CSS ==================== */
+
+/* Estatus cuenta */
+.estatus-cuenta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.estatus-cuenta.verde {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.estatus-cuenta.naranja {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.estatus-cuenta.rojo {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.stat-icon {
+    color: var(--ds-navy);
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ds-navy);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+}
+
+/* Leyenda */
+.leyenda-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.leyenda-section h4 {
+    margin: 0 0 1rem 0;
+    color: var(--ds-navy);
+}
+
+.leyenda-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.leyenda-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--ds-text-light);
+}
+
+.badge-gravedad {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-gravedad.leve {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-gravedad.media {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-gravedad.grave {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Sanciones List */
+.sanciones-list h3 {
+    margin: 0 0 1.5rem 0;
+    color: var(--ds-navy);
+}
+
+.sanciones-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.sancion-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--ds-border);
+}
+
+.sancion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.sancion-status {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.sancion-status.activa {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.sancion-status.cumplida {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.sancion-status.pagada {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.sancion-tipo {
+    font-size: 1.1rem;
+    color: var(--ds-navy);
+    margin: 0 0 0.5rem 0;
+}
+
+.sancion-desc {
+    font-size: 0.9rem;
+    color: var(--ds-text-light);
+    margin: 0 0 1rem 0;
+    line-height: 1.5;
+}
+
+.sancion-detalles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--ds-border);
+}
+
+.sancion-detalles .detalle-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--ds-text-light);
+}
+
+.sancion-detalles .detalle-item.monto {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.btn-ver-detalle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: transparent;
+    border: 1px solid var(--ds-border);
+    border-radius: 10px;
+    color: var(--ds-navy);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-ver-detalle:hover {
+    background: var(--ds-navy);
+    color: white;
+}
+
+/* Modal Detalle */
+.modal-detalle .detalle-sancion h2 {
+    margin: 1rem 0 0.5rem 0;
+    color: var(--ds-navy);
+}
+
+.modal-detalle .detalle-desc {
+    font-size: 1rem;
+    color: var(--ds-text-light);
+    margin-bottom: 1.5rem;
+}
+
+.detalle-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.detalle-info-grid .info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 10px;
+}
+
+.detalle-info-grid .info-item div {
+    display: flex;
+    flex-direction: column;
+}
+
+.detalle-info-grid strong {
+    font-size: 0.8rem;
+    color: var(--ds-text-light);
+}
+
+.detalle-info-grid span {
+    color: var(--ds-navy);
+    font-weight: 600;
+}
+
+.detalle-explicacion {
+    background: #fef3c7;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.detalle-explicacion h4 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem 0;
+    color: #92400e;
+    font-size: 0.95rem;
+}
+
+.detalle-explicacion p {
+    margin: 0;
+    color: #78350f;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.detalle-pago {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #fee2e2;
+    border-radius: 10px;
+    color: #991b1b;
+}
+
+.detalle-pago div {
+    display: flex;
+    flex-direction: column;
+}
+
+.detalle-pago strong {
+    font-size: 0.95rem;
+}
+
+.detalle-pago p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--ds-text-light);
+}
+
+.empty-state svg {
+    color: #22c55e;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--ds-text);
+}
+
+.empty-state p {
+    margin: 0;
+}
+
+/* Loading state */
+.loading-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--ds-text-light);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .sanciones-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .leyenda-grid {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .detalle-info-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -9,7 +9,12 @@ import DashboardInstructor from './pages/dashboards/DashboardInstructor'
 import DashboardRecepcion from './pages/dashboards/DashboardRecepcion'
 import DashboardSocio from './pages/dashboards/DashboardSocio'
 
+import SocioLayout from './components/SocioLayout'
 import Reservas from './pages/dashboards/socio/Reservas'
+import Clases from './pages/dashboards/socio/Clases'
+import Ludoteca from './pages/dashboards/socio/Ludoteca'
+import Sanciones from './pages/dashboards/socio/Sanciones'
+import Torneos from './pages/dashboards/socio/Torneos'
 import Espacios from './pages/Espacios'
 
 function App() {
@@ -27,6 +32,11 @@ function App() {
                 {/* 2. AGREGA LA RUTA PARA ESPACIOS */}
         <Route path="/espacios" element={<Espacios />} />
         <Route path="/reservas" element={<Reservas />} />
+        <Route path="/clases" element={<Clases />} />
+        <Route path="/ludoteca" element={<Ludoteca />} />
+        <Route path="/sanciones" element={<Sanciones />} />
+        <Route path="/torneos" element={<Torneos />} />
+        <Route path="/components/socio-layout" element={<SocioLayout />} />
       </Routes>
     </BrowserRouter>
   )

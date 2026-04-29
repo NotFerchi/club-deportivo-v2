@@ -2,10 +2,37 @@ const pool = require('../config/database');
 
 const sesionesController = {
     // ============================================
-    // OBTENER TODAS LAS SESIONES
+    // OBTENER TODAS LAS SESIONES (CON FILTROS)
     // ============================================
     getSesiones: async (req, res) => {
         try {
+            const { disciplina, dia, instructor } = req.query;
+            
+            // Construir condiciones dinámicamente
+            const condiciones = ['e.activo = true'];
+            const params = [];
+            let paramIndex = 1;
+            
+            if (disciplina) {
+                condiciones.push(`d.nombre ILIKE $${paramIndex}`);
+                params.push(`%${disciplina}%`);
+                paramIndex++;
+            }
+            
+            if (dia) {
+                condiciones.push(`sp.dia_semana = $${paramIndex}`);
+                params.push(dia);
+                paramIndex++;
+            }
+            
+            if (instructor) {
+                condiciones.push(`(u.nombres ILIKE $${paramIndex} OR u.apellido_paterno ILIKE $${paramIndex} OR CONCAT(u.nombres, ' ', u.apellido_paterno) ILIKE $${paramIndex})`);
+                params.push(`%${instructor}%`);
+                paramIndex++;
+            }
+           
+            const whereClause = 'WHERE ' + condiciones.join(' AND ');
+            
             const query = `
                 SELECT 
                     sp.sesion_id,
@@ -13,21 +40,21 @@ const sesionesController = {
                     sp.hora_inicio,
                     sp.hora_fin,
                     sp.cupo_maximo,
-                    sp.activo,
-                    d.disciplina_id,
                     d.nombre as disciplina,
-                    e.espacio_id,
                     e.nombre as espacio,
-                    i.instructor_id,
-                    i.nombre as instructor
+                    (SELECT COUNT(*) FROM inscripciones_clases 
+                    WHERE sesion_id = sp.sesion_id AND estado = 'Confirmada') as inscritos_actuales,
+                    COALESCE(NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 'Por asignar') as instructor
                 FROM sesiones_programadas sp
                 JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id
                 JOIN espacios e ON sp.espacio_id = e.espacio_id
-                JOIN instructores i ON sp.instructor_id = i.instructor_id
-                WHERE sp.activo = true
+                LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id
+                LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
+                ${whereClause}
                 ORDER BY sp.dia_semana, sp.hora_inicio
             `;
-            const result = await pool.query(query);
+            
+            const result = await pool.query(query, params);
             res.json(result.rows);
         } catch (error) {
             console.error('Error en getSesiones:', error);
@@ -54,14 +81,14 @@ const sesionesController = {
                 FROM sesiones_programadas sp
                 JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id
                 JOIN espacios e ON sp.espacio_id = e.espacio_id
-                JOIN instructores i ON sp.instructor_id = i.instructor_id
+                LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id
                 LEFT JOIN (
                     SELECT sesion_id, COUNT(*) as total_reservas
                     FROM reservaciones
                     WHERE estado = 'Confirmada'
                     GROUP BY sesion_id
                 ) r ON sp.sesion_id = r.sesion_id
-                WHERE sp.dia_semana = $1 AND sp.activo = true
+                WHERE sp.dia_semana = $1 AND e.activo = true
                 ORDER BY sp.hora_inicio
             `;
             const result = await pool.query(query, [dia]);

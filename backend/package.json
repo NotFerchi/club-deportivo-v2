@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "migrate": "node src/config/migrate.js"
+    "migrate": "node src/config/migrate.js",
+    "seed:disciplinas": "node src/seeders/seedDisciplinas.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

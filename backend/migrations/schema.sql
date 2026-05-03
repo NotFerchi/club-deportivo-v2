@@ -142,7 +142,9 @@ CREATE TABLE torneos (
     disciplina_id INT REFERENCES disciplinas(disciplina_id),
     nombre VARCHAR(150) NOT NULL,
     fecha_inicio DATE,
-    fecha_fin DATE
+    fecha_fin DATE,
+    estado VARCHAR(30),
+    CHECK (fecha_fin >= fecha_inicio)
 );
 
 CREATE TABLE equipos (

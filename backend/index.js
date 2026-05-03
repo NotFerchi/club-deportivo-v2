@@ -20,6 +20,7 @@ const reservasRoutes    = require('./src/routes/reservas.routes');
 const instructoresRoutes= require('./src/routes/instructores.routes');
 const sancionesRoutes   = require('./src/routes/sanciones.routes');
 const logsRoutes        = require('./src/routes/logs.routes');
+const torneosRoutes     = require('./src/routes/torneos.routes');
 const errorHandler      = require('./src/middleware/errorHandler');
 
 const app = express();
@@ -54,6 +55,7 @@ app.use('/api/ludoteca',          ludotecaRoutes);
 app.use('/api/inscripciones',     inscripcionesRoutes);
 app.use('/api/disciplinas',       disciplinasRoutes);
 app.use('/api/reservas',          reservasRoutes);
+app.use('/api/torneos',           torneosRoutes);
 
 // Comentadas temporalmente
 // app.use('/api/reportes', reportesRoutes);
@@ -81,6 +83,7 @@ app.listen(PORT, () => {
   console.log('  - ALL  /api/instructor');
   console.log('  - ALL  /api/instructores');
   console.log('  - ALL  /api/reservas');
+  console.log('  - ALL  /api/torneos');
   console.log('  - ALL  /api/ludoteca');
   console.log('\n⚡ Otros endpoints están comentados temporalmente');
 });

@@ -147,12 +147,43 @@ CREATE TABLE torneos (
     CHECK (fecha_fin >= fecha_inicio)
 );
 
+CREATE TABLE categorias_torneo (
+    categoria_id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL
+);
+
 CREATE TABLE equipos (
     equipo_id SERIAL PRIMARY KEY,
     nombre_equipo VARCHAR(100) NOT NULL,
     capitan_id INT REFERENCES socios(socio_id),
     fecha_registro DATE DEFAULT CURRENT_DATE
 );
+
+CREATE TABLE participantes_torneo (
+    participante_id SERIAL PRIMARY KEY,
+    torneo_id INT NOT NULL REFERENCES torneos(torneo_id),
+    socio_id INT REFERENCES socios(socio_id),
+    visita_id INT REFERENCES visitas(visita_id),
+    nombre_externo VARCHAR(150),
+    equipo_id INT REFERENCES equipos(equipo_id),
+    categoria_id INT NOT NULL REFERENCES categorias_torneo(categoria_id),
+    resultado_final VARCHAR(100),
+    CHECK (
+        (
+            (socio_id IS NOT NULL)::int +
+            (visita_id IS NOT NULL)::int +
+            (NULLIF(BTRIM(nombre_externo), '') IS NOT NULL)::int
+        ) = 1
+    )
+);
+
+CREATE UNIQUE INDEX participantes_torneo_socio_unico
+    ON participantes_torneo(torneo_id, socio_id)
+    WHERE socio_id IS NOT NULL;
+
+CREATE UNIQUE INDEX participantes_torneo_visita_unica
+    ON participantes_torneo(torneo_id, visita_id)
+    WHERE visita_id IS NOT NULL;
 
 CREATE TABLE miembros_equipo (
     miembro_id SERIAL PRIMARY KEY,

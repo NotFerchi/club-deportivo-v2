@@ -2,9 +2,23 @@ const pool = require('../config/database');
 
 const ERROR_DISCIPLINA_NO_EXISTE = 'La disciplina no existe';
 const ERROR_FECHAS_TORNEO = 'La fecha de fin no puede ser menor que la fecha de inicio';
+const ERROR_TIPO_PARTICIPANTE = 'Debe especificar exactamente un tipo de participante';
+const ERROR_SOCIO_NO_VALIDO = 'Socio no encontrado o inactivo';
+const ERROR_VISITA_NO_VALIDA = 'Visita no encontrada o no vigente';
+const ERROR_CATEGORIA_NO_EXISTE = 'La categoría no existe';
+const ERROR_PARTICIPANTE_DUPLICADO = 'Este participante ya está inscrito en el torneo';
 
 function normalizarFechaOpcional(fecha) {
   return fecha === undefined || fecha === '' ? null : fecha;
+}
+
+function tieneValor(valor) {
+  return valor !== undefined && valor !== null && valor !== '';
+}
+
+function esEnteroValido(valor) {
+  const numero = Number(valor);
+  return Number.isInteger(numero) ? numero : null;
 }
 
 const torneosController = {
@@ -88,6 +102,135 @@ const torneosController = {
       }
 
       res.status(500).json({ error: 'Error al crear torneo' });
+    }
+  },
+
+  inscribirParticipante: async (req, res) => {
+    const { socio_id, visita_id, nombre_externo, categoria_id, equipo_id } = req.body;
+    const socioPresente = tieneValor(socio_id);
+    const visitaPresente = tieneValor(visita_id);
+    const nombreExternoNormalizado = typeof nombre_externo === 'string' ? nombre_externo.trim() : null;
+    const externoPresente = Boolean(nombreExternoNormalizado);
+    const tiposParticipante = [socioPresente, visitaPresente, externoPresente].filter(Boolean).length;
+
+    if (tiposParticipante !== 1) {
+      return res.status(400).json({ error: ERROR_TIPO_PARTICIPANTE });
+    }
+
+    const torneoId = esEnteroValido(req.params.torneo_id);
+    if (torneoId === null) {
+      return res.status(400).json({ error: 'torneo_id debe ser un entero valido' });
+    }
+
+    const socioId = socioPresente ? esEnteroValido(socio_id) : null;
+    const visitaId = visitaPresente ? esEnteroValido(visita_id) : null;
+
+    try {
+      if (socioPresente) {
+        if (socioId === null) {
+          return res.status(400).json({ error: ERROR_SOCIO_NO_VALIDO });
+        }
+
+        const socio = await pool.query(
+          'SELECT * FROM socios WHERE socio_id = $1 AND activo = TRUE',
+          [socioId]
+        );
+
+        if (socio.rowCount === 0) {
+          return res.status(400).json({ error: ERROR_SOCIO_NO_VALIDO });
+        }
+      }
+
+      if (visitaPresente) {
+        if (visitaId === null) {
+          return res.status(400).json({ error: ERROR_VISITA_NO_VALIDA });
+        }
+
+        const visita = await pool.query(
+          'SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE',
+          [visitaId]
+        );
+
+        if (visita.rowCount === 0) {
+          return res.status(400).json({ error: ERROR_VISITA_NO_VALIDA });
+        }
+      }
+
+      const categoriaId = esEnteroValido(categoria_id);
+      if (categoriaId === null) {
+        return res.status(400).json({ error: ERROR_CATEGORIA_NO_EXISTE });
+      }
+
+      const categoria = await pool.query(
+        'SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1',
+        [categoriaId]
+      );
+
+      if (categoria.rowCount === 0) {
+        return res.status(400).json({ error: ERROR_CATEGORIA_NO_EXISTE });
+      }
+
+      if (socioPresente || visitaPresente) {
+        const participanteExistente = await pool.query(
+          `
+            SELECT participante_id
+            FROM participantes_torneo
+            WHERE torneo_id = $1
+              AND (
+                socio_id = $2
+                OR visita_id = $3
+              )
+            LIMIT 1
+          `,
+          [torneoId, socioId, visitaId]
+        );
+
+        if (participanteExistente.rowCount > 0) {
+          return res.status(409).json({ error: ERROR_PARTICIPANTE_DUPLICADO });
+        }
+      }
+
+      const equipoId = tieneValor(equipo_id) ? esEnteroValido(equipo_id) : null;
+      if (tieneValor(equipo_id) && equipoId === null) {
+        return res.status(400).json({ error: 'equipo_id debe ser un entero valido' });
+      }
+
+      const result = await pool.query(
+        `
+          INSERT INTO participantes_torneo (
+            torneo_id,
+            socio_id,
+            visita_id,
+            nombre_externo,
+            equipo_id,
+            categoria_id
+          )
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING participante_id
+        `,
+        [
+          torneoId,
+          socioId,
+          visitaId,
+          externoPresente ? nombreExternoNormalizado : null,
+          equipoId,
+          categoriaId,
+        ]
+      );
+
+      res.status(201).json({ participante_id: result.rows[0].participante_id });
+    } catch (error) {
+      console.error('Error al inscribir participante en torneo:', error);
+
+      if (error.code === '23505') {
+        return res.status(409).json({ error: ERROR_PARTICIPANTE_DUPLICADO });
+      }
+
+      if (error.code === '23503') {
+        return res.status(400).json({ error: 'Referencia no encontrada' });
+      }
+
+      res.status(500).json({ error: 'Error al inscribir participante en torneo' });
     }
   },
 };

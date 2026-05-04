@@ -60,12 +60,10 @@ module.exports = {
     }
   },
 
-  // ── NUEVO: POST /api/ludoteca/entrada ──
+  // ── SCRUM-108: POST /api/ludoteca/entrada ──
   registrarEntradaLudoteca: async (req, res) => {
-    // Solo estos 3 campos — instructor_id ignorado aunque venga en el body
     const { socio_padre_id, nombre_hijo, fecha_nacimiento } = req.body;
 
-    // Validar campos requeridos
     if (!socio_padre_id || !nombre_hijo || !fecha_nacimiento) {
       return res.status(400).json({
         error: 'socio_padre_id, nombre_hijo y fecha_nacimiento son requeridos'
@@ -76,13 +74,11 @@ module.exports = {
       return res.status(400).json({ error: 'nombre_hijo no puede estar vacío' });
     }
 
-    // Validar formato de fecha
     const nacimiento = new Date(fecha_nacimiento);
     if (isNaN(nacimiento.getTime())) {
       return res.status(400).json({ error: 'fecha_nacimiento debe tener formato YYYY-MM-DD' });
     }
 
-    // Validar edad entre 3 y 7 años
     const hoy = new Date();
     const edadAnios = (hoy - nacimiento) / (1000 * 60 * 60 * 24 * 365.25);
 
@@ -90,14 +86,12 @@ module.exports = {
       return res.status(400).json({ error: 'El niño debe tener entre 3 y 7 años' });
     }
 
-    // Validar que socio_padre_id sea entero válido
     const socioPadreId = Number(socio_padre_id);
     if (!Number.isInteger(socioPadreId) || socioPadreId <= 0) {
       return res.status(400).json({ error: 'socio_padre_id debe ser un entero válido' });
     }
 
     try {
-      // Verificar que el socio padre existe
       const socio = await pool.query(
         'SELECT socio_id FROM socios WHERE socio_id = $1',
         [socioPadreId]
@@ -107,7 +101,6 @@ module.exports = {
         return res.status(400).json({ error: 'El socio padre no existe' });
       }
 
-      // Insertar registro — hora_entrada la asigna la BD automáticamente
       const result = await pool.query(
         `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento)
          VALUES ($1, $2, $3)
@@ -123,13 +116,102 @@ module.exports = {
 
     } catch (error) {
       console.error('Error al registrar entrada a ludoteca:', error);
-
-      // FK violation — socio_padre_id no existe
       if (error.code === '23503') {
         return res.status(400).json({ error: 'El socio padre no existe' });
       }
-
       return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
+
+  // ── SCRUM-109: PATCH /api/ludoteca/salida/:registro_id ──
+  registrarSalidaLudoteca: async (req, res) => {
+    const registroId = Number(req.params.registro_id);
+
+    if (!Number.isInteger(registroId) || registroId <= 0) {
+      return res.status(400).json({ error: 'registro_id debe ser un entero válido' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // PASO 1 — Verificar registro
+      const { rows, rowCount } = await client.query(
+        `SELECT registro_id, socio_padre_id, hora_entrada, hora_salida
+         FROM registro_ludoteca
+         WHERE registro_id = $1
+         FOR UPDATE`,
+        [registroId]
+      );
+
+      if (rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Registro no encontrado' });
+      }
+
+      const registro = rows[0];
+
+      if (registro.hora_salida !== null) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'Este niño ya tiene salida registrada' });
+      }
+
+      // PASO 2 — Registrar salida
+      const { rows: updated } = await client.query(
+        `UPDATE registro_ludoteca
+         SET hora_salida = NOW()
+         WHERE registro_id = $1
+         RETURNING hora_salida`,
+        [registroId]
+      );
+
+      const horaSalida  = updated[0].hora_salida;
+      const horaEntrada = registro.hora_entrada;
+
+      // PASO 3 — Calcular duración en minutos
+      const duracionMinutos = Math.round(
+        (new Date(horaSalida) - new Date(horaEntrada)) / (1000 * 60)
+      );
+
+      // PASO 4 — Evaluar sanción
+      let sancionGenerada = false;
+
+      if (duracionMinutos > 120) {
+        const minutosExceso = duracionMinutos - 120;
+        const motivo = `Exceso de estancia: ${minutosExceso} min sobre el límite de 2 horas`;
+
+        await client.query(
+          `INSERT INTO sanciones (
+             socio_id,
+             origen,
+             motivo,
+             estado,
+             registro_ludoteca_id
+           )
+           VALUES ($1, 'Ludoteca', $2, 'Activo', $3)`,
+          [registro.socio_padre_id, motivo, registroId]
+        );
+
+        sancionGenerada = true;
+      }
+
+      // PASO 5 — COMMIT
+      await client.query('COMMIT');
+
+      return res.json({
+        ok: true,
+        registro_id:       registroId,
+        hora_salida:       horaSalida,
+        duracion_minutos:  duracionMinutos,
+        sancion_generada:  sancionGenerada
+      });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error al registrar salida de ludoteca:', error);
+      return res.status(500).json({ error: 'Error interno del servidor' });
+    } finally {
+      client.release();
     }
   }
 

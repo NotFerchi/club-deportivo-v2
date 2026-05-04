@@ -38,6 +38,7 @@ function esEnteroValido(valor) {
 }
 
 const torneosController = {
+
   getTorneos: async (req, res) => {
     const { disciplina_id, estado } = req.query;
     const condiciones = [];
@@ -48,7 +49,6 @@ const torneosController = {
       if (disciplinaId === null) {
         return res.status(400).json({ error: 'disciplina_id debe ser un entero valido' });
       }
-
       valores.push(disciplinaId);
       condiciones.push(`t.disciplina_id = $${valores.length}`);
     }
@@ -109,11 +109,9 @@ const torneosController = {
       }
 
       const result = await pool.query(
-        `
-          INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado)
-          VALUES ($1, $2, $3, $4, $5)
-          RETURNING torneo_id
-        `,
+        `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING torneo_id`,
         [
           disciplinaId,
           nombre.trim(),
@@ -127,17 +125,9 @@ const torneosController = {
     } catch (error) {
       console.error('Error al crear torneo:', error);
 
-      if (error.code === '23514') {
-        return res.status(400).json({ error: ERROR_FECHAS_TORNEO });
-      }
-
-      if (error.code === '23503') {
-        return res.status(400).json({ error: ERROR_DISCIPLINA_NO_EXISTE });
-      }
-
-      if (error.code === '22007' || error.code === '22008') {
-        return res.status(400).json({ error: 'Formato de fecha invalido' });
-      }
+      if (error.code === '23514') return res.status(400).json({ error: ERROR_FECHAS_TORNEO });
+      if (error.code === '23503') return res.status(400).json({ error: ERROR_DISCIPLINA_NO_EXISTE });
+      if (error.code === '22007' || error.code === '22008') return res.status(400).json({ error: 'Formato de fecha invalido' });
 
       res.status(500).json({ error: 'Error al crear torneo' });
     }
@@ -165,64 +155,39 @@ const torneosController = {
 
     try {
       if (socioPresente) {
-        if (socioId === null) {
-          return res.status(400).json({ error: ERROR_SOCIO_NO_VALIDO });
-        }
-
+        if (socioId === null) return res.status(400).json({ error: ERROR_SOCIO_NO_VALIDO });
         const socio = await pool.query(
           'SELECT * FROM socios WHERE socio_id = $1 AND activo = TRUE',
           [socioId]
         );
-
-        if (socio.rowCount === 0) {
-          return res.status(400).json({ error: ERROR_SOCIO_NO_VALIDO });
-        }
+        if (socio.rowCount === 0) return res.status(400).json({ error: ERROR_SOCIO_NO_VALIDO });
       }
 
       if (visitaPresente) {
-        if (visitaId === null) {
-          return res.status(400).json({ error: ERROR_VISITA_NO_VALIDA });
-        }
-
+        if (visitaId === null) return res.status(400).json({ error: ERROR_VISITA_NO_VALIDA });
         const visita = await pool.query(
           'SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE',
           [visitaId]
         );
-
-        if (visita.rowCount === 0) {
-          return res.status(400).json({ error: ERROR_VISITA_NO_VALIDA });
-        }
+        if (visita.rowCount === 0) return res.status(400).json({ error: ERROR_VISITA_NO_VALIDA });
       }
 
       const categoriaId = esEnteroValido(categoria_id);
-      if (categoriaId === null) {
-        return res.status(400).json({ error: ERROR_CATEGORIA_NO_EXISTE });
-      }
+      if (categoriaId === null) return res.status(400).json({ error: ERROR_CATEGORIA_NO_EXISTE });
 
       const categoria = await pool.query(
         'SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1',
         [categoriaId]
       );
-
-      if (categoria.rowCount === 0) {
-        return res.status(400).json({ error: ERROR_CATEGORIA_NO_EXISTE });
-      }
+      if (categoria.rowCount === 0) return res.status(400).json({ error: ERROR_CATEGORIA_NO_EXISTE });
 
       if (socioPresente || visitaPresente) {
         const participanteExistente = await pool.query(
-          `
-            SELECT participante_id
-            FROM participantes_torneo
-            WHERE torneo_id = $1
-              AND (
-                socio_id = $2
-                OR visita_id = $3
-              )
-            LIMIT 1
-          `,
+          `SELECT participante_id FROM participantes_torneo
+           WHERE torneo_id = $1 AND (socio_id = $2 OR visita_id = $3)
+           LIMIT 1`,
           [torneoId, socioId, visitaId]
         );
-
         if (participanteExistente.rowCount > 0) {
           return res.status(409).json({ error: ERROR_PARTICIPANTE_DUPLICADO });
         }
@@ -234,44 +199,22 @@ const torneosController = {
       }
 
       const result = await pool.query(
-        `
-          INSERT INTO participantes_torneo (
-            torneo_id,
-            socio_id,
-            visita_id,
-            nombre_externo,
-            equipo_id,
-            categoria_id
-          )
-          VALUES ($1, $2, $3, $4, $5, $6)
-          RETURNING participante_id
-        `,
-        [
-          torneoId,
-          socioId,
-          visitaId,
-          externoPresente ? nombreExternoNormalizado : null,
-          equipoId,
-          categoriaId,
-        ]
+        `INSERT INTO participantes_torneo (torneo_id, socio_id, visita_id, nombre_externo, equipo_id, categoria_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING participante_id`,
+        [torneoId, socioId, visitaId, externoPresente ? nombreExternoNormalizado : null, equipoId, categoriaId]
       );
 
       res.status(201).json({ participante_id: result.rows[0].participante_id });
     } catch (error) {
       console.error('Error al inscribir participante en torneo:', error);
-
-      if (error.code === '23505') {
-        return res.status(409).json({ error: ERROR_PARTICIPANTE_DUPLICADO });
-      }
-
-      if (error.code === '23503') {
-        return res.status(400).json({ error: 'Referencia no encontrada' });
-      }
-
+      if (error.code === '23505') return res.status(409).json({ error: ERROR_PARTICIPANTE_DUPLICADO });
+      if (error.code === '23503') return res.status(400).json({ error: 'Referencia no encontrada' });
       res.status(500).json({ error: 'Error al inscribir participante en torneo' });
     }
   },
 
+  // ← FUNCIÓN CORREGIDA: ahora genera todas las rondas futuras vacías
   cerrarInscripciones: async (req, res) => {
     const torneoId = esEnteroValido(req.params.torneo_id);
     if (torneoId === null) {
@@ -282,7 +225,6 @@ const torneosController = {
     try {
       await client.query('BEGIN');
 
-      // Verificar estado del torneo
       const torneo = await client.query(
         'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE',
         [torneoId]
@@ -298,7 +240,6 @@ const torneosController = {
         return res.status(409).json({ error: 'El torneo no está abierto para cerrar inscripciones' });
       }
 
-      // Contar participantes
       const participantes = await client.query(
         'SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1',
         [torneoId]
@@ -310,42 +251,50 @@ const torneosController = {
         return res.status(400).json({ error: 'Se requieren mínimo 4 participantes' });
       }
 
-      // Mezclar participantes
       const ids = participantes.rows.map(p => p.participante_id);
       shuffleArray(ids);
 
-      const totalByes = siguientePotenciaDeDos(ids.length) - ids.length;
-      const totalParticipantesConCruce = ids.length - totalByes;
+      const totalSlots    = siguientePotenciaDeDos(ids.length);
+      const totalByes     = totalSlots - ids.length;
+      const totalConCruce = ids.length - totalByes;
 
-      for (let i = 0; i < totalParticipantesConCruce; i += 2) {
+      // Ronda 1 — encuentros reales
+      let encuentrosEnRonda = 0;
+      for (let i = 0; i < totalConCruce; i += 2) {
         await client.query(
-          `INSERT INTO encuentros_torneo (
-             torneo_id,
-             participante_1_id,
-             participante_2_id,
-             ronda,
-             estado
-           )
+          `INSERT INTO encuentros_torneo (torneo_id, participante_1_id, participante_2_id, ronda, estado)
            VALUES ($1, $2, $3, 1, 'pendiente')`,
           [torneoId, ids[i], ids[i + 1]]
         );
+        encuentrosEnRonda++;
       }
 
-      for (let i = totalParticipantesConCruce; i < ids.length; i++) {
+      // Ronda 1 — byes (pasan directo)
+      for (let i = totalConCruce; i < ids.length; i++) {
         await client.query(
-          `INSERT INTO encuentros_torneo (
-             torneo_id,
-             participante_1_id,
-             ronda,
-             ganador_id,
-             estado
-           )
+          `INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado)
            VALUES ($1, $2, 1, $2, 'programado')`,
           [torneoId, ids[i]]
         );
+        encuentrosEnRonda++;
       }
 
-      // Actualizar estado del torneo
+      // Rondas futuras — slots vacíos para que los ganadores tengan a dónde avanzar
+      const totalRondas = Math.log2(totalSlots);
+      let encuentrosPrevios = encuentrosEnRonda;
+
+      for (let ronda = 2; ronda <= totalRondas; ronda++) {
+        const encuentrosEstaRonda = Math.ceil(encuentrosPrevios / 2);
+        for (let i = 0; i < encuentrosEstaRonda; i++) {
+          await client.query(
+            `INSERT INTO encuentros_torneo (torneo_id, ronda, estado)
+             VALUES ($1, $2, 'pendiente')`,
+            [torneoId, ronda]
+          );
+        }
+        encuentrosPrevios = encuentrosEstaRonda;
+      }
+
       await client.query(
         "UPDATE torneos SET estado = 'Inscripciones_cerradas' WHERE torneo_id = $1",
         [torneoId]
@@ -353,6 +302,7 @@ const torneosController = {
 
       await client.query('COMMIT');
       res.json({ message: 'Inscripciones cerradas y bracket generado' });
+
     } catch (error) {
       await client.query('ROLLBACK');
       console.error('Error al cerrar inscripciones:', error);
@@ -372,7 +322,6 @@ const torneosController = {
     try {
       await client.query('BEGIN');
 
-      // Verificar estado del torneo
       const torneo = await client.query(
         'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE',
         [torneoId]
@@ -391,9 +340,7 @@ const torneosController = {
       await client.query(
         `UPDATE encuentros_torneo
          SET estado = 'programado'
-         WHERE torneo_id = $1
-           AND ronda = 1
-           AND estado = 'pendiente'`,
+         WHERE torneo_id = $1 AND ronda = 1 AND estado = 'pendiente'`,
         [torneoId]
       );
 
@@ -404,12 +351,103 @@ const torneosController = {
 
       await client.query('COMMIT');
       res.json({ message: 'Bracket confirmado' });
+
     } catch (error) {
       await client.query('ROLLBACK');
       console.error('Error al confirmar bracket:', error);
       res.status(500).json({ error: 'Error al confirmar bracket' });
     } finally {
       client.release();
+    }
+  },
+
+  getReporte: async (req, res) => {
+    const torneoId = esEnteroValido(req.params.torneo_id);
+    if (torneoId === null) {
+      return res.status(400).json({ error: 'torneo_id debe ser un entero válido' });
+    }
+
+    try {
+      const torneo = await pool.query(
+        `SELECT t.torneo_id, t.nombre, t.estado, d.nombre AS disciplina
+         FROM torneos t
+         JOIN disciplinas d ON d.disciplina_id = t.disciplina_id
+         WHERE t.torneo_id = $1`,
+        [torneoId]
+      );
+
+      if (torneo.rowCount === 0) {
+        return res.status(404).json({ error: 'Torneo no encontrado' });
+      }
+
+      const encuentros = await pool.query(
+        `SELECT
+           e.encuentro_id, e.ronda, e.estado, e.marcador_1, e.marcador_2,
+           e.cancha_asignada, e.hora_programada,
+           p1.participante_id AS p1_id,
+           COALESCE(
+             NULLIF(TRIM(eq1.nombre_equipo), ''),
+             NULLIF(TRIM(CONCAT(u1.nombres, ' ', COALESCE(u1.apellido_paterno,''), ' ', COALESCE(u1.apellido_materno,''))), ''),
+             NULLIF(TRIM(v1.nombre_completo), ''),
+             NULLIF(TRIM(p1.nombre_externo), ''),
+             'Por definir'
+           ) AS p1_nombre,
+           p2.participante_id AS p2_id,
+           COALESCE(
+             NULLIF(TRIM(eq2.nombre_equipo), ''),
+             NULLIF(TRIM(CONCAT(u2.nombres, ' ', COALESCE(u2.apellido_paterno,''), ' ', COALESCE(u2.apellido_materno,''))), ''),
+             NULLIF(TRIM(v2.nombre_completo), ''),
+             NULLIF(TRIM(p2.nombre_externo), ''),
+             'Por definir'
+           ) AS p2_nombre,
+           e.ganador_id,
+           COALESCE(
+             NULLIF(TRIM(eqg.nombre_equipo), ''),
+             NULLIF(TRIM(CONCAT(ug.nombres, ' ', COALESCE(ug.apellido_paterno,''), ' ', COALESCE(ug.apellido_materno,''))), ''),
+             NULLIF(TRIM(vg.nombre_completo), ''),
+             NULLIF(TRIM(pg.nombre_externo), ''),
+             NULL
+           ) AS ganador_nombre
+         FROM encuentros_torneo e
+         LEFT JOIN participantes_torneo p1 ON p1.participante_id = e.participante_1_id
+         LEFT JOIN socios s1   ON s1.socio_id   = p1.socio_id
+         LEFT JOIN usuarios u1 ON u1.usuario_id = s1.usuario_id
+         LEFT JOIN visitas v1  ON v1.visita_id  = p1.visita_id
+         LEFT JOIN equipos eq1 ON eq1.equipo_id = p1.equipo_id
+         LEFT JOIN participantes_torneo p2 ON p2.participante_id = e.participante_2_id
+         LEFT JOIN socios s2   ON s2.socio_id   = p2.socio_id
+         LEFT JOIN usuarios u2 ON u2.usuario_id = s2.usuario_id
+         LEFT JOIN visitas v2  ON v2.visita_id  = p2.visita_id
+         LEFT JOIN equipos eq2 ON eq2.equipo_id = p2.equipo_id
+         LEFT JOIN participantes_torneo pg ON pg.participante_id = e.ganador_id
+         LEFT JOIN socios sg   ON sg.socio_id   = pg.socio_id
+         LEFT JOIN usuarios ug ON ug.usuario_id = sg.usuario_id
+         LEFT JOIN visitas vg  ON vg.visita_id  = pg.visita_id
+         LEFT JOIN equipos eqg ON eqg.equipo_id = pg.equipo_id
+         WHERE e.torneo_id = $1
+         ORDER BY e.ronda ASC, e.encuentro_id ASC`,
+        [torneoId]
+      );
+
+      return res.json({
+        torneo: torneo.rows[0],
+        encuentros: encuentros.rows.map(row => ({
+          encuentro_id:    row.encuentro_id,
+          ronda:           row.ronda,
+          estado:          row.estado,
+          marcador_1:      row.marcador_1,
+          marcador_2:      row.marcador_2,
+          cancha_asignada: row.cancha_asignada,
+          hora_programada: row.hora_programada,
+          participante_1:  { id: row.p1_id, nombre: row.p1_nombre },
+          participante_2:  { id: row.p2_id, nombre: row.p2_nombre },
+          ganador: row.ganador_id ? { id: row.ganador_id, nombre: row.ganador_nombre } : null
+        }))
+      });
+
+    } catch (err) {
+      console.error('Error al obtener reporte de torneo:', err);
+      return res.status(500).json({ error: 'Error al obtener el reporte' });
     }
   },
 
@@ -430,71 +468,55 @@ const torneosController = {
       }
 
       const result = await pool.query(
-        `
-        SELECT
-          e.encuentro_id,
-          e.ronda,
-          e.estado,
-          e.cancha_asignada,
-          e.hora_programada,
-          e.marcador_1,
-          e.marcador_2,
-          e.ganador_id,
-          e.ganador AS ganador_nombre,
-          p1.participante_id AS participante_1_id,
-          COALESCE(
-            NULLIF(TRIM(eq1.nombre_equipo), ''),
-            NULLIF(TRIM(CONCAT(u1.nombres, ' ', COALESCE(u1.apellido_paterno, ''), ' ', COALESCE(u1.apellido_materno, ''))), ''),
-            NULLIF(TRIM(v1.nombre_completo), ''),
-            NULLIF(TRIM(p1.nombre_externo), ''),
-            NULLIF(TRIM(e.participante_1), ''),
-            'Por definir'
-          ) AS participante_1_nombre,
-          p2.participante_id AS participante_2_id,
-          COALESCE(
-            NULLIF(TRIM(eq2.nombre_equipo), ''),
-            NULLIF(TRIM(CONCAT(u2.nombres, ' ', COALESCE(u2.apellido_paterno, ''), ' ', COALESCE(u2.apellido_materno, ''))), ''),
-            NULLIF(TRIM(v2.nombre_completo), ''),
-            NULLIF(TRIM(p2.nombre_externo), ''),
-            NULLIF(TRIM(e.participante_2), ''),
-            'Por definir'
-          ) AS participante_2_nombre
-        FROM encuentros_torneo e
-        LEFT JOIN participantes_torneo p1 ON p1.participante_id = e.participante_1_id
-        LEFT JOIN socios s1 ON s1.socio_id = p1.socio_id
-        LEFT JOIN usuarios u1 ON u1.usuario_id = s1.usuario_id
-        LEFT JOIN visitas v1 ON v1.visita_id = p1.visita_id
-        LEFT JOIN equipos eq1 ON eq1.equipo_id = p1.equipo_id
-        LEFT JOIN participantes_torneo p2 ON p2.participante_id = e.participante_2_id
-        LEFT JOIN socios s2 ON s2.socio_id = p2.socio_id
-        LEFT JOIN usuarios u2 ON u2.usuario_id = s2.usuario_id
-        LEFT JOIN visitas v2 ON v2.visita_id = p2.visita_id
-        LEFT JOIN equipos eq2 ON eq2.equipo_id = p2.equipo_id
-        WHERE e.torneo_id = $1
-        ORDER BY e.ronda ASC, e.encuentro_id ASC
-        `,
+        `SELECT
+           e.encuentro_id, e.ronda, e.estado, e.cancha_asignada, e.hora_programada,
+           e.marcador_1, e.marcador_2, e.ganador_id, e.ganador AS ganador_nombre,
+           p1.participante_id AS participante_1_id,
+           COALESCE(
+             NULLIF(TRIM(eq1.nombre_equipo), ''),
+             NULLIF(TRIM(CONCAT(u1.nombres, ' ', COALESCE(u1.apellido_paterno, ''), ' ', COALESCE(u1.apellido_materno, ''))), ''),
+             NULLIF(TRIM(v1.nombre_completo), ''),
+             NULLIF(TRIM(p1.nombre_externo), ''),
+             NULLIF(TRIM(e.participante_1), ''),
+             'Por definir'
+           ) AS participante_1_nombre,
+           p2.participante_id AS participante_2_id,
+           COALESCE(
+             NULLIF(TRIM(eq2.nombre_equipo), ''),
+             NULLIF(TRIM(CONCAT(u2.nombres, ' ', COALESCE(u2.apellido_paterno, ''), ' ', COALESCE(u2.apellido_materno, ''))), ''),
+             NULLIF(TRIM(v2.nombre_completo), ''),
+             NULLIF(TRIM(p2.nombre_externo), ''),
+             NULLIF(TRIM(e.participante_2), ''),
+             'Por definir'
+           ) AS participante_2_nombre
+         FROM encuentros_torneo e
+         LEFT JOIN participantes_torneo p1 ON p1.participante_id = e.participante_1_id
+         LEFT JOIN socios s1 ON s1.socio_id = p1.socio_id
+         LEFT JOIN usuarios u1 ON u1.usuario_id = s1.usuario_id
+         LEFT JOIN visitas v1 ON v1.visita_id = p1.visita_id
+         LEFT JOIN equipos eq1 ON eq1.equipo_id = p1.equipo_id
+         LEFT JOIN participantes_torneo p2 ON p2.participante_id = e.participante_2_id
+         LEFT JOIN socios s2 ON s2.socio_id = p2.socio_id
+         LEFT JOIN usuarios u2 ON u2.usuario_id = s2.usuario_id
+         LEFT JOIN visitas v2 ON v2.visita_id = p2.visita_id
+         LEFT JOIN equipos eq2 ON eq2.equipo_id = p2.equipo_id
+         WHERE e.torneo_id = $1
+         ORDER BY e.ronda ASC, e.encuentro_id ASC`,
         [torneoId]
       );
 
       const bracketPorRonda = result.rows.reduce((acc, row) => {
         const ronda = row.ronda || 1;
-
-        if (!acc[ronda]) {
-          acc[ronda] = {
-            ronda,
-            encuentros: []
-          };
-        }
-
+        if (!acc[ronda]) acc[ronda] = { ronda, encuentros: [] };
         acc[ronda].encuentros.push({
-          encuentro_id: row.encuentro_id,
-          estado: row.estado,
+          encuentro_id:    row.encuentro_id,
+          estado:          row.estado,
           cancha_asignada: row.cancha_asignada,
           hora_programada: row.hora_programada,
-          marcador_1: row.marcador_1,
-          marcador_2: row.marcador_2,
-          ganador_id: row.ganador_id,
-          ganador_nombre: row.ganador_nombre,
+          marcador_1:      row.marcador_1,
+          marcador_2:      row.marcador_2,
+          ganador_id:      row.ganador_id,
+          ganador_nombre:  row.ganador_nombre,
           participante_1: {
             participante_id: row.participante_1_id,
             nombre: row.participante_1_nombre || 'Por definir'
@@ -504,16 +526,17 @@ const torneosController = {
             nombre: row.participante_2_nombre || 'Por definir'
           }
         });
-
         return acc;
       }, {});
 
       res.json(Object.values(bracketPorRonda));
+
     } catch (error) {
       console.error('Error al obtener bracket:', error);
       res.status(500).json({ error: 'Error al obtener bracket' });
     }
   },
+
 };
 
 module.exports = torneosController;

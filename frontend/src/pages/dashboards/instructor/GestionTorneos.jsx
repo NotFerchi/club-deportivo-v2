@@ -27,78 +27,144 @@ function getEstado(inicio, fin) {
   return                             { label: 'En curso',  color: '#10b981', bg: '#f0fdf4' };
 }
 
-function EncuentroRow({ encuentro }) {
-  const [ganador, setGanador] = useState(encuentro.ganador || null);
-  const [cargando, setCargando] = useState(false);
-  const pendiente = !ganador && encuentro.participante_1 !== 'Por definir';
+function EncuentroRow({ encuentro, onResultadoGuardado }) {
+  const yaFinalizado = encuentro.estado === 'finalizado';
 
-  const registrar = async (nombre) => {
-    if (cargando || ganador) return;
+  const [marcador1, setMarcador1] = useState(yaFinalizado ? String(encuentro.marcador_1 ?? '') : '');
+  const [marcador2, setMarcador2] = useState(yaFinalizado ? String(encuentro.marcador_2 ?? '') : '');
+  const [cargando,  setCargando]  = useState(false);
+  const [error,     setError]     = useState(null);
+  const [finalizado, setFinalizado] = useState(yaFinalizado);
+  const [marcadoresFinales, setMarcadoresFinales] = useState(
+    yaFinalizado ? { m1: encuentro.marcador_1, m2: encuentro.marcador_2, ganador_id: encuentro.ganador_id } : null
+  );
+
+  const ambosListos = encuentro.participante_1 !== 'Por definir' &&
+                      encuentro.participante_2 !== 'Por definir';
+
+  const ganadorNombre = () => {
+    if (!marcadoresFinales) return null;
+    return marcadoresFinales.m1 > marcadoresFinales.m2
+      ? encuentro.participante_1
+      : encuentro.participante_2;
+  };
+
+  const guardarResultado = async () => {
+    setError(null);
+    const m1 = parseInt(marcador1, 10);
+    const m2 = parseInt(marcador2, 10);
+
+    if (!Number.isFinite(m1) || !Number.isFinite(m2) || m1 < 0 || m2 < 0) {
+      setError('Ingresa marcadores válidos (números enteros ≥ 0)');
+      return;
+    }
+    if (m1 === m2) {
+      setError('No se permiten empates. Ajusta el marcador.');
+      return;
+    }
+
     setCargando(true);
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3000/api/instructor/torneos/encuentro/${encuentro.encuentro_id}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ganador: nombre })
-      });
-      setGanador(nombre);
+      const res = await fetch(
+        `http://localhost:3000/api/encuentros/${encuentro.encuentro_id}/resultado`,
+        {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ marcador_1: m1, marcador_2: m2 })
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Error al guardar resultado');
+        return;
+      }
+      setFinalizado(true);
+      setMarcadoresFinales({ m1, m2, ganador_id: data.ganador_id });
+      if (onResultadoGuardado) onResultadoGuardado();
     } catch (err) {
+      setError('Error de conexión con el servidor');
       console.error(err);
     } finally {
       setCargando(false);
     }
   };
 
-  const btnStyle = (nombre) => ({
-    background: ganador === nombre
-      ? 'linear-gradient(135deg, #10b981, #059669)'
-      : pendiente ? '#f8fafc' : '#f1f5f9',
-    color: ganador === nombre ? 'white' : '#1e293b',
-    border: `1px solid ${ganador === nombre ? '#10b981' : '#e2e8f0'}`,
-    borderRadius: '10px', padding: '6px 14px',
-    fontWeight: 700, fontSize: '12px',
-    cursor: pendiente ? 'pointer' : 'default',
-    transition: 'all 0.2s', whiteSpace: 'nowrap',
-    boxShadow: ganador === nombre ? '0 2px 8px rgba(16,185,129,0.4)' : 'none'
+  const inputStyle = (disabled) => ({
+    width: '52px', textAlign: 'center', fontSize: '15px', fontWeight: 800,
+    padding: '6px 4px', borderRadius: '8px',
+    border: `2px solid ${disabled ? '#e2e8f0' : '#3b82f6'}`,
+    background: disabled ? '#f8fafc' : 'white',
+    color: disabled ? '#64748b' : '#1e293b',
+    outline: 'none'
   });
+
+  const ganador = ganadorNombre();
 
   return (
     <div style={{
-      background: ganador ? '#f0fdf4' : 'white',
-      border: `1px solid ${ganador ? '#bbf7d0' : '#e2e8f0'}`,
-      borderRadius: '12px', padding: '0.85rem 1rem',
+      background: finalizado ? '#f0fdf4' : 'white',
+      border: `1px solid ${finalizado ? '#bbf7d0' : '#e2e8f0'}`,
+      borderRadius: '12px', padding: '0.9rem 1rem',
       marginBottom: '0.5rem', transition: 'all 0.2s'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-        {/* Jugadores */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, flexWrap: 'wrap' }}>
-          <button onClick={() => registrar(encuentro.participante_1)}
-            disabled={!!ganador || cargando || encuentro.participante_1 === 'Por definir'}
-            style={btnStyle(encuentro.participante_1)}>
-            {ganador === encuentro.participante_1 && '🏆 '}{encuentro.participante_1}
-          </button>
-          <span style={{
-            fontWeight: 800, color: '#94a3b8', fontSize: '13px',
-            background: '#f8fafc', padding: '4px 10px', borderRadius: '20px'
-          }}>VS</span>
-          <button onClick={() => registrar(encuentro.participante_2)}
-            disabled={!!ganador || cargando || encuentro.participante_2 === 'Por definir'}
-            style={btnStyle(encuentro.participante_2)}>
-            {ganador === encuentro.participante_2 && '🏆 '}{encuentro.participante_2}
-          </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <span style={{
+          fontWeight: ganador === encuentro.participante_1 ? 800 : 600,
+          color: ganador === encuentro.participante_1 ? '#15803d' : '#1e293b',
+          fontSize: '13px', flex: '1 1 120px',
+          display: 'flex', alignItems: 'center', gap: '4px'
+        }}>
+          {ganador === encuentro.participante_1 && <span>🏆</span>}
+          {encuentro.participante_1 || 'Por definir'}
+        </span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <input
+            type="number" min="0"
+            value={marcador1}
+            onChange={e => setMarcador1(e.target.value)}
+            disabled={finalizado || !ambosListos}
+            style={inputStyle(finalizado || !ambosListos)}
+            placeholder="0"
+          />
+          <span style={{ fontWeight: 800, color: '#94a3b8', fontSize: '13px',
+            background: '#f1f5f9', padding: '4px 8px', borderRadius: '8px' }}>VS</span>
+          <input
+            type="number" min="0"
+            value={marcador2}
+            onChange={e => setMarcador2(e.target.value)}
+            disabled={finalizado || !ambosListos}
+            style={inputStyle(finalizado || !ambosListos)}
+            placeholder="0"
+          />
         </div>
 
-        {/* Estado + info */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-          <span style={{
-            background: ganador ? '#dcfce7' : encuentro.participante_1 === 'Por definir' ? '#f1f5f9' : '#fef3c7',
-            color: ganador ? '#15803d' : encuentro.participante_1 === 'Por definir' ? '#94a3b8' : '#b45309',
-            fontSize: '10px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px'
-          }}>
-            {ganador ? '✓ Finalizado' : encuentro.participante_1 === 'Por definir' ? 'Por definir' : 'Pendiente'}
-          </span>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <span style={{
+          fontWeight: ganador === encuentro.participante_2 ? 800 : 600,
+          color: ganador === encuentro.participante_2 ? '#15803d' : '#1e293b',
+          fontSize: '13px', flex: '1 1 120px', textAlign: 'right',
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px'
+        }}>
+          {encuentro.participante_2 || 'Por definir'}
+          {ganador === encuentro.participante_2 && <span>🏆</span>}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginTop: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div>
+          {error && <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 600 }}>⚠ {error}</span>}
+          {!error && (
+            <span style={{
+              fontSize: '10px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px',
+              background: finalizado ? '#dcfce7' : !ambosListos ? '#f1f5f9' : '#fef3c7',
+              color: finalizado ? '#15803d' : !ambosListos ? '#94a3b8' : '#b45309'
+            }}>
+              {finalizado ? '✓ Finalizado' : !ambosListos ? 'Por definir' : 'Pendiente'}
+            </span>
+          )}
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '3px' }}>
             {encuentro.hora_programada && (
               <span style={{ fontSize: '10px', color: '#94a3b8' }}>🕐 {formatHora(encuentro.hora_programada)}</span>
             )}
@@ -107,16 +173,30 @@ function EncuentroRow({ encuentro }) {
             )}
           </div>
         </div>
+
+        {!finalizado && ambosListos && (
+          <button onClick={guardarResultado} disabled={cargando} style={{
+            background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+            color: 'white', border: 'none', borderRadius: '8px',
+            padding: '6px 16px', fontSize: '12px', fontWeight: 700,
+            cursor: cargando ? 'not-allowed' : 'pointer',
+            boxShadow: cargando ? 'none' : '0 2px 8px rgba(37,99,235,0.4)'
+          }}>
+            {cargando ? '⏳ Guardando...' : '💾 Guardar resultado'}
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-function TorneoCard({ torneo, index }) {
+function TorneoCard({ torneo, index, onTorneoActualizado }) {
   const [expandido, setExpandido] = useState(false);
   const [encuentros, setEncuentros] = useState([]);
   const [loading, setLoading] = useState(false);
   const [yaCargo, setYaCargo] = useState(false);
+  const [accionCargando, setAccionCargando] = useState(false);
+  const [mensajeAccion, setMensajeAccion] = useState(null);
   const color = COLORES_TORNEO[index % COLORES_TORNEO.length];
   const estado = getEstado(torneo.fecha_inicio, torneo.fecha_fin);
 
@@ -125,11 +205,14 @@ function TorneoCard({ torneo, index }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/instructor/torneos/${torneo.torneo_id}/encuentros`, {
+      const res = await fetch(`http://localhost:3000/api/torneos/${torneo.torneo_id}/bracket`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      setEncuentros(data);
+      const todos = Array.isArray(data)
+        ? data.flatMap(r => r.encuentros.map(e => ({ ...e, ronda: r.ronda })))
+        : [];
+      setEncuentros(todos);
       setYaCargo(true);
     } catch (err) {
       console.error(err);
@@ -144,6 +227,61 @@ function TorneoCard({ torneo, index }) {
     if (nuevo) cargar();
   };
 
+  useEffect(() => {
+    if (!yaCargo && expandido) cargar();
+  }, [yaCargo]);
+
+  // ── Cerrar inscripciones ──
+  const cerrarInscripciones = async () => {
+    if (!window.confirm('¿Cerrar inscripciones y generar el bracket?')) return;
+    setAccionCargando(true);
+    setMensajeAccion(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(
+        `http://localhost:3000/api/torneos/${torneo.torneo_id}/cerrar-inscripciones`,
+        { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setMensajeAccion({ tipo: 'error', texto: data.error || 'Error al cerrar inscripciones' });
+        return;
+      }
+      setMensajeAccion({ tipo: 'ok', texto: '✅ Inscripciones cerradas. Ya puedes confirmar el bracket.' });
+      if (onTorneoActualizado) onTorneoActualizado();
+    } catch {
+      setMensajeAccion({ tipo: 'error', texto: 'Error de conexión' });
+    } finally {
+      setAccionCargando(false);
+    }
+  };
+
+  // ── Confirmar bracket ──
+  const confirmarBracket = async () => {
+    if (!window.confirm('¿Confirmar el bracket y poner el torneo En_curso?')) return;
+    setAccionCargando(true);
+    setMensajeAccion(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(
+        `http://localhost:3000/api/torneos/${torneo.torneo_id}/confirmar-bracket`,
+        { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setMensajeAccion({ tipo: 'error', texto: data.error || 'Error al confirmar bracket' });
+        return;
+      }
+      setMensajeAccion({ tipo: 'ok', texto: '✅ Bracket confirmado. ¡El torneo está En_curso!' });
+      setYaCargo(false);
+      if (onTorneoActualizado) onTorneoActualizado();
+    } catch {
+      setMensajeAccion({ tipo: 'error', texto: 'Error de conexión' });
+    } finally {
+      setAccionCargando(false);
+    }
+  };
+
   const porRonda = encuentros.reduce((acc, e) => {
     if (!acc[e.ronda]) acc[e.ronda] = [];
     acc[e.ronda].push(e);
@@ -156,16 +294,14 @@ function TorneoCard({ torneo, index }) {
 
   return (
     <div style={{
-      background: 'white', borderRadius: '16px',
-      border: '1px solid #e2e8f0',
+      background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0',
       overflow: 'hidden', marginBottom: '1rem',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-      transition: 'box-shadow 0.2s'
+      boxShadow: '0 1px 4px rgba(0,0,0,0.05)', transition: 'box-shadow 0.2s'
     }}
     onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.1)'}
     onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)'}
     >
-      {/* Header con gradiente */}
+      {/* Header */}
       <div style={{ background: color.grad, padding: '1.25rem 1.5rem', cursor: 'pointer' }} onClick={handleToggle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
@@ -188,14 +324,11 @@ function TorneoCard({ torneo, index }) {
             <span style={{
               background: estado.bg, color: estado.color,
               fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px'
-            }}>
-              {estado.label}
-            </span>
+            }}>{estado.label}</span>
             {expandido ? <ChevronUp size={18} color="rgba(255,255,255,0.8)" /> : <ChevronDown size={18} color="rgba(255,255,255,0.8)" />}
           </div>
         </div>
 
-        {/* Fechas y progreso */}
         <div style={{ marginTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
           <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Calendar size={12} /> {formatFecha(torneo.fecha_inicio)} – {formatFecha(torneo.fecha_fin)}
@@ -211,9 +344,56 @@ function TorneoCard({ torneo, index }) {
         </div>
       </div>
 
-      {/* Encuentros */}
+      {/* Cuerpo expandido */}
       {expandido && (
         <div style={{ padding: '1.25rem' }}>
+
+          {/* ── Botones de gestión del torneo ── */}
+          {(torneo.estado_bd === 'Abierto' || torneo.estado_bd === 'Inscripciones_cerradas') && (
+            <div style={{
+              background: '#f8fafc', border: '1px solid #e2e8f0',
+              borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem'
+            }}>
+              <p style={{ margin: '0 0 0.75rem', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+                ⚙️ Gestión del torneo
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                {torneo.estado_bd === 'Abierto' && (
+                  <button onClick={e => { e.stopPropagation(); cerrarInscripciones(); }}
+                    disabled={accionCargando}
+                    style={{
+                      background: accionCargando ? '#94a3b8' : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      color: 'white', border: 'none', borderRadius: '8px',
+                      padding: '7px 16px', fontSize: '12px', fontWeight: 700,
+                      cursor: accionCargando ? 'not-allowed' : 'pointer'
+                    }}>
+                    {accionCargando ? '⏳...' : '🔒 Cerrar inscripciones'}
+                  </button>
+                )}
+                {torneo.estado_bd === 'Inscripciones_cerradas' && (
+                  <button onClick={e => { e.stopPropagation(); confirmarBracket(); }}
+                    disabled={accionCargando}
+                    style={{
+                      background: accionCargando ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)',
+                      color: 'white', border: 'none', borderRadius: '8px',
+                      padding: '7px 16px', fontSize: '12px', fontWeight: 700,
+                      cursor: accionCargando ? 'not-allowed' : 'pointer'
+                    }}>
+                    {accionCargando ? '⏳...' : '✅ Confirmar bracket'}
+                  </button>
+                )}
+              </div>
+              {mensajeAccion && (
+                <p style={{
+                  margin: '0.75rem 0 0', fontSize: '12px', fontWeight: 600,
+                  color: mensajeAccion.tipo === 'ok' ? '#15803d' : '#dc2626'
+                }}>
+                  {mensajeAccion.texto}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Info progreso */}
           {total > 0 && (
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
@@ -240,20 +420,22 @@ function TorneoCard({ torneo, index }) {
           ) : (
             Object.keys(porRonda).sort((a, b) => a - b).map(ronda => (
               <div key={ronda} style={{ marginBottom: '1.5rem' }}>
-                {/* Separador de ronda */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
                   <div style={{ height: '1px', flex: 1, background: '#e2e8f0' }} />
                   <span style={{
                     fontSize: '11px', fontWeight: 800, color: 'white',
-                    background: color.grad,
-                    padding: '4px 14px', borderRadius: '20px', whiteSpace: 'nowrap'
+                    background: color.grad, padding: '4px 14px', borderRadius: '20px', whiteSpace: 'nowrap'
                   }}>
                     🏆 {RONDAS[ronda] || `Ronda ${ronda}`}
                   </span>
                   <div style={{ height: '1px', flex: 1, background: '#e2e8f0' }} />
                 </div>
                 {porRonda[ronda].map(e => (
-                  <EncuentroRow key={e.encuentro_id} encuentro={e} />
+                  <EncuentroRow
+                    key={e.encuentro_id}
+                    encuentro={e}
+                    onResultadoGuardado={() => setYaCargo(false)}
+                  />
                 ))}
               </div>
             ))
@@ -268,25 +450,24 @@ function GestionTorneos() {
   const [torneos, setTorneos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchTorneos = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3000/api/instructor/torneos', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error('Error');
-        const data = await res.json();
-        setTorneos(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTorneos();
-  }, []);
+  const fetchTorneos = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:3000/api/instructor/torneos', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Error');
+      const data = await res.json();
+      setTorneos(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchTorneos(); }, []);
 
   const enCurso  = torneos.filter(t => getEstado(t.fecha_inicio, t.fecha_fin).label === 'En curso').length;
   const proximos = torneos.filter(t => getEstado(t.fecha_inicio, t.fecha_fin).label === 'Próximo').length;
@@ -300,7 +481,6 @@ function GestionTorneos() {
 
   return (
     <div>
-      {/* Banner */}
       <div style={{
         background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
         borderRadius: '16px', padding: '1.25rem 1.5rem',
@@ -331,7 +511,12 @@ function GestionTorneos() {
         </div>
       ) : (
         torneos.map((torneo, i) => (
-          <TorneoCard key={torneo.torneo_id} torneo={torneo} index={i} />
+          <TorneoCard
+            key={torneo.torneo_id}
+            torneo={torneo}
+            index={i}
+            onTorneoActualizado={fetchTorneos}
+          />
         ))
       )}
     </div>

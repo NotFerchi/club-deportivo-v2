@@ -1,9 +1,46 @@
-import React, { useEffect, useState } from 'react';
-import { Search, Eye, Filter, Calendar, User, Table, Info, MapPin, Wifi } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Edit2, Eye, FilePlus, FileText, Filter, LogIn, LogOut, RefreshCw, RotateCcw, Table, Trash2, Wifi } from 'lucide-react';
+import { apiRequest, unwrapList } from '../../../services/api';
+import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
+import { formatDateTime, normalizeText } from '../../../utils/adminData';
+
+function AccionIcon({ accion }) {
+  const action = normalizeText(accion);
+  if (action.includes('insert') || action.includes('crear') || action.includes('create')) return <FilePlus size={13} />;
+  if (action.includes('update') || action.includes('actualizar') || action.includes('edit')) return <Edit2 size={13} />;
+  if (action.includes('delete') || action.includes('eliminar') || action.includes('remove')) return <Trash2 size={13} />;
+  if (action.includes('login')) return <LogIn size={13} />;
+  if (action.includes('logout')) return <LogOut size={13} />;
+  if (action.includes('reactivar')) return <RotateCcw size={13} />;
+  return <FileText size={13} />;
+}
+
+function getAccionClass(accion) {
+  const action = normalizeText(accion);
+  if (action.includes('insert') || action.includes('crear') || action.includes('create')) return 'badge-success';
+  if (action.includes('update') || action.includes('actualizar') || action.includes('edit')) return 'badge-info';
+  if (action.includes('delete') || action.includes('eliminar') || action.includes('remove')) return 'badge-danger';
+  if (action.includes('login') || action.includes('logout')) return 'badge-warning';
+  return 'badge-neutral';
+}
+
+function getIPTipo(ip) {
+  if (!ip || ip === '-') return 'unknown';
+  if (ip === '127.0.0.1' || ip === 'localhost' || ip.includes('::1')) return 'local';
+  if (ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) return 'local';
+  return 'public';
+}
+
+function formatIP(ip) {
+  if (!ip || ip === '-') return '-';
+  if (getIPTipo(ip) === 'local') return 'Local';
+  const parts = ip.split('.');
+  if (parts.length === 4) return `${parts[0]}.${parts[1]}.xxx.xxx`;
+  return ip;
+}
 
 function AuditoriaLogs() {
   const [logs, setLogs] = useState([]);
-  const [filteredLogs, setFilteredLogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTabla, setFilterTabla] = useState('');
   const [filterAccion, setFilterAccion] = useState('');
@@ -12,53 +49,19 @@ function AuditoriaLogs() {
   const [error, setError] = useState(null);
 
   const fetchLogs = async () => {
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-      setError('No hay sesión activa');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const res = await fetch('http://localhost:3000/api/logs', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      console.log('Status logs:', res.status);
-      
-      if (res.status === 401) {
+      const data = await apiRequest('/logs');
+      setLogs(unwrapList(data, ['data', 'logs']));
+      setError(null);
+    } catch (fetchError) {
+      if (fetchError.status === 401) {
         alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
         window.location.href = '/login';
         return;
       }
-      
-      if (!res.ok) {
-        throw new Error(`Error ${res.status}: ${res.statusText}`);
-      }
-      
-      const data = await res.json();
-      console.log('Respuesta logs:', data);
-      
-      // Manejar diferentes formatos de respuesta
-      let listaLogs = [];
-      if (Array.isArray(data)) {
-        listaLogs = data;
-      } else if (data.data && Array.isArray(data.data)) {
-        listaLogs = data.data;
-      } else if (data.logs && Array.isArray(data.logs)) {
-        listaLogs = data.logs;
-      } else {
-        listaLogs = [];
-      }
-      
-      setLogs(listaLogs);
-      setFilteredLogs(listaLogs);
-    } catch (error) {
-      console.error('Error en fetchLogs:', error);
-      setError(error.message);
+      setError(fetchError.message);
     } finally {
       setLoading(false);
     }
@@ -68,195 +71,68 @@ function AuditoriaLogs() {
     fetchLogs();
   }, []);
 
-  useEffect(() => {
-    let filtered = logs;
-    
-    if (searchTerm) {
-      filtered = filtered.filter(l =>
-        l.accion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        l.usuario_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        l.usuario_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        l.detalles?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        l.tabla_afectada?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        l.ip_origen?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    if (filterTabla) {
-      filtered = filtered.filter(l => l.tabla_afectada === filterTabla);
-    }
-    
-    if (filterAccion) {
-      filtered = filtered.filter(l => l.accion?.toLowerCase().includes(filterAccion.toLowerCase()));
-    }
-    
-    setFilteredLogs(filtered);
-  }, [searchTerm, filterTabla, filterAccion, logs]);
+  const tablasUnicas = useMemo(() => [...new Set(logs.map(log => log.tabla_afectada).filter(Boolean))], [logs]);
+  const accionesUnicas = useMemo(() => [...new Set(logs.map(log => log.accion).filter(Boolean))], [logs]);
 
-  const getAccionColor = (accion) => {
-    const action = accion?.toLowerCase() || '';
-    if (action.includes('insert') || action.includes('crear') || action.includes('create')) return '#10b981';
-    if (action.includes('update') || action.includes('actualizar') || action.includes('edit')) return '#3b82f6';
-    if (action.includes('delete') || action.includes('eliminar') || action.includes('remove')) return '#ef4444';
-    if (action.includes('login')) return '#8b5cf6';
-    if (action.includes('logout')) return '#f59e0b';
-    if (action.includes('inactivar') || action.includes('reactivar')) return '#f59e0b';
-    return '#64748b';
-  };
+  const filteredLogs = useMemo(() => {
+    const query = normalizeText(searchTerm);
+    return logs.filter(log => {
+      const text = normalizeText([
+        log.accion,
+        log.usuario_nombre,
+        log.usuario_email,
+        log.detalles,
+        log.tabla_afectada,
+        log.ip_origen
+      ].filter(Boolean).join(' '));
 
-  const getAccionIcon = (accion) => {
-    const action = accion?.toLowerCase() || '';
-    if (action.includes('insert') || action.includes('crear')) return '➕';
-    if (action.includes('update') || action.includes('actualizar')) return '✏️';
-    if (action.includes('delete') || action.includes('eliminar')) return '🗑️';
-    if (action.includes('login')) return '🔐';
-    if (action.includes('logout')) return '🚪';
-    if (action.includes('reactivar')) return '🔄';
-    if (action.includes('inactivar')) return '⛔';
-    return '📝';
-  };
-
-  // Formatear IP para mostrar (ocultar parcialmente por privacidad)
-  const formatIP = (ip) => {
-    if (!ip || ip === '—') return '—';
-    if (ip === '127.0.0.1' || ip === 'localhost') return '🏠 Local';
-    if (ip.includes('::1')) return '🏠 Local';
-    // Para IPv4, ocultar últimos octetos
-    const parts = ip.split('.');
-    if (parts.length === 4 && parts[0] !== '127') {
-      return `${parts[0]}.${parts[1]}.xxx.xxx`;
-    }
-    return ip;
-  };
-
-  // Obtener tipo de IP (local o pública)
-  const getIPTipo = (ip) => {
-    if (!ip || ip === '—') return 'unknown';
-    if (ip === '127.0.0.1' || ip === 'localhost' || ip.includes('::1')) return 'local';
-    if (ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) return 'local';
-    return 'public';
-  };
-
-  const getIPColor = (ip) => {
-    const tipo = getIPTipo(ip);
-    if (tipo === 'local') return '#10b981';
-    if (tipo === 'public') return '#f59e0b';
-    return '#6b7280';
-  };
-
-  const tablasUnicas = [...new Set(logs.map(l => l.tabla_afectada).filter(Boolean))];
-  const accionesUnicas = [...new Set(logs.map(l => l.accion).filter(Boolean))];
+      if (query && !text.includes(query)) return false;
+      if (filterTabla && log.tabla_afectada !== filterTabla) return false;
+      if (filterAccion && log.accion !== filterAccion) return false;
+      return true;
+    });
+  }, [logs, searchTerm, filterTabla, filterAccion]);
 
   if (loading) return <div className="chart-box"><p>Cargando logs...</p></div>;
   if (error) return <div className="chart-box"><p style={{ color: '#ef4444' }}>Error: {error}</p></div>;
 
   return (
     <div className="chart-box">
+      <ModuleHeader
+        icon={FileText}
+        title="Auditoría del Sistema"
+        subtitle={`Total de registros: ${filteredLogs.length} | Última actualización: ${new Date().toLocaleString()}`}
+        actions={(
+          <>
+            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar acción, usuario, IP o detalles" />
+            <button className={`btn-secondary ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(!showFilters)}>
+              <Filter size={16} /> Filtros
+            </button>
+            <button onClick={fetchLogs} className="btn-secondary" title="Refrescar logs">
+              <RefreshCw size={16} /> Refrescar
+            </button>
+          </>
+        )}
+      />
 
-      {/* HEADER */}
-      <div className="flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h4>📋 Auditoría del Sistema</h4>
-          <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#6b7280' }}>
-            Total de registros: {filteredLogs.length} | Última actualización: {new Date().toLocaleString()}
-          </p>
-        </div>
-
-        <div className="flex-gap" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div className="search-wrapper">
-            <Search className="search-icon" />
-            <input
-              type="text"
-              placeholder="Buscar por acción, usuario, IP, detalles..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-          </div>
-
-          <button
-            className={`btn-secondary ${showFilters ? 'active' : ''}`}
-            onClick={() => setShowFilters(!showFilters)}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            <Filter size={16} /> Filtros
-          </button>
-          
-          <button
-            onClick={() => fetchLogs()}
-            className="btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            title="Refrescar logs"
-          >
-            <Eye size={16} /> Refrescar
-          </button>
-        </div>
-      </div>
-
-      {/* FILTROS AVANZADOS */}
       {showFilters && (
-        <div style={{ 
-          marginBottom: '1.5rem', 
-          padding: '1rem', 
-          background: '#f9fafb', 
-          borderRadius: '8px',
-          display: 'flex',
-          gap: '1rem',
-          flexWrap: 'wrap',
-          alignItems: 'flex-end'
-        }}>
-          <div style={{ flex: 1, minWidth: '200px' }}>
-            <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: '0.25rem' }}>
-              <Table size={12} /> Tabla afectada
-            </label>
-            <select
-              value={filterTabla}
-              onChange={(e) => setFilterTabla(e.target.value)}
-              className="filter-select"
-              style={{ width: '100%' }}
-            >
-              <option value="">Todas las tablas</option>
-              {tablasUnicas.map(tabla => (
-                <option key={tabla} value={tabla}>{tabla}</option>
-              ))}
-            </select>
-          </div>
-
-          <div style={{ flex: 1, minWidth: '200px' }}>
-            <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: '0.25rem' }}>
-              <Eye size={12} /> Tipo de acción
-            </label>
-            <select
-              value={filterAccion}
-              onChange={(e) => setFilterAccion(e.target.value)}
-              className="filter-select"
-              style={{ width: '100%' }}
-            >
-              <option value="">Todas las acciones</option>
-              {accionesUnicas.map(accion => (
-                <option key={accion} value={accion}>{accion}</option>
-              ))}
-            </select>
-          </div>
-
+        <div className="admin-filter-row">
+          <FilterSelect label="Tabla afectada" value={filterTabla} onChange={setFilterTabla}>
+            <option value="">Todas las tablas</option>
+            {tablasUnicas.map(tabla => <option key={tabla} value={tabla}>{tabla}</option>)}
+          </FilterSelect>
+          <FilterSelect label="Tipo de acción" value={filterAccion} onChange={setFilterAccion}>
+            <option value="">Todas las acciones</option>
+            {accionesUnicas.map(accion => <option key={accion} value={accion}>{accion}</option>)}
+          </FilterSelect>
           {(filterTabla || filterAccion) && (
-            <div>
-              <button
-                onClick={() => {
-                  setFilterTabla('');
-                  setFilterAccion('');
-                }}
-                className="btn-outline"
-                style={{ padding: '0.5rem 1rem' }}
-              >
-                Limpiar filtros
-              </button>
-            </div>
+            <button onClick={() => { setFilterTabla(''); setFilterAccion(''); }} className="btn-outline">
+              Limpiar filtros
+            </button>
           )}
         </div>
       )}
 
-      {/* TABLA DE LOGS */}
       <div className="table-wrapper">
         <table className="data-table">
           <thead>
@@ -272,126 +148,40 @@ function AuditoriaLogs() {
           <tbody>
             {filteredLogs.map(log => (
               <tr key={log.log_id}>
-                <td>
-                  <span style={{ fontWeight: 500 }}>{new Date(log.fecha).toLocaleDateString()}</span>
-                  <br />
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    {new Date(log.fecha).toLocaleTimeString()}
-                  </span>
-                </td>
+                <td>{formatDateTime(log.fecha)}</td>
                 <td>
                   <strong>{log.usuario_nombre || 'Sistema'}</strong>
                   <br />
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    {log.usuario_email || '—'}
-                  </span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>{log.usuario_email || '-'}</span>
                 </td>
                 <td>
-                  <span style={{ 
-                    background: getAccionColor(log.accion), 
-                    color: 'white', 
-                    padding: '4px 10px', 
-                    borderRadius: '20px', 
-                    fontSize: '11px',
-                    fontWeight: 500,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <span>{getAccionIcon(log.accion)}</span>
+                  <span className={getAccionClass(log.accion)}>
+                    <AccionIcon accion={log.accion} />
                     {log.accion}
                   </span>
                 </td>
+                <td><span className="badge-neutral"><Table size={13} /> {log.tabla_afectada || '-'}</span></td>
+                <td style={{ maxWidth: '300px', wordBreak: 'break-word' }}>{log.detalles || '-'}</td>
                 <td>
-                  <span style={{
-                    background: '#f3f4f6',
-                    color: '#374151',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '11px'
-                  }}>
-                    {log.tabla_afectada || '—'}
+                  <span className="inline-icon" title={`IP completa: ${log.ip_origen || 'No disponible'}`}>
+                    <Wifi size={13} />
+                    <code>{formatIP(log.ip_origen)}</code>
+                    {getIPTipo(log.ip_origen) !== 'unknown' && <span className="badge-neutral">{getIPTipo(log.ip_origen) === 'local' ? 'Local' : 'Pública'}</span>}
                   </span>
                 </td>
-                <td style={{ maxWidth: '300px', wordBreak: 'break-word' }}>
-                  <span style={{ fontSize: '0.875rem' }}>{log.detalles || '—'}</span>
-                 </td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Wifi size={12} color={getIPColor(log.ip_origen)} />
-                    <code style={{ 
-                      fontSize: '11px', 
-                      background: '#f3f4f6', 
-                      padding: '2px 6px', 
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      transition: 'opacity 0.2s'
-                    }}
-                    title={`IP completa: ${log.ip_origen || 'No disponible'}`}
-                    >
-                      {formatIP(log.ip_origen)}
-                    </code>
-                    {getIPTipo(log.ip_origen) === 'local' && (
-                      <span style={{ fontSize: '9px', background: '#d1fae5', color: '#065f46', padding: '2px 4px', borderRadius: '4px' }}>Local</span>
-                    )}
-                    {getIPTipo(log.ip_origen) === 'public' && (
-                      <span style={{ fontSize: '9px', background: '#fed7aa', color: '#92400e', padding: '2px 4px', borderRadius: '4px' }}>Pública</span>
-                    )}
-                  </div>
-                 </td>
-               </tr>
+              </tr>
             ))}
+            {filteredLogs.length === 0 && (
+              <tr>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                  <Eye size={42} style={{ opacity: 0.5, marginBottom: '1rem' }} />
+                  <p>No hay registros de auditoría.</p>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-
-      {/* MENSAJE SIN DATOS */}
-      {filteredLogs.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-          <Eye size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-          <p>No hay registros de auditoría</p>
-          <p style={{ fontSize: '0.875rem' }}>Los logs aparecerán cuando los usuarios realicen acciones en el sistema</p>
-          <button onClick={() => fetchLogs()} className="btn-primary" style={{ marginTop: '1rem' }}>
-            Refrescar
-          </button>
-        </div>
-      )}
-
-      <style jsx>{`
-        .btn-secondary {
-          background: #f3f4f6;
-          color: #374151;
-          padding: 0.5rem 1rem;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-secondary:hover {
-          background: #e5e7eb;
-        }
-
-        .btn-secondary.active {
-          background: #3b82f6;
-          color: white;
-          border-color: #3b82f6;
-        }
-
-        .filter-select {
-          padding: 0.5rem;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-          background: white;
-          font-size: 0.875rem;
-        }
-
-        .flex-gap {
-          display: flex;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-        }
-      `}</style>
     </div>
   );
 }

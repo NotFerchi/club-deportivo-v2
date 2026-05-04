@@ -36,6 +36,9 @@ const sesionesController = {
             const query = `
                 SELECT 
                     sp.sesion_id,
+                    sp.espacio_id,
+                    sp.disciplina_id,
+                    sp.instructor_id,
                     sp.dia_semana,
                     sp.hora_inicio,
                     sp.hora_fin,

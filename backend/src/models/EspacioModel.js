@@ -17,7 +17,7 @@ const EspacioModel = {
     const inicio = `${fecha} ${horaInicio}`;
     const fin = `${fecha} ${horaFin}`;
 
-    // 🔴 MANTENIMIENTO
+    // Mantenimiento
     const mantQuery = `
       SELECT motivo FROM mantenimiento_espacios
       WHERE espacio_id = $1 
@@ -32,7 +32,7 @@ const EspacioModel = {
       return { estado: 'mantenimiento', motivo: mantRows[0].motivo };
     }
 
-    // 🟠 RESERVAS
+    // Reservas
     const resQuery = `
       SELECT COUNT(*)::int AS total FROM reservaciones
       WHERE espacio_id = $1 
@@ -45,7 +45,7 @@ const EspacioModel = {
       return { estado: 'ocupado', motivo: 'Espacio reservado' };
     }
 
-    // 🟢 DISPONIBLE
+    // Disponible
     return { estado: 'disponible', motivo: '' };
   }
 };

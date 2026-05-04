@@ -1,26 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Users,
-  ClipboardList,
+  AlertTriangle,
   Calendar,
-  Puzzle,
+  CalendarDays,
+  ClipboardList,
   Dumbbell,
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Puzzle,
+  Settings,
   ShieldAlert,
+  TrendingUp,
+  User,
   UserCheck,
   UserPlus,
-  CalendarDays,
-  User,
-  TrendingUp,
-  AlertTriangle,
-  Settings,
-  FileText,
-  LogOut
+  Users
 } from 'lucide-react';
 import '../../../css/Dashboard.css';
+import { adminApi } from '../../services/api';
+import { estadoReservaLabel, normalizeEstadoReserva } from '../../utils/adminData';
 
-// Importar componentes
 import GestionSocios from './admin/GestionSocios';
 import RecepcionVisitas from './admin/RecepcionVisitas';
 import Reservas from './admin/Reservas';
@@ -31,12 +32,165 @@ import GestionUsuarios from './admin/GestionUsuarios';
 import ConfiguracionEspacios from './admin/ConfiguracionEspacios';
 import AuditoriaLogs from './admin/AuditoriaLogs';
 
+const HORAS_OPERACION = [
+  '08:00',
+  '09:00',
+  '10:00',
+  '11:00',
+  '12:00',
+  '13:00',
+  '14:00',
+  '15:00',
+  '16:00',
+  '17:00',
+  '18:00',
+  '19:00',
+  '20:00'
+];
+
+const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'socios', label: 'Socios', icon: Users },
+  { id: 'recepcion', label: 'Recepción y Visitas', icon: ClipboardList },
+  { id: 'reservas', label: 'Reservas', icon: Calendar },
+  { id: 'ludoteca', label: 'Ludoteca', icon: Puzzle },
+  { id: 'disciplinas', label: 'Disciplinas', icon: Dumbbell },
+  { id: 'sanciones', label: 'Sanciones', icon: ShieldAlert }
+];
+
+const ADMIN_ITEMS = [
+  { id: 'usuarios', label: 'Gestión de Usuarios', icon: UserPlus },
+  { id: 'espacios', label: 'Configuración de espacios', icon: Settings },
+  { id: 'logs', label: 'Auditoría', icon: FileText }
+];
+
+function isActive(value) {
+  return value === true || value === 'true' || value === 'Activo';
+}
+
+function getTipoSocio(socio) {
+  return String(socio.tipo || socio.tipo_socio || '').toLowerCase();
+}
+
+function getDateOnly(value) {
+  return String(value || '').split('T')[0];
+}
+
+function getEstadoBadgeClass(estado) {
+  const normalized = normalizeEstadoReserva(estado);
+  if (normalized === 'confirmada') return 'confirmada';
+  if (normalized === 'cancelada' || normalized === 'no-show' || normalized === 'sancionada') return 'badge-danger';
+  return 'pendiente';
+}
+
+function AreaChart({ data }) {
+  if (!data.length) {
+    return <p style={{ textAlign: 'center', padding: '2rem' }}>Sin datos de ocupación</p>;
+  }
+
+  const width = 680;
+  const height = 260;
+  const padding = 34;
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+  const points = data.map((item, index) => {
+    const x = padding + (index / Math.max(data.length - 1, 1)) * chartWidth;
+    const y = padding + chartHeight - (item.ocupacion / 100) * chartHeight;
+    return { ...item, x, y };
+  });
+  const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
+
+  return (
+    <div className="area-chart-wrap">
+      <svg viewBox={`0 0 ${width} ${height}`} className="area-chart" role="img" aria-label="Ocupación por hora">
+        <defs>
+          <linearGradient id="ocupacionGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {[0, 25, 50, 75, 100].map(value => {
+          const y = padding + chartHeight - (value / 100) * chartHeight;
+          return (
+            <g key={value}>
+              <line x1={padding} x2={width - padding} y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />
+              <text x="8" y={y + 4} fontSize="11" fill="#64748b">{value}%</text>
+            </g>
+          );
+        })}
+        <path d={areaPath} fill="url(#ocupacionGradient)" />
+        <path d={linePath} fill="none" stroke="#0284c7" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map(point => (
+          <g key={point.hora}>
+            <circle cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke="#0284c7" strokeWidth="3" />
+            <text x={point.x} y={height - 9} textAnchor="middle" fontSize="11" fill="#64748b">{point.hora}</text>
+            <text x={point.x} y={point.y - 12} textAnchor="middle" fontSize="11" fontWeight="700" fill="#0f172a">
+              {point.ocupacion}%
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+function SociosCompositionChart({ accionistas, rentistas, total }) {
+  const accionistasPorc = total > 0 ? (accionistas / total) * 100 : 0;
+  const rentistasPorc = total > 0 ? (rentistas / total) * 100 : 0;
+
+  return (
+    <div className="grafico-pastel">
+      <div className="donut-chart">
+        <svg viewBox="0 0 100 100" width="150" height="150">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="15" />
+          <circle
+            cx="50"
+            cy="50"
+            r="40"
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth="15"
+            strokeDasharray={`${accionistasPorc * 2.513} ${(100 - accionistasPorc) * 2.513}`}
+            strokeDashoffset="0"
+            transform="rotate(-90 50 50)"
+          />
+          <text x="50" y="45" textAnchor="middle" fontSize="10" fill="#1f2937" fontWeight="bold">Acc</text>
+          <text x="50" y="58" textAnchor="middle" fontSize="12" fill="#3b82f6" fontWeight="bold">
+            {Math.round(accionistasPorc)}%
+          </text>
+        </svg>
+        <svg viewBox="0 0 100 100" width="150" height="150">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="15" />
+          <circle
+            cx="50"
+            cy="50"
+            r="40"
+            fill="none"
+            stroke="#10b981"
+            strokeWidth="15"
+            strokeDasharray={`${rentistasPorc * 2.513} ${(100 - rentistasPorc) * 2.513}`}
+            strokeDashoffset="0"
+            transform="rotate(-90 50 50)"
+          />
+          <text x="50" y="45" textAnchor="middle" fontSize="10" fill="#1f2937" fontWeight="bold">Ren</text>
+          <text x="50" y="58" textAnchor="middle" fontSize="12" fill="#10b981" fontWeight="bold">
+            {Math.round(rentistasPorc)}%
+          </text>
+        </svg>
+      </div>
+      <div className="leyenda">
+        <div><span className="color-box" style={{ background: '#3b82f6' }} /> Accionistas ({accionistas})</div>
+        <div><span className="color-box" style={{ background: '#10b981' }} /> Rentistas ({rentistas})</div>
+      </div>
+    </div>
+  );
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userName, setUserName] = useState('');
-  
-  // Estados para los KPIs
   const [kpis, setKpis] = useState({
     totalSocios: 0,
     accionistas: 0,
@@ -48,7 +202,6 @@ function Dashboard() {
     ocupacionPromedio: 0,
     noShowsMes: 0
   });
-  
   const [reservasRecientes, setReservasRecientes] = useState([]);
   const [ocupacionPorHora, setOcupacionPorHora] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +209,7 @@ function Dashboard() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const usuarioSesion = localStorage.getItem('usuario');
-    
+
     if (!token || !usuarioSesion) {
       navigate('/login');
       return;
@@ -67,129 +220,73 @@ function Dashboard() {
       navigate('/login');
       return;
     }
-    
+
     setUserName(usuario.nombres || 'Administrador');
     fetchDashboardData();
   }, [navigate]);
 
+  useEffect(() => {
+    document.title = 'Dashboard Ejecutivo | Club Social y Deportivo';
+  }, []);
+
   const fetchDashboardData = async () => {
-    const token = localStorage.getItem('token');
-    
     try {
-      // 1. Obtener socios
-      const sociosRes = await fetch('http://localhost:3000/api/socios', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const socios = await sociosRes.json();
-      const sociosLista = Array.isArray(socios) ? socios : (socios.data || socios.socios || []);
-      
-      const sociosActivos = sociosLista.filter(s => s.activo === true || s.activo === 'true');
-      const accionistas = sociosActivos.filter(s => s.tipo === 'Accionista' || s.tipo === 'accionista');
-      const rentistas = sociosActivos.filter(s => s.tipo === 'Rentista' || s.tipo === 'rentista');
+      const [sociosResult, reservasResult, sancionesResult, visitasResult, ludotecaResult] = await Promise.allSettled([
+        adminApi.getSocios(),
+        adminApi.getReservas(),
+        adminApi.getSanciones(),
+        adminApi.getVisitasActivas(),
+        adminApi.getLudotecaActivos()
+      ]);
 
-      // 2. Obtener reservas de hoy
+      const sociosLista = sociosResult.status === 'fulfilled' ? sociosResult.value : [];
+      const reservasLista = reservasResult.status === 'fulfilled' ? reservasResult.value : [];
+      const sancionesLista = sancionesResult.status === 'fulfilled' ? sancionesResult.value : [];
+      const visitasLista = visitasResult.status === 'fulfilled' ? visitasResult.value : [];
+      const ludotecaLista = ludotecaResult.status === 'fulfilled' ? ludotecaResult.value : [];
       const hoy = new Date().toISOString().split('T')[0];
-      const reservasRes = await fetch(`http://localhost:3000/api/reservas`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: false }));
-      
-      let reservasHoy = 0;
-      let reservasRecientesData = [];
-      let ocupacionData = [];
-      
-      if (reservasRes.ok) {
-        const reservas = await reservasRes.json();
-        const reservasLista = Array.isArray(reservas) ? reservas : (reservas.data || []);
-        
-        // Reservas de hoy
-        reservasHoy = reservasLista.filter(r => r.fecha === hoy).length;
-        
-        // Reservas recientes (últimas 3)
-        reservasRecientesData = reservasLista.slice(0, 3);
-        
-        // Calcular ocupación por hora (simulado con datos reales)
-        const horas = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
-        ocupacionData = horas.map(hora => {
-          const reservasEnHora = reservasLista.filter(r => r.hora_inicio?.startsWith(hora.slice(0,2)));
-          const porcentaje = Math.min(Math.floor((reservasEnHora.length / 5) * 100), 100);
-          return { hora, ocupacion: porcentaje };
-        });
-        setOcupacionPorHora(ocupacionData);
-      } else {
-        // Datos de ejemplo si no hay reservas
-        ocupacionData = [
-          { hora: '08:00', ocupacion: 20 }, { hora: '10:00', ocupacion: 45 }, { hora: '12:00', ocupacion: 60 },
-          { hora: '14:00', ocupacion: 55 }, { hora: '16:00', ocupacion: 70 }, { hora: '18:00', ocupacion: 85 },
-          { hora: '20:00', ocupacion: 40 }
-        ];
-        setOcupacionPorHora(ocupacionData);
-      }
-
-      // 3. Obtener sanciones activas
-      const sancionesRes = await fetch('http://localhost:3000/api/sanciones', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: false }));
-      
-      let sancionesActivas = 0;
-      if (sancionesRes.ok) {
-        const sanciones = await sancionesRes.json();
-        const sancionesLista = Array.isArray(sanciones) ? sanciones : (sanciones.data || []);
-        sancionesActivas = sancionesLista.filter(s => s.activa === true).length;
-      }
-
-      // 4. Obtener visitas activas hoy
-      const visitasRes = await fetch('http://localhost:3000/api/recepcion/visitas/activas', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: false }));
-      
-      let visitasHoy = 0;
-      if (visitasRes.ok) {
-        const visitas = await visitasRes.json();
-        const visitasLista = Array.isArray(visitas) ? visitas : (visitas.data || []);
-        visitasHoy = visitasLista.length;
-      }
-
-      // 5. Obtener ludoteca activa
-      const ludotecaRes = await fetch('http://localhost:3000/api/ludoteca/activos', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(() => ({ ok: false }));
-      
-      let ludotecaActivos = 0;
-      if (ludotecaRes.ok) {
-        const ludoteca = await ludotecaRes.json();
-        const ludotecaLista = Array.isArray(ludoteca) ? ludoteca : (ludoteca.data || []);
-        ludotecaActivos = ludotecaLista.length;
-      }
-
-      // Calcular ocupación promedio del día
-      const ocupacionPromedio = ocupacionData.length > 0 
-        ? Math.floor(ocupacionData.reduce((sum, h) => sum + h.ocupacion, 0) / ocupacionData.length)
+      const mesActual = hoy.slice(0, 7);
+      const sociosActivos = sociosLista.filter(socio => isActive(socio.activo));
+      const reservasNoCanceladas = reservasLista.filter(reserva => normalizeEstadoReserva(reserva.estado) !== 'cancelada');
+      const ocupacionData = HORAS_OPERACION.map(hora => {
+        const reservasEnHora = reservasNoCanceladas.filter(reserva =>
+          getDateOnly(reserva.fecha) === hoy &&
+          reserva.hora_inicio?.startsWith(hora.slice(0, 2))
+        );
+        return {
+          hora,
+          ocupacion: Math.min(Math.floor((reservasEnHora.length / 5) * 100), 100)
+        };
+      });
+      const ocupacionPromedio = ocupacionData.length
+        ? Math.floor(ocupacionData.reduce((sum, item) => sum + item.ocupacion, 0) / ocupacionData.length)
         : 0;
 
+      setOcupacionPorHora(ocupacionData);
+      setReservasRecientes(reservasLista.slice(0, 3));
       setKpis({
         totalSocios: sociosActivos.length,
-        accionistas: accionistas.length,
-        rentistas: rentistas.length,
-        reservasHoy,
-        sancionesActivas,
-        visitasHoy,
-        ludotecaActivos,
+        accionistas: sociosActivos.filter(socio => getTipoSocio(socio) === 'accionista').length,
+        rentistas: sociosActivos.filter(socio => getTipoSocio(socio) === 'rentista').length,
+        reservasHoy: reservasNoCanceladas.filter(reserva => getDateOnly(reserva.fecha) === hoy).length,
+        sancionesActivas: sancionesLista.filter(sancion => {
+          const estado = String(sancion.estado || '').toLowerCase();
+          return sancion.activa === true || estado === 'activa' || estado === 'activo';
+        }).length,
+        visitasHoy: visitasLista.length,
+        ludotecaActivos: ludotecaLista.length,
         ocupacionPromedio,
-        noShowsMes: Math.floor(Math.random() * 10) + 5
+        noShowsMes: reservasLista.filter(reserva =>
+          getDateOnly(reserva.fecha).slice(0, 7) === mesActual &&
+          (normalizeEstadoReserva(reserva.estado) === 'no-show' || reserva.no_show === true)
+        ).length
       });
-      
-      setReservasRecientes(reservasRecientesData);
-      
     } catch (error) {
       console.error('Error cargando dashboard:', error);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    document.title = 'Dashboard Ejecutivo | Club Social y Deportivo';
-  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -199,78 +296,11 @@ function Dashboard() {
 
   const getNavClass = (tab) => `nav-link ${activeTab === tab ? 'active' : ''}`;
 
-  // Gráfico de barras para ocupación por hora
-  const GraficoOcupacion = ({ data }) => {
-    const maxOcupacion = Math.max(...data.map(h => h.ocupacion), 100);
-    
-    return (
-      <div className="grafico-ocupacion">
-        {data.map((item, idx) => (
-          <div key={idx} className="barra-container">
-            <div className="barra-label">{item.hora}</div>
-            <div className="barra-wrapper">
-              <div 
-                className="barra"
-                style={{ 
-                  width: `${(item.ocupacion / maxOcupacion) * 100}%`,
-                  backgroundColor: item.ocupacion >= 80 ? '#ef4444' : item.ocupacion >= 50 ? '#f59e0b' : '#10b981'
-                }}
-              >
-                <span className="barra-valor">{item.ocupacion}%</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  // Gráfico circular para composición de socios
-  const GraficoPastel = ({ accionistas, rentistas, total }) => {
-    const accionistasPorc = total > 0 ? (accionistas / total) * 100 : 0;
-    const rentistasPorc = total > 0 ? (rentistas / total) * 100 : 0;
-    
-    return (
-      <div className="grafico-pastel">
-        <div className="donut-chart">
-          <svg viewBox="0 0 100 100" width="150" height="150">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="15" />
-            <circle 
-              cx="50" cy="50" r="40" fill="none" 
-              stroke="#3b82f6" strokeWidth="15" 
-              strokeDasharray={`${accionistasPorc * 2.513} ${(100 - accionistasPorc) * 2.513}`}
-              strokeDashoffset="0"
-              transform="rotate(-90 50 50)"
-            />
-            <text x="50" y="45" textAnchor="middle" fontSize="10" fill="#1f2937" fontWeight="bold">Acc</text>
-            <text x="50" y="58" textAnchor="middle" fontSize="12" fill="#3b82f6" fontWeight="bold">{Math.round(accionistasPorc)}%</text>
-          </svg>
-          <svg viewBox="0 0 100 100" width="150" height="150">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="15" />
-            <circle 
-              cx="50" cy="50" r="40" fill="none" 
-              stroke="#10b981" strokeWidth="15" 
-              strokeDasharray={`${rentistasPorc * 2.513} ${(100 - rentistasPorc) * 2.513}`}
-              strokeDashoffset="0"
-              transform="rotate(-90 50 50)"
-            />
-            <text x="50" y="45" textAnchor="middle" fontSize="10" fill="#1f2937" fontWeight="bold">Ren</text>
-            <text x="50" y="58" textAnchor="middle" fontSize="12" fill="#10b981" fontWeight="bold">{Math.round(rentistasPorc)}%</text>
-          </svg>
-        </div>
-        <div className="leyenda">
-          <div><span className="color-box" style={{ background: '#3b82f6' }}></span> Accionistas ({accionistas})</div>
-          <div><span className="color-box" style={{ background: '#10b981' }}></span> Rentistas ({rentistas})</div>
-        </div>
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="dashboard-root">
         <div className="chart-box" style={{ textAlign: 'center', padding: '2rem' }}>
-          <div className="loading-spinner"></div>
+          <div className="loading-spinner" />
           <p>Cargando dashboard...</p>
         </div>
       </div>
@@ -279,7 +309,6 @@ function Dashboard() {
 
   return (
     <div className="dashboard-root">
-      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-brand">
           <div className="brand-mark" />
@@ -288,68 +317,42 @@ function Dashboard() {
 
         <nav>
           <span className="nav-section-label">NAVEGACIÓN</span>
-          
-          <button onClick={() => setActiveTab('dashboard')} className={getNavClass('dashboard')}>
-            <LayoutDashboard className="nav-icon" /> Dashboard
-          </button>
-          
-          <button onClick={() => setActiveTab('socios')} className={getNavClass('socios')}>
-            <Users className="nav-icon" /> Socios
-          </button>
-          
-          <button onClick={() => setActiveTab('recepcion')} className={getNavClass('recepcion')}>
-            <ClipboardList className="nav-icon" /> Recepción y Visitas
-          </button>
-          
-          <button onClick={() => setActiveTab('reservas')} className={getNavClass('reservas')}>
-            <Calendar className="nav-icon" /> Reservas
-          </button>
-          
-          <button onClick={() => setActiveTab('ludoteca')} className={getNavClass('ludoteca')}>
-            <Puzzle className="nav-icon" /> Ludoteca
-          </button>
-          
-          <button onClick={() => setActiveTab('disciplinas')} className={getNavClass('disciplinas')}>
-            <Dumbbell className="nav-icon" /> Disciplinas
-          </button>
-          
-          <button onClick={() => setActiveTab('sanciones')} className={getNavClass('sanciones')}>
-            <ShieldAlert className="nav-icon" /> Sanciones
-          </button>
+          {NAV_ITEMS.map(item => {
+            const Icon = item.icon;
+            return (
+              <button key={item.id} onClick={() => setActiveTab(item.id)} className={getNavClass(item.id)}>
+                <Icon className="nav-icon" /> {item.label}
+              </button>
+            );
+          })}
 
-          {/* Administración */}
           <span className="nav-section-label" style={{ marginTop: '1rem' }}>ADMINISTRACIÓN</span>
-          
-          <button onClick={() => setActiveTab('usuarios')} className={getNavClass('usuarios')}>
-            <UserPlus className="nav-icon" /> Gestión de Usuarios
-          </button>
-          
-          <button onClick={() => setActiveTab('espacios')} className={getNavClass('espacios')}>
-            <Settings className="nav-icon" /> Configuración de espacios
-          </button>
-          
-          <button onClick={() => setActiveTab('logs')} className={getNavClass('logs')}>
-            <FileText className="nav-icon" /> Auditoría
-          </button>
+          {ADMIN_ITEMS.map(item => {
+            const Icon = item.icon;
+            return (
+              <button key={item.id} onClick={() => setActiveTab(item.id)} className={getNavClass(item.id)}>
+                <Icon className="nav-icon" /> {item.label}
+              </button>
+            );
+          })}
         </nav>
 
         <div style={{ marginTop: 'auto', padding: '1rem' }}>
           <button onClick={handleLogout} className="nav-link" style={{ color: '#ef4444' }}>
-            <LogOut className="nav-icon" /> Cerrar Sesión
+            <LogOut className="nav-icon" /> Cerrar sesión
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="main-content">
         <header className="page-header">
           <div>
             <h2>Dashboard Ejecutivo</h2>
+            {userName && <p>Sesión activa: {userName}</p>}
           </div>
           <Link to="/" className="back-link">Volver al inicio</Link>
         </header>
 
-        {/* Dashboard Principal */}
         {activeTab === 'dashboard' && (
           <>
             <section className="top-kpi-grid">
@@ -377,47 +380,47 @@ function Dashboard() {
 
             <section className="charts-row">
               <div className="chart-box">
-                <h4>📊 Ocupación por Hora</h4>
+                <h4 className="chart-title-row"><TrendingUp size={18} /> Ocupación por Hora</h4>
                 <p>Porcentaje de uso de instalaciones hoy</p>
-                <GraficoOcupacion data={ocupacionPorHora} />
+                <AreaChart data={ocupacionPorHora} />
               </div>
               <div className="chart-box">
-                <h4>🥧 Composición de Socios</h4>
+                <h4 className="chart-title-row"><Users size={18} /> Composición de Socios</h4>
                 <p>Accionistas vs Rentistas</p>
-                <GraficoPastel 
-                  accionistas={kpis.accionistas} 
-                  rentistas={kpis.rentistas} 
-                  total={kpis.totalSocios} 
+                <SociosCompositionChart
+                  accionistas={kpis.accionistas}
+                  rentistas={kpis.rentistas}
+                  total={kpis.totalSocios}
                 />
               </div>
             </section>
 
             <section className="bottom-row">
               <div className="chart-box">
-                <h4>📋 Resumen del Día</h4>
+                <h4 className="chart-title-row"><ClipboardList size={18} /> Resumen del Día</h4>
                 <div className="summary-grid">
                   <div className="mini-card"><User className="mini-icon" /><div><p>{kpis.visitasHoy}</p><p>Visitas hoy</p></div></div>
                   <div className="mini-card"><Puzzle className="mini-icon" /><div><p>{kpis.ludotecaActivos}</p><p>Ludoteca activos</p></div></div>
                   <div className="mini-card"><TrendingUp className="mini-icon" /><div><p>{kpis.ocupacionPromedio}%</p><p>Ocupación prom.</p></div></div>
-                  <div className="mini-card"><AlertTriangle className="mini-icon" /><div><p>{kpis.noShowsMes}</p><p>No-Shows mes</p></div></div>
+                  <div className="mini-card"><AlertTriangle className="mini-icon" /><div><p>{kpis.noShowsMes}</p><p>No-shows mes</p></div></div>
                 </div>
               </div>
               <div className="chart-box">
-                <h4>📅 Reservas Recientes</h4>
+                <h4 className="chart-title-row"><CalendarDays size={18} /> Reservas Recientes</h4>
                 {reservasRecientes.length === 0 ? (
                   <p style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>No hay reservas recientes</p>
                 ) : (
                   <ul className="reservation-list">
-                    {reservasRecientes.map((reserva, idx) => (
-                      <li key={idx} className="res-item">
+                    {reservasRecientes.map((reserva, index) => (
+                      <li key={reserva.reserva_id || index} className="res-item">
                         <div>
                           <p className="reservation-name">{reserva.espacio_nombre || `Reserva #${reserva.reserva_id}`}</p>
                           <p className="reservation-detail">
-                            {reserva.socio_nombre || 'Socio'} - {reserva.hora_inicio?.slice(0,5) || '--:--'} a {reserva.hora_fin?.slice(0,5) || '--:--'}
+                            {reserva.socio_nombre || 'Socio'} - {reserva.hora_inicio?.slice(0, 5) || '--:--'} a {reserva.hora_fin?.slice(0, 5) || '--:--'}
                           </p>
                         </div>
-                        <span className={`badge ${reserva.estado === 'confirmada' ? 'confirmada' : 'pendiente'}`}>
-                          {reserva.estado || 'Pendiente'}
+                        <span className={`badge ${getEstadoBadgeClass(reserva.estado)}`}>
+                          {estadoReservaLabel(reserva.estado)}
                         </span>
                       </li>
                     ))}
@@ -427,7 +430,7 @@ function Dashboard() {
             </section>
           </>
         )}
-        
+
         {activeTab === 'socios' && <GestionSocios />}
         {activeTab === 'recepcion' && <RecepcionVisitas />}
         {activeTab === 'reservas' && <Reservas />}
@@ -438,80 +441,6 @@ function Dashboard() {
         {activeTab === 'espacios' && <ConfiguracionEspacios />}
         {activeTab === 'logs' && <AuditoriaLogs />}
       </main>
-
-      <style jsx>{`
-        .grafico-ocupacion {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        .barra-container {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .barra-label {
-          width: 45px;
-          font-size: 0.7rem;
-          color: #6b7280;
-        }
-        .barra-wrapper {
-          flex: 1;
-          background: #f3f4f6;
-          border-radius: 10px;
-          overflow: hidden;
-        }
-        .barra {
-          height: 24px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          padding-right: 8px;
-          transition: width 0.3s ease;
-        }
-        .barra-valor {
-          font-size: 0.65rem;
-          color: white;
-          font-weight: 500;
-        }
-        .grafico-pastel {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1rem;
-        }
-        .donut-chart {
-          display: flex;
-          justify-content: center;
-          gap: 2rem;
-          flex-wrap: wrap;
-        }
-        .leyenda {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-        }
-        .color-box {
-          display: inline-block;
-          width: 12px;
-          height: 12px;
-          border-radius: 2px;
-          margin-right: 4px;
-        }
-        .loading-spinner {
-          width: 40px;
-          height: 40px;
-          border: 3px solid #e5e7eb;
-          border-top-color: #3b82f6;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-          margin: 0 auto 1rem;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

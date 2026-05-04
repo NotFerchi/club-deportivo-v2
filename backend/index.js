@@ -21,6 +21,7 @@ const instructoresRoutes= require('./src/routes/instructores.routes');
 const sancionesRoutes   = require('./src/routes/sanciones.routes');
 const logsRoutes        = require('./src/routes/logs.routes');
 const torneosRoutes     = require('./src/routes/torneos.routes');
+const encuentrosRoutes  = require('./src/routes/encuentros.routes');
 const errorHandler      = require('./src/middleware/errorHandler');
 
 const app = express();
@@ -29,13 +30,13 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
-  console.log(`📡 ${req.method} ${req.url}`);
+  console.log(`${req.method} ${req.url}`);
   next();
 });
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, message: '🚀 Servidor funcionando' });
+  res.json({ ok: true, message: 'Servidor funcionando' });
 });
 
 // --- REGISTRAR RUTAS ---
@@ -56,6 +57,7 @@ app.use('/api/inscripciones',     inscripcionesRoutes);
 app.use('/api/disciplinas',       disciplinasRoutes);
 app.use('/api/reservas',          reservasRoutes);
 app.use('/api/torneos',           torneosRoutes);
+app.use('/api/encuentros',        encuentrosRoutes);
 
 // Comentadas temporalmente
 // app.use('/api/reportes', reportesRoutes);
@@ -70,8 +72,8 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
-  console.log('\n📋 Endpoints activos:');
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  console.log('\nEndpoints activos:');
   console.log('  - GET  /api/health');
   console.log('  - ALL  /api/auth');
   console.log('  - ALL  /api/usuarios');
@@ -84,6 +86,7 @@ app.listen(PORT, () => {
   console.log('  - ALL  /api/instructores');
   console.log('  - ALL  /api/reservas');
   console.log('  - ALL  /api/torneos');
+  console.log('  - ALL  /api/encuentros');
   console.log('  - ALL  /api/ludoteca');
-  console.log('\n⚡ Otros endpoints están comentados temporalmente');
+  console.log('\nOtros endpoints estan comentados temporalmente');
 });

@@ -8,6 +8,22 @@ const ERROR_VISITA_NO_VALIDA = 'Visita no encontrada o no vigente';
 const ERROR_CATEGORIA_NO_EXISTE = 'La categoría no existe';
 const ERROR_PARTICIPANTE_DUPLICADO = 'Este participante ya está inscrito en el torneo';
 
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function siguientePotenciaDeDos(numero) {
+  let potencia = 1;
+  while (potencia < numero) {
+    potencia *= 2;
+  }
+  return potencia;
+}
+
 function normalizarFechaOpcional(fecha) {
   return fecha === undefined || fecha === '' ? null : fecha;
 }
@@ -231,6 +247,147 @@ const torneosController = {
       }
 
       res.status(500).json({ error: 'Error al inscribir participante en torneo' });
+    }
+  },
+
+  cerrarInscripciones: async (req, res) => {
+    const torneoId = esEnteroValido(req.params.torneo_id);
+    if (torneoId === null) {
+      return res.status(400).json({ error: 'torneo_id debe ser un entero válido' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Verificar estado del torneo
+      const torneo = await client.query(
+        'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE',
+        [torneoId]
+      );
+
+      if (torneo.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Torneo no encontrado' });
+      }
+
+      if (torneo.rows[0].estado !== 'Abierto') {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'El torneo no está abierto para cerrar inscripciones' });
+      }
+
+      // Contar participantes
+      const participantes = await client.query(
+        'SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1',
+        [torneoId]
+      );
+
+      const numParticipantes = participantes.rowCount;
+      if (numParticipantes < 4) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Se requieren mínimo 4 participantes' });
+      }
+
+      // Mezclar participantes
+      const ids = participantes.rows.map(p => p.participante_id);
+      shuffleArray(ids);
+
+      const totalByes = siguientePotenciaDeDos(ids.length) - ids.length;
+      const totalParticipantesConCruce = ids.length - totalByes;
+
+      for (let i = 0; i < totalParticipantesConCruce; i += 2) {
+        await client.query(
+          `INSERT INTO encuentros_torneo (
+             torneo_id,
+             participante_1_id,
+             participante_2_id,
+             ronda,
+             estado
+           )
+           VALUES ($1, $2, $3, 1, 'pendiente')`,
+          [torneoId, ids[i], ids[i + 1]]
+        );
+      }
+
+      for (let i = totalParticipantesConCruce; i < ids.length; i++) {
+        await client.query(
+          `INSERT INTO encuentros_torneo (
+             torneo_id,
+             participante_1_id,
+             ronda,
+             ganador_id,
+             estado
+           )
+           VALUES ($1, $2, 1, $2, 'programado')`,
+          [torneoId, ids[i]]
+        );
+      }
+
+      // Actualizar estado del torneo
+      await client.query(
+        "UPDATE torneos SET estado = 'Inscripciones_cerradas' WHERE torneo_id = $1",
+        [torneoId]
+      );
+
+      await client.query('COMMIT');
+      res.json({ message: 'Inscripciones cerradas y bracket generado' });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error al cerrar inscripciones:', error);
+      res.status(500).json({ error: 'Error al cerrar inscripciones' });
+    } finally {
+      client.release();
+    }
+  },
+
+  confirmarBracket: async (req, res) => {
+    const torneoId = esEnteroValido(req.params.torneo_id);
+    if (torneoId === null) {
+      return res.status(400).json({ error: 'torneo_id debe ser un entero válido' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Verificar estado del torneo
+      const torneo = await client.query(
+        'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE',
+        [torneoId]
+      );
+
+      if (torneo.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Torneo no encontrado' });
+      }
+
+      if (torneo.rows[0].estado === 'En_curso') {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'El bracket ya está confirmado' });
+      }
+
+      await client.query(
+        `UPDATE encuentros_torneo
+         SET estado = 'programado'
+         WHERE torneo_id = $1
+           AND ronda = 1
+           AND estado = 'pendiente'`,
+        [torneoId]
+      );
+
+      await client.query(
+        "UPDATE torneos SET estado = 'En_curso' WHERE torneo_id = $1",
+        [torneoId]
+      );
+
+      await client.query('COMMIT');
+      res.json({ message: 'Bracket confirmado' });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error al confirmar bracket:', error);
+      res.status(500).json({ error: 'Error al confirmar bracket' });
+    } finally {
+      client.release();
     }
   },
 };

@@ -1,96 +1,215 @@
-import React, { useEffect, useState } from 'react';
-import { Search, Calendar, Clock, User, MapPin, CheckCircle, XCircle, Edit2, Trash2, Plus, Filter, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, CalendarDays, CheckCircle, Clock, Edit2, Plus, Trash2, X, XCircle } from 'lucide-react';
+import { adminApi } from '../../../services/api';
+import { FilterSelect, ModuleHeader, SearchInput, StatCard } from '../../../components/admin/AdminUI';
+import {
+  addMinutesToTime,
+  estadoReservaLabel,
+  formatDate,
+  getSocioNumero,
+  minutesBetween,
+  normalizeEstadoReserva,
+  normalizeText,
+  timesOverlap,
+  todayISO,
+  toDateInputValue,
+  toTimeInputValue
+} from '../../../utils/adminData';
+
+const RESERVA_CONFIG = {
+  sameDayOnly: true,
+  durationMinutes: 60,
+  maxActiveReservationsPerSocio: 1
+};
+
+const initialFormData = {
+  espacio_id: '',
+  socio_id: '',
+  fecha: todayISO(),
+  hora_inicio: '',
+  hora_fin: '',
+  estado: 'confirmada'
+};
+
+const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
+const estados = ['confirmada', 'cancelada', 'no-show', 'sancionada'];
+
+function getSocioName(socio) {
+  return [socio?.nombres, socio?.apellido_paterno].filter(Boolean).join(' ').trim();
+}
+
+function getDiaSemana(fecha) {
+  const [year, month, day] = String(fecha || '').split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day).getDay() + 1;
+}
+
+function EstadoIcon({ estado }) {
+  const normalized = normalizeEstadoReserva(estado);
+  if (normalized === 'confirmada') return <CheckCircle size={13} />;
+  if (normalized === 'cancelada') return <XCircle size={13} />;
+  if (normalized === 'no-show' || normalized === 'sancionada') return <AlertTriangle size={13} />;
+  return <Clock size={13} />;
+}
+
+function getEstadoBadge(estado) {
+  const normalized = normalizeEstadoReserva(estado);
+  if (normalized === 'confirmada') return 'badge-success';
+  if (normalized === 'cancelada') return 'badge-danger';
+  if (normalized === 'no-show' || normalized === 'sancionada') return 'badge-danger';
+  return 'badge-warning';
+}
 
 function Reservas() {
   const [reservas, setReservas] = useState([]);
-  const [filteredReservas, setFilteredReservas] = useState([]);
   const [espacios, setEspacios] = useState([]);
   const [socios, setSocios] = useState([]);
+  const [sesiones, setSesiones] = useState([]);
+  const [sanciones, setSanciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingReserva, setEditingReserva] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  const [filterFecha, setFilterFecha] = useState('');
+  const [filterEspacio, setFilterEspacio] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-
-  const [formData, setFormData] = useState({
-    espacio_id: '',
-    socio_id: '',
-    fecha: '',
-    hora_inicio: '',
-    hora_fin: '',
-    estado: 'pendiente'
-  });
-
+  const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
-  const token = localStorage.getItem('token');
 
-  const fetchReservas = async () => {
+  const fetchData = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/reservas', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setReservas(data);
-        setFilteredReservas(data);
-      }
+      const [reservasData, espaciosData, sociosData, sesionesData, sancionesData] = await Promise.all([
+        adminApi.getReservas(),
+        adminApi.getEspacios(),
+        adminApi.getSocios(),
+        adminApi.getSesiones(),
+        adminApi.getSanciones()
+      ]);
+      setReservas(reservasData);
+      setEspacios(espaciosData.filter(espacio => espacio.activo === true || espacio.activo === 'true'));
+      setSocios(sociosData.filter(socio => socio.activo === true || socio.activo === 'true'));
+      setSesiones(sesionesData);
+      setSanciones(sancionesData);
     } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const fetchEspacios = async () => {
-    try {
-      const res = await fetch('http://localhost:3000/api/espacios/todos', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setEspacios(data.filter(e => e.activo === true || e.activo === 'true'));
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const fetchSocios = async () => {
-    try {
-      const res = await fetch('http://localhost:3000/api/socios', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSocios(data.filter(s => s.activo === true || s.activo === 'true'));
-      }
-    } catch (error) {
-      console.error(error);
+      alert(error.message || 'Error al cargar reservas');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    Promise.all([fetchReservas(), fetchEspacios(), fetchSocios()]).finally(() => setLoading(false));
+    fetchData();
   }, []);
 
-  useEffect(() => {
-    let filtered = reservas;
-    
-    if (searchTerm) {
-      filtered = filtered.filter(r =>
-        r.socio_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.espacio_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.socio_numero?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    if (filterEstado) {
-      filtered = filtered.filter(r => r.estado === filterEstado);
-    }
-    
-    setFilteredReservas(filtered);
-  }, [searchTerm, filterEstado, reservas]);
+  const filteredReservas = useMemo(() => {
+    const query = normalizeText(searchTerm);
+    return reservas.filter(reserva => {
+      const estado = normalizeEstadoReserva(reserva.estado);
+      const text = normalizeText([
+        reserva.socio_nombre,
+        reserva.espacio_nombre,
+        reserva.numero_socio,
+        reserva.socio_numero
+      ].filter(Boolean).join(' '));
+
+      if (query && !text.includes(query)) return false;
+      if (filterEstado && estado !== filterEstado) return false;
+      if (filterFecha && toDateInputValue(reserva.fecha) !== filterFecha) return false;
+      if (filterEspacio && String(reserva.espacio_id) !== filterEspacio) return false;
+      return true;
+    });
+  }, [reservas, searchTerm, filterEstado, filterFecha, filterEspacio]);
+
+  const estadisticas = useMemo(() => ({
+    total: reservas.length,
+    confirmadas: reservas.filter(r => normalizeEstadoReserva(r.estado) === 'confirmada').length,
+    canceladas: reservas.filter(r => normalizeEstadoReserva(r.estado) === 'cancelada').length,
+    noShows: reservas.filter(r => normalizeEstadoReserva(r.estado) === 'no-show' || r.no_show === true).length,
+    hoy: reservas.filter(r => toDateInputValue(r.fecha) === todayISO()).length
+  }), [reservas]);
+
+  const sociosSancionados = useMemo(() => {
+    const ids = new Set();
+    sanciones.forEach(sancion => {
+      const estado = String(sancion.estado || '').toLowerCase();
+      if (sancion.activa === true || estado === 'activa' || estado === 'activo') {
+        ids.add(String(sancion.socio_id));
+      }
+    });
+    return ids;
+  }, [sanciones]);
+
+  const getInputStyles = (field) => (formErrors[field] ? inputErrorStyle : {});
+
+  const updateForm = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormErrors(prev => ({ ...prev, [field]: undefined }));
+  };
+
+  const updateStartTime = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      hora_inicio: value,
+      hora_fin: value ? addMinutesToTime(value, RESERVA_CONFIG.durationMinutes) : ''
+    }));
+    setFormErrors(prev => ({ ...prev, hora_inicio: undefined, hora_fin: undefined }));
+  };
+
+  const resetForm = () => {
+    setEditingReserva(null);
+    setFormData({ ...initialFormData, fecha: todayISO() });
+    setFormErrors({});
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const openEditModal = (reserva) => {
+    setEditingReserva(reserva);
+    setFormData({
+      espacio_id: reserva.espacio_id?.toString() || '',
+      socio_id: reserva.socio_id?.toString() || '',
+      fecha: toDateInputValue(reserva.fecha),
+      hora_inicio: toTimeInputValue(reserva.hora_inicio),
+      hora_fin: toTimeInputValue(reserva.hora_fin),
+      estado: normalizeEstadoReserva(reserva.estado)
+    });
+    setFormErrors({});
+    setShowModal(true);
+  };
+
+  const hasReservationConflict = () => reservas.some(reserva => {
+    if (reserva.reserva_id === editingReserva?.reserva_id) return false;
+    if (String(reserva.espacio_id) !== String(formData.espacio_id)) return false;
+    if (toDateInputValue(reserva.fecha) !== formData.fecha) return false;
+    if (normalizeEstadoReserva(reserva.estado) === 'cancelada') return false;
+    return timesOverlap(formData.hora_inicio, formData.hora_fin, reserva.hora_inicio, reserva.hora_fin);
+  });
+
+  const hasSocioReservation = () => reservas.some(reserva => {
+    if (reserva.reserva_id === editingReserva?.reserva_id) return false;
+    if (String(reserva.socio_id) !== String(formData.socio_id)) return false;
+    if (toDateInputValue(reserva.fecha) !== formData.fecha) return false;
+    return normalizeEstadoReserva(reserva.estado) !== 'cancelada';
+  });
+
+  const hasSessionConflict = () => {
+    const espacio = espacios.find(item => String(item.espacio_id) === String(formData.espacio_id));
+    const diaSemana = getDiaSemana(formData.fecha);
+
+    return sesiones.some(sesion => {
+      const sameSpaceById = sesion.espacio_id && String(sesion.espacio_id) === String(formData.espacio_id);
+      const sameSpaceByName = espacio?.nombre && normalizeText(sesion.espacio) === normalizeText(espacio.nombre);
+
+      return (sameSpaceById || sameSpaceByName) &&
+        Number(sesion.dia_semana) === Number(diaSemana) &&
+        timesOverlap(formData.hora_inicio, formData.hora_fin, sesion.hora_inicio, sesion.hora_fin);
+    });
+  };
 
   const validateForm = () => {
     const errors = {};
@@ -98,127 +217,87 @@ function Reservas() {
     if (!formData.socio_id) errors.socio_id = 'Seleccione un socio';
     if (!formData.fecha) errors.fecha = 'Seleccione una fecha';
     if (!formData.hora_inicio) errors.hora_inicio = 'Seleccione hora de inicio';
-    if (!formData.hora_fin) errors.hora_fin = 'Seleccione hora de fin';
-    
-    if (formData.hora_inicio && formData.hora_fin && formData.hora_inicio >= formData.hora_fin) {
-      errors.hora_fin = 'La hora de fin debe ser posterior a la hora de inicio';
+    if (!formData.hora_fin) errors.hora_fin = 'Hora fin requerida';
+
+    if (formData.fecha && RESERVA_CONFIG.sameDayOnly && formData.fecha !== todayISO()) {
+      errors.fecha = 'Solo se permiten reservas para el mismo día';
     }
-    
+
+    if (formData.hora_inicio && formData.hora_fin) {
+      const duration = minutesBetween(formData.hora_inicio, formData.hora_fin);
+      if (duration !== RESERVA_CONFIG.durationMinutes) {
+        errors.hora_fin = `La reserva debe durar ${RESERVA_CONFIG.durationMinutes} minutos`;
+      }
+    }
+
+    if (!estados.includes(formData.estado)) errors.estado = 'Estado de reserva inválido';
+    const reservaActiva = !['cancelada', 'no-show', 'sancionada'].includes(formData.estado);
+    if (reservaActiva) {
+      if (sociosSancionados.has(String(formData.socio_id))) errors.socio_id = 'El socio tiene una sanción activa';
+      if (formData.socio_id && hasSocioReservation()) errors.socio_id = 'El socio ya tiene una reserva activa para ese día';
+      if (formData.espacio_id && formData.fecha && formData.hora_inicio && formData.hora_fin && hasReservationConflict()) {
+        errors.hora_inicio = 'El espacio ya está reservado en ese horario';
+      }
+      if (formData.espacio_id && formData.fecha && formData.hora_inicio && formData.hora_fin && hasSessionConflict()) {
+        errors.hora_inicio = 'El horario entra en conflicto con una sesión programada';
+      }
+    }
+
     return errors;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const showToast = (message) => {
+    setSuccessMessage(message);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     const errors = validateForm();
+
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
-    
-    const url = editingReserva
-      ? `http://localhost:3000/api/reservas/${editingReserva.reserva_id}`
-      : 'http://localhost:3000/api/reservas';
-    const method = editingReserva ? 'PUT' : 'POST';
-    
+
     try {
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-      if (res.ok) {
-        fetchReservas();
-        setShowModal(false);
-        setEditingReserva(null);
-        setFormData({ espacio_id: '', socio_id: '', fecha: '', hora_inicio: '', hora_fin: '', estado: 'pendiente' });
-        setFormErrors({});
-        setSuccessMessage(editingReserva ? 'Reserva actualizada correctamente' : 'Reserva creada correctamente');
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Error al guardar reserva');
-      }
+      await adminApi.saveReserva(formData, editingReserva?.reserva_id);
+      await fetchData();
+      setShowModal(false);
+      resetForm();
+      showToast(editingReserva ? 'Reserva actualizada correctamente' : 'Reserva creada correctamente');
     } catch (error) {
-      console.error(error);
-      alert('Error de conexión');
+      alert(error.message || 'Error al guardar reserva');
     }
   };
 
   const cancelarReserva = async (id) => {
     if (!confirm('¿Cancelar esta reserva? Esta acción no se puede deshacer.')) return;
     try {
-      const res = await fetch(`http://localhost:3000/api/reservas/${id}/cancelar`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        fetchReservas();
-        setSuccessMessage('Reserva cancelada correctamente');
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
-      } else {
-        alert('Error al cancelar');
-      }
+      await adminApi.cancelarReserva(id);
+      await fetchData();
+      showToast('Reserva cancelada correctamente');
     } catch (error) {
-      console.error(error);
+      alert(error.message || 'Error al cancelar reserva');
     }
   };
 
   const deleteReserva = async (id) => {
     if (!confirm('¿Eliminar esta reserva permanentemente? Esta acción no se puede deshacer.')) return;
     try {
-      const res = await fetch(`http://localhost:3000/api/reservas/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        fetchReservas();
-        setSuccessMessage('Reserva eliminada permanentemente');
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
-      } else {
-        alert('Error al eliminar');
-      }
+      await adminApi.deleteReserva(id);
+      await fetchData();
+      showToast('Reserva eliminada permanentemente');
     } catch (error) {
-      console.error(error);
+      alert(error.message || 'Error al eliminar reserva');
     }
-  };
-
-  const getEstadoBadge = (estado) => {
-    const estilos = {
-      confirmada: 'badge-success',
-      pendiente: 'badge-warning',
-      cancelada: 'badge-danger',
-      'no-show': 'badge-danger'
-    };
-    return estilos[estado?.toLowerCase()] || 'badge-warning';
-  };
-
-  const getEstadoIcon = (estado) => {
-    if (estado === 'confirmada') return '✅';
-    if (estado === 'pendiente') return '⏳';
-    if (estado === 'cancelada') return '❌';
-    return '📅';
-  };
-
-  const estadisticas = {
-    total: reservas.length,
-    confirmadas: reservas.filter(r => r.estado === 'confirmada').length,
-    pendientes: reservas.filter(r => r.estado === 'pendiente').length,
-    canceladas: reservas.filter(r => r.estado === 'cancelada').length,
-    hoy: reservas.filter(r => r.fecha === new Date().toISOString().split('T')[0]).length
   };
 
   if (loading) return <div className="chart-box"><p>Cargando reservas...</p></div>;
 
   return (
     <div className="chart-box">
-
-      {/* Mensaje de éxito */}
       {showSuccess && (
         <div className="success-toast">
           <CheckCircle size={20} />
@@ -226,91 +305,53 @@ function Reservas() {
         </div>
       )}
 
-      {/* HEADER */}
-      <div className="flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h4>📅 Gestión de Reservas</h4>
-          <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#6b7280' }}>
-            Total: {filteredReservas.length} reservas
-          </p>
-        </div>
-
-        <div className="flex-gap" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div className="search-wrapper">
-            <Search className="search-icon" />
-            <input
-              type="text"
-              placeholder="Buscar socio o espacio..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-          </div>
-
-          <button
-            className={`btn-secondary ${showFilters ? 'active' : ''}`}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter size={16} /> Filtros
-          </button>
-
-          <button className="btn-primary" onClick={() => {
-            setEditingReserva(null);
-            setFormData({ espacio_id: '', socio_id: '', fecha: '', hora_inicio: '', hora_fin: '', estado: 'pendiente' });
-            setFormErrors({});
-            setShowModal(true);
-          }}>
-            <Plus size={16} /> Nueva Reserva
-          </button>
-        </div>
-      </div>
-
-      {/* ESTADÍSTICAS */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-        gap: '1rem', 
-        marginBottom: '1.5rem' 
-      }}>
-        <div className="stats-card" style={{ background: '#eff6ff' }}>
-          <Calendar size={20} color="#3b82f6" />
-          <div><strong>{estadisticas.total}</strong><p>Total Reservas</p></div>
-        </div>
-        <div className="stats-card" style={{ background: '#f0fdf4' }}>
-          <CheckCircle size={20} color="#10b981" />
-          <div><strong>{estadisticas.confirmadas}</strong><p>Confirmadas</p></div>
-        </div>
-        <div className="stats-card" style={{ background: '#fffbeb' }}>
-          <Clock size={20} color="#f59e0b" />
-          <div><strong>{estadisticas.pendientes}</strong><p>Pendientes</p></div>
-        </div>
-        <div className="stats-card" style={{ background: '#fef2f2' }}>
-          <XCircle size={20} color="#ef4444" />
-          <div><strong>{estadisticas.canceladas}</strong><p>Canceladas</p></div>
-        </div>
-      </div>
-
-      {/* FILTROS */}
-      {showFilters && (
-        <div className="filters-panel">
-          <div>
-            <label>Estado</label>
-            <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)}>
-              <option value="">Todos</option>
-              <option value="confirmada">Confirmadas</option>
-              <option value="pendiente">Pendientes</option>
-              <option value="cancelada">Canceladas</option>
-            </select>
-          </div>
-          {(filterEstado) && (
-            <button onClick={() => { setFilterEstado(''); }} className="btn-outline">
-              Limpiar
+      <ModuleHeader
+        icon={CalendarDays}
+        title="Gestión de Reservas"
+        count={filteredReservas.length}
+        subtitle={`Reglas activas: mismo día, ${RESERVA_CONFIG.durationMinutes} minutos, ${RESERVA_CONFIG.maxActiveReservationsPerSocio} reserva por socio.`}
+        actions={(
+          <>
+            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar socio, número o espacio" />
+            <button className="btn-primary" onClick={openCreateModal}>
+              <Plus size={16} /> Nueva Reserva
             </button>
-          )}
-        </div>
-      )}
+          </>
+        )}
+      />
 
-      {/* TABLA DE RESERVAS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <StatCard icon={CalendarDays} label="Total" value={estadisticas.total} tone="info" />
+        <StatCard icon={CheckCircle} label="Confirmadas" value={estadisticas.confirmadas} tone="success" />
+        <StatCard icon={XCircle} label="Canceladas" value={estadisticas.canceladas} tone="danger" />
+        <StatCard icon={AlertTriangle} label="No-shows" value={estadisticas.noShows} tone="warning" />
+      </div>
+
+      <div className="admin-filter-row">
+        <FilterSelect label="Estado" value={filterEstado} onChange={setFilterEstado}>
+          <option value="">Todos</option>
+          <option value="confirmada">Confirmadas</option>
+          <option value="cancelada">Canceladas</option>
+          <option value="no-show">No-shows</option>
+          <option value="sancionada">Sancionadas</option>
+        </FilterSelect>
+        <label className="admin-filter">
+          <span>Fecha</span>
+          <input type="date" value={filterFecha} onChange={event => setFilterFecha(event.target.value)} />
+        </label>
+        <FilterSelect label="Espacio" value={filterEspacio} onChange={setFilterEspacio}>
+          <option value="">Todos</option>
+          {espacios.map(espacio => (
+            <option key={espacio.espacio_id} value={espacio.espacio_id}>{espacio.nombre}</option>
+          ))}
+        </FilterSelect>
+        {(filterEstado || filterFecha || filterEspacio) && (
+          <button onClick={() => { setFilterEstado(''); setFilterFecha(''); setFilterEspacio(''); }} className="btn-outline">
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
       <div className="table-wrapper">
         <table className="data-table">
           <thead>
@@ -324,79 +365,48 @@ function Reservas() {
             </tr>
           </thead>
           <tbody>
-            {filteredReservas.map(r => (
-              <tr key={r.reserva_id} style={r.estado === 'cancelada' ? { opacity: 0.6 } : {}}>
-                <td>
-                  <strong>{r.espacio_nombre}</strong>
-                  <br />
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>ID: {r.espacio_id}</span>
-                </td>
-                <td>
-                  <strong>{r.socio_nombre}</strong>
-                  <br />
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>{r.socio_numero || 'Sin número'}</span>
-                </td>
-                <td>
-                  <span style={{ fontWeight: 500 }}>{new Date(r.fecha).toLocaleDateString()}</span>
-                </td>
-                <td>
-                  <Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                  {r.hora_inicio?.slice(0,5)} - {r.hora_fin?.slice(0,5)}
-                </td>
-                <td>
-                  <span className={getEstadoBadge(r.estado)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <span>{getEstadoIcon(r.estado)}</span>
-                    {r.estado}
-                  </span>
-                </td>
-                <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => {
-                      setEditingReserva(r);
-                      setFormData({
-                        espacio_id: r.espacio_id?.toString() || '',
-                        socio_id: r.socio_id?.toString() || '',
-                        fecha: r.fecha?.split('T')[0] || '',
-                        hora_inicio: r.hora_inicio || '',
-                        hora_fin: r.hora_fin || '',
-                        estado: r.estado || 'pendiente'
-                      });
-                      setFormErrors({});
-                      setShowModal(true);
-                    }}
-                    className="btn-icon"
-                    style={{ color: '#3b82f6' }}
-                    title="Editar reserva"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  
-                  {r.estado !== 'cancelada' && (
-                    <button
-                      onClick={() => cancelarReserva(r.reserva_id)}
-                      className="btn-icon"
-                      style={{ color: '#f59e0b' }}
-                      title="Cancelar reserva"
-                    >
-                      <XCircle size={16} />
+            {filteredReservas.map(reserva => {
+              const estado = normalizeEstadoReserva(reserva.estado);
+              return (
+                <tr key={reserva.reserva_id} style={estado === 'cancelada' ? { opacity: 0.65 } : {}}>
+                  <td>
+                    <strong>{reserva.espacio_nombre}</strong>
+                    <br />
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>ID: {reserva.espacio_id}</span>
+                  </td>
+                  <td>
+                    <strong>{reserva.socio_nombre}</strong>
+                    <br />
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>{reserva.numero_socio || reserva.socio_numero || 'Sin número'}</span>
+                  </td>
+                  <td><span style={{ fontWeight: 500 }}>{formatDate(reserva.fecha)}</span></td>
+                  <td><span className="inline-icon"><Clock size={12} /> {toTimeInputValue(reserva.hora_inicio)} - {toTimeInputValue(reserva.hora_fin)}</span></td>
+                  <td>
+                    <span className={getEstadoBadge(reserva.estado)}>
+                      <EstadoIcon estado={reserva.estado} />
+                      {estadoReservaLabel(reserva.estado)}
+                    </span>
+                  </td>
+                  <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button onClick={() => openEditModal(reserva)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar reserva">
+                      <Edit2 size={16} />
                     </button>
-                  )}
-                  
-                  <button
-                    onClick={() => deleteReserva(r.reserva_id)}
-                    className="btn-icon"
-                    style={{ color: '#ef4444' }}
-                    title="Eliminar permanentemente"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
+                    {estado !== 'cancelada' && (
+                      <button onClick={() => cancelarReserva(reserva.reserva_id)} className="btn-icon" style={{ color: '#f59e0b' }} title="Cancelar reserva">
+                        <XCircle size={16} />
+                      </button>
+                    )}
+                    <button onClick={() => deleteReserva(reserva.reserva_id)} className="btn-icon" style={{ color: '#ef4444' }} title="Eliminar permanentemente">
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
             {filteredReservas.length === 0 && (
               <tr>
                 <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-                  No hay reservas registradas
+                  No hay reservas con los filtros actuales.
                 </td>
               </tr>
             )}
@@ -404,30 +414,28 @@ function Reservas() {
         </table>
       </div>
 
-      {/* MODAL */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '650px' }}>
             <div className="modal-header">
-              <h3>{editingReserva ? '✏️ Editar Reserva' : '➕ Nueva Reserva'}</h3>
-              <button onClick={() => setShowModal(false)} className="close-modal">
-                <X size={24} />
-              </button>
+              <div>
+                <h3>{editingReserva ? 'Editar Reserva' : 'Nueva Reserva'}</h3>
+                <p className="form-alert" style={{ margin: 0 }}>
+                  La hora de fin se calcula automáticamente con la duración configurada.
+                </p>
+              </div>
+              <button onClick={() => setShowModal(false)} className="close-modal"><X size={24} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="form-row">
                   <div className="form-group">
                     <label className="required">Espacio</label>
-                    <select
-                      value={formData.espacio_id}
-                      onChange={(e) => setFormData({ ...formData, espacio_id: e.target.value })}
-                      style={formErrors.espacio_id ? { borderColor: '#ef4444', backgroundColor: '#fff1f0' } : {}}
-                    >
+                    <select value={formData.espacio_id} onChange={event => updateForm('espacio_id', event.target.value)} style={getInputStyles('espacio_id')}>
                       <option value="">Seleccione un espacio</option>
-                      {espacios.map(e => (
-                        <option key={e.espacio_id} value={e.espacio_id}>
-                          {e.nombre} (Cap: {e.capacidad_maxima})
+                      {espacios.map(espacio => (
+                        <option key={espacio.espacio_id} value={espacio.espacio_id}>
+                          {espacio.nombre} (Cap: {espacio.capacidad_maxima})
                         </option>
                       ))}
                     </select>
@@ -436,15 +444,11 @@ function Reservas() {
 
                   <div className="form-group">
                     <label className="required">Socio</label>
-                    <select
-                      value={formData.socio_id}
-                      onChange={(e) => setFormData({ ...formData, socio_id: e.target.value })}
-                      style={formErrors.socio_id ? { borderColor: '#ef4444', backgroundColor: '#fff1f0' } : {}}
-                    >
+                    <select value={formData.socio_id} onChange={event => updateForm('socio_id', event.target.value)} style={getInputStyles('socio_id')}>
                       <option value="">Seleccione un socio</option>
-                      {socios.map(s => (
-                        <option key={s.socio_id} value={s.socio_id}>
-                          {s.nombres} {s.apellido_paterno} - {s.numero_socio}
+                      {socios.map(socio => (
+                        <option key={socio.socio_id} value={socio.socio_id} disabled={sociosSancionados.has(String(socio.socio_id))}>
+                          {getSocioName(socio)} - {getSocioNumero(socio) || 'Sin número'}{sociosSancionados.has(String(socio.socio_id)) ? ' (sancionado)' : ''}
                         </option>
                       ))}
                     </select>
@@ -453,47 +457,31 @@ function Reservas() {
 
                   <div className="form-group">
                     <label className="required">Fecha</label>
-                    <input
-                      type="date"
-                      value={formData.fecha}
-                      onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-                      style={formErrors.fecha ? { borderColor: '#ef4444', backgroundColor: '#fff1f0' } : {}}
-                    />
+                    <input type="date" value={formData.fecha} min={todayISO()} max={RESERVA_CONFIG.sameDayOnly ? todayISO() : undefined} onChange={event => updateForm('fecha', event.target.value)} style={getInputStyles('fecha')} />
                     {formErrors.fecha && <p className="field-error">{formErrors.fecha}</p>}
                   </div>
 
                   <div className="form-group">
                     <label className="required">Hora inicio</label>
-                    <input
-                      type="time"
-                      value={formData.hora_inicio}
-                      onChange={(e) => setFormData({ ...formData, hora_inicio: e.target.value })}
-                      style={formErrors.hora_inicio ? { borderColor: '#ef4444', backgroundColor: '#fff1f0' } : {}}
-                    />
+                    <input type="time" value={formData.hora_inicio} onChange={event => updateStartTime(event.target.value)} style={getInputStyles('hora_inicio')} />
                     {formErrors.hora_inicio && <p className="field-error">{formErrors.hora_inicio}</p>}
                   </div>
 
                   <div className="form-group">
                     <label className="required">Hora fin</label>
-                    <input
-                      type="time"
-                      value={formData.hora_fin}
-                      onChange={(e) => setFormData({ ...formData, hora_fin: e.target.value })}
-                      style={formErrors.hora_fin ? { borderColor: '#ef4444', backgroundColor: '#fff1f0' } : {}}
-                    />
+                    <input type="time" value={formData.hora_fin} readOnly style={getInputStyles('hora_fin')} />
                     {formErrors.hora_fin && <p className="field-error">{formErrors.hora_fin}</p>}
                   </div>
 
                   <div className="form-group">
                     <label>Estado</label>
-                    <select
-                      value={formData.estado}
-                      onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                    >
-                      <option value="pendiente">⏳ Pendiente</option>
-                      <option value="confirmada">✅ Confirmada</option>
-                      <option value="cancelada">❌ Cancelada</option>
+                    <select value={formData.estado} onChange={event => updateForm('estado', event.target.value)} style={getInputStyles('estado')}>
+                      <option value="confirmada">Confirmada</option>
+                      <option value="cancelada">Cancelada</option>
+                      <option value="no-show">No-show</option>
+                      <option value="sancionada">Sancionada</option>
                     </select>
+                    {formErrors.estado && <p className="field-error">{formErrors.estado}</p>}
                   </div>
                 </div>
               </div>
@@ -509,71 +497,6 @@ function Reservas() {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .success-toast {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background: #10b981;
-          color: white;
-          padding: 12px 20px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          z-index: 1000;
-          animation: slideIn 0.3s ease;
-        }
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        .stats-card {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.75rem 1rem;
-          border-radius: 10px;
-          background: white;
-          border: 1px solid #e5e7eb;
-        }
-        .stats-card strong { font-size: 1.25rem; font-weight: 700; display: block; }
-        .stats-card p { margin: 0; font-size: 0.75rem; color: #6b7280; }
-        .btn-secondary {
-          background: #f3f4f6;
-          color: #374151;
-          padding: 0.5rem 1rem;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .btn-secondary:hover { background: #e5e7eb; }
-        .btn-secondary.active { background: #3b82f6; color: white; border-color: #3b82f6; }
-        .filters-panel {
-          margin-bottom: 1.5rem;
-          padding: 1rem;
-          background: #f9fafb;
-          border-radius: 8px;
-          display: flex;
-          gap: 1rem;
-          flex-wrap: wrap;
-          align-items: flex-end;
-        }
-        .filters-panel select { padding: 0.5rem; border-radius: 8px; border: 1px solid #e5e7eb; min-width: 150px; }
-        .filters-panel label { font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem; }
-        .btn-icon { background: none; border: none; cursor: pointer; padding: 0.25rem; border-radius: 4px; transition: background 0.2s; }
-        .btn-icon:hover { background: #f3f4f6; }
-        .field-error { font-size: 0.75rem; color: #ef4444; margin-top: 0.25rem; }
-        .badge-success { background: #d1fae5; color: #065f46; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
-        .badge-warning { background: #fed7aa; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
-        .badge-danger { background: #fee2e2; color: #b91c1c; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
-        .flex-gap { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-        .field-hint { font-size: 0.7rem; color: #6b7280; margin-top: 0.25rem; }
-      `}</style>
     </div>
   );
 }

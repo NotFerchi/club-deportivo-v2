@@ -9,7 +9,12 @@ router.get('/socio/:socioId/verificar', verifyToken, sancionesController.verific
 
 // Rutas protegidas para admin, gerente y coordinador
 router.get('/', verifyToken, checkRole(['admin', 'gerente', 'coordinador']), sancionesController.getSanciones);
+router.get('/:id', verifyToken, checkRole(['admin', 'gerente', 'coordinador']), sancionesController.getSancionById);
 router.post('/', verifyToken, checkRole(['admin', 'gerente', 'coordinador']), sancionesController.createSancion);
+router.post('/no-shows/sincronizar', verifyToken, checkRole(['admin', 'gerente', 'coordinador']), sancionesController.sincronizarNoShows);
+router.put('/:id', verifyToken, checkRole(['admin', 'gerente', 'coordinador']), sancionesController.updateSancion);
 router.put('/:id/perdonar', verifyToken, checkRole(['admin', 'gerente', 'coordinador']), sancionesController.perdonarSancion);
+router.put('/:id/levantar', verifyToken, checkRole(['admin', 'gerente', 'coordinador']), sancionesController.levantarSancion);
+router.delete('/:id', verifyToken, checkRole(['admin', 'gerente', 'coordinador']), sancionesController.deleteSancion);
 
 module.exports = router;

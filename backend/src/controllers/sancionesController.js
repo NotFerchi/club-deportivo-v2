@@ -1,25 +1,132 @@
 const pool = require('../config/database');
+const {
+    addDaysISO,
+    getTableColumns,
+    gravedadDias,
+    localTodayISO,
+    normalizeGravedad
+} = require('../utils/adminRules');
+
+const activeEstadoSql = "LOWER(s.estado::text) IN ('activa', 'activo')";
+
+async function getSancionColumnInfo() {
+    const columns = await getTableColumns('sanciones');
+    const gravedadExpr = columns.has('gravedad')
+        ? 's.gravedad'
+        : "CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END";
+    const fechaInicioExpr = columns.has('fecha_inicio')
+        ? 's.fecha_inicio'
+        : columns.has('fecha')
+            ? 's.fecha::date'
+            : 'CURRENT_DATE';
+    const fechaFinExpr = columns.has('fecha_fin')
+        ? 's.fecha_fin'
+        : `(${fechaInicioExpr} + (
+            CASE
+                WHEN ${gravedadExpr} = 'Grave' THEN INTERVAL '30 days'
+                WHEN ${gravedadExpr} = 'Moderada' THEN INTERVAL '7 days'
+                ELSE INTERVAL '1 day'
+            END
+          ))::date`;
+    const fechaResolucionExpr = columns.has('fecha_resolucion')
+        ? 's.fecha_resolucion'
+        : 'NULL::date';
+
+    return { columns, gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr };
+}
+
+async function getHistorialSocio(socioId) {
+    const { gravedadExpr, fechaFinExpr } = await getSancionColumnInfo();
+    const result = await pool.query(
+        `SELECT
+            COUNT(*)::int as total,
+            COUNT(*) FILTER (WHERE ${activeEstadoSql} AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE))::int as activas,
+            COUNT(*) FILTER (WHERE ${gravedadExpr} = 'Grave')::int as graves
+         FROM sanciones s
+         WHERE s.socio_id = $1`,
+        [socioId]
+    );
+
+    return result.rows[0] || { total: 0, activas: 0, graves: 0 };
+}
+
+async function resolveGravedad(socioId, gravedad, origen) {
+    let resolved = normalizeGravedad(gravedad);
+    const historial = await getHistorialSocio(socioId);
+
+    if (String(origen || '').toLowerCase().includes('no-show') && resolved === 'Leve') {
+        resolved = 'Moderada';
+    }
+    if (historial.graves > 0 || historial.activas >= 2) {
+        resolved = 'Grave';
+    } else if (historial.total > 0 && resolved === 'Leve') {
+        resolved = 'Moderada';
+    }
+
+    return resolved;
+}
+
+async function insertSancion(client, payload) {
+    const columns = await getTableColumns('sanciones');
+    const insertColumns = ['socio_id', 'motivo', 'origen', 'estado'];
+    const values = [
+        payload.socio_id,
+        payload.motivo,
+        payload.origen || 'Administración',
+        payload.estado || 'Activa'
+    ];
+
+    if (columns.has('gravedad')) {
+        insertColumns.push('gravedad');
+        values.push(payload.gravedad);
+    }
+    if (columns.has('fecha_inicio')) {
+        insertColumns.push('fecha_inicio');
+        values.push(payload.fecha_inicio);
+    } else if (columns.has('fecha')) {
+        insertColumns.push('fecha');
+        values.push(payload.fecha_inicio);
+    }
+    if (columns.has('fecha_fin')) {
+        insertColumns.push('fecha_fin');
+        values.push(payload.fecha_fin);
+    }
+
+    const placeholders = values.map((_, index) => `$${index + 1}`).join(', ');
+    const result = await client.query(
+        `INSERT INTO sanciones (${insertColumns.join(', ')})
+         VALUES (${placeholders})
+         RETURNING sancion_id`,
+        values
+    );
+
+    return result.rows[0].sancion_id;
+}
 
 const sancionesController = {
-
     getSanciones: async (req, res) => {
         try {
+            const { gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr } = await getSancionColumnInfo();
             const result = await pool.query(`
-                SELECT 
+                SELECT
                     s.sancion_id,
                     s.socio_id,
                     s.motivo,
                     s.origen,
                     s.estado,
-                    s.fecha,
-                    s.fecha_resolucion,
+                    ${gravedadExpr} as gravedad,
+                    ${fechaInicioExpr} as fecha_inicio,
+                    ${fechaFinExpr} as fecha_fin,
+                    ${fechaResolucionExpr} as fecha_resolucion,
+                    (${activeEstadoSql} AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE)) as activa,
                     soc.numero_socio,
+                    soc.tipo as tipo_socio,
                     u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as socio_nombre,
                     u.username as socio_email
                 FROM sanciones s
                 JOIN socios soc ON s.socio_id = soc.socio_id
                 JOIN usuarios u ON soc.usuario_id = u.usuario_id
-                ORDER BY s.fecha DESC
+                ORDER BY ${fechaInicioExpr} DESC, s.sancion_id DESC
             `);
             res.json(result.rows);
         } catch (error) {
@@ -31,32 +138,38 @@ const sancionesController = {
     getSancionById: async (req, res) => {
         const { id } = req.params;
         try {
+            const { gravedadExpr, fechaInicioExpr, fechaFinExpr } = await getSancionColumnInfo();
             const result = await pool.query(`
-                SELECT s.*, soc.numero_socio,
+                SELECT s.*, ${gravedadExpr} as gravedad, ${fechaInicioExpr} as fecha_inicio, ${fechaFinExpr} as fecha_fin,
+                    soc.numero_socio,
                     u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as socio_nombre
                 FROM sanciones s
                 JOIN socios soc ON s.socio_id = soc.socio_id
                 JOIN usuarios u ON soc.usuario_id = u.usuario_id
                 WHERE s.sancion_id = $1
             `, [id]);
-            if (result.rows.length === 0) return res.status(404).json({ error: 'Sanción no encontrada' });
+            if (result.rows.length === 0) return res.status(404).json({ error: 'Sancion no encontrada' });
             res.json(result.rows[0]);
         } catch (error) {
             console.error('Error en getSancionById:', error);
-            res.status(500).json({ error: 'Error al obtener sanción' });
+            res.status(500).json({ error: 'Error al obtener sancion' });
         }
     },
 
     getSancionesBySocio: async (req, res) => {
         const { socioId } = req.params;
         try {
+            const { gravedadExpr, fechaInicioExpr, fechaFinExpr } = await getSancionColumnInfo();
             const result = await pool.query(
-                `SELECT s.*, soc.numero_socio,
+                `SELECT s.*, ${gravedadExpr} as gravedad, ${fechaInicioExpr} as fecha_inicio, ${fechaFinExpr} as fecha_fin,
+                    (${activeEstadoSql} AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE)) as activa,
+                    soc.numero_socio,
                     u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as socio_nombre
                  FROM sanciones s
                  JOIN socios soc ON s.socio_id = soc.socio_id
                  JOIN usuarios u ON soc.usuario_id = u.usuario_id
-                 WHERE s.socio_id = $1 ORDER BY s.fecha DESC`,
+                 WHERE s.socio_id = $1
+                 ORDER BY ${fechaInicioExpr} DESC`,
                 [socioId]
             );
             res.json(result.rows);
@@ -69,84 +182,189 @@ const sancionesController = {
     verificarSancionActiva: async (req, res) => {
         const { socioId } = req.params;
         try {
+            const { fechaFinExpr } = await getSancionColumnInfo();
             const result = await pool.query(
-                `SELECT COUNT(*) as total FROM sanciones WHERE socio_id = $1 AND estado = 'Activa'`,
+                `SELECT COUNT(*) as total
+                 FROM sanciones s
+                 WHERE s.socio_id = $1
+                   AND ${activeEstadoSql}
+                   AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE)`,
                 [socioId]
             );
-            res.json({ tiene_sancion: parseInt(result.rows[0].total) > 0 });
+            res.json({ tiene_sancion: parseInt(result.rows[0].total, 10) > 0 });
         } catch (error) {
             console.error('Error en verificarSancionActiva:', error);
-            res.status(500).json({ error: 'Error al verificar sanción' });
+            res.status(500).json({ error: 'Error al verificar sancion' });
         }
     },
 
     createSancion: async (req, res) => {
-        const { socioId, socio_id, motivo, origen } = req.body;
+        const { socioId, socio_id, motivo, origen, gravedad, fecha_inicio, fecha_fin } = req.body;
         const id = socioId || socio_id;
+
+        if (!id || !motivo?.trim()) {
+            return res.status(400).json({ error: 'Socio y motivo son obligatorios' });
+        }
+
+        const client = await pool.connect();
         try {
-            const result = await pool.query(
-                `INSERT INTO sanciones (socio_id, motivo, origen, estado, fecha)
-                 VALUES ($1, $2, $3, 'Activa', CURRENT_DATE) RETURNING sancion_id`,
-                [id, motivo, origen || 'Administración']
-            );
-            res.status(201).json({ message: 'Sanción creada', sancion_id: result.rows[0].sancion_id });
+            await client.query('BEGIN');
+            const gravedadFinal = await resolveGravedad(id, gravedad, origen);
+            const fechaInicioFinal = fecha_inicio || localTodayISO();
+            const fechaFinFinal = fecha_fin || addDaysISO(fechaInicioFinal, gravedadDias[gravedadFinal]);
+            const sancionId = await insertSancion(client, {
+                socio_id: id,
+                motivo: motivo.trim(),
+                origen: origen || 'Administración',
+                gravedad: gravedadFinal,
+                fecha_inicio: fechaInicioFinal,
+                fecha_fin: fechaFinFinal,
+                estado: 'Activa'
+            });
+            await client.query('COMMIT');
+            res.status(201).json({ message: 'Sancion creada', sancion_id: sancionId, gravedad: gravedadFinal, fecha_fin: fechaFinFinal });
         } catch (error) {
+            await client.query('ROLLBACK');
             console.error('Error en createSancion:', error);
-            res.status(500).json({ error: 'Error al crear sanción' });
+            res.status(500).json({ error: 'Error al crear sancion' });
+        } finally {
+            client.release();
         }
     },
 
     updateSancion: async (req, res) => {
         const { id } = req.params;
-        const { motivo, origen, estado } = req.body;
+        const { socio_id, motivo, origen, gravedad, fecha_inicio, fecha_fin, estado } = req.body;
+
         try {
-            await pool.query(
-                `UPDATE sanciones SET motivo = COALESCE($1, motivo), origen = COALESCE($2, origen), estado = COALESCE($3, estado) WHERE sancion_id = $4`,
-                [motivo, origen, estado, id]
+            const columns = await getTableColumns('sanciones');
+            const assignments = [];
+            const values = [];
+            const pushAssignment = (column, value) => {
+                assignments.push(`${column} = $${values.length + 1}`);
+                values.push(value);
+            };
+
+            if (socio_id) pushAssignment('socio_id', socio_id);
+            if (motivo !== undefined) pushAssignment('motivo', motivo);
+            if (origen !== undefined) pushAssignment('origen', origen);
+            if (estado !== undefined) pushAssignment('estado', estado);
+            if (columns.has('gravedad') && gravedad !== undefined) pushAssignment('gravedad', normalizeGravedad(gravedad));
+            if (columns.has('fecha_inicio') && fecha_inicio !== undefined) pushAssignment('fecha_inicio', fecha_inicio);
+            else if (columns.has('fecha') && fecha_inicio !== undefined) pushAssignment('fecha', fecha_inicio);
+            if (columns.has('fecha_fin') && fecha_fin !== undefined) pushAssignment('fecha_fin', fecha_fin);
+
+            if (assignments.length === 0) {
+                return res.status(400).json({ error: 'No hay datos para actualizar' });
+            }
+
+            values.push(id);
+            const result = await pool.query(
+                `UPDATE sanciones SET ${assignments.join(', ')}
+                 WHERE sancion_id = $${values.length}
+                 RETURNING sancion_id`,
+                values
             );
-            res.json({ message: 'Sanción actualizada' });
+
+            if (result.rows.length === 0) return res.status(404).json({ error: 'Sancion no encontrada' });
+            res.json({ message: 'Sancion actualizada' });
         } catch (error) {
             console.error('Error en updateSancion:', error);
-            res.status(500).json({ error: 'Error al actualizar sanción' });
+            res.status(500).json({ error: 'Error al actualizar sancion' });
         }
     },
 
     deleteSancion: async (req, res) => {
         const { id } = req.params;
         try {
-            await pool.query('DELETE FROM sanciones WHERE sancion_id = $1', [id]);
-            res.json({ message: 'Sanción eliminada' });
+            const result = await pool.query('DELETE FROM sanciones WHERE sancion_id = $1 RETURNING sancion_id', [id]);
+            if (result.rows.length === 0) return res.status(404).json({ error: 'Sancion no encontrada' });
+            res.json({ message: 'Sancion eliminada' });
         } catch (error) {
             console.error('Error en deleteSancion:', error);
-            res.status(500).json({ error: 'Error al eliminar sanción' });
+            res.status(500).json({ error: 'Error al eliminar sancion' });
         }
     },
 
     perdonarSancion: async (req, res) => {
-        const { id } = req.params;
-        try {
-            await pool.query(
-                `UPDATE sanciones SET estado = 'Resuelta', fecha_resolucion = CURRENT_DATE WHERE sancion_id = $1`,
-                [id]
-            );
-            res.json({ message: 'Sanción resuelta' });
-        } catch (error) {
-            console.error('Error en perdonarSancion:', error);
-            res.status(500).json({ error: 'Error al resolver sanción' });
-        }
+        return sancionesController.levantarSancion(req, res);
     },
 
     levantarSancion: async (req, res) => {
         const { id } = req.params;
         try {
-            await pool.query(
-                `UPDATE sanciones SET estado = 'Resuelta', fecha_resolucion = CURRENT_DATE WHERE sancion_id = $1 AND estado = 'Activa'`,
-                [id]
+            const columns = await getTableColumns('sanciones');
+            const assignments = ['estado = $1'];
+            const values = ['Resuelta'];
+
+            if (columns.has('fecha_resolucion')) {
+                assignments.push(`fecha_resolucion = $${values.length + 1}`);
+                values.push(localTodayISO());
+            }
+            if (columns.has('resuelto_por') && req.user?.usuario_id) {
+                assignments.push(`resuelto_por = $${values.length + 1}`);
+                values.push(req.user.usuario_id);
+            }
+
+            values.push(id);
+            const result = await pool.query(
+                `UPDATE sanciones SET ${assignments.join(', ')}
+                 WHERE sancion_id = $${values.length}
+                 RETURNING sancion_id`,
+                values
             );
-            res.json({ message: 'Sanción levantada' });
+
+            if (result.rows.length === 0) return res.status(404).json({ error: 'Sancion no encontrada' });
+            res.json({ message: 'Sancion levantada' });
         } catch (error) {
             console.error('Error en levantarSancion:', error);
-            res.status(500).json({ error: 'Error al levantar sanción' });
+            res.status(500).json({ error: 'Error al levantar sancion' });
+        }
+    },
+
+    sincronizarNoShows: async (req, res) => {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const result = await client.query(`
+                SELECT r.reserva_id, r.socio_id
+                FROM reservaciones r
+                WHERE (
+                    COALESCE((to_jsonb(r)->>'no_show')::boolean, false) = true
+                    OR LOWER(r.estado::text) IN ('no-show', 'no show')
+                )
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM sanciones s
+                    WHERE s.socio_id = r.socio_id
+                      AND s.origen = 'No-show reserva'
+                      AND s.motivo ILIKE ('%' || 'reserva #' || r.reserva_id || '%')
+                )
+            `);
+
+            let creadas = 0;
+            for (const reserva of result.rows) {
+                const fechaInicio = localTodayISO();
+                await insertSancion(client, {
+                    socio_id: reserva.socio_id,
+                    motivo: `No-show registrado en reserva #${reserva.reserva_id}`,
+                    origen: 'No-show reserva',
+                    gravedad: 'Moderada',
+                    fecha_inicio: fechaInicio,
+                    fecha_fin: addDaysISO(fechaInicio, gravedadDias.Moderada),
+                    estado: 'Activa'
+                });
+                creadas += 1;
+            }
+
+            await client.query('COMMIT');
+            res.json({ ok: true, creadas, message: `No-shows sincronizados. Sanciones creadas: ${creadas}` });
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error('Error en sincronizarNoShows:', error);
+            res.status(500).json({ error: 'Error al sincronizar no-shows' });
+        } finally {
+            client.release();
         }
     }
 };

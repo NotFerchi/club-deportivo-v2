@@ -11,7 +11,7 @@ const usuariosController = {
             const query = `
                 SELECT 
                     u.usuario_id,
-                    u.username,                     -- 🔥 ahora sí viene
+                    u.username,
                     u.username AS email,           -- alias para frontend
                     u.nombres,
                     u.apellido_paterno,
@@ -34,7 +34,7 @@ const usuariosController = {
             res.json(result.rows);
 
         } catch (error) {
-            console.error('❌ Error en getUsuarios:', error);
+            console.error('Error en getUsuarios:', error);
             res.status(500).json({ error: 'Error al obtener usuarios' });
         }
     },
@@ -76,7 +76,7 @@ const usuariosController = {
             res.json(result.rows[0]);
 
         } catch (error) {
-            console.error('❌ Error en getUsuarioById:', error);
+            console.error('Error en getUsuarioById:', error);
             res.status(500).json({ error: 'Error al obtener usuario' });
         }
     },
@@ -177,7 +177,7 @@ const usuariosController = {
 
         } catch (error) {
             await client.query('ROLLBACK');
-            console.error('❌ Error en createUsuario:', error);
+            console.error('Error en createUsuario:', error);
             res.status(500).json({ error: 'Error al crear usuario' });
 
         } finally {
@@ -314,7 +314,7 @@ const usuariosController = {
             res.json({ message: 'Usuario actualizado correctamente' });
 
         } catch (error) {
-            console.error('❌ Error en updateUsuario:', error);
+            console.error('Error en updateUsuario:', error);
             res.status(500).json({ error: 'Error al actualizar usuario' });
         }
     },
@@ -334,7 +334,7 @@ const usuariosController = {
             res.json({ message: 'Usuario eliminado (inactivo)' });
 
         } catch (error) {
-            console.error('❌ Error en deleteUsuario:', error);
+            console.error('Error en deleteUsuario:', error);
             res.status(500).json({ error: 'Error al eliminar usuario' });
         }
     },
@@ -351,7 +351,7 @@ const usuariosController = {
             res.json(result.rows);
 
         } catch (error) {
-            console.error('❌ Error en getRoles:', error);
+            console.error('Error en getRoles:', error);
             res.status(500).json({ error: 'Error al obtener roles' });
         }
     },
@@ -365,7 +365,7 @@ const usuariosController = {
         );
         res.json({ message: 'Usuario desactivado' });
       } catch (error) {
-        console.error('❌ Error en desactivarUsuario:', error);
+        console.error('Error en desactivarUsuario:', error);
         res.status(500).json({ error: 'Error al desactivar usuario' });
       }
     },
@@ -379,7 +379,7 @@ const usuariosController = {
         );
         res.json({ message: 'Usuario reactivado' });
       } catch (error) {
-        console.error('❌ Error en reactivarUsuario:', error);
+        console.error('Error en reactivarUsuario:', error);
         res.status(500).json({ error: 'Error al reactivar usuario' });
       }
     },
@@ -393,7 +393,7 @@ const usuariosController = {
         );
         res.json({ message: 'Usuario eliminado definitivamente' });
       } catch (error) {
-        console.error('❌ Error en deleteUsuarioPermanente:', error);
+        console.error('Error en deleteUsuarioPermanente:', error);
         res.status(500).json({ error: 'Error al eliminar definitivamente el usuario' });
       }
     }

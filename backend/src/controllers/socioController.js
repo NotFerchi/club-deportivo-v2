@@ -1,5 +1,30 @@
 const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
+const { validarCURP } = require('../utils/validacionCurp');
+
+const normalizeTipoSocio = (tipo, tipoSocio) => {
+  const value = String(tipo || tipoSocio || 'Rentista').toLowerCase();
+  return value === 'accionista' ? 'Accionista' : 'Rentista';
+};
+
+const normalizeModalidad = (modalidad) => {
+  const value = String(modalidad || 'Individual').toLowerCase();
+  return value === 'familiar' ? 'Familiar' : 'Individual';
+};
+
+const validateSocioPayload = (data, editing = false) => {
+  const errors = [];
+  if (!data.nombres?.trim()) errors.push('Nombres es obligatorio');
+  if (!data.apellidoPaterno?.trim()) errors.push('Apellido paterno es obligatorio');
+  if (!data.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.push('Email invalido');
+  const curpValidation = validarCURP(data.curp);
+  if (!curpValidation.valido) errors.push(curpValidation.mensaje);
+  if (data.telefono && !/^\d{10}$/.test(String(data.telefono))) errors.push('Telefono debe tener 10 digitos');
+  if (!data.direccion?.trim()) errors.push('Direccion es obligatoria');
+  if (!editing && !data.password?.trim()) errors.push('Contrasena es obligatoria');
+  if (data.password && data.password.length < 6) errors.push('Contrasena minima de 6 caracteres');
+  return errors;
+};
 
 const socioController = {
   // Obtener todos los socios CON JOIN a usuarios
@@ -83,6 +108,7 @@ const socioController = {
       genero,
       direccion,
       tipo,
+      tipo_socio,
       modalidad,
       es_titular,
       numero_socio,
@@ -94,6 +120,21 @@ const socioController = {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+
+      const validationErrors = validateSocioPayload(req.body);
+      if (validationErrors.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: validationErrors[0], errors: validationErrors });
+      }
+
+      const existeUsuario = await client.query(
+        'SELECT usuario_id FROM usuarios WHERE username = $1 OR curp = $2',
+        [email, String(curp || '').toUpperCase()]
+      );
+      if (existeUsuario.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Email o CURP ya registrado' });
+      }
       
       // Obtener rol_id de 'socio'
       const rolResult = await client.query('SELECT rol_id FROM roles WHERE nombre = $1', ['socio']);
@@ -104,6 +145,14 @@ const socioController = {
       
       // Hash de la contraseña
       const passwordHash = bcrypt.hashSync(password, 10);
+      let numeroSocioFinal = numero_socio;
+      if (!numeroSocioFinal) {
+        const numeroResult = await client.query(`
+          SELECT COALESCE(MAX(CAST(NULLIF(REGEXP_REPLACE(numero_socio, '\\D', '', 'g'), '') AS INTEGER)), 0) + 1 as siguiente
+          FROM socios
+        `);
+        numeroSocioFinal = `SOC-${String(numeroResult.rows[0].siguiente).padStart(4, '0')}`;
+      }
       
       // Insertar en usuarios
       const userResult = await client.query(`
@@ -113,7 +162,7 @@ const socioController = {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)
         RETURNING usuario_id
       `, [rolId, email, nombres, apellidoPaterno, apellidoMaterno, 
-          curp, fechaNacimiento, genero, telefono, direccion, passwordHash]);
+          String(curp || '').toUpperCase(), fechaNacimiento || null, genero || null, telefono || '', direccion, passwordHash]);
       
       const usuarioId = userResult.rows[0].usuario_id;
       
@@ -122,7 +171,15 @@ const socioController = {
         INSERT INTO socios 
           (usuario_id, tipo, modalidad, es_titular, numero_socio, nombre_emergencia, tel_emergencia, activo)
         VALUES ($1, $2, $3, $4, $5, $6, $7, true)
-      `, [usuarioId, tipo, modalidad, es_titular || false, numero_socio, nombre_emergencia, tel_emergencia]);
+      `, [
+        usuarioId,
+        normalizeTipoSocio(tipo, tipo_socio),
+        normalizeModalidad(modalidad),
+        es_titular || false,
+        numeroSocioFinal,
+        nombre_emergencia || null,
+        tel_emergencia || null
+      ]);
       
       await client.query('COMMIT');
       res.json({ ok: true, message: 'Socio creado exitosamente' });
@@ -149,17 +206,25 @@ const socioController = {
       genero,
       direccion,
       tipo,
+      tipo_socio,
       modalidad,
       es_titular,
       numero_socio,
       nombre_emergencia,
       tel_emergencia,
-      activo
+      activo,
+      password
     } = req.body;
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+
+      const validationErrors = validateSocioPayload(req.body, true);
+      if (validationErrors.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: validationErrors[0], errors: validationErrors });
+      }
       
       // Obtener usuario_id del socio
       const socioRes = await client.query('SELECT usuario_id FROM socios WHERE socio_id = $1', [id]);
@@ -167,25 +232,56 @@ const socioController = {
         throw new Error('Socio no encontrado');
       }
       const userId = socioRes.rows[0].usuario_id;
+
+      const duplicate = await client.query(
+        'SELECT usuario_id FROM usuarios WHERE (username = $1 OR curp = $2) AND usuario_id <> $3',
+        [email, String(curp || '').toUpperCase(), userId]
+      );
+      if (duplicate.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Email o CURP ya registrado en otro usuario' });
+      }
       
       // Actualizar usuarios
-      await client.query(`
-        UPDATE usuarios SET
-          nombres = COALESCE($1, nombres),
-          apellido_paterno = COALESCE($2, apellido_paterno),
-          apellido_materno = COALESCE($3, apellido_materno),
-          username = COALESCE($4, username),
-          telefono = COALESCE($5, telefono),
-          curp = COALESCE($6, curp),
-          fecha_nacimiento = COALESCE($7, fecha_nacimiento),
-          genero = COALESCE($8, genero),
-          direccion = COALESCE($9, direccion),
-          activo = COALESCE($10, activo)
-        WHERE usuario_id = $11
-      `, [nombres, apellidoPaterno, apellidoMaterno, email, telefono, 
-          curp, fechaNacimiento, genero, direccion, activo, userId]);
+      if (password?.trim()) {
+        await client.query(`
+          UPDATE usuarios SET
+            nombres = COALESCE($1, nombres),
+            apellido_paterno = COALESCE($2, apellido_paterno),
+            apellido_materno = COALESCE($3, apellido_materno),
+            username = COALESCE($4, username),
+            telefono = COALESCE($5, telefono),
+            curp = COALESCE($6, curp),
+            fecha_nacimiento = COALESCE($7, fecha_nacimiento),
+            genero = COALESCE($8, genero),
+            direccion = COALESCE($9, direccion),
+            activo = COALESCE($10, activo),
+            password_hash = $11
+          WHERE usuario_id = $12
+        `, [nombres, apellidoPaterno, apellidoMaterno || '', email, telefono || '',
+            String(curp || '').toUpperCase(), fechaNacimiento || null, genero || null, direccion, activo, bcrypt.hashSync(password, 10), userId]);
+      } else {
+        await client.query(`
+          UPDATE usuarios SET
+            nombres = COALESCE($1, nombres),
+            apellido_paterno = COALESCE($2, apellido_paterno),
+            apellido_materno = COALESCE($3, apellido_materno),
+            username = COALESCE($4, username),
+            telefono = COALESCE($5, telefono),
+            curp = COALESCE($6, curp),
+            fecha_nacimiento = COALESCE($7, fecha_nacimiento),
+            genero = COALESCE($8, genero),
+            direccion = COALESCE($9, direccion),
+            activo = COALESCE($10, activo)
+          WHERE usuario_id = $11
+        `, [nombres, apellidoPaterno, apellidoMaterno || '', email, telefono || '',
+            String(curp || '').toUpperCase(), fechaNacimiento || null, genero || null, direccion, activo, userId]);
+      }
       
       // Actualizar socios
+      const tipoFinal = (tipo || tipo_socio) ? normalizeTipoSocio(tipo, tipo_socio) : null;
+      const modalidadFinal = modalidad ? normalizeModalidad(modalidad) : null;
+
       await client.query(`
         UPDATE socios SET
           tipo = COALESCE($1, tipo),
@@ -196,7 +292,16 @@ const socioController = {
           tel_emergencia = COALESCE($6, tel_emergencia),
           activo = COALESCE($7, activo)
         WHERE socio_id = $8
-      `, [tipo, modalidad, es_titular, numero_socio, nombre_emergencia, tel_emergencia, activo, id]);
+      `, [
+        tipoFinal,
+        modalidadFinal,
+        es_titular,
+        numero_socio,
+        nombre_emergencia,
+        tel_emergencia,
+        activo,
+        id
+      ]);
       
       await client.query('COMMIT');
       res.json({ ok: true, message: 'Socio actualizado exitosamente' });

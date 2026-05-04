@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, ClipboardList, Calendar,
-  Puzzle, Dumbbell, ShieldAlert, LogOut, Menu, X
+  Puzzle, Dumbbell, ShieldAlert, Trophy, LogOut, Menu, X
 } from 'lucide-react';
 import '../../../css/Dashboard.css';
+import TournamentBracket from '../../components/TournamentBracket';
 
 import DashboardResumen    from './coordinador/DashboardResumen';
 import VistaSocios         from './coordinador/VistaSocios';
@@ -21,6 +22,7 @@ const TABS = [
   { key: 'reservas',    label: 'Reservas',           icon: Calendar },
   { key: 'ludoteca',    label: 'Ludoteca',           icon: Puzzle },
   { key: 'disciplinas', label: 'Disciplinas',        icon: Dumbbell },
+  { key: 'torneos',     label: 'Torneos',            icon: Trophy },
   { key: 'sanciones',   label: 'Sanciones',          icon: ShieldAlert },
 ];
 
@@ -31,6 +33,7 @@ const TITULOS = {
   reservas:    { h: 'Reservas',                      p: 'Reservaciones de espacios del día' },
   ludoteca:    { h: 'Ludoteca',                      p: 'Control de ludoteca' },
   disciplinas: { h: 'Disciplinas e Instructores',    p: 'Programación de sesiones y cupos' },
+  torneos:     { h: 'Torneos',                       p: 'Visualizacion de brackets y rondas' },
   sanciones:   { h: 'Sanciones',                    p: 'Sanciones aplicadas a socios' },
 };
 
@@ -70,6 +73,12 @@ function DashboardCoordinador() {
     if (activeTab === 'recepcion')  return <VistaVisitas />;
     if (activeTab === 'reservas')   return <VistaReservas />;
     if (activeTab === 'sanciones')  return <VistaSanciones />;
+    if (activeTab === 'torneos')    return (
+      <TournamentBracket
+        title="Torneos y brackets"
+        subtitle="Supervisa los torneos del club y sus encuentros por ronda."
+      />
+    );
     if (activeTab === 'ludoteca')   return (
       <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0' }}>
         <div style={{ fontSize: '3rem' }}>🧸</div>

@@ -6,7 +6,7 @@ import '../../../css/instructor.css';
 import AgendaDia from './instructor/AgendaDia';
 import MisClases from './instructor/MisClases';
 import MetricasInstructor from './instructor/MetricasInstructor';
-import GestionTorneos from './instructor/GestionTorneos';
+import TournamentBracket from '../../components/TournamentBracket';
 
 function DashboardInstructor() {
   const navigate = useNavigate();
@@ -102,7 +102,12 @@ function DashboardInstructor() {
           {activeTab === 'agenda'   && <AgendaDia />}
           {activeTab === 'clases'   && <MisClases />}
           {activeTab === 'metricas' && <MetricasInstructor />}
-          {activeTab === 'torneos'  && <GestionTorneos />}
+          {activeTab === 'torneos'  && (
+            <TournamentBracket
+              title="Torneos y brackets"
+              subtitle="Consulta los torneos activos y sus encuentros por ronda."
+            />
+          )}
         </main>
       </div>
     </div>

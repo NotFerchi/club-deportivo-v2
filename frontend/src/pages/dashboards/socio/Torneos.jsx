@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../../components/SocioLayout'
+import TournamentBracket from '../../../components/TournamentBracket'
 import { 
   Trophy, Calendar, Clock, Users, MapPin, 
   Search, Filter, Medal, Star, ChevronRight,
@@ -352,13 +353,10 @@ function Torneos() {
       {/* ==================== VISTA: RESULTADOS ==================== */}
       {vista === 'resultados' && (
         <div className="resultados-view">
-          <div className="resultados-info">
-            <Trophy size={24} />
-            <div>
-              <h4>Próximamente</h4>
-              <p>Los resultados de los torneos activos aparecerán aquí una vez finalizados.</p>
-            </div>
-          </div>
+          <TournamentBracket
+            title="Resultados y brackets"
+            subtitle="Consulta los cruces y resultados publicados de los torneos del club."
+          />
         </div>
       )}
 

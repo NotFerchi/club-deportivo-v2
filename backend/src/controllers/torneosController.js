@@ -39,6 +39,27 @@ function esEnteroValido(valor) {
 
 const torneosController = {
   getTorneos: async (req, res) => {
+    const { disciplina_id, estado } = req.query;
+    const condiciones = [];
+    const valores = [];
+
+    if (tieneValor(disciplina_id)) {
+      const disciplinaId = esEnteroValido(disciplina_id);
+      if (disciplinaId === null) {
+        return res.status(400).json({ error: 'disciplina_id debe ser un entero valido' });
+      }
+
+      valores.push(disciplinaId);
+      condiciones.push(`t.disciplina_id = $${valores.length}`);
+    }
+
+    if (tieneValor(estado)) {
+      valores.push(estado);
+      condiciones.push(`LOWER(t.estado) = LOWER($${valores.length})`);
+    }
+
+    const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+
     try {
       const result = await pool.query(`
         SELECT
@@ -50,8 +71,9 @@ const torneosController = {
           t.estado
         FROM torneos t
         JOIN disciplinas d ON t.disciplina_id = d.disciplina_id
+        ${where}
         ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC
-      `);
+      `, valores);
 
       res.json(result.rows);
     } catch (error) {
@@ -388,6 +410,108 @@ const torneosController = {
       res.status(500).json({ error: 'Error al confirmar bracket' });
     } finally {
       client.release();
+    }
+  },
+
+  getBracket: async (req, res) => {
+    const torneoId = esEnteroValido(req.params.torneo_id);
+    if (torneoId === null) {
+      return res.status(400).json({ error: 'torneo_id debe ser un entero valido' });
+    }
+
+    try {
+      const torneo = await pool.query(
+        'SELECT torneo_id FROM torneos WHERE torneo_id = $1',
+        [torneoId]
+      );
+
+      if (torneo.rowCount === 0) {
+        return res.status(404).json({ error: 'Torneo no encontrado' });
+      }
+
+      const result = await pool.query(
+        `
+        SELECT
+          e.encuentro_id,
+          e.ronda,
+          e.estado,
+          e.cancha_asignada,
+          e.hora_programada,
+          e.marcador_1,
+          e.marcador_2,
+          e.ganador_id,
+          e.ganador AS ganador_nombre,
+          p1.participante_id AS participante_1_id,
+          COALESCE(
+            NULLIF(TRIM(eq1.nombre_equipo), ''),
+            NULLIF(TRIM(CONCAT(u1.nombres, ' ', COALESCE(u1.apellido_paterno, ''), ' ', COALESCE(u1.apellido_materno, ''))), ''),
+            NULLIF(TRIM(v1.nombre_completo), ''),
+            NULLIF(TRIM(p1.nombre_externo), ''),
+            NULLIF(TRIM(e.participante_1), ''),
+            'Por definir'
+          ) AS participante_1_nombre,
+          p2.participante_id AS participante_2_id,
+          COALESCE(
+            NULLIF(TRIM(eq2.nombre_equipo), ''),
+            NULLIF(TRIM(CONCAT(u2.nombres, ' ', COALESCE(u2.apellido_paterno, ''), ' ', COALESCE(u2.apellido_materno, ''))), ''),
+            NULLIF(TRIM(v2.nombre_completo), ''),
+            NULLIF(TRIM(p2.nombre_externo), ''),
+            NULLIF(TRIM(e.participante_2), ''),
+            'Por definir'
+          ) AS participante_2_nombre
+        FROM encuentros_torneo e
+        LEFT JOIN participantes_torneo p1 ON p1.participante_id = e.participante_1_id
+        LEFT JOIN socios s1 ON s1.socio_id = p1.socio_id
+        LEFT JOIN usuarios u1 ON u1.usuario_id = s1.usuario_id
+        LEFT JOIN visitas v1 ON v1.visita_id = p1.visita_id
+        LEFT JOIN equipos eq1 ON eq1.equipo_id = p1.equipo_id
+        LEFT JOIN participantes_torneo p2 ON p2.participante_id = e.participante_2_id
+        LEFT JOIN socios s2 ON s2.socio_id = p2.socio_id
+        LEFT JOIN usuarios u2 ON u2.usuario_id = s2.usuario_id
+        LEFT JOIN visitas v2 ON v2.visita_id = p2.visita_id
+        LEFT JOIN equipos eq2 ON eq2.equipo_id = p2.equipo_id
+        WHERE e.torneo_id = $1
+        ORDER BY e.ronda ASC, e.encuentro_id ASC
+        `,
+        [torneoId]
+      );
+
+      const bracketPorRonda = result.rows.reduce((acc, row) => {
+        const ronda = row.ronda || 1;
+
+        if (!acc[ronda]) {
+          acc[ronda] = {
+            ronda,
+            encuentros: []
+          };
+        }
+
+        acc[ronda].encuentros.push({
+          encuentro_id: row.encuentro_id,
+          estado: row.estado,
+          cancha_asignada: row.cancha_asignada,
+          hora_programada: row.hora_programada,
+          marcador_1: row.marcador_1,
+          marcador_2: row.marcador_2,
+          ganador_id: row.ganador_id,
+          ganador_nombre: row.ganador_nombre,
+          participante_1: {
+            participante_id: row.participante_1_id,
+            nombre: row.participante_1_nombre || 'Por definir'
+          },
+          participante_2: {
+            participante_id: row.participante_2_id,
+            nombre: row.participante_2_nombre || 'Por definir'
+          }
+        });
+
+        return acc;
+      }, {});
+
+      res.json(Object.values(bracketPorRonda));
+    } catch (error) {
+      console.error('Error al obtener bracket:', error);
+      res.status(500).json({ error: 'Error al obtener bracket' });
     }
   },
 };

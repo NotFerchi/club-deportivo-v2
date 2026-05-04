@@ -13,6 +13,7 @@ import {
   Settings,
   ShieldAlert,
   TrendingUp,
+  Trophy,
   User,
   UserCheck,
   UserPlus,
@@ -31,6 +32,7 @@ import Sanciones from './admin/Sanciones';
 import GestionUsuarios from './admin/GestionUsuarios';
 import ConfiguracionEspacios from './admin/ConfiguracionEspacios';
 import AuditoriaLogs from './admin/AuditoriaLogs';
+import TournamentBracket from '../../components/TournamentBracket';
 
 const HORAS_OPERACION = [
   '08:00',
@@ -55,6 +57,7 @@ const NAV_ITEMS = [
   { id: 'reservas', label: 'Reservas', icon: Calendar },
   { id: 'ludoteca', label: 'Ludoteca', icon: Puzzle },
   { id: 'disciplinas', label: 'Disciplinas', icon: Dumbbell },
+  { id: 'torneos', label: 'Torneos', icon: Trophy },
   { id: 'sanciones', label: 'Sanciones', icon: ShieldAlert }
 ];
 
@@ -337,7 +340,7 @@ function Dashboard() {
           })}
         </nav>
 
-        <div style={{ marginTop: 'auto', padding: '1rem' }}>
+        <div className="sidebar-footer">
           <button onClick={handleLogout} className="nav-link" style={{ color: '#ef4444' }}>
             <LogOut className="nav-icon" /> Cerrar sesión
           </button>
@@ -435,6 +438,12 @@ function Dashboard() {
         {activeTab === 'recepcion' && <RecepcionVisitas />}
         {activeTab === 'reservas' && <Reservas />}
         {activeTab === 'disciplinas' && <Disciplinas />}
+        {activeTab === 'torneos' && (
+          <TournamentBracket
+            title="Torneos y brackets"
+            subtitle="Consulta el estado de los torneos y sus cruces por ronda."
+          />
+        )}
         {activeTab === 'ludoteca' && <Ludoteca />}
         {activeTab === 'sanciones' && <Sanciones />}
         {activeTab === 'usuarios' && <GestionUsuarios />}

@@ -26,4 +26,11 @@ router.patch(
   controller.registrarSalidaLudoteca
 );
 
+// Registros activos del socio logueado
+router.get(
+  '/mis-registros',
+  verifyToken,
+  controller.misRegistros
+);
+
 module.exports = router;

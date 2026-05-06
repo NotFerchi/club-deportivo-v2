@@ -142,33 +142,53 @@ const recepcionController = {
     },
 
     listarSocios: async (req, res) => {
-        try {
-            const result = await pool.query(`
-                SELECT
-                    s.socio_id,
-                    u.usuario_id,
-                    u.nombres,
-                    u.apellido_paterno,
-                    u.apellido_materno,
-                    NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as nombre_completo,
-                    u.username as email,
-                    u.telefono,
-                    u.activo,
-                    s.tipo,
-                    s.modalidad,
-                    s.numero_socio,
-                    s.activo as socio_activo
-                FROM socios s
-                JOIN usuarios u ON s.usuario_id = u.usuario_id
-                ORDER BY u.apellido_paterno, u.nombres
-            `);
+    try {
+        const { q } = req.query;
+        
+        let query = `
+            SELECT
+                s.socio_id,
+                u.usuario_id,
+                u.nombres,
+                u.apellido_paterno,
+                u.apellido_materno,
+                NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as nombre_completo,
+                u.username as email,
+                u.telefono,
+                u.activo,
+                s.tipo,
+                s.modalidad,
+                s.numero_socio,
+                s.activo as socio_activo
+            FROM socios s
+            JOIN usuarios u ON s.usuario_id = u.usuario_id
+        `;
 
-            res.json(result.rows);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Error al listar socios' });
+        const valores = [];
+
+        if (q && q.trim() !== '') {
+            valores.push(`%${q.trim().toLowerCase()}%`);
+            query += `
+                WHERE s.activo = true
+                AND (
+                    LOWER(u.nombres) LIKE $1
+                    OR LOWER(u.apellido_paterno) LIKE $1
+                    OR LOWER(u.apellido_materno) LIKE $1
+                    OR LOWER(CONCAT(u.nombres, ' ', u.apellido_paterno)) LIKE $1
+                    OR LOWER(s.numero_socio::text) LIKE $1
+                )
+            `;
         }
-    },
+
+        query += ` ORDER BY u.apellido_paterno, u.nombres LIMIT 20`;
+
+        const result = await pool.query(query, valores);
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al listar socios' });
+    }
+},
 
     crearSocio: async (req, res) => {
         const {
@@ -745,7 +765,7 @@ const recepcionController = {
                 FROM registro_ludoteca rl
                 JOIN socios s ON rl.socio_padre_id = s.socio_id
                 JOIN usuarios u ON s.usuario_id = u.usuario_id
-                ORDER BY rl.hora_entrada
+                WHERE rl.hora_salida IS NULL ORDER BY rl.hora_entrada
             `);
 
             res.json(result.rows);

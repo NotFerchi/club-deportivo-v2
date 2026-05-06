@@ -135,7 +135,6 @@ module.exports = {
     try {
       await client.query('BEGIN');
 
-      // PASO 1 — Verificar registro
       const { rows, rowCount } = await client.query(
         `SELECT registro_id, socio_padre_id, hora_entrada, hora_salida
          FROM registro_ludoteca
@@ -156,7 +155,6 @@ module.exports = {
         return res.status(409).json({ error: 'Este niño ya tiene salida registrada' });
       }
 
-      // PASO 2 — Registrar salida
       const { rows: updated } = await client.query(
         `UPDATE registro_ludoteca
          SET hora_salida = NOW()
@@ -168,12 +166,10 @@ module.exports = {
       const horaSalida  = updated[0].hora_salida;
       const horaEntrada = registro.hora_entrada;
 
-      // PASO 3 — Calcular duración en minutos
       const duracionMinutos = Math.round(
         (new Date(horaSalida) - new Date(horaEntrada)) / (1000 * 60)
       );
 
-      // PASO 4 — Evaluar sanción
       let sancionGenerada = false;
 
       if (duracionMinutos > 120) {
@@ -181,13 +177,7 @@ module.exports = {
         const motivo = `Exceso de estancia: ${minutosExceso} min sobre el límite de 2 horas`;
 
         await client.query(
-          `INSERT INTO sanciones (
-             socio_id,
-             origen,
-             motivo,
-             estado,
-             registro_ludoteca_id
-           )
+          `INSERT INTO sanciones (socio_id, origen, motivo, estado, registro_ludoteca_id)
            VALUES ($1, 'Ludoteca', $2, 'Activo', $3)`,
           [registro.socio_padre_id, motivo, registroId]
         );
@@ -195,15 +185,14 @@ module.exports = {
         sancionGenerada = true;
       }
 
-      // PASO 5 — COMMIT
       await client.query('COMMIT');
 
       return res.json({
         ok: true,
-        registro_id:       registroId,
-        hora_salida:       horaSalida,
-        duracion_minutos:  duracionMinutos,
-        sancion_generada:  sancionGenerada
+        registro_id:      registroId,
+        hora_salida:      horaSalida,
+        duracion_minutos: duracionMinutos,
+        sancion_generada: sancionGenerada
       });
 
     } catch (error) {
@@ -212,6 +201,45 @@ module.exports = {
       return res.status(500).json({ error: 'Error interno del servidor' });
     } finally {
       client.release();
+    }
+  },
+
+  // ── SCRUM-110: GET /api/ludoteca/mis-registros ──
+  misRegistros: async (req, res) => {
+    try {
+      const usuarioId = req.user.usuario_id;
+
+      const socio = await pool.query(
+        'SELECT socio_id FROM socios WHERE usuario_id = $1',
+        [usuarioId]
+      );
+
+      if (socio.rowCount === 0) {
+        return res.json([]);
+      }
+
+      const socioPadreId = socio.rows[0].socio_id;
+
+      const result = await pool.query(
+        `SELECT
+           registro_id,
+           nombre_hijo,
+           fecha_nacimiento,
+           hora_entrada,
+           hora_salida,
+           CASE WHEN hora_salida IS NULL THEN 'activo' ELSE 'finalizado' END as estado,
+           ROUND(EXTRACT(EPOCH FROM (COALESCE(hora_salida, NOW()) - hora_entrada)) / 60) as minutos_transcurridos
+         FROM registro_ludoteca
+         WHERE socio_padre_id = $1
+         ORDER BY hora_entrada DESC
+         LIMIT 10`,
+        [socioPadreId]
+      );
+
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Error al obtener registros de ludoteca:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
     }
   }
 

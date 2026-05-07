@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const LUDOTECA_TIME_ZONE = 'America/Mexico_City';
 
 const getToday = () => new Date().toISOString().split('T')[0];
 
@@ -108,6 +109,10 @@ const recepcionController = {
                 `SELECT COUNT(*) FROM registro_ludoteca WHERE hora_salida IS NULL`
             );
 
+            const sanciones = await pool.query(
+                `SELECT COUNT(*) FROM sanciones WHERE LOWER(estado::text) IN ('activo', 'activa')`
+            );
+
             let visitasActivas = 0;
 
             try {
@@ -133,7 +138,8 @@ const recepcionController = {
             res.json({
                 ingresosHoy: parseInt(ingresos.rows[0].count, 10),
                 visitasActivas,
-                ninosLudoteca: parseInt(ludoteca.rows[0].count, 10)
+                ninosLudoteca: parseInt(ludoteca.rows[0].count, 10),
+                sancionesActivas: parseInt(sanciones.rows[0].count, 10)
             });
         } catch (error) {
             console.error(error);
@@ -759,8 +765,10 @@ const recepcionController = {
                     rl.fecha_nacimiento,
                     rl.hora_entrada,
                     rl.hora_salida,
+                    TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local,
                     u.nombres || ' ' || u.apellido_paterno as tutor_nombre,
-                    EXTRACT(EPOCH FROM (NOW() - rl.hora_entrada)) / 60 as minutos_transcurridos,
+                    GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}') - rl.hora_entrada)))::int, 0) AS segundos_transcurridos,
+                    GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}') - rl.hora_entrada)) / 60)::int, 0) AS minutos_transcurridos,
                     CASE WHEN rl.hora_salida IS NULL THEN 'Activo' ELSE 'Finalizado' END as estado
                 FROM registro_ludoteca rl
                 JOIN socios s ON rl.socio_padre_id = s.socio_id
@@ -786,7 +794,7 @@ const recepcionController = {
                     fecha_nacimiento,
                     hora_entrada
                 )
-                VALUES ($1, $2, $3, NOW())
+                VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}')
                 RETURNING registro_id`,
                 [socioId, nombreHijo, fechaNacimiento]
             );
@@ -807,7 +815,7 @@ const recepcionController = {
         try {
             const result = await pool.query(
                 `UPDATE registro_ludoteca
-                 SET hora_salida = NOW()
+                 SET hora_salida = NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}'
                  WHERE registro_id = $1 AND hora_salida IS NULL
                  RETURNING registro_id`,
                 [id]

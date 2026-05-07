@@ -115,7 +115,7 @@ function DashboardResumen({ onNavigate }) {
         const sa   = await sRes.json().then(d => Array.isArray(d) ? d : []);
         const va   = await vRes.json().then(d => Array.isArray(d) ? d : []);
         const ra   = await rRes.json().then(d => Array.isArray(d) ? d : []);
-        const sana = await sanRes.json().then(d => Array.isArray(d) ? d : []);
+        const sana = await sanRes.json().then(d => Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []));
         setSocios(sa); setVisitas(va); setReservas(ra); setSanciones(sana);
         setStats({
           totalSocios:      sa.length,

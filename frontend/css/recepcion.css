@@ -191,6 +191,12 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
+.dashboard-root .kpi-action {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
 .dashboard-root .kpi-icon {
     width: 26px;
     height: 26px;
@@ -422,6 +428,16 @@ body {
     color: #1e40af;
 }
 
+.dashboard-root .badge-neutral {
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-block;
+}
+
 /* ============================================
    LISTAS (Reservas, alumnos, etc)
    ============================================ */
@@ -633,6 +649,91 @@ body {
     padding: 3rem;
     color: #94a3b8;
     font-size: 13px;
+}
+
+.dashboard-root .recepcion-section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-root .recepcion-section-header h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 4px;
+}
+
+.dashboard-root .recepcion-section-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dashboard-root .recepcion-filter-row,
+.dashboard-root .recepcion-quick-actions,
+.dashboard-root .recepcion-pagination {
+    display: flex;
+    gap: 0.75rem;
+    align-items: end;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.dashboard-root .recepcion-quick-actions {
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.dashboard-root .recepcion-quick-actions .btn-outline,
+.dashboard-root .recepcion-section-header .btn-outline,
+.dashboard-root .recepcion-filter-row .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+
+.dashboard-root .recepcion-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 160px;
+}
+
+.dashboard-root .recepcion-filter span {
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.dashboard-root .recepcion-filter select {
+    min-height: 36px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0 10px;
+    background: white;
+    color: #0f172a;
+    font-size: 13px;
+}
+
+.dashboard-root .recepcion-pagination {
+    justify-content: flex-end;
+    margin: 1rem 0 0;
+}
+
+.dashboard-root .recepcion-pagination span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.dashboard-root .recepcion-kpi-compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .dashboard-root .mt-2 { margin-top: 0.5rem; }

@@ -5,7 +5,12 @@ const { verifyToken } = require('../middleware/auth.middleware');
 const checkRole = require('../middleware/checkRole');
 
 // Rutas existentes
-router.get('/activos',    verifyToken, controller.registrosActivos);
+router.get(
+  '/activos',
+  verifyToken,
+  checkRole(['instructor', 'recepcion', 'admin', 'coordinador', 'gerente']),
+  controller.registrosActivos
+);
 router.get('/historial',  verifyToken, controller.historial);
 router.post('/',          verifyToken, controller.registrarEntrada);
 router.put('/:id/salida', verifyToken, controller.registrarSalida);

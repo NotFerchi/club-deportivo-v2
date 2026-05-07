@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Calendar, Users, BarChart3, Trophy, LogOut } from 'lucide-react';
+import { Baby, Calendar, Users, BarChart3, Trophy, LogOut } from 'lucide-react';
 import '../../../css/instructor.css';
 
 import AgendaDia from './instructor/AgendaDia';
 import MisClases from './instructor/MisClases';
 import MetricasInstructor from './instructor/MetricasInstructor';
+import MonitoreoLudoteca from './instructor/MonitoreoLudoteca';
 import TournamentBracket from '../../components/TournamentBracket';
 
 function DashboardInstructor() {
@@ -32,6 +33,7 @@ function DashboardInstructor() {
     { key: 'agenda',   label: 'Agenda',   icon: <Calendar size={18} /> },
     { key: 'clases',   label: 'Mis Clases', icon: <Users size={18} /> },
     { key: 'metricas', label: 'Métricas', icon: <BarChart3 size={18} /> },
+    { key: 'ludoteca', label: 'Ludoteca', icon: <Baby size={18} /> },
     { key: 'torneos',  label: 'Torneos',  icon: <Trophy size={18} /> },
   ];
 
@@ -102,6 +104,7 @@ function DashboardInstructor() {
           {activeTab === 'agenda'   && <AgendaDia />}
           {activeTab === 'clases'   && <MisClases />}
           {activeTab === 'metricas' && <MetricasInstructor />}
+          {activeTab === 'ludoteca' && <MonitoreoLudoteca />}
           {activeTab === 'torneos'  && (
             <TournamentBracket
               title="Torneos y brackets"

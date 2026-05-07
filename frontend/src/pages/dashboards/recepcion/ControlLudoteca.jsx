@@ -12,15 +12,23 @@ function calcularEdadAnios(fechaNacimiento) {
 function formatHora(ts) {
   if (!ts) return '';
   const fecha = new Date(ts);
-  fecha.setHours(fecha.getHours() - 6);
   return fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 }
 
 function horaLimite(horaEntrada) {
   if (!horaEntrada) return '';
   const d = new Date(horaEntrada);
-  d.setHours(d.getHours() - 6 + 2);
+  d.setHours(d.getHours() + 2);
   return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+}
+
+function getMinutosTranscurridos(nino) {
+  const minutosServidor = Number(nino.minutos_transcurridos);
+  if (Number.isFinite(minutosServidor)) return Math.max(0, Math.floor(minutosServidor));
+
+  const entrada = new Date(nino.hora_entrada);
+  if (Number.isNaN(entrada.getTime())) return 0;
+  return Math.max(0, Math.round((new Date() - entrada) / (1000 * 60)));
 }
 
 const estiloImpresion = `
@@ -194,7 +202,11 @@ function ModalRegistroEntrada({ onClose, onExito }) {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Error al registrar entrada'); return; }
-      onExito({ nombre_hijo: data.registro.nombre_hijo, nombre_padre: socioPadre.nombre_completo, hora_entrada: data.registro.hora_entrada });
+      onExito({
+        nombre_hijo: data.registro.nombre_hijo,
+        nombre_padre: socioPadre.nombre_completo,
+        hora_entrada: data.registro.hora_entrada_local || data.registro.hora_entrada
+      });
     } catch { setError('Error de conexión con el servidor'); }
     finally { setCargando(false); }
   };
@@ -257,10 +269,8 @@ function ModalRegistroEntrada({ onClose, onExito }) {
 
 // ── Tarjeta de niño ───────────────────────────────────────────────────────────
 function NinoCard({ nino, onSalida }) {
-  const entradaUTC = new Date(nino.hora_entrada);
-  const entradaLocal = new Date(nino.hora_entrada)
-  entradaLocal.setHours(entradaLocal.getHours() - 6)
-  const minutosTranscurridos = Math.max(0, Math.round((new Date() - entradaLocal) / (1000 * 60)));
+  const horaEntrada = nino.hora_entrada_local || nino.hora_entrada;
+  const minutosTranscurridos = getMinutosTranscurridos(nino);
   const porcentaje = Math.min((minutosTranscurridos / 120) * 100, 100);
   const casiLimite = minutosTranscurridos > 100 && minutosTranscurridos <= 120;
   const excedido = minutosTranscurridos > 120;
@@ -301,7 +311,7 @@ function NinoCard({ nino, onSalida }) {
 
         {/* Info tiempo */}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginBottom: '6px' }}>
-          <span>🕐 Entrada: <strong>{formatHora(nino.hora_entrada)}</strong></span>
+          <span>🕐 Entrada: <strong>{formatHora(horaEntrada)}</strong></span>
           <span style={{ fontWeight: excedido ? 800 : 600, color: excedido ? '#dc2626' : '#475569' }}>
             {minutosTranscurridos} / 120 min
           </span>
@@ -362,8 +372,8 @@ function ControlLudoteca() {
     </div>
   );
 
-  const excedidos  = ninos.filter(n => Math.round((new Date() - new Date(n.hora_entrada)) / 60000) > 120).length;
-  const porVencer  = ninos.filter(n => { const m = Math.round((new Date() - new Date(n.hora_entrada)) / 60000); return m > 100 && m <= 120; }).length;
+  const excedidos  = ninos.filter(n => getMinutosTranscurridos(n) > 120).length;
+  const porVencer  = ninos.filter(n => { const m = getMinutosTranscurridos(n); return m >= 90 && m <= 120; }).length;
 
   return (
     <div className="chart-box">

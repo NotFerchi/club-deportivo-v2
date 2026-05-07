@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
-  LayoutDashboard, Users, Calendar, Baby, ClipboardCheck, LogOut, UserPlus 
+  LayoutDashboard, Users, Calendar, Baby, ClipboardCheck, LogOut, UserPlus, ShieldAlert
 } from 'lucide-react';
 import '../../../css/recepcion.css';  // Asegúrate de que esta ruta sea correcta
 
@@ -12,6 +12,7 @@ import CentralReservas from './recepcion/CentralReservas';
 import ControlLudoteca from './recepcion/ControlLudoteca';
 import PaseLista from './recepcion/PaseLista';
 import GestionVisitas from './recepcion/GestionVisitas';
+import Sanciones from './recepcion/Sanciones';
 
 function DashboardRecepcion() {
   const navigate = useNavigate();
@@ -60,6 +61,9 @@ function DashboardRecepcion() {
           <button onClick={() => setActiveTab('checkin')} className={getNavClass('checkin')}>
             <ClipboardCheck className="nav-icon" /> Pase de Lista
           </button>
+          <button onClick={() => setActiveTab('sanciones')} className={getNavClass('sanciones')}>
+            <ShieldAlert className="nav-icon" /> Sanciones
+          </button>
         </nav>
         <div style={{ marginTop: 'auto', padding: '1rem' }}>
           <button onClick={handleLogout} className="nav-link" style={{ color: '#ef4444' }}>
@@ -77,12 +81,13 @@ function DashboardRecepcion() {
           <Link to="/" className="back-link">Volver al inicio</Link>
         </header>
 
-        {activeTab === 'dashboard' && <DashboardResumen />}
+        {activeTab === 'dashboard' && <DashboardResumen onNavigate={setActiveTab} />}
         {activeTab === 'visitas' && <GestionVisitas />}
         {activeTab === 'socios' && <GestionSocios />}
         {activeTab === 'reservas' && <CentralReservas />}
         {activeTab === 'ludoteca' && <ControlLudoteca />}
         {activeTab === 'checkin' && <PaseLista />}
+        {activeTab === 'sanciones' && <Sanciones />}
       </main>
     </div>
   );

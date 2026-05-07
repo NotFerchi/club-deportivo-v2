@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const LUDOTECA_TIME_ZONE = 'America/Mexico_City';
 
 module.exports = {
 
@@ -6,17 +7,40 @@ module.exports = {
   registrosActivos: async (req, res) => {
     try {
       const result = await pool.query(`
-        SELECT l.*, s.nombres, s.apellido_paterno 
-        FROM ludoteca l
-        JOIN socios s ON l.socio_id = s.socio_id
-        WHERE l.hora_salida IS NULL
-        ORDER BY l.hora_entrada DESC
+        SELECT
+          rl.registro_id,
+          rl.nombre_hijo,
+          rl.nombre_hijo AS nombre_nino,
+          rl.fecha_nacimiento,
+          rl.hora_entrada,
+          rl.hora_salida,
+          TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local,
+          rl.socio_padre_id,
+
+          DATE_PART('year', AGE(CURRENT_DATE, rl.fecha_nacimiento))::int AS edad,
+
+          GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}') - rl.hora_entrada)))::int, 0) AS segundos_transcurridos,
+          GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}') - rl.hora_entrada)) / 60)::int, 0) AS minutos_transcurridos,
+
+          u.nombres,
+          u.apellido_paterno,
+          TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS nombre_padre,
+          TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS tutor_nombre,
+          NULL::text AS observaciones
+
+        FROM registro_ludoteca rl
+        JOIN socios s ON rl.socio_padre_id = s.socio_id
+        JOIN usuarios u ON s.usuario_id = u.usuario_id
+        WHERE rl.hora_salida IS NULL
+        ORDER BY rl.hora_entrada ASC
       `);
+
       res.json(result.rows);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   },
+
 
   registrarEntrada: async (req, res) => {
     const { socio_id, nombre_nino, edad } = req.body;
@@ -102,9 +126,15 @@ module.exports = {
       }
 
       const result = await pool.query(
-        `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento)
-         VALUES ($1, $2, $3)
-         RETURNING registro_id, socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada`,
+        `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada)
+         VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}')
+         RETURNING
+           registro_id,
+           socio_padre_id,
+           nombre_hijo,
+           fecha_nacimiento,
+           hora_entrada,
+           TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local`,
         [socioPadreId, nombre_hijo.trim(), fecha_nacimiento]
       );
 
@@ -157,18 +187,16 @@ module.exports = {
 
       const { rows: updated } = await client.query(
         `UPDATE registro_ludoteca
-         SET hora_salida = NOW()
+         SET hora_salida = NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}'
          WHERE registro_id = $1
-         RETURNING hora_salida`,
+         RETURNING
+           hora_salida,
+           ROUND(EXTRACT(EPOCH FROM (hora_salida - hora_entrada)) / 60)::int AS duracion_minutos`,
         [registroId]
       );
 
-      const horaSalida  = updated[0].hora_salida;
-      const horaEntrada = registro.hora_entrada;
-
-      const duracionMinutos = Math.round(
-        (new Date(horaSalida) - new Date(horaEntrada)) / (1000 * 60)
-      );
+      const horaSalida = updated[0].hora_salida;
+      const duracionMinutos = Number(updated[0].duracion_minutos) || 0;
 
       let sancionGenerada = false;
 
@@ -228,7 +256,7 @@ module.exports = {
            hora_entrada,
            hora_salida,
            CASE WHEN hora_salida IS NULL THEN 'activo' ELSE 'finalizado' END as estado,
-           ROUND(EXTRACT(EPOCH FROM (COALESCE(hora_salida, NOW()) - hora_entrada)) / 60) as minutos_transcurridos
+           ROUND(EXTRACT(EPOCH FROM (COALESCE(hora_salida, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}') - hora_entrada)) / 60) as minutos_transcurridos
          FROM registro_ludoteca
          WHERE socio_padre_id = $1
          ORDER BY hora_entrada DESC

@@ -8,6 +8,95 @@ const {
 } = require('../utils/adminRules');
 
 const activeEstadoSql = "LOWER(s.estado::text) IN ('activa', 'activo')";
+const staffRoles = ['instructor', 'recepcion', 'gerente', 'coordinador', 'admin'];
+
+function normalizePagination(query) {
+    const page = Math.max(parseInt(query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(query.limit, 10) || 20, 1), 100);
+    const offset = (page - 1) * limit;
+
+    return { page, limit, offset };
+}
+
+function buildEstadoFilter(value, values) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (!normalized) return null;
+
+    if (['activo', 'activa'].includes(normalized)) {
+        return "LOWER(s.estado::text) IN ('activo', 'activa')";
+    }
+
+    if (['inactivo', 'inactiva'].includes(normalized)) {
+        return "LOWER(s.estado::text) IN ('inactivo', 'inactiva', 'resuelto', 'resuelta')";
+    }
+
+    values.push(normalized);
+    return `LOWER(s.estado::text) = $${values.length}`;
+}
+
+function pushOptionalFilters(query, values) {
+    const filters = [];
+
+    if (query.origen) {
+        values.push(String(query.origen).trim());
+        filters.push(`s.origen = $${values.length}`);
+    }
+
+    const estadoFilter = buildEstadoFilter(query.estado, values);
+    if (estadoFilter) filters.push(estadoFilter);
+
+    if (query.socio_id) {
+        const socioId = Number(query.socio_id);
+        if (!Number.isInteger(socioId) || socioId <= 0) {
+            const error = new Error('socio_id debe ser un entero valido');
+            error.status = 400;
+            throw error;
+        }
+        values.push(socioId);
+        filters.push(`s.socio_id = $${values.length}`);
+    }
+
+    return filters;
+}
+
+function getSancionesSelect({ gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr, includeActiva = true }) {
+    return `
+        SELECT
+            s.sancion_id,
+            s.socio_id,
+            s.origen,
+            s.motivo,
+            s.fecha,
+            s.estado,
+            ${fechaResolucionExpr} as fecha_resolucion,
+            TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as nombre_socio,
+            NULLIF(TRIM(CONCAT_WS(' ', r.nombres, r.apellido_paterno)), '') as nombre_resolvente,
+            ${gravedadExpr} as gravedad,
+            ${fechaInicioExpr} as fecha_inicio,
+            ${fechaFinExpr} as fecha_fin,
+            ${includeActiva ? `(${activeEstadoSql} AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE))` : 'false'} as activa,
+            soc.numero_socio,
+            soc.tipo as tipo_socio,
+            TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as socio_nombre,
+            u.username as socio_email
+        FROM sanciones s
+        JOIN socios soc ON s.socio_id = soc.socio_id
+        JOIN usuarios u ON soc.usuario_id = u.usuario_id
+        LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id
+    `;
+}
+
+async function canReadSocioSanciones(req, socioId) {
+    if (staffRoles.includes(req.user?.rol)) return true;
+    if (req.user?.rol !== 'socio') return false;
+
+    const result = await pool.query(
+        'SELECT 1 FROM socios WHERE socio_id = $1 AND usuario_id = $2',
+        [socioId, req.user.usuario_id]
+    );
+
+    return result.rowCount > 0;
+}
 
 async function getSancionColumnInfo() {
     const columns = await getTableColumns('sanciones');
@@ -107,31 +196,50 @@ const sancionesController = {
     getSanciones: async (req, res) => {
         try {
             const { gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr } = await getSancionColumnInfo();
-            const result = await pool.query(`
-                SELECT
-                    s.sancion_id,
-                    s.socio_id,
-                    s.motivo,
-                    s.origen,
-                    s.estado,
-                    ${gravedadExpr} as gravedad,
-                    ${fechaInicioExpr} as fecha_inicio,
-                    ${fechaFinExpr} as fecha_fin,
-                    ${fechaResolucionExpr} as fecha_resolucion,
-                    (${activeEstadoSql} AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE)) as activa,
-                    soc.numero_socio,
-                    soc.tipo as tipo_socio,
-                    u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as socio_nombre,
-                    u.username as socio_email
-                FROM sanciones s
-                JOIN socios soc ON s.socio_id = soc.socio_id
-                JOIN usuarios u ON soc.usuario_id = u.usuario_id
-                ORDER BY ${fechaInicioExpr} DESC, s.sancion_id DESC
-            `);
-            res.json(result.rows);
+            const { page, limit, offset } = normalizePagination(req.query);
+            const values = [];
+            const filters = pushOptionalFilters(req.query, values);
+            const whereSql = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+            const selectSql = getSancionesSelect({ gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr });
+
+            values.push(limit);
+            const limitParam = values.length;
+            values.push(offset);
+            const offsetParam = values.length;
+
+            const result = await pool.query(
+                `${selectSql}
+                 ${whereSql}
+                 ORDER BY ${fechaInicioExpr} DESC, s.sancion_id DESC
+                 LIMIT $${limitParam} OFFSET $${offsetParam}`,
+                values
+            );
+
+            const countResult = await pool.query(
+                `SELECT COUNT(*)::int as total
+                 FROM sanciones s
+                 JOIN socios soc ON s.socio_id = soc.socio_id
+                 JOIN usuarios u ON soc.usuario_id = u.usuario_id
+                 LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id
+                 ${whereSql}`,
+                values.slice(0, values.length - 2)
+            );
+
+            const total = countResult.rows[0]?.total || 0;
+
+            res.json({
+                data: result.rows,
+                sanciones: result.rows,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    total_pages: Math.ceil(total / limit)
+                }
+            });
         } catch (error) {
             console.error('Error en getSanciones:', error);
-            res.status(500).json({ error: 'Error al obtener sanciones' });
+            res.status(error.status || 500).json({ error: error.status ? error.message : 'Error al obtener sanciones' });
         }
     },
 
@@ -157,8 +265,18 @@ const sancionesController = {
     },
 
     getSancionesBySocio: async (req, res) => {
-        const { socioId } = req.params;
+        const socioId = Number(req.params.socioId);
+
+        if (!Number.isInteger(socioId) || socioId <= 0) {
+            return res.status(400).json({ error: 'socio_id debe ser un entero valido' });
+        }
+
         try {
+            const permitido = await canReadSocioSanciones(req, socioId);
+            if (!permitido) {
+                return res.status(403).json({ error: 'Sin permisos para consultar sanciones de este socio' });
+            }
+
             const { gravedadExpr, fechaInicioExpr, fechaFinExpr } = await getSancionColumnInfo();
             const result = await pool.query(
                 `SELECT s.*, ${gravedadExpr} as gravedad, ${fechaInicioExpr} as fecha_inicio, ${fechaFinExpr} as fecha_fin,
@@ -180,8 +298,18 @@ const sancionesController = {
     },
 
     verificarSancionActiva: async (req, res) => {
-        const { socioId } = req.params;
+        const socioId = Number(req.params.socioId);
+
+        if (!Number.isInteger(socioId) || socioId <= 0) {
+            return res.status(400).json({ error: 'socio_id debe ser un entero valido' });
+        }
+
         try {
+            const permitido = await canReadSocioSanciones(req, socioId);
+            if (!permitido) {
+                return res.status(403).json({ error: 'Sin permisos para consultar sanciones de este socio' });
+            }
+
             const { fechaFinExpr } = await getSancionColumnInfo();
             const result = await pool.query(
                 `SELECT COUNT(*) as total
@@ -195,6 +323,49 @@ const sancionesController = {
         } catch (error) {
             console.error('Error en verificarSancionActiva:', error);
             res.status(500).json({ error: 'Error al verificar sancion' });
+        }
+    },
+
+    getHistorialCompletoSocio: async (req, res) => {
+        const socioId = Number(req.params.socio_id);
+
+        if (!Number.isInteger(socioId) || socioId <= 0) {
+            return res.status(400).json({ error: 'socio_id debe ser un entero valido' });
+        }
+
+        try {
+            const permitido = await canReadSocioSanciones(req, socioId);
+            if (!permitido) {
+                return res.status(403).json({ error: 'Sin permisos para consultar sanciones de este socio' });
+            }
+
+            const { gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr } = await getSancionColumnInfo();
+            const selectSql = getSancionesSelect({ gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr });
+            const result = await pool.query(
+                `${selectSql}
+                 WHERE s.socio_id = $1
+                 ORDER BY s.fecha DESC NULLS LAST, ${fechaInicioExpr} DESC, s.sancion_id DESC`,
+                [socioId]
+            );
+
+            const totals = await pool.query(
+                `SELECT
+                    COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('activo', 'activa'))::int as total_sanciones_activas,
+                    COUNT(*)::int as total_sanciones_historico
+                 FROM sanciones
+                 WHERE socio_id = $1`,
+                [socioId]
+            );
+
+            res.json({
+                socio_id: socioId,
+                total_sanciones_activas: totals.rows[0]?.total_sanciones_activas || 0,
+                total_sanciones_historico: totals.rows[0]?.total_sanciones_historico || 0,
+                sanciones: result.rows
+            });
+        } catch (error) {
+            console.error('Error en getHistorialCompletoSocio:', error);
+            res.status(500).json({ error: 'Error al obtener historial de sanciones del socio' });
         }
     },
 

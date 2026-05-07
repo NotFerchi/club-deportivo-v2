@@ -15,7 +15,7 @@ function VistaSanciones() {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
-        setSanciones(Array.isArray(data) ? data : []);
+        setSanciones(Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []));
       } catch (err) {
         console.error(err);
       } finally {

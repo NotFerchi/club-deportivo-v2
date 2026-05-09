@@ -157,7 +157,7 @@ const torneosController = {
       if (socioPresente) {
         if (socioId === null) return res.status(400).json({ error: ERROR_SOCIO_NO_VALIDO });
         const socio = await pool.query(
-          'SELECT * FROM socios WHERE socio_id = $1 AND activo = TRUE',
+          'SELECT * FROM socios WHERE socio_id = $1 AND activo IS NOT FALSE',
           [socioId]
         );
         if (socio.rowCount === 0) return res.status(400).json({ error: ERROR_SOCIO_NO_VALIDO });
@@ -448,6 +448,52 @@ const torneosController = {
     } catch (err) {
       console.error('Error al obtener reporte de torneo:', err);
       return res.status(500).json({ error: 'Error al obtener el reporte' });
+    }
+  },
+
+  getCategorias: async (req, res) => {
+    try {
+      const result = await pool.query('SELECT categoria_id, nombre FROM categorias_torneo ORDER BY nombre');
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Error al obtener categorías:', error);
+      res.status(500).json({ error: 'Error al obtener categorías' });
+    }
+  },
+
+  getMisParticipaciones: async (req, res) => {
+    try {
+      const socioResult = await pool.query(
+        'SELECT socio_id FROM socios WHERE usuario_id = $1',
+        [req.user.usuario_id]
+      );
+      if (socioResult.rowCount === 0) {
+        return res.status(404).json({ error: 'Socio no encontrado' });
+      }
+      const socioId = socioResult.rows[0].socio_id;
+
+      const result = await pool.query(`
+        SELECT
+          pt.participante_id,
+          t.torneo_id,
+          t.nombre,
+          t.estado,
+          t.fecha_inicio,
+          t.fecha_fin,
+          d.nombre AS nombre_disciplina,
+          c.nombre AS categoria
+        FROM participantes_torneo pt
+        JOIN torneos t ON t.torneo_id = pt.torneo_id
+        JOIN disciplinas d ON d.disciplina_id = t.disciplina_id
+        LEFT JOIN categorias_torneo c ON c.categoria_id = pt.categoria_id
+        WHERE pt.socio_id = $1
+        ORDER BY t.fecha_inicio DESC NULLS LAST
+      `, [socioId]);
+
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Error al obtener participaciones:', error);
+      res.status(500).json({ error: 'Error al obtener participaciones' });
     }
   },
 

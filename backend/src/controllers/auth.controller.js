@@ -46,9 +46,24 @@ exports.login = async (req, res) => {
         );
 
         console.log("¡Login Exitoso!");
+
+        let extraData = {};
+        if (usuarioBD.rol === 'socio') {
+            const socioResult = await pool.query(
+                'SELECT socio_id, numero_socio FROM socios WHERE usuario_id = $1',
+                [usuarioBD.usuario_id]
+            );
+            if (socioResult.rows.length > 0) {
+                extraData = {
+                    socio_id: socioResult.rows[0].socio_id,
+                    numero_socio: socioResult.rows[0].numero_socio
+                };
+            }
+        }
+
         res.json({
             token,
-            usuario: { id: usuarioBD.usuario_id, email: usuarioBD.username, rol: usuarioBD.rol }
+            usuario: { id: usuarioBD.usuario_id, email: usuarioBD.username, rol: usuarioBD.rol, ...extraData }
         });
 
     } catch (error) {

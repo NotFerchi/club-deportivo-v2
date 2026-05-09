@@ -269,6 +269,150 @@ module.exports = {
       console.error('Error al obtener registros de ludoteca:', error);
       res.status(500).json({ error: 'Error interno del servidor' });
     }
+  },
+
+  // ── Entrada autoservicio del socio ──
+  socioEntradaLudoteca: async (req, res) => {
+    const { nombre_hijo, fecha_nacimiento } = req.body;
+
+    if (!nombre_hijo || !fecha_nacimiento) {
+      return res.status(400).json({ error: 'nombre_hijo y fecha_nacimiento son requeridos' });
+    }
+    if (typeof nombre_hijo !== 'string' || nombre_hijo.trim() === '') {
+      return res.status(400).json({ error: 'nombre_hijo no puede estar vacío' });
+    }
+
+    const nacimiento = new Date(fecha_nacimiento);
+    if (isNaN(nacimiento.getTime())) {
+      return res.status(400).json({ error: 'fecha_nacimiento debe tener formato YYYY-MM-DD' });
+    }
+
+    const edadAnios = (new Date() - nacimiento) / (1000 * 60 * 60 * 24 * 365.25);
+    if (edadAnios < 3 || edadAnios > 7) {
+      return res.status(400).json({ error: 'El niño debe tener entre 3 y 7 años' });
+    }
+
+    try {
+      const socioResult = await pool.query(
+        'SELECT socio_id FROM socios WHERE usuario_id = $1',
+        [req.user.usuario_id]
+      );
+      if (socioResult.rowCount === 0) {
+        return res.status(403).json({ error: 'Solo los socios pueden registrar entradas' });
+      }
+      const socioPadreId = socioResult.rows[0].socio_id;
+
+      const activo = await pool.query(
+        `SELECT registro_id FROM registro_ludoteca
+         WHERE socio_padre_id = $1 AND LOWER(nombre_hijo) = LOWER($2) AND hora_salida IS NULL`,
+        [socioPadreId, nombre_hijo.trim()]
+      );
+      if (activo.rowCount > 0) {
+        return res.status(409).json({ error: 'Este niño ya tiene una entrada activa en la ludoteca' });
+      }
+
+      const result = await pool.query(
+        `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada)
+         VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}')
+         RETURNING
+           registro_id, socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada,
+           TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local`,
+        [socioPadreId, nombre_hijo.trim(), fecha_nacimiento]
+      );
+
+      return res.status(201).json({ ok: true, message: 'Entrada registrada', registro: result.rows[0] });
+    } catch (error) {
+      console.error('Error socioEntradaLudoteca:', error);
+      return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
+
+  // ── Salida autoservicio del socio ──
+  socioSalidaLudoteca: async (req, res) => {
+    const registroId = Number(req.params.registro_id);
+    if (!Number.isInteger(registroId) || registroId <= 0) {
+      return res.status(400).json({ error: 'registro_id debe ser un entero válido' });
+    }
+
+    const socioResult = await pool.query(
+      'SELECT socio_id FROM socios WHERE usuario_id = $1',
+      [req.user.usuario_id]
+    );
+    if (socioResult.rowCount === 0) {
+      return res.status(403).json({ error: 'Solo los socios pueden registrar salidas' });
+    }
+    const socioPadreId = socioResult.rows[0].socio_id;
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const { rows, rowCount } = await client.query(
+        `SELECT registro_id, socio_padre_id, hora_entrada, hora_salida
+         FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE`,
+        [registroId]
+      );
+
+      if (rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Registro no encontrado' });
+      }
+
+      const registro = rows[0];
+
+      if (registro.socio_padre_id !== socioPadreId) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'No tienes permiso para registrar esta salida' });
+      }
+      if (registro.hora_salida !== null) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'Este niño ya tiene salida registrada' });
+      }
+
+      const { rows: updated } = await client.query(
+        `UPDATE registro_ludoteca
+         SET hora_salida = NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}'
+         WHERE registro_id = $1
+         RETURNING hora_salida,
+           ROUND(EXTRACT(EPOCH FROM (hora_salida - hora_entrada)) / 60)::int AS duracion_minutos`,
+        [registroId]
+      );
+
+      const duracionMinutos = Number(updated[0].duracion_minutos) || 0;
+      let sancionGenerada = false;
+
+      if (duracionMinutos > 120) {
+        const exceso = duracionMinutos - 120;
+        await client.query(
+          `INSERT INTO sanciones (socio_id, origen, motivo, estado, registro_ludoteca_id)
+           VALUES ($1, 'Ludoteca', $2, 'Activo', $3)`,
+          [socioPadreId, `Exceso de estancia: ${exceso} min sobre el límite de 2 horas`, registroId]
+        );
+        sancionGenerada = true;
+      }
+
+      await client.query('COMMIT');
+      return res.json({ ok: true, registro_id: registroId, duracion_minutos: duracionMinutos, sancion_generada: sancionGenerada });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error socioSalidaLudoteca:', error);
+      return res.status(500).json({ error: 'Error interno del servidor' });
+    } finally {
+      client.release();
+    }
+  },
+
+  getAforo: async (req, res) => {
+    try {
+      const result = await pool.query(
+        'SELECT COUNT(*) AS activos FROM registro_ludoteca WHERE hora_salida IS NULL'
+      );
+      res.json({ activos: parseInt(result.rows[0].activos), maximo: 15 });
+    } catch (error) {
+      console.error('Error al obtener aforo:', error);
+      res.status(500).json({ error: 'Error al obtener aforo' });
+    }
   }
 
 };

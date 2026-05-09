@@ -116,7 +116,7 @@ function TournamentRow({ torneo, selected, onSelect }) {
   );
 }
 
-function MatchCard({ encuentro, onResultadoGuardado }) {
+function MatchCard({ encuentro, onResultadoGuardado, readOnly = false }) {
   const participante1 = encuentro.participante_1 || { participante_id: null, nombre: 'Por definir' };
   const participante2 = encuentro.participante_2 || { participante_id: null, nombre: 'Por definir' };
   const estado = normalizeEstado(encuentro.estado);
@@ -242,7 +242,7 @@ function MatchCard({ encuentro, onResultadoGuardado }) {
             {encuentro.marcador_1 ?? '-'}
           </span>
         )}
-        {programado && ambosListos && (
+        {!readOnly && programado && ambosListos && (
           <input type="number" min="0" value={marcador1}
             onChange={e => setMarcador1(e.target.value)} disabled={cargando}
             style={{
@@ -294,7 +294,7 @@ function MatchCard({ encuentro, onResultadoGuardado }) {
             {encuentro.marcador_2 ?? '-'}
           </span>
         )}
-        {programado && ambosListos && (
+        {!readOnly && programado && ambosListos && (
           <input type="number" min="0" value={marcador2}
             onChange={e => setMarcador2(e.target.value)} disabled={cargando}
             style={{
@@ -333,7 +333,7 @@ function MatchCard({ encuentro, onResultadoGuardado }) {
           <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: 600 }}>⚠ {error}</span>
         )}
 
-        {programado && ambosListos && (
+        {!readOnly && programado && ambosListos && (
           <button onClick={guardar} disabled={cargando} style={{
             background: cargando ? '#94a3b8' : '#2563eb',
             color: 'white', border: 'none', borderRadius: '8px',
@@ -350,7 +350,8 @@ function MatchCard({ encuentro, onResultadoGuardado }) {
   );
 }
 
-function AccionesTorneo({ torneo, onActualizar }) {
+function AccionesTorneo({ torneo, onActualizar, readOnly = false }) {
+  if (readOnly) return null;
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
 
@@ -434,7 +435,8 @@ function TournamentBracket({
   initialDisciplinaId = '',
   initialEstado = '',
   showFilters = true,
-  estadoOptions = DEFAULT_ESTADO_OPTIONS
+  estadoOptions = DEFAULT_ESTADO_OPTIONS,
+  readOnly = false
 }) {
   const [filters, setFilters] = useState({ disciplina_id: initialDisciplinaId, estado: initialEstado });
   const [appliedFilters, setAppliedFilters] = useState({ disciplina_id: initialDisciplinaId, estado: initialEstado });
@@ -609,7 +611,7 @@ function TournamentBracket({
                 <span className="tb-tournament-status">{selectedTorneo.estado || 'Sin estado'}</span>
               </div>
 
-              <AccionesTorneo torneo={selectedTorneo} onActualizar={handleTorneoActualizado} />
+              <AccionesTorneo torneo={selectedTorneo} onActualizar={handleTorneoActualizado} readOnly={readOnly} />
 
               {loadingBracket && <div className="tb-loading">Cargando bracket...</div>}
               {bracketError && <div className="tb-error">{bracketError}</div>}
@@ -633,6 +635,7 @@ function TournamentBracket({
                             key={encuentro.encuentro_id}
                             encuentro={encuentro}
                             onResultadoGuardado={() => setSelectedTorneo(prev => ({ ...prev }))}
+                            readOnly={readOnly}
                           />
                         ))}
                       </div>

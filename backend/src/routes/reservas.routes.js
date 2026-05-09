@@ -5,6 +5,7 @@ const { verifyToken } = require('../middleware/auth.middleware');
 
 // CRUD de reservas
 router.get('/', verifyToken, reservasController.getReservas);
+router.get('/disponibilidad', verifyToken, reservasController.getDisponibilidad);
 router.get('/:id', verifyToken, reservasController.getReservaById);
 router.post('/', verifyToken, reservasController.createReserva);
 router.put('/:id', verifyToken, reservasController.updateReserva);

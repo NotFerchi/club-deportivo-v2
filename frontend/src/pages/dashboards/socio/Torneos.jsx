@@ -1,179 +1,161 @@
 import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../../components/SocioLayout'
 import TournamentBracket from '../../../components/TournamentBracket'
-import { 
-  Trophy, Calendar, Clock, Users, MapPin, 
-  Search, Filter, Medal, Star, ChevronRight,
-  User, AlertCircle
+import {
+  Trophy, Calendar, Users,
+  Filter, Medal, Star,
+  AlertCircle, CheckCircle
 } from 'lucide-react'
+import { apiRequest } from '../../../services/api'
 import '../../../../css/socio/Torneos.css'
 
+const DISCIPLINAS_GRADIENT = {
+  'Tenis':      'linear-gradient(135deg, #1e40af, #3b82f6)',
+  'Natación':   'linear-gradient(135deg, #0369a1, #38bdf8)',
+  'Futbol':     'linear-gradient(135deg, #15803d, #4ade80)',
+  'Basquetbol': 'linear-gradient(135deg, #c2410c, #fb923c)',
+  'Voleibol':   'linear-gradient(135deg, #7c3aed, #a78bfa)',
+  'Padel':      'linear-gradient(135deg, #0f766e, #2dd4bf)',
+}
+const DEFAULT_GRADIENT = 'linear-gradient(135deg, #0f172a, #334155)'
+
 function Torneos() {
-  // ==================== ESTADOS ====================
-  const [vista, setVista] = useState('proximos') // 'proximos' | 'mis-torneos' | 'resultados'
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
+  const socioId = usuario?.socio_id
+
+  const [vista, setVista] = useState('proximos')
   const [torneos, setTorneos] = useState([])
   const [misTorneos, setMisTorneos] = useState([])
+  const [categorias, setCategorias] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filtros, setFiltros] = useState({ disciplina: '', nivel: '' })
+  const [loadingInscripcion, setLoadingInscripcion] = useState(false)
+  const [filtros, setFiltros] = useState({ disciplina: '' })
   const [showModalInscripcion, setShowModalInscripcion] = useState(false)
   const [torneoSeleccionado, setTorneoSeleccionado] = useState(null)
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('')
+  const [inscritosIds, setInscritosIds] = useState(new Set())
+  const [feedback, setFeedback] = useState(null)
 
-  // ==================== DATOS HARDCODEADOS ====================
-  const disciplinas = ['Tenis', 'Natación', 'Futbol', 'Basquetbol', 'Voleibol', 'Padel']
-  const niveles = ['Principiante', 'Intermedio', 'Avanzado', 'Open']
-
-  const torneosData = [
-    {
-      id: 1,
-      nombre: 'Copa Primavera 2026',
-      disciplina: 'Tenis',
-      nivel: 'Intermedio',
-      categoria: 'Varones 30-40',
-      fecha: '2026-05-10',
-      hora: '09:00',
-      ubicacion: 'Canchas 1-4',
-      modalidad: 'Singles',
-      participantes: { actual: 16, max: 24 },
-      costo: 350,
-      premio: '$15,000 en premios',
-      imagen: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=400',
-      descripcion: 'Torneo de tenis abierto a todos los niveles intermedios. Sistema de eliminación directa.',
-      requisitos: 'Ser socio activo, traer raqueta propia',
-      estado: 'abierto'
-    },
-    {
-      id: 2,
-      nombre: 'Gran Prix Natación',
-      disciplina: 'Natación',
-      nivel: 'Open',
-      categoria: 'Libre',
-      fecha: '2026-05-15',
-      hora: '08:00',
-      ubicacion: 'Alberca Olímpica',
-      modalidad: 'Relevos y individual',
-      participantes: { actual: 32, max: 40 },
-      costo: 200,
-      premio: 'Medallas y trofeos',
-      imagen: 'https://images.unsplash.com/photo-1519315901367-f34f9150d310?w=400',
-      descripcion: 'Competencia de natación con pruebas de estilo libre, espalda y braza.',
-      requisitos: 'Saber nadar los 4 estilos básicos',
-      estado: 'abierto'
-    },
-    {
-      id: 3,
-      nombre: 'Torneo relámpago de Fútbol',
-      disciplina: 'Futbol',
-      nivel: 'Intermedio',
-      categoria: 'Varones',
-      fecha: '2026-04-25',
-      hora: '16:00',
-      ubicacion: 'Campo Principal',
-      modalidad: '5 vs 5',
-      participantes: { actual: 20, max: 20 },
-      costo: 150,
-      premio: 'Copa y reconocimientos',
-      imagen: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400',
-      descripcion: 'Torneo rápido de una tarde. Equipos de 5 jugadores.',
-      requisitos: 'Traer uniforme del club',
-      estado: 'lleno'
-    },
-    {
-      id: 4,
-      nombre: 'Copa Club de Padel',
-      disciplina: 'Padel',
-      nivel: 'Avanzado',
-      categoria: 'Mixto',
-      fecha: '2026-05-20',
-      hora: '10:00',
-      ubicacion: 'Canchas de Padel',
-      modalidad: 'Parejas',
-      participantes: { actual: 12, max: 16 },
-      costo: 400,
-      premio: '$10,000 en premios',
-      imagen: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=400',
-      descripcion: 'Torneo de padel nivel avanzado en modalidad parejas.',
-      requisitos: 'Nivel avanzado verificado',
-      estado: 'abierto'
-    }
-  ]
-
-  const misTorneosData = [
-    {
-      id: 101,
-      nombre: 'Copa Invierno Tenis',
-      disciplina: 'Tenis',
-      nivel: 'Intermedio',
-      fecha: '2026-03-15',
-      resultado: '3er Lugar',
-      puntos: 150,
-      estado: 'completado'
-    },
-    {
-      id: 102,
-      nombre: 'Torneo de Natación',
-      disciplina: 'Natación',
-      nivel: 'Open',
-      fecha: '2026-04-01',
-      resultado: '1er Lugar',
-      puntos: 300,
-      estado: 'completado'
-    }
-  ]
-
-  // ==================== EFECTOS ====================
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => {
-      setTorneos(torneosData)
-      setMisTorneos(misTorneosData)
-      setLoading(false)
-    }, 500)
-  }, [])
+    fetchTorneos()
+    fetchCategorias()
+    if (socioId) fetchMisParticipaciones()
+  }, [socioId])
 
-  // ==================== HANDLERS ====================
+  const fetchTorneos = async () => {
+    setLoading(true)
+    try {
+      const data = await apiRequest('/torneos')
+      setTorneos(Array.isArray(data) ? data : [])
+    } catch {
+      setTorneos([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchCategorias = async () => {
+    try {
+      const data = await apiRequest('/torneos/categorias')
+      setCategorias(Array.isArray(data) ? data : [])
+    } catch {
+      setCategorias([])
+    }
+  }
+
+  const fetchMisParticipaciones = async () => {
+    try {
+      const data = await apiRequest('/torneos/mis-participaciones')
+      const lista = Array.isArray(data) ? data : []
+      setMisTorneos(lista)
+      setInscritosIds(new Set(lista.map(p => p.torneo_id)))
+    } catch {
+      setMisTorneos([])
+    }
+  }
+
   const handleFiltroChange = (campo, valor) => {
     setFiltros(prev => ({ ...prev, [campo]: valor }))
   }
 
   const handleInscribirse = (torneo) => {
     setTorneoSeleccionado(torneo)
+    setCategoriaSeleccionada(categorias.length > 0 ? String(categorias[0].categoria_id) : '')
+    setFeedback(null)
     setShowModalInscripcion(true)
+  }
+
+  const handleConfirmarInscripcion = async () => {
+    if (!categoriaSeleccionada) {
+      setFeedback({ tipo: 'error', mensaje: 'Selecciona una categoría' })
+      return
+    }
+    if (!socioId) {
+      setFeedback({ tipo: 'error', mensaje: 'No se encontró tu perfil de socio' })
+      return
+    }
+    setLoadingInscripcion(true)
+    setFeedback(null)
+    try {
+      await apiRequest(`/torneos/${torneoSeleccionado.torneo_id}/inscribir`, {
+        method: 'POST',
+        body: JSON.stringify({
+          socio_id: socioId,
+          categoria_id: Number(categoriaSeleccionada)
+        })
+      })
+      setInscritosIds(prev => new Set([...prev, torneoSeleccionado.torneo_id]))
+      await fetchMisParticipaciones()
+      setShowModalInscripcion(false)
+      setFeedback({ tipo: 'exito', mensaje: `¡Inscripción exitosa en ${torneoSeleccionado.nombre}!` })
+      setTimeout(() => setFeedback(null), 4000)
+    } catch (err) {
+      setFeedback({ tipo: 'error', mensaje: err.message || 'Error al inscribirse' })
+    } finally {
+      setLoadingInscripcion(false)
+    }
   }
 
   const getEstadoBadge = (estado) => {
     switch (estado) {
-      case 'abierto':
+      case 'Abierto':
         return <span className="badge-estado abierto"><Calendar size={14} /> Abierto</span>
-      case 'lleno':
-        return <span className="badge-estado lleno"><Users size={14} /> Lleno</span>
-      case 'proximo':
-        return <span className="badge-estado proximo"><Clock size={14} /> Próximo</span>
+      case 'Inscripciones_cerradas':
+        return <span className="badge-estado lleno"><Users size={14} /> Cerrado</span>
+      case 'En_curso':
+        return <span className="badge-estado proximo"><Trophy size={14} /> En curso</span>
+      case 'Finalizado':
+        return <span className="badge-estado" style={{ background: '#64748b', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, position: 'absolute', top: '1rem', right: '1rem' }}>
+          <Medal size={14} /> Finalizado
+        </span>
       default:
         return null
     }
   }
 
-  const getNivelColor = (nivel) => {
-    switch (nivel) {
-      case 'Principiante': return 'verde'
-      case 'Intermedio': return 'azul'
-      case 'Avanzado': return 'naranja'
-      case 'Open': return 'morado'
-      default: return 'verde'
+  const formatFecha = (fecha) => {
+    if (!fecha) return '—'
+    const match = String(fecha).match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (match) {
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+        .toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
     }
+    return fecha
   }
 
-  // Filtrar torneos
+  const disciplinasUnicas = [...new Set(torneos.map(t => t.nombre_disciplina).filter(Boolean))]
+
   const torneosFiltrados = torneos.filter(torneo => {
-    if (filtros.disciplina && torneo.disciplina !== filtros.disciplina) return false
-    if (filtros.nivel && torneo.nivel !== filtros.nivel) return false
+    if (filtros.disciplina && torneo.nombre_disciplina !== filtros.disciplina) return false
     return true
   })
 
+  const torneosAbiertos = torneosFiltrados.filter(t => t.estado === 'Abierto')
+
   return (
     <SocioLayout activeTab="torneos" title="Club Social | Torneos">
-      
-      {/* ==================== HEADER ==================== */}
+
+      {/* HEADER */}
       <section className="rs-welcome-card">
         <div className="rs-welcome-info">
           <h2 className="rs-title-serif">Torneos y Competencias</h2>
@@ -184,165 +166,171 @@ function Torneos() {
         </div>
       </section>
 
-      {/* ==================== TABS ==================== */}
+      {/* BANNER DE FEEDBACK */}
+      {feedback && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          padding: '1rem 1.5rem', borderRadius: '12px', marginBottom: '1rem',
+          background: feedback.tipo === 'exito' ? '#dcfce7' : '#fee2e2',
+          color: feedback.tipo === 'exito' ? '#166534' : '#991b1b',
+          fontWeight: 600
+        }}>
+          {feedback.tipo === 'exito' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+          {feedback.mensaje}
+        </div>
+      )}
+
+      {/* TABS */}
       <div className="clases-tabs-container">
-        <button 
+        <button
           className={`clases-tab-btn ${vista === 'proximos' ? 'active' : ''}`}
           onClick={() => setVista('proximos')}
         >
-          <Trophy size={18} /> Próximos Torneos
+          <Trophy size={18} /> Torneos Disponibles
         </button>
-        <button 
+        <button
           className={`clases-tab-btn ${vista === 'mis-torneos' ? 'active' : ''}`}
           onClick={() => setVista('mis-torneos')}
         >
           <Medal size={18} /> Mis Participaciones
         </button>
-        <button 
+        <button
           className={`clases-tab-btn ${vista === 'resultados' ? 'active' : ''}`}
           onClick={() => setVista('resultados')}
         >
-          <Star size={18} /> Resultados
+          <Star size={18} /> Brackets y Resultados
         </button>
       </div>
 
-      {/* ==================== VISTA: PRÓXIMOS TORNEOS ==================== */}
+      {/* VISTA: TORNEOS DISPONIBLES */}
       {vista === 'proximos' && (
         <div className="proximos-view">
-          {/* Filtros */}
           <div className="filtros-container">
             <div className="filtro-group">
               <label><Filter size={16} /> Disciplina</label>
-              <select 
+              <select
                 value={filtros.disciplina}
                 onChange={(e) => handleFiltroChange('disciplina', e.target.value)}
               >
                 <option value="">Todas</option>
-                {disciplinas.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div className="filtro-group">
-              <label><Users size={16} /> Nivel</label>
-              <select 
-                value={filtros.nivel}
-                onChange={(e) => handleFiltroChange('nivel', e.target.value)}
-              >
-                <option value="">Todos</option>
-                {niveles.map(n => <option key={n} value={n}>{n}</option>)}
+                {disciplinasUnicas.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
           </div>
 
-          {/* Grid de torneos */}
           {loading ? (
-            <div className="loading-state">Cargando...</div>
+            <div className="loading-state">Cargando torneos...</div>
+          ) : torneosAbiertos.length === 0 ? (
+            <div className="empty-state">
+              <Trophy size={48} />
+              <h3>No hay torneos abiertos</h3>
+              <p>Revisa la pestaña de Brackets para ver torneos en curso</p>
+            </div>
           ) : (
             <div className="torneos-grid">
-              {torneosFiltrados.map(torneo => (
-                <div key={torneo.id} className="torneo-card">
-                  <div className="torneo-imagen">
-                    <img src={torneo.imagen} alt={torneo.nombre} />
-                    {getEstadoBadge(torneo.estado)}
+              {torneosAbiertos.map(torneo => {
+                const yaInscrito = inscritosIds.has(torneo.torneo_id)
+                const gradient = DISCIPLINAS_GRADIENT[torneo.nombre_disciplina] || DEFAULT_GRADIENT
+                return (
+                  <div key={torneo.torneo_id} className="torneo-card">
+                    <div className="torneo-imagen">
+                      <div style={{
+                        width: '100%', height: '100%', background: gradient,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <Trophy size={52} style={{ color: 'rgba(255,255,255,0.55)' }} />
+                      </div>
+                      {getEstadoBadge(torneo.estado)}
+                    </div>
+
+                    <div className="torneo-contenido">
+                      <div className="torneo-meta">
+                        <span className="disciplina">{torneo.nombre_disciplina}</span>
+                      </div>
+
+                      <h3 className="torneo-nombre">{torneo.nombre}</h3>
+
+                      <div className="torneo-info">
+                        {torneo.fecha_inicio && (
+                          <div className="info-item">
+                            <Calendar size={14} />
+                            <span>Inicio: {formatFecha(torneo.fecha_inicio)}</span>
+                          </div>
+                        )}
+                        {torneo.fecha_fin && (
+                          <div className="info-item">
+                            <Calendar size={14} />
+                            <span>Fin: {formatFecha(torneo.fecha_fin)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="torneo-footer">
+                        <span />
+                        {yaInscrito ? (
+                          <span style={{
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            padding: '0.625rem 1.25rem', background: '#dcfce7',
+                            borderRadius: '8px', color: '#166534', fontWeight: 700,
+                            fontSize: '0.9rem'
+                          }}>
+                            <CheckCircle size={16} /> Inscrito
+                          </span>
+                        ) : (
+                          <button
+                            className="btn-inscribirse"
+                            onClick={() => handleInscribirse(torneo)}
+                          >
+                            Inscribirse
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="torneo-contenido">
-                    <div className="torneo-meta">
-                      <span className={`nivel-badge ${getNivelColor(torneo.nivel)}`}>
-                        {torneo.nivel}
-                      </span>
-                      <span className="disciplina">{torneo.disciplina}</span>
-                    </div>
-
-                    <h3 className="torneo-nombre">{torneo.nombre}</h3>
-                    <p className="torneo-desc">{torneo.descripcion}</p>
-
-                    <div className="torneo-info">
-                      <div className="info-item">
-                        <Calendar size={14} />
-                        <span>{torneo.fecha}</span>
-                      </div>
-                      <div className="info-item">
-                        <Clock size={14} />
-                        <span>{torneo.hora}</span>
-                      </div>
-                      <div className="info-item">
-                        <MapPin size={14} />
-                        <span>{torneo.ubicacion}</span>
-                      </div>
-                    </div>
-
-                    <div className="torneo-participantes">
-                      <Users size={14} />
-                      <span>{torneo.participantes.actual}/{torneo.participantes.max} participantes</span>
-                      <div className="participantes-barra">
-                        <div 
-                          className="participantes-fill" 
-                          style={{ width: `${(torneo.participantes.actual / torneo.participantes.max) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    <div className="torneo-premio">
-                      <Trophy size={14} />
-                      <span>{torneo.premio}</span>
-                    </div>
-
-                    <div className="torneo-footer">
-                      <span className="torneo-costo">${torneo.costo}</span>
-                      <button 
-                        className={`btn-inscribirse ${torneo.estado === 'lleno' ? 'disabled' : ''}`}
-                        onClick={() => handleInscribirse(torneo)}
-                        disabled={torneo.estado === 'lleno'}
-                      >
-                        {torneo.estado === 'lleno' ? 'Lleno' : 'Inscribirse'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {torneosFiltrados.length === 0 && (
-            <div className="empty-state">
-              <Search size={48} />
-              <h3>No se encontraron torneos</h3>
-              <p>Intenta con otros filtros</p>
+                )
+              })}
             </div>
           )}
         </div>
       )}
 
-      {/* ==================== VISTA: MIS PARTICIPACIONES ==================== */}
+      {/* VISTA: MIS PARTICIPACIONES */}
       {vista === 'mis-torneos' && (
         <div className="mis-torneos-view">
-          {loading ? (
-            <div className="loading-state">Cargando...</div>
-          ) : misTorneos.length === 0 ? (
+          {misTorneos.length === 0 ? (
             <div className="empty-state">
               <Medal size={48} />
               <h3>No has participado en torneos</h3>
-              <p>Explora los próximos torneos para participar</p>
+              <p>Explora los torneos disponibles para inscribirte</p>
             </div>
           ) : (
             <div className="mis-torneos-grid">
               {misTorneos.map(torneo => (
-                <div key={torneo.id} className="mi-torneo-card">
+                <div key={torneo.participante_id} className="mi-torneo-card">
                   <div className="mi-torneo-header">
-                    <span className="disciplina">{torneo.disciplina}</span>
-                    <span className={`estado ${torneo.estado}`}>
-                      {torneo.estado === 'completado' ? 'Completado' : 'Activo'}
+                    <span className="disciplina">{torneo.nombre_disciplina}</span>
+                    <span className={`estado ${torneo.estado === 'Finalizado' ? 'completado' : ''}`}
+                      style={torneo.estado !== 'Finalizado' ? {
+                        background: '#dbeafe', color: '#1e40af',
+                        padding: '0.25rem 0.6rem', borderRadius: '20px',
+                        fontSize: '0.75rem', fontWeight: 600
+                      } : {}}>
+                      {torneo.estado === 'Finalizado' ? 'Completado'
+                        : torneo.estado === 'En_curso' ? 'En curso'
+                        : torneo.estado === 'Inscripciones_cerradas' ? 'Iniciando'
+                        : torneo.estado}
                     </span>
                   </div>
                   <h3>{torneo.nombre}</h3>
-                  <p className="fecha">{torneo.fecha}</p>
-                  <div className="resultado">
-                    <Medal size={20} />
-                    <span>{torneo.resultado}</span>
-                  </div>
-                  <div className="puntos">
-                    +{torneo.puntos} puntos
-                  </div>
+                  {torneo.fecha_inicio && (
+                    <p className="fecha">{formatFecha(torneo.fecha_inicio)}</p>
+                  )}
+                  {torneo.categoria && (
+                    <div className="resultado">
+                      <Users size={16} />
+                      <span>{torneo.categoria}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -350,17 +338,16 @@ function Torneos() {
         </div>
       )}
 
-      {/* ==================== VISTA: RESULTADOS ==================== */}
+      {/* VISTA: BRACKETS Y RESULTADOS */}
       {vista === 'resultados' && (
-        <div className="resultados-view">
-          <TournamentBracket
-            title="Resultados y brackets"
-            subtitle="Consulta los cruces y resultados publicados de los torneos del club."
-          />
-        </div>
+        <TournamentBracket
+          title="Brackets y Resultados"
+          subtitle="Consulta los cruces y resultados de los torneos del club."
+          readOnly={true}
+        />
       )}
 
-      {/* ==================== MODAL: INSCRIPCIÓN ==================== */}
+      {/* MODAL INSCRIPCIÓN */}
       {showModalInscripcion && torneoSeleccionado && (
         <div className="rs-modal-overlay">
           <div className="rs-modal modal-torneo">
@@ -370,63 +357,65 @@ function Torneos() {
             </header>
             <div className="modal-body">
               <div className="torneo-ficha">
-                <img src={torneoSeleccionado.imagen} alt={torneoSeleccionado.nombre} className="ficha-imagen" />
-                
+                <div style={{
+                  width: '100%', height: 160, borderRadius: '12px', marginBottom: '1.5rem',
+                  background: DISCIPLINAS_GRADIENT[torneoSeleccionado.nombre_disciplina] || DEFAULT_GRADIENT,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Trophy size={56} style={{ color: 'rgba(255,255,255,0.6)' }} />
+                </div>
+
                 <h2>{torneoSeleccionado.nombre}</h2>
-                
+
                 <div className="ficha-meta">
-                  <span className={`nivel-badge ${getNivelColor(torneoSeleccionado.nivel)}`}>
-                    {torneoSeleccionado.nivel}
-                  </span>
-                  <span>{torneoSeleccionado.disciplina}</span>
-                  <span>{torneoSeleccionado.categoria}</span>
+                  <span>{torneoSeleccionado.nombre_disciplina}</span>
+                  {torneoSeleccionado.fecha_inicio && (
+                    <span>{formatFecha(torneoSeleccionado.fecha_inicio)}</span>
+                  )}
                 </div>
 
-                <div className="ficha-detalles">
-                  <div className="ficha-detalle">
-                    <Calendar size={18} />
-                    <div>
-                      <strong>Fecha</strong>
-                      <span>{torneoSeleccionado.fecha}</span>
-                    </div>
+                {categorias.length > 0 ? (
+                  <div style={{ margin: '1.5rem 0', textAlign: 'left' }}>
+                    <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#0f172a' }}>
+                      Selecciona tu categoría
+                    </label>
+                    <select
+                      value={categoriaSeleccionada}
+                      onChange={e => setCategoriaSeleccionada(e.target.value)}
+                      style={{
+                        width: '100%', padding: '0.75rem 1rem',
+                        border: '1px solid #e2e8f0', borderRadius: '10px',
+                        fontSize: '1rem', color: '#0f172a', background: 'white'
+                      }}
+                    >
+                      {categorias.map(c => (
+                        <option key={c.categoria_id} value={c.categoria_id}>{c.nombre}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="ficha-detalle">
-                    <Clock size={18} />
-                    <div>
-                      <strong>Hora</strong>
-                      <span>{torneoSeleccionado.hora}</span>
-                    </div>
+                ) : (
+                  <div className="ficha-requisitos" style={{ marginTop: '1.5rem' }}>
+                    <p>No hay categorías disponibles en este momento.</p>
                   </div>
-                  <div className="ficha-detalle">
-                    <MapPin size={18} />
-                    <div>
-                      <strong>Ubicación</strong>
-                      <span>{torneoSeleccionado.ubicacion}</span>
-                    </div>
-                  </div>
-                  <div className="ficha-detalle">
-                    <Users size={18} />
-                    <div>
-                      <strong>Modalidad</strong>
-                      <span>{torneoSeleccionado.modalidad}</span>
-                    </div>
-                  </div>
-                </div>
+                )}
 
-                <div className="ficha-requisitos">
-                  <h4><AlertCircle size={16} /> Requisitos</h4>
-                  <p>{torneoSeleccionado.requisitos}</p>
-                </div>
-
-                <div className="ficha-costo">
-                  <span>Costo de Inscripción:</span>
-                  <strong>${torneoSeleccionado.costo}</strong>
-                </div>
+                {feedback?.tipo === 'error' && showModalInscripcion && (
+                  <div style={{
+                    padding: '0.75rem 1rem', background: '#fee2e2', borderRadius: '10px',
+                    color: '#991b1b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem'
+                  }}>
+                    <AlertCircle size={18} /> {feedback.mensaje}
+                  </div>
+                )}
               </div>
             </div>
             <footer className="modal-footer">
-              <button className="modal-btn confirm" onClick={() => setShowModalInscripcion(false)}>
-                Confirmar Inscripción
+              <button
+                className="modal-btn confirm"
+                onClick={handleConfirmarInscripcion}
+                disabled={loadingInscripcion || categorias.length === 0}
+              >
+                {loadingInscripcion ? 'Procesando...' : 'Confirmar Inscripción'}
               </button>
               <button className="modal-btn cancel" onClick={() => setShowModalInscripcion(false)}>
                 Cancelar

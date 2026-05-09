@@ -95,8 +95,8 @@ async function validateReserva(payload, options = {}) {
   const duration = minutesBetween(horaInicio, horaFin);
   if (duration <= 0) {
     errors.push('La hora de fin debe ser mayor a la hora de inicio');
-  } else if (duration !== RESERVA_CONFIG.durationMinutes) {
-    errors.push(`La reserva debe durar ${RESERVA_CONFIG.durationMinutes} minutos`);
+  } else if (duration < 60 || duration > 120 || duration % 60 !== 0) {
+    errors.push('La reserva debe ser de 1 o 2 horas');
   }
 
   if (!reservaQuedaActiva) return errors;
@@ -346,6 +346,59 @@ const reservasController = {
       res.json({ ok: true, message: 'Reserva eliminada correctamente' });
     } catch (error) {
       console.error('Error en deleteReserva:', error);
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  getDisponibilidad: async (req, res) => {
+    const espacioId = Number(req.query.espacio_id);
+    if (!espacioId || !Number.isInteger(espacioId)) {
+      return res.status(400).json({ error: 'espacio_id requerido' });
+    }
+
+    const fecha = localTodayISO();
+    const diaSemana = getDiaSemana(fecha);
+
+    try {
+      const reservas = await pool.query(
+        `SELECT hora_inicio, hora_fin FROM reservaciones
+         WHERE espacio_id = $1 AND fecha_reserva = $2
+           AND LOWER(estado::text) NOT IN ('cancelada', 'cancelado')`,
+        [espacioId, fecha]
+      );
+
+      const sesiones = await pool.query(
+        `SELECT sp.hora_inicio, sp.hora_fin FROM sesiones_programadas sp
+         WHERE sp.espacio_id = $1 AND sp.dia_semana = $2
+           AND COALESCE((to_jsonb(sp)->>'activo')::boolean, true) = true`,
+        [espacioId, diaSemana]
+      );
+
+      const HORA_APERTURA = 6;
+      const HORA_CIERRE = 22;
+
+      const slots = [];
+      for (let h = HORA_APERTURA; h < HORA_CIERRE; h++) {
+        const slotInicio = `${String(h).padStart(2, '0')}:00`;
+        const slotFin   = `${String(h + 1).padStart(2, '0')}:00`;
+
+        const bloqueadoPorReserva = reservas.rows.some(r =>
+          normalizeTime(r.hora_inicio) < slotFin && normalizeTime(r.hora_fin) > slotInicio
+        );
+        const bloqueadoPorSesion = sesiones.rows.some(s =>
+          normalizeTime(s.hora_inicio) < slotFin && normalizeTime(s.hora_fin) > slotInicio
+        );
+
+        let motivo = null;
+        if (bloqueadoPorSesion) motivo = 'sesion';
+        else if (bloqueadoPorReserva) motivo = 'reserva';
+
+        slots.push({ hora: slotInicio, libre: !bloqueadoPorReserva && !bloqueadoPorSesion, motivo });
+      }
+
+      res.json({ espacio_id: espacioId, fecha, slots });
+    } catch (error) {
+      console.error('Error en getDisponibilidad:', error);
       res.status(500).json({ error: error.message });
     }
   }

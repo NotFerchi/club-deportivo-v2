@@ -5,13 +5,13 @@ const espaciosController = {
   getEspacios: async (req, res) => {
     try {
       const result = await pool.query(`
-        SELECT 
+        SELECT
           e.espacio_id,
           e.nombre,
           e.capacidad_maxima,
           e.activo,
-          d.disciplina_id,
-          d.nombre as disciplina
+          e.disciplina_id,
+          d.nombre AS disciplina
         FROM espacios e
         LEFT JOIN disciplinas d ON e.disciplina_id = d.disciplina_id
         ORDER BY e.nombre

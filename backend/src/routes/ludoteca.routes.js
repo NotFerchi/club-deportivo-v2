@@ -4,6 +4,13 @@ const controller = require('../controllers/ludotecaController');
 const { verifyToken } = require('../middleware/auth.middleware');
 const checkRole = require('../middleware/checkRole');
 
+// Aforo público
+router.get('/aforo', controller.getAforo);
+
+// Autoservicio del socio (entrada y salida propias)
+router.post('/socio/entrada', verifyToken, controller.socioEntradaLudoteca);
+router.patch('/socio/salida/:registro_id', verifyToken, controller.socioSalidaLudoteca);
+
 // Rutas existentes
 router.get(
   '/activos',

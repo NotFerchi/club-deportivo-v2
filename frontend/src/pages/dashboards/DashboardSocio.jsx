@@ -1,165 +1,306 @@
 import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../components/SocioLayout'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Trophy, Clock, MapPin, Baby, CalendarDays, ShieldAlert } from 'lucide-react'
+import { apiRequest } from '../../services/api'
 
-function DashboardSocio() {
-  // Estados para datos reales
-  const [clasesHoy, setClasesHoy] = useState(0)
-  const [espaciosLibres, setEspaciosLibres] = useState(0)
-  const [proximasClases, setProximasClases] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+function todayISO() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
 
-  // Obtener día actual en formato para la API
-  const getDiaActual = () => {
-    const dias = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado']
-    return dias[new Date().getDay()]
-  }
+export default function DashboardSocio() {
+  const usuario   = JSON.parse(localStorage.getItem('usuario') || '{}')
+  const socioId   = usuario?.socio_id
+  const userName  = usuario?.email?.split('@')[0] || 'Socio'
 
-  // Cargar datos al montar el componente
+  const [reservasHoy,    setReservasHoy]    = useState([])
+  const [sanciones,      setSanciones]      = useState([])
+  const [torneos,        setTorneos]        = useState([])
+  const [ludoteca,       setLudoteca]       = useState([])
+  const [aforo,          setAforo]          = useState(null)
+  const [loading,        setLoading]        = useState(true)
+
   useEffect(() => {
-    const fetchDatos = async () => {
-      const token = localStorage.getItem('token')
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+    if (!socioId) { setLoading(false); return }
+
+    const hoy = todayISO()
+
+    Promise.allSettled([
+      apiRequest('/reservas'),
+      apiRequest(`/sanciones/socio/${socioId}`),
+      apiRequest('/torneos/mis-participaciones'),
+      apiRequest('/ludoteca/mis-registros'),
+      apiRequest('/ludoteca/aforo'),
+    ]).then(([resReservas, resSanciones, resTorneos, resLudoteca, resAforo]) => {
+      if (resReservas.status === 'fulfilled') {
+        const todas = Array.isArray(resReservas.value) ? resReservas.value : []
+        setReservasHoy(todas.filter(r =>
+          r.fecha === hoy &&
+          Number(r.socio_id) === Number(socioId) &&
+          r.estado !== 'cancelada'
+        ))
       }
-
-      try {
-        // Obtener clases del día y espacios
-        const [sesionesRes, espaciosRes] = await Promise.all([
-          fetch(`http://localhost:3000/api/sesiones/dia/${getDiaActual()}`, { headers }),
-          fetch('http://localhost:3000/api/espacios', { headers })
-        ])
-
-        const sesionesData = sesionesRes.ok ? await sesionesRes.json() : []
-        const espaciosData = espaciosRes.ok ? await espaciosRes.json() : []
-
-        setClasesHoy(sesionesData.length)
-        setEspaciosLibres(espaciosData.filter(e => e.activo).length)
-        setProximasClases(sesionesData.slice(0, 5))
-      } catch (err) {
-        setError('Error al cargar datos')
-        console.error(err)
-      } finally {
-        setLoading(false)
+      if (resSanciones.status === 'fulfilled') {
+        setSanciones(Array.isArray(resSanciones.value) ? resSanciones.value : [])
       }
-    }
+      if (resTorneos.status === 'fulfilled') {
+        setTorneos(Array.isArray(resTorneos.value) ? resTorneos.value : [])
+      }
+      if (resLudoteca.status === 'fulfilled') {
+        setLudoteca(Array.isArray(resLudoteca.value) ? resLudoteca.value : [])
+      }
+      if (resAforo.status === 'fulfilled') {
+        setAforo(resAforo.value)
+      }
+      setLoading(false)
+    })
+  }, [socioId])
 
-    fetchDatos()
-  }, [])
+  const sancionesActivas  = sanciones.filter(s => String(s.estado).toLowerCase() === 'activa' || String(s.estado).toLowerCase() === 'activo')
+  const niosActivos       = ludoteca.filter(r => r.estado === 'activo')
+  const torneosActivos    = torneos.filter(t => t.estado !== 'Finalizado')
 
-  // Obtener nombre del usuario
-  const usuarioSesion = localStorage.getItem('usuario')
-  const userName = usuarioSesion ? JSON.parse(usuarioSesion).nombre || "Socio" : "Socio"
+  const estadoCuenta = sancionesActivas.some(s => ['grave','moderada'].includes(String(s.gravedad).toLowerCase()))
+    ? 'sancionado'
+    : sancionesActivas.length > 0 ? 'advertencia' : 'activo'
 
-  // Formatear fecha actual
-  const fechaActual = new Date().toLocaleDateString('es-ES', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  const fechaLabel = new Date().toLocaleDateString('es-MX', {
+    weekday: 'long', day: 'numeric', month: 'long'
   })
+
+  const kpis = [
+    {
+      icon: <CalendarDays size={20} />,
+      valor: loading ? '…' : reservasHoy.length,
+      label: 'Reservas hoy',
+      color: '#1e40af', bg: '#dbeafe',
+    },
+    {
+      icon: <Trophy size={20} />,
+      valor: loading ? '…' : torneosActivos.length,
+      label: 'Torneos activos',
+      color: '#15803d', bg: '#dcfce7',
+    },
+    {
+      icon: <Baby size={20} />,
+      valor: loading ? '…' : niosActivos.length,
+      label: 'Niños en ludoteca',
+      color: '#c2410c', bg: '#ffedd5',
+    },
+    {
+      icon: <ShieldAlert size={20} />,
+      valor: loading ? '…' : sancionesActivas.length,
+      label: 'Sanciones activas',
+      color: sancionesActivas.length > 0 ? '#991b1b' : '#166534',
+      bg:    sancionesActivas.length > 0 ? '#fee2e2' : '#dcfce7',
+    },
+  ]
 
   return (
     <SocioLayout activeTab="inicio" title="Club Social y Deportivo | Inicio">
-      
-      {/* Card Hero */}
+
+      {/* HERO */}
       <section className="ds-welcome-card">
         <div className="ds-welcome-info">
-          <h2 className="ds-title-serif">Buen dia, {userName.split(' ')[0]}</h2>
-          <p className="ds-subtitle">{fechaActual}</p>
+          <h2 className="ds-title-serif">Buen día, {userName}</h2>
+          <p className="ds-subtitle" style={{ textTransform: 'capitalize' }}>{fechaLabel}</p>
         </div>
         <div className="ds-status-tags">
-          <span className="tag-active"><CheckCircle size={14} /> Activo</span>
-          <span className="tag-category">Accion Familiar</span>
-        </div>
-      </section>
-
-      {/* KPI Cards - Ahora con datos reales */}
-      <div className="ds-grid-kpi">
-        <div className="ds-card-stat">
-          <div className="stat-icon gray"><CalendarIcon size={20} /></div>
-          <div className="stat-data">
-            {loading ? (
-              <span className="stat-number">...</span>
-            ) : (
-              <span className="stat-number">{clasesHoy}</span>
-            )}
-            <span className="stat-label">Clases hoy</span>
-          </div>
-        </div>
-        <div className="ds-card-stat">
-          <div className="stat-icon teal"><LayoutIcon size={20} /></div>
-          <div className="stat-data">
-            {loading ? (
-              <span className="stat-number">...</span>
-            ) : (
-              <span className="stat-number">{espaciosLibres}</span>
-            )}
-            <span className="stat-label">Canchas libres</span>
-          </div>
-        </div>
-        <div className="ds-card-stat">
-          <div className="stat-icon amber"><BabyIcon size={20} /></div>
-          <div className="stat-data">
-            <span className="stat-number">-</span>
-            <span className="stat-label">Hijos registrados</span>
-          </div>
-        </div>
-        <div className="ds-card-stat">
-          <div className="stat-icon red"><AlertIcon size={20} /></div>
-          <div className="stat-data">
-            <span className="stat-number">-</span>
-            <span className="stat-label">No-Shows (30 dias)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Seccion Listado - Ahora con datos reales */}
-      <section className="ds-section-card">
-        <header className="section-header">
-          <ClockIcon size={18} /> <h3>Proximas 24 horas</h3>
-        </header>
-        <div className="ds-list">
-          {loading ? (
-            <div className="ds-list-item">
-              <div className="item-info">
-                <h4>Cargando...</h4>
-              </div>
-            </div>
-          ) : proximasClases.length > 0 ? (
-            proximasClases.map((sesion, index) => (
-              <div key={index} className="ds-list-item">
-                <div className="item-info">
-                  <h4>{sesion.disciplina}</h4>
-                  <p>{sesion.hora_inicio?.substring(0, 5)} - {sesion.hora_fin?.substring(0, 5)} - {sesion.espacio}</p>
-                </div>
-                <div className="item-badge">{sesion.cupo_actual || 0}/{sesion.cupo_maximo}</div>
-              </div>
-            ))
-          ) : (
-            <div className="ds-list-item">
-              <div className="item-info">
-                <h4>No hay clases programadas</h4>
-                <p>Hoy no hay sesiones disponibles</p>
-              </div>
-            </div>
+          <span className={`tag-active ${estadoCuenta !== 'activo' ? 'tag-warn' : ''}`}
+            style={estadoCuenta === 'sancionado' ? { background: '#fee2e2', color: '#991b1b' }
+                 : estadoCuenta === 'advertencia' ? { background: '#fef3c7', color: '#92400e' }
+                 : {}}>
+            <CheckCircle size={14} />
+            {estadoCuenta === 'activo' ? 'Al corriente' : estadoCuenta === 'advertencia' ? 'Advertencia' : 'Sancionado'}
+          </span>
+          {usuario.numero_socio && (
+            <span className="tag-category">Socio #{usuario.numero_socio}</span>
           )}
         </div>
       </section>
 
+      {/* BANNER SANCIÓN */}
+      {sancionesActivas.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          padding: '0.875rem 1.25rem', borderRadius: '12px', marginBottom: '1rem',
+          background: '#fee2e2', color: '#991b1b', fontWeight: 600, fontSize: '0.875rem'
+        }}>
+          <AlertTriangle size={18} />
+          Tienes {sancionesActivas.length} sanción{sancionesActivas.length > 1 ? 'es' : ''} activa{sancionesActivas.length > 1 ? 's' : ''}.
+          Revisa la pestaña de Sanciones para más información.
+        </div>
+      )}
+
+      {/* KPIs */}
+      <div className="ds-grid-kpi">
+        {kpis.map((k, i) => (
+          <div key={i} className="ds-card-stat">
+            <div className="stat-icon" style={{ background: k.bg, color: k.color }}>
+              {k.icon}
+            </div>
+            <div className="stat-data">
+              <span className="stat-number" style={k.valor > 0 && k.label.includes('Sanción') ? { color: '#dc2626' } : {}}>
+                {k.valor}
+              </span>
+              <span className="stat-label">{k.label}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* DOS COLUMNAS */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+
+        {/* RESERVAS HOY */}
+        <section className="ds-section-card">
+          <header className="section-header">
+            <CalendarDays size={18} />
+            <h3>Reservas de hoy</h3>
+          </header>
+          <div className="ds-list">
+            {loading ? (
+              <div className="ds-list-item"><div className="item-info"><h4>Cargando…</h4></div></div>
+            ) : reservasHoy.length === 0 ? (
+              <div className="ds-list-item">
+                <div className="item-info">
+                  <h4>Sin reservas hoy</h4>
+                  <p>Ve a Reservas para apartar una cancha</p>
+                </div>
+              </div>
+            ) : (
+              reservasHoy.map(r => (
+                <div key={r.reserva_id} className="ds-list-item">
+                  <div className="item-info">
+                    <h4>{r.espacio_nombre || `Espacio #${r.espacio_id}`}</h4>
+                    <p style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={12} />
+                      {String(r.hora_inicio).slice(0,5)} – {String(r.hora_fin).slice(0,5)}
+                    </p>
+                  </div>
+                  <span style={{
+                    padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700,
+                    background: '#dcfce7', color: '#166534'
+                  }}>Confirmada</span>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* TORNEOS */}
+        <section className="ds-section-card">
+          <header className="section-header">
+            <Trophy size={18} />
+            <h3>Mis torneos</h3>
+          </header>
+          <div className="ds-list">
+            {loading ? (
+              <div className="ds-list-item"><div className="item-info"><h4>Cargando…</h4></div></div>
+            ) : torneos.length === 0 ? (
+              <div className="ds-list-item">
+                <div className="item-info">
+                  <h4>Sin participaciones</h4>
+                  <p>Inscríbete en Torneos para ver tus competencias</p>
+                </div>
+              </div>
+            ) : (
+              torneos.slice(0, 4).map(t => {
+                const estadoColor = t.estado === 'Finalizado' ? { bg: '#f1f5f9', color: '#64748b' }
+                  : t.estado === 'En_curso' ? { bg: '#dbeafe', color: '#1e40af' }
+                  : { bg: '#dcfce7', color: '#15803d' }
+                return (
+                  <div key={t.participante_id} className="ds-list-item">
+                    <div className="item-info">
+                      <h4>{t.nombre}</h4>
+                      <p>{t.nombre_disciplina}{t.categoria ? ` · ${t.categoria}` : ''}</p>
+                    </div>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700,
+                      background: estadoColor.bg, color: estadoColor.color
+                    }}>
+                      {t.estado === 'En_curso' ? 'En curso' : t.estado === 'Finalizado' ? 'Finalizado' : 'Inscrito'}
+                    </span>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </section>
+
+        {/* LUDOTECA */}
+        {(niosActivos.length > 0 || aforo) && (
+          <section className="ds-section-card">
+            <header className="section-header" style={{ justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Baby size={18} />
+                <h3>Ludoteca</h3>
+              </div>
+              {aforo && (
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                  Aforo: {aforo.activos}/{aforo.maximo}
+                </span>
+              )}
+            </header>
+            <div className="ds-list">
+              {niosActivos.length === 0 ? (
+                <div className="ds-list-item">
+                  <div className="item-info"><h4>Sin niños activos</h4></div>
+                </div>
+              ) : (
+                niosActivos.map(r => (
+                  <div key={r.registro_id} className="ds-list-item">
+                    <div className="item-info">
+                      <h4>{r.nombre_hijo}</h4>
+                      <p style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Clock size={12} /> {r.minutos_transcurridos} min transcurridos
+                      </p>
+                    </div>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700,
+                      background: Number(r.minutos_transcurridos) >= 110 ? '#fee2e2' : '#dcfce7',
+                      color:      Number(r.minutos_transcurridos) >= 110 ? '#991b1b' : '#166534'
+                    }}>
+                      {Number(r.minutos_transcurridos) >= 110 ? '⚠ Casi 2h' : 'Activo'}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* SANCIONES */}
+        {sancionesActivas.length > 0 && (
+          <section className="ds-section-card">
+            <header className="section-header">
+              <ShieldAlert size={18} style={{ color: '#dc2626' }} />
+              <h3>Sanciones activas</h3>
+            </header>
+            <div className="ds-list">
+              {sancionesActivas.map(s => (
+                <div key={s.sancion_id} className="ds-list-item">
+                  <div className="item-info">
+                    <h4>{s.motivo || 'Sin descripción'}</h4>
+                    <p>{s.origen}{s.fecha_inicio ? ` · desde ${String(s.fecha_inicio).slice(0,10)}` : ''}</p>
+                  </div>
+                  <span style={{
+                    padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700,
+                    background: String(s.gravedad).toLowerCase() === 'grave' ? '#fee2e2'
+                      : String(s.gravedad).toLowerCase() === 'moderada' ? '#fef3c7' : '#fef9c3',
+                    color: String(s.gravedad).toLowerCase() === 'grave' ? '#991b1b'
+                      : String(s.gravedad).toLowerCase() === 'moderada' ? '#92400e' : '#713f12'
+                  }}>
+                    {s.gravedad || 'Leve'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+      </div>
+
     </SocioLayout>
   )
 }
-
-// Iconos auxiliares
-const CalendarIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-const LayoutIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-const BabyIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 19c4 0 6-2 8-2"/><path d="M12 2v2"/><path d="M12 20v2"/></svg>
-const AlertIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-const ClockIcon = ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-
-export default DashboardSocio

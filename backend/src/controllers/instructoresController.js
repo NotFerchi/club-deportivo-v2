@@ -21,8 +21,7 @@ const instructoresController = {
                         -- Cambiamos a INNER JOIN si solo quieres mostrar gente con cuenta
                         -- O dejamos LEFT JOIN pero filtramos en el WHERE
                         LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
-                        WHERE i.activo = true 
-                        AND (u.nombres IS NOT NULL OR i.especialidad IS NOT NULL) -- Filtra los "fantasmas"
+                        WHERE (u.nombres IS NOT NULL OR i.especialidad IS NOT NULL)
                         ORDER BY nombre
                     `;
             const result = await pool.query(query);

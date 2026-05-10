@@ -12,5 +12,6 @@ router.post('/', torneosController.createTorneo);
 router.post('/:torneo_id/inscribir', torneosController.inscribirParticipante);
 router.patch('/:torneo_id/cerrar-inscripciones', torneosController.cerrarInscripciones);
 router.patch('/:torneo_id/confirmar-bracket', torneosController.confirmarBracket);
+router.patch('/:torneo_id/finalizar', verifyToken, torneosController.finalizarTorneo);
 
 module.exports = router;

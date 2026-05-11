@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search } from 'lucide-react';
+import { AlertCircle, RefreshCw, Search } from 'lucide-react';
 
 export function ModuleHeader({ icon: Icon, title, subtitle, count, actions }) {
   return (
@@ -70,5 +70,28 @@ export function InlineIcon({ icon: Icon, children, className = '' }) {
       {Icon && <Icon size={14} />}
       {children}
     </span>
+  );
+}
+
+export function LoadingState({ message = 'Cargando...' }) {
+  return (
+    <div className="admin-state-panel">
+      <div className="loading-spinner" />
+      <p>{message}</p>
+    </div>
+  );
+}
+
+export function ErrorState({ message = 'No se pudo cargar la informacion.', onRetry }) {
+  return (
+    <div className="admin-state-panel state-error">
+      <AlertCircle size={34} />
+      <p>{message}</p>
+      {onRetry && (
+        <button className="btn-outline" onClick={onRetry}>
+          <RefreshCw size={15} /> Reintentar
+        </button>
+      )}
+    </div>
   );
 }

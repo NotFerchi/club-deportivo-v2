@@ -8,6 +8,7 @@ router.use(verifyToken);
 router.use(checkRole(['admin', 'gerente']));
 
 router.get('/', logsController.getLogs);
+router.post('/', logsController.createLog);
 router.get('/estadisticas', logsController.getLogsEstadisticas);
 router.get('/tabla/:tabla', logsController.getLogsByTabla);
 

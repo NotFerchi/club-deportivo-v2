@@ -1,6 +1,24 @@
 const pool = require('../config/database');
+const { logAudit } = require('../utils/auditLogger');
 
 const logsController = {
+    createLog: async (req, res) => {
+        const { accion, tabla_afectada, detalles, registro_id } = req.body || {};
+
+        if (!accion) {
+            return res.status(400).json({ error: 'accion es requerida' });
+        }
+
+        await logAudit(req, {
+            accion,
+            tabla_afectada,
+            detalles,
+            registro_id
+        });
+
+        res.status(201).json({ ok: true, message: 'Log registrado' });
+    },
+
     // ============================================
     // OBTENER TODOS LOS LOGS
     // ============================================

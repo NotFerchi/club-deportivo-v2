@@ -24,6 +24,7 @@ router.get('/espacios', recepcionController.getEspacios);
 router.get('/visitas/activas', recepcionController.visitasActivas);
 router.get('/visitas/historial', recepcionController.historialVisitas);
 router.get('/visitas', recepcionController.listarVisitas);
+router.post('/visitas/cerrar-vencidas', recepcionController.cerrarVisitasVencidas);
 router.post('/visitas', recepcionController.crearVisita);
 router.put('/visitas/:id/salida', recepcionController.registrarSalidaVisita);
 router.get('/socios-lista', recepcionController.listaSociosParaVisitas);

@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { logAudit } = require('../utils/auditLogger');
 
 const disciplinasController = {
   // Obtener todas las disciplinas
@@ -47,6 +48,12 @@ const disciplinasController = {
         'INSERT INTO disciplinas (nombre) VALUES ($1) RETURNING disciplina_id',
         [nombre]
       );
+      await logAudit(req, {
+        accion: 'crear_disciplina',
+        tabla_afectada: 'disciplinas',
+        registro_id: result.rows[0].disciplina_id,
+        detalles: `Disciplina creada: ${nombre}`
+      });
       res.json({ ok: true, id: result.rows[0].disciplina_id, message: 'Disciplina creada correctamente' });
     } catch (error) {
       console.error(error);
@@ -76,6 +83,12 @@ const disciplinasController = {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Disciplina no encontrada' });
       }
+      await logAudit(req, {
+        accion: 'actualizar_disciplina',
+        tabla_afectada: 'disciplinas',
+        registro_id: id,
+        detalles: `Disciplina actualizada: ${nombre}`
+      });
       
       res.json({ ok: true, message: 'Disciplina actualizada correctamente' });
     } catch (error) {
@@ -113,6 +126,12 @@ const disciplinasController = {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Disciplina no encontrada' });
       }
+      await logAudit(req, {
+        accion: 'eliminar_disciplina',
+        tabla_afectada: 'disciplinas',
+        registro_id: id,
+        detalles: 'Disciplina eliminada'
+      });
       
       res.json({ ok: true, message: 'Disciplina eliminada correctamente' });
     } catch (error) {

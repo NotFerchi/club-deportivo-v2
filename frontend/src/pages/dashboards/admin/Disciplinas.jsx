@@ -7,7 +7,7 @@ import { normalizeText } from '../../../utils/adminData';
 const initialFormData = { nombre: '' };
 const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
 
-function Disciplinas() {
+function Disciplinas({ readOnly = false }) {
   const [disciplinas, setDisciplinas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -108,12 +108,15 @@ function Disciplinas() {
         icon={Dumbbell}
         title="Disciplinas Deportivas"
         count={filtered.length}
+        subtitle={readOnly ? 'Vista gerencial de catalogo deportivo.' : 'Administra el catalogo base de disciplinas.'}
         actions={(
           <>
             <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar disciplina" />
-            <button className="btn-primary" onClick={openCreateModal}>
-              <Plus size={16} /> Nueva Disciplina
-            </button>
+            {!readOnly && (
+              <button className="btn-primary" onClick={openCreateModal}>
+                <Plus size={16} /> Nueva Disciplina
+              </button>
+            )}
           </>
         )}
       />
@@ -129,7 +132,7 @@ function Disciplinas() {
         <EmptyState
           icon={Dumbbell}
           title="No hay disciplinas con los filtros actuales."
-          action={<button className="btn-primary" onClick={openCreateModal}><Plus size={16} /> Crear disciplina</button>}
+          action={!readOnly && <button className="btn-primary" onClick={openCreateModal}><Plus size={16} /> Crear disciplina</button>}
         />
       ) : (
         <div className="grid-auto">
@@ -142,14 +145,16 @@ function Disciplinas() {
                 </div>
                 <Dumbbell size={22} style={{ color: '#0ea5e9' }} />
               </div>
-              <div className="espacio-footer">
-                <button onClick={() => openEditModal(disciplina)} className="btn-outline" title="Editar disciplina">
-                  <Edit2 size={16} /> Editar
-                </button>
-                <button onClick={() => handleDelete(disciplina.disciplina_id)} className="btn-outline" title="Eliminar disciplina" style={{ color: '#b91c1c' }}>
-                  <Trash2 size={16} /> Eliminar
-                </button>
-              </div>
+              {!readOnly && (
+                <div className="espacio-footer">
+                  <button onClick={() => openEditModal(disciplina)} className="btn-outline" title="Editar disciplina">
+                    <Edit2 size={16} /> Editar
+                  </button>
+                  <button onClick={() => handleDelete(disciplina.disciplina_id)} className="btn-outline" title="Eliminar disciplina" style={{ color: '#b91c1c' }}>
+                    <Trash2 size={16} /> Eliminar
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

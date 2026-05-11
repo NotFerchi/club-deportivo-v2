@@ -501,10 +501,10 @@ function TournamentBracket({
       )}
 
       {/* Layout: lista izquierda + detalle/bracket derecha */}
-      <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+      <div className="tb-split-layout">
 
         {/* Panel izquierdo — lista de torneos */}
-        <aside style={{ width: '280px', flexShrink: 0, background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem' }}>
+        <aside className="tb-side-list">
           <div className="tb-panel-title">
             <strong>Torneos</strong>
             <span>{torneos.length}</span>
@@ -526,9 +526,9 @@ function TournamentBracket({
         </aside>
 
         {/* Panel derecho — detalles + bracket */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="tb-detail-side">
           {!selectedTorneo ? (
-            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '3rem' }}>
+            <div className="tb-detail-placeholder">
               <EmptyState title="Selecciona un torneo" message="Los detalles y bracket aparecerán aquí." />
             </div>
           ) : (

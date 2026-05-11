@@ -6,8 +6,8 @@ const { verifyToken, checkRole } = require('../middleware/auth.middleware');
 // Todas las rutas requieren autenticación
 router.use(verifyToken);
 
-// Solo admin y gerente pueden gestionar usuarios
-router.use(checkRole(['admin', 'gerente']));
+// Solo admin puede gestionar usuarios internos.
+router.use(checkRole(['admin']));
 
 router.get('/', usuariosController.getUsuarios);
 router.get('/roles', usuariosController.getRoles);

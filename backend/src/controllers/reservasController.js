@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { logAudit } = require('../utils/auditLogger');
 const {
   addDaysISO,
   getDiaSemana,
@@ -236,6 +237,12 @@ const reservasController = {
          RETURNING reserva_id`,
         [espacio_id, socio_id, normalizeDate(fecha), normalizeTime(hora_inicio), normalizeTime(hora_fin), estadoDb]
       );
+      await logAudit(req, {
+        accion: 'crear_reserva',
+        tabla_afectada: 'reservaciones',
+        registro_id: result.rows[0].reserva_id,
+        detalles: `Reserva creada para espacio ${espacio_id} y socio ${socio_id}`
+      });
 
       res.status(201).json({ ok: true, id: result.rows[0].reserva_id, message: 'Reserva creada correctamente' });
     } catch (error) {
@@ -300,6 +307,12 @@ const reservasController = {
       }
 
       await client.query('COMMIT');
+      await logAudit(req, {
+        accion: 'actualizar_reserva',
+        tabla_afectada: 'reservaciones',
+        registro_id: id,
+        detalles: `Reserva actualizada con estado ${normalizeReservaEstado(payload.estado)}`
+      });
       res.json({ ok: true, message: 'Reserva actualizada correctamente' });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -326,6 +339,12 @@ const reservasController = {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Reserva no encontrada o ya estaba cancelada' });
       }
+      await logAudit(req, {
+        accion: 'cancelar_reserva',
+        tabla_afectada: 'reservaciones',
+        registro_id: id,
+        detalles: 'Reserva cancelada'
+      });
 
       res.json({ ok: true, message: 'Reserva cancelada correctamente' });
     } catch (error) {
@@ -342,6 +361,12 @@ const reservasController = {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Reserva no encontrada' });
       }
+      await logAudit(req, {
+        accion: 'eliminar_reserva',
+        tabla_afectada: 'reservaciones',
+        registro_id: id,
+        detalles: 'Reserva eliminada permanentemente'
+      });
 
       res.json({ ok: true, message: 'Reserva eliminada correctamente' });
     } catch (error) {

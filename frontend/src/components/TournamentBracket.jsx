@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Filter, MapPin, RotateCcw, Trophy } from 'lucide-react';
+import { Calendar, Clock, Filter, MapPin, RotateCcw, Trophy, Edit2, CheckCircle } from 'lucide-react';
 import { apiRequest, unwrapList } from '../services/api';
 import '../../css/TournamentBracket.css';
 
@@ -99,6 +99,13 @@ function EmptyState({ title, message }) {
 }
 
 function TournamentRow({ torneo, selected, onSelect }) {
+  const estadoColor = {
+    'Abierto': '#22c55e',
+    'Inscripciones_cerradas': '#f59e0b',
+    'En_curso': '#3b82f6',
+    'Finalizado': '#64748b',
+  }[torneo.estado] || '#94a3b8';
+
   return (
     <button
       type="button"
@@ -109,14 +116,27 @@ function TournamentRow({ torneo, selected, onSelect }) {
         <strong>{torneo.nombre || `Torneo #${torneo.torneo_id}`}</strong>
         <span>{torneo.nombre_disciplina || 'Disciplina sin nombre'}</span>
       </span>
-      <span className="tb-tournament-date"><Calendar size={15} />{formatDate(torneo.fecha_inicio)}</span>
-      <span className="tb-tournament-date"><Calendar size={15} />{formatDate(torneo.fecha_fin)}</span>
-      <span className="tb-tournament-status">{torneo.estado || 'Sin estado'}</span>
+      <span style={{
+        fontSize: '10px', fontWeight: 700, padding: '2px 8px',
+        borderRadius: '20px', background: `${estadoColor}20`, color: estadoColor,
+        whiteSpace: 'nowrap', alignSelf: 'flex-start', marginTop: '4px'
+      }}>
+        {torneo.estado || 'Sin estado'}
+      </span>
     </button>
   );
 }
 
-function MatchCard({ encuentro, onResultadoGuardado, readOnly = false }) {
+function MatchParticipant({ participante, winner }) {
+  return (
+    <div className={`tb-participant ${winner ? 'is-winner' : ''}`}>
+      <span className="tb-participant-name">{getParticipantName(participante)}</span>
+      {winner && <span className="tb-winner-label">Ganador</span>}
+    </div>
+  );
+}
+
+function MatchCard({ encuentro, onResultadoGuardado, readOnly }) {
   const participante1 = encuentro.participante_1 || { participante_id: null, nombre: 'Por definir' };
   const participante2 = encuentro.participante_2 || { participante_id: null, nombre: 'Por definir' };
   const estado = normalizeEstado(encuentro.estado);
@@ -128,21 +148,15 @@ function MatchCard({ encuentro, onResultadoGuardado, readOnly = false }) {
 
   const [marcador1, setMarcador1] = useState(finalizado ? String(encuentro.marcador_1 ?? '') : '');
   const [marcador2, setMarcador2] = useState(finalizado ? String(encuentro.marcador_2 ?? '') : '');
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState(null);
+  const [cargando, setCargando]   = useState(false);
+  const [error, setError]         = useState(null);
+  const [editando, setEditando]   = useState(false);
 
-  const showScore = finalizado && (encuentro.marcador_1 != null || encuentro.marcador_2 != null);
-  const ganador1 = isWinner(encuentro, participante1);
-  const ganador2 = isWinner(encuentro, participante2);
+  const showScore   = finalizado && (encuentro.marcador_1 != null || encuentro.marcador_2 != null);
+  const puedeEditar = finalizado && !readOnly;
+  const puedeGuardar = programado || (finalizado && editando);
 
-  const estadoStyles = {
-    finalizado: { bg: '#f0fdf4', border: '#86efac', badge: '#16a34a', badgeBg: '#dcfce7' },
-    programado:  { bg: '#eff6ff', border: '#93c5fd', badge: '#2563eb', badgeBg: '#dbeafe' },
-    pendiente:   { bg: '#fafafa', border: '#e2e8f0', badge: '#64748b', badgeBg: '#f1f5f9' },
-  };
-  const s = estadoStyles[estado] || estadoStyles.pendiente;
-
-  const guardar = async () => {
+  const guardar = async (esEdicion = false) => {
     setError(null);
     const m1 = parseInt(marcador1, 10);
     const m2 = parseInt(marcador2, 10);
@@ -154,206 +168,105 @@ function MatchCard({ encuentro, onResultadoGuardado, readOnly = false }) {
     setCargando(true);
     try {
       const token = localStorage.getItem('token');
+      const body = { marcador_1: m1, marcador_2: m2 };
+      if (esEdicion) body.allowEdit = true;
       const res = await fetch(
         `http://localhost:3000/api/encuentros/${encuentro.encuentro_id}/resultado`,
         {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ marcador_1: m1, marcador_2: m2 })
+          body: JSON.stringify(body)
         }
       );
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Error al guardar'); return; }
+      setEditando(false);
       if (onResultadoGuardado) onResultadoGuardado();
     } catch { setError('Error de conexión'); }
     finally { setCargando(false); }
   };
 
-  const avatar = (nombre, esGanador) => (
-    <div style={{
-      width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-      background: esGanador ? '#16a34a' : '#e2e8f0',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: '12px', fontWeight: 800,
-      color: esGanador ? 'white' : '#94a3b8',
-    }}>
-      {nombre[0]?.toUpperCase() || '?'}
-    </div>
-  );
-
   return (
-    <article style={{
-      background: s.bg,
-      border: `1.5px solid ${s.border}`,
-      borderRadius: '14px',
-      overflow: 'hidden',
-      marginBottom: '10px',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-    }}>
-
-      {/* Header */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '7px 12px',
-        borderBottom: `1px solid ${s.border}`,
-        background: 'rgba(255,255,255,0.7)'
-      }}>
-        <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.5px' }}>
-          # {encuentro.encuentro_id}
-        </span>
-        <span style={{
-          fontSize: '10px', fontWeight: 700,
-          color: s.badge, background: s.badgeBg,
-          padding: '2px 10px', borderRadius: '20px',
-          textTransform: 'uppercase', letterSpacing: '0.4px'
-        }}>
-          {estado}
-        </span>
-      </div>
-
-      {/* Participante 1 */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 12px 5px', gap: '8px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
-          {avatar(getParticipantName(participante1), ganador1)}
-          <span style={{
-            fontSize: '13px', fontWeight: ganador1 ? 800 : 600,
-            color: ganador1 ? '#15803d' : '#1e293b',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-          }}>
-            {getParticipantName(participante1)}
-          </span>
-          {ganador1 && (
-            <span style={{
-              fontSize: '9px', fontWeight: 700, color: '#16a34a',
-              background: '#dcfce7', padding: '2px 7px', borderRadius: '20px',
-              whiteSpace: 'nowrap', flexShrink: 0
-            }}>🏆 Ganador</span>
+    <article className={`tb-match-card tb-match-${estado || 'default'}`}>
+      <header className="tb-match-header">
+        <span>#{encuentro.encuentro_id}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span className={`tb-estado-badge tb-estado-${estado}`}>{estado}</span>
+          {puedeEditar && !editando && (
+            <button onClick={() => { setEditando(true); setMarcador1(String(encuentro.marcador_1 ?? '')); setMarcador2(String(encuentro.marcador_2 ?? '')); }}
+              style={{ background: '#f1f5f9', border: 'none', borderRadius: '6px', padding: '2px 6px', cursor: 'pointer', fontSize: '10px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <Edit2 size={10} /> Editar
+            </button>
+          )}
+          {editando && (
+            <button onClick={() => setEditando(false)}
+              style={{ background: '#fee2e2', border: 'none', borderRadius: '6px', padding: '2px 6px', cursor: 'pointer', fontSize: '10px', color: '#dc2626' }}>
+              Cancelar
+            </button>
           )}
         </div>
-        {showScore && (
-          <span style={{
-            fontSize: '20px', fontWeight: 900,
-            color: ganador1 ? '#16a34a' : '#cbd5e1',
-            minWidth: '28px', textAlign: 'center', flexShrink: 0
-          }}>
-            {encuentro.marcador_1 ?? '-'}
-          </span>
-        )}
-        {!readOnly && programado && ambosListos && (
-          <input type="number" min="0" value={marcador1}
-            onChange={e => setMarcador1(e.target.value)} disabled={cargando}
-            style={{
-              width: '46px', textAlign: 'center', fontSize: '16px', fontWeight: 800,
-              padding: '4px 2px', borderRadius: '8px',
-              border: '2px solid #2563eb', outline: 'none',
-              color: '#1e293b', background: 'white', flexShrink: 0
-            }}
-            placeholder="0"
-          />
-        )}
-      </div>
+      </header>
 
-      {/* Separador VS */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '2px 12px', gap: '8px' }}>
-        <div style={{ flex: 1, height: '1px', background: s.border }} />
-        <span style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', letterSpacing: '1px' }}>VS</span>
-        <div style={{ flex: 1, height: '1px', background: s.border }} />
-      </div>
+      <div className="tb-match-body">
+        <MatchParticipant participante={participante1} winner={isWinner(encuentro, participante1)} />
 
-      {/* Participante 2 */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '5px 12px 10px', gap: '8px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
-          {avatar(getParticipantName(participante2), ganador2)}
-          <span style={{
-            fontSize: '13px', fontWeight: ganador2 ? 800 : 600,
-            color: ganador2 ? '#15803d' : '#1e293b',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-          }}>
-            {getParticipantName(participante2)}
-          </span>
-          {ganador2 && (
-            <span style={{
-              fontSize: '9px', fontWeight: 700, color: '#16a34a',
-              background: '#dcfce7', padding: '2px 7px', borderRadius: '20px',
-              whiteSpace: 'nowrap', flexShrink: 0
-            }}>🏆 Ganador</span>
+        <div className="tb-versus-row">
+          {(programado && ambosListos) || editando ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input type="number" min="0" value={marcador1}
+                onChange={e => setMarcador1(e.target.value)} disabled={cargando}
+                style={{ width: '48px', textAlign: 'center', fontWeight: 800, fontSize: '14px', padding: '4px', borderRadius: '6px', border: '2px solid #3b82f6', outline: 'none' }}
+                placeholder="0" />
+              <span style={{ fontWeight: 800, color: '#94a3b8' }}>-</span>
+              <input type="number" min="0" value={marcador2}
+                onChange={e => setMarcador2(e.target.value)} disabled={cargando}
+                style={{ width: '48px', textAlign: 'center', fontWeight: 800, fontSize: '14px', padding: '4px', borderRadius: '6px', border: '2px solid #3b82f6', outline: 'none' }}
+                placeholder="0" />
+            </div>
+          ) : (
+            <span>VS</span>
           )}
-        </div>
-        {showScore && (
-          <span style={{
-            fontSize: '20px', fontWeight: 900,
-            color: ganador2 ? '#16a34a' : '#cbd5e1',
-            minWidth: '28px', textAlign: 'center', flexShrink: 0
-          }}>
-            {encuentro.marcador_2 ?? '-'}
-          </span>
-        )}
-        {!readOnly && programado && ambosListos && (
-          <input type="number" min="0" value={marcador2}
-            onChange={e => setMarcador2(e.target.value)} disabled={cargando}
-            style={{
-              width: '46px', textAlign: 'center', fontSize: '16px', fontWeight: 800,
-              padding: '4px 2px', borderRadius: '8px',
-              border: '2px solid #2563eb', outline: 'none',
-              color: '#1e293b', background: 'white', flexShrink: 0
-            }}
-            placeholder="0"
-          />
-        )}
-      </div>
-
-      {/* Footer */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '6px 12px 8px',
-        borderTop: `1px solid ${s.border}`,
-        background: 'rgba(255,255,255,0.6)',
-        gap: '8px'
-      }}>
-        <span style={{
-          fontSize: '10px', color: '#94a3b8',
-          display: 'flex', alignItems: 'center', gap: '4px'
-        }}>
-          <MapPin size={11} />
-          {encuentro.cancha_asignada || 'Por asignar'}
-          {encuentro.hora_programada && (
-            <span style={{ marginLeft: '6px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <Clock size={11} />{formatTime(encuentro.hora_programada)}
+          {showScore && !editando && (
+            <span className="tb-score-wrap">
+              <span className="tb-score-label">Marcador</span>
+              <strong className="tb-score-chip">
+                {encuentro.marcador_1 ?? '-'} - {encuentro.marcador_2 ?? '-'}
+              </strong>
             </span>
           )}
-        </span>
+        </div>
 
-        {error && (
-          <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: 600 }}>⚠ {error}</span>
-        )}
-
-        {!readOnly && programado && ambosListos && (
-          <button onClick={guardar} disabled={cargando} style={{
-            background: cargando ? '#94a3b8' : '#2563eb',
-            color: 'white', border: 'none', borderRadius: '8px',
-            padding: '5px 14px', fontSize: '11px', fontWeight: 700,
-            cursor: cargando ? 'not-allowed' : 'pointer',
-            boxShadow: cargando ? 'none' : '0 2px 6px rgba(37,99,235,0.3)',
-            whiteSpace: 'nowrap', flexShrink: 0
-          }}>
-            {cargando ? '⏳' : '💾 Guardar'}
-          </button>
-        )}
+        <MatchParticipant participante={participante2} winner={isWinner(encuentro, participante2)} />
       </div>
+
+      {error && (
+        <p style={{ color: '#dc2626', fontSize: '11px', margin: '4px 8px 0', fontWeight: 600 }}>⚠ {error}</p>
+      )}
+
+      {puedeGuardar && ambosListos && (
+        <div style={{ padding: '8px 8px 4px', display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={() => guardar(editando)} disabled={cargando} style={{
+            background: cargando ? '#94a3b8' : editando ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+            color: 'white', border: 'none', borderRadius: '6px',
+            padding: '5px 14px', fontSize: '12px', fontWeight: 700,
+            cursor: cargando ? 'not-allowed' : 'pointer'
+          }}>
+            {cargando ? '⏳' : editando ? '✏️ Actualizar' : '💾 Guardar'}
+          </button>
+        </div>
+      )}
+
+      <footer className="tb-match-meta">
+        <span className="tb-court-chip"><MapPin size={14} />Cancha: {encuentro.cancha_asignada || 'Por asignar'}</span>
+        {encuentro.hora_programada && <span><Clock size={14} />{formatTime(encuentro.hora_programada)}</span>}
+      </footer>
     </article>
   );
 }
 
-function AccionesTorneo({ torneo, onActualizar, readOnly = false }) {
-  if (readOnly) return null;
+function AccionesTorneo({ torneo, onActualizar, readOnly }) {
   const [cargando, setCargando] = useState(false);
-  const [mensaje, setMensaje] = useState(null);
+  const [mensaje, setMensaje]   = useState(null);
 
   const llamar = async (endpoint) => {
     setCargando(true);
@@ -361,70 +274,86 @@ function AccionesTorneo({ torneo, onActualizar, readOnly = false }) {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`http://localhost:3000/api/torneos/${torneo.torneo_id}/${endpoint}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
+        method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      if (!res.ok) {
-        setMensaje({ tipo: 'error', texto: data.error || 'Error al ejecutar acción' });
-        return;
-      }
+      if (!res.ok) { setMensaje({ tipo: 'error', texto: data.error || 'Error' }); return; }
       setMensaje({ tipo: 'ok', texto: data.message || '✅ Listo' });
       if (onActualizar) onActualizar();
-    } catch {
-      setMensaje({ tipo: 'error', texto: 'Error de conexión' });
-    } finally {
-      setCargando(false);
-    }
+    } catch { setMensaje({ tipo: 'error', texto: 'Error de conexión' }); }
+    finally { setCargando(false); }
   };
 
   const estadoReal = torneo.estado;
-  if (!['Abierto', 'Inscripciones_cerradas'].includes(estadoReal)) return null;
+  if (readOnly && !['Abierto', 'Inscripciones_cerradas', 'En_curso'].includes(estadoReal)) return null;
+
+  const mostrarBotones = !readOnly && ['Abierto', 'Inscripciones_cerradas', 'En_curso'].includes(estadoReal);
+  if (!mostrarBotones) return null;
 
   return (
-    <div style={{
-      background: '#f8fafc', border: '1px solid #e2e8f0',
-      borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem'
-    }}>
-      <p style={{ margin: '0 0 0.75rem', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
-        ⚙️ Gestión del torneo
-      </p>
+    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem' }}>
+      <p style={{ margin: '0 0 0.75rem', fontSize: '12px', fontWeight: 700, color: '#475569' }}>⚙️ Gestión del torneo</p>
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
         {estadoReal === 'Abierto' && (
-          <button
-            onClick={() => { if (window.confirm('¿Cerrar inscripciones y generar el bracket?')) llamar('cerrar-inscripciones'); }}
-            disabled={cargando}
-            style={{
-              background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #f59e0b, #d97706)',
-              color: 'white', border: 'none', borderRadius: '8px',
-              padding: '7px 16px', fontSize: '12px', fontWeight: 700,
-              cursor: cargando ? 'not-allowed' : 'pointer'
-            }}>
+          <button onClick={() => { if (window.confirm('¿Cerrar inscripciones y generar el bracket?')) llamar('cerrar-inscripciones'); }}
+            disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer' }}>
             {cargando ? '⏳...' : '🔒 Cerrar inscripciones'}
           </button>
         )}
         {estadoReal === 'Inscripciones_cerradas' && (
-          <button
-            onClick={() => { if (window.confirm('¿Confirmar bracket y poner el torneo En_curso?')) llamar('confirmar-bracket'); }}
-            disabled={cargando}
-            style={{
-              background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)',
-              color: 'white', border: 'none', borderRadius: '8px',
-              padding: '7px 16px', fontSize: '12px', fontWeight: 700,
-              cursor: cargando ? 'not-allowed' : 'pointer'
-            }}>
+          <button onClick={() => { if (window.confirm('¿Confirmar bracket?')) llamar('confirmar-bracket'); }}
+            disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer' }}>
             {cargando ? '⏳...' : '✅ Confirmar bracket'}
+          </button>
+        )}
+        {estadoReal === 'En_curso' && (
+          <button onClick={() => { if (window.confirm('¿Finalizar el torneo? Esta acción no se puede deshacer.')) llamar('finalizar'); }}
+            disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #6d28d9, #8b5cf6)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer' }}>
+            {cargando ? '⏳...' : '🏆 Finalizar torneo'}
           </button>
         )}
       </div>
       {mensaje && (
-        <p style={{
-          margin: '0.75rem 0 0', fontSize: '12px', fontWeight: 600,
-          color: mensaje.tipo === 'ok' ? '#15803d' : '#dc2626'
-        }}>
+        <p style={{ margin: '0.75rem 0 0', fontSize: '12px', fontWeight: 600, color: mensaje.tipo === 'ok' ? '#15803d' : '#dc2626' }}>
           {mensaje.texto}
         </p>
       )}
+    </div>
+  );
+}
+
+function DetalleTorneo({ torneo }) {
+  if (!torneo) return null;
+  const estadoColor = {
+    'Abierto': { color: '#15803d', bg: '#dcfce7' },
+    'Inscripciones_cerradas': { color: '#b45309', bg: '#fef3c7' },
+    'En_curso': { color: '#1d4ed8', bg: '#dbeafe' },
+    'Finalizado': { color: '#475569', bg: '#f1f5f9' },
+  }[torneo.estado] || { color: '#475569', bg: '#f1f5f9' };
+
+  return (
+    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', marginBottom: '1.25rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+        <div>
+          <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {torneo.nombre_disciplina || 'Disciplina'}
+          </p>
+          <h3 style={{ margin: '4px 0 0', fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+            {torneo.nombre || `Torneo #${torneo.torneo_id}`}
+          </h3>
+        </div>
+        <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px', background: estadoColor.bg, color: estadoColor.color }}>
+          {torneo.estado}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b' }}>
+          <Calendar size={13} /> <span><strong>Inicio:</strong> {formatDate(torneo.fecha_inicio)}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b' }}>
+          <Calendar size={13} /> <span><strong>Fin:</strong> {formatDate(torneo.fecha_fin)}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -435,8 +364,8 @@ function TournamentBracket({
   initialDisciplinaId = '',
   initialEstado = '',
   showFilters = true,
-  estadoOptions = DEFAULT_ESTADO_OPTIONS,
-  readOnly = false
+  readOnly = false,
+  estadoOptions = DEFAULT_ESTADO_OPTIONS
 }) {
   const [filters, setFilters] = useState({ disciplina_id: initialDisciplinaId, estado: initialEstado });
   const [appliedFilters, setAppliedFilters] = useState({ disciplina_id: initialDisciplinaId, estado: initialEstado });
@@ -571,22 +500,22 @@ function TournamentBracket({
         </form>
       )}
 
-      <div className="tb-layout">
-        <aside className="tb-tournament-panel">
+      {/* Layout: lista izquierda + detalle/bracket derecha */}
+      <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+
+        {/* Panel izquierdo — lista de torneos */}
+        <aside style={{ width: '280px', flexShrink: 0, background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem' }}>
           <div className="tb-panel-title">
             <strong>Torneos</strong>
             <span>{torneos.length}</span>
           </div>
-          <div className="tb-list-head">
-            <span>Torneo</span><span>Inicio</span><span>Fin</span><span>Estado</span>
-          </div>
-          {loadingTorneos && <div className="tb-loading">Cargando torneos...</div>}
+          {loadingTorneos && <div className="tb-loading">Cargando...</div>}
           {torneosError && <div className="tb-error">{torneosError}</div>}
           {!loadingTorneos && !torneosError && torneos.length === 0 && (
             <EmptyState title="No hay torneos" message="Cuando existan torneos aparecerán aquí." />
           )}
           {!loadingTorneos && !torneosError && torneos.length > 0 && (
-            <div className="tb-tournament-list">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {torneos.map(t => (
                 <TournamentRow key={t.torneo_id} torneo={t}
                   selected={selectedTorneo?.torneo_id === t.torneo_id}
@@ -596,53 +525,50 @@ function TournamentBracket({
           )}
         </aside>
 
-        <div className="tb-bracket-panel">
-          {!selectedTorneo && (
-            <EmptyState title="Selecciona un torneo" message="El bracket se cargará al elegir un torneo." />
-          )}
-
-          {selectedTorneo && (
+        {/* Panel derecho — detalles + bracket */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {!selectedTorneo ? (
+            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '3rem' }}>
+              <EmptyState title="Selecciona un torneo" message="Los detalles y bracket aparecerán aquí." />
+            </div>
+          ) : (
             <>
-              <div className="tb-selected-header">
-                <div>
-                  <span>{selectedTorneo.nombre_disciplina || 'Disciplina'}</span>
-                  <h3>{selectedTorneo.nombre || `Torneo #${selectedTorneo.torneo_id}`}</h3>
-                </div>
-                <span className="tb-tournament-status">{selectedTorneo.estado || 'Sin estado'}</span>
-              </div>
+              {/* Detalle del torneo */}
+              <DetalleTorneo torneo={selectedTorneo} />
 
+              {/* Acciones */}
               <AccionesTorneo torneo={selectedTorneo} onActualizar={handleTorneoActualizado} readOnly={readOnly} />
 
-              {loadingBracket && <div className="tb-loading">Cargando bracket...</div>}
-              {bracketError && <div className="tb-error">{bracketError}</div>}
-
-              {!loadingBracket && !bracketError && !hasBracket && (
-                <EmptyState title="Este torneo no tiene bracket"
-                  message="Cierra las inscripciones para generar el bracket." />
-              )}
-
-              {!loadingBracket && !bracketError && hasBracket && (
-                <div className="tb-rounds">
-                  {bracket.slice().sort((a, b) => Number(a.ronda) - Number(b.ronda)).map(ronda => (
-                    <section key={ronda.ronda} className="tb-round-column">
-                      <header className="tb-round-title">
-                        <span>Ronda</span>
-                        <strong>{ronda.ronda}</strong>
-                      </header>
-                      <div className="tb-round-matches">
-                        {(ronda.encuentros || []).map(encuentro => (
-                          <MatchCard
-                            key={encuentro.encuentro_id}
-                            encuentro={encuentro}
-                            onResultadoGuardado={() => setSelectedTorneo(prev => ({ ...prev }))}
-                            readOnly={readOnly}
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              )}
+              {/* Bracket */}
+              <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
+                {loadingBracket && <div className="tb-loading">Cargando bracket...</div>}
+                {bracketError && <div className="tb-error">{bracketError}</div>}
+                {!loadingBracket && !bracketError && !hasBracket && (
+                  <EmptyState title="Sin bracket" message="Cierra las inscripciones para generar el bracket." />
+                )}
+                {!loadingBracket && !bracketError && hasBracket && (
+                  <div className="tb-rounds">
+                    {bracket.slice().sort((a, b) => Number(a.ronda) - Number(b.ronda)).map(ronda => (
+                      <section key={ronda.ronda} className="tb-round-column">
+                        <header className="tb-round-title">
+                          <span>Ronda</span>
+                          <strong>{ronda.ronda}</strong>
+                        </header>
+                        <div className="tb-round-matches">
+                          {(ronda.encuentros || []).map(encuentro => (
+                            <MatchCard
+                              key={encuentro.encuentro_id}
+                              encuentro={encuentro}
+                              onResultadoGuardado={() => setSelectedTorneo(prev => ({ ...prev }))}
+                              readOnly={readOnly}
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>

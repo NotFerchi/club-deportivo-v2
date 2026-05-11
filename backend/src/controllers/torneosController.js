@@ -583,6 +583,62 @@ const torneosController = {
     }
   },
 
+
+  finalizarTorneo: async (req, res) => {
+  const torneoId = esEnteroValido(req.params.torneo_id);
+  if (torneoId === null) {
+    return res.status(400).json({ error: 'torneo_id debe ser un entero válido' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const torneo = await client.query(
+      'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE',
+      [torneoId]
+    );
+
+    if (torneo.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Torneo no encontrado' });
+    }
+
+    if (torneo.rows[0].estado === 'Finalizado') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'El torneo ya está finalizado' });
+    }
+
+    // Verificar que todos los encuentros estén finalizados
+    const pendientes = await client.query(
+      `SELECT COUNT(*) as total FROM encuentros_torneo
+       WHERE torneo_id = $1 AND estado != 'finalizado'
+       AND participante_1_id IS NOT NULL AND participante_2_id IS NOT NULL`,
+      [torneoId]
+    );
+
+    if (parseInt(pendientes.rows[0].total) > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: `Aún hay ${pendientes.rows[0].total} encuentros sin finalizar` });
+    }
+
+    await client.query(
+      "UPDATE torneos SET estado = 'Finalizado' WHERE torneo_id = $1",
+      [torneoId]
+    );
+
+    await client.query('COMMIT');
+    res.json({ ok: true, message: 'Torneo finalizado correctamente' });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al finalizar torneo:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  } finally {
+    client.release();
+  }
+},
+
 };
 
 module.exports = torneosController;

@@ -106,36 +106,36 @@ const sesionesController = {
     // CREAR SESIÓN
     // ============================================
     createSesion: async (req, res) => {
-        const { disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo } = req.body;
+    const { disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo } = req.body;
+    
+    try {
+        // Verificar conflicto de horario
+        const conflicto = await pool.query(`
+            SELECT sesion_id FROM sesiones_programadas
+            WHERE espacio_id = $1 AND dia_semana = $2
+            AND (hora_inicio, hora_fin) OVERLAPS ($3::time, $4::time)
+        `, [espacio_id, dia_semana, hora_inicio, hora_fin]);
         
-        try {
-            // Verificar conflicto de horario
-            const conflicto = await pool.query(`
-                SELECT sesion_id FROM sesiones_programadas
-                WHERE espacio_id = $1 AND dia_semana = $2
-                AND (hora_inicio, hora_fin) OVERLAPS ($3::time, $4::time)
-            `, [espacio_id, dia_semana, hora_inicio, hora_fin]);
-            
-            if (conflicto.rows.length > 0) {
-                return res.status(400).json({ error: 'Ya existe una sesión en este espacio y horario' });
-            }
-            
-            const result = await pool.query(
-                `INSERT INTO sesiones_programadas 
-                 (disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo, activo)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, true)
-                 RETURNING sesion_id`,
-                [disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo]
-            );
-            
-            res.status(201).json({ 
-                message: 'Sesión creada exitosamente', 
-                sesion_id: result.rows[0].sesion_id 
-            });
-        } catch (error) {
-            console.error('Error en createSesion:', error);
-            res.status(500).json({ error: 'Error al crear sesión' });
+        if (conflicto.rows.length > 0) {
+            return res.status(400).json({ error: 'Ya existe una sesión en este espacio y horario' });
         }
+        
+        const result = await pool.query(
+            `INSERT INTO sesiones_programadas 
+             (disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             RETURNING sesion_id`,
+            [disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo]
+        );
+        
+        res.status(201).json({ 
+            message: 'Sesión creada exitosamente', 
+            sesion_id: result.rows[0].sesion_id 
+        });
+    } catch (error) {
+        console.error('Error en createSesion:', error);
+        res.status(500).json({ error: 'Error al crear sesión' });
+    }
     },
 
     // ============================================

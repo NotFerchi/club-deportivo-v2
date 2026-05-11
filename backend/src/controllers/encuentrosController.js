@@ -5,7 +5,6 @@ const ROLES_ARBITRAJE = ['instructor', 'admin', 'gerente', 'coordinador'];
 const encuentrosController = {
 
   registrarResultado: async (req, res) => {
-    // 1. Verificar rol desde JWT
     const rolUsuario = req.user?.rol;
     if (!rolUsuario || !ROLES_ARBITRAJE.includes(rolUsuario)) {
       return res.status(403).json({ ok: false, error: 'No tienes permisos para registrar resultados' });
@@ -28,14 +27,15 @@ const encuentrosController = {
       return res.status(400).json({ ok: false, error: 'No se permiten empates. Corrige el marcador para determinar un ganador.' });
     }
 
+    const allowEdit = req.body.allowEdit === true;
+
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // Obtener encuentro con bloqueo
       const { rows, rowCount } = await client.query(
         `SELECT encuentro_id, torneo_id, ronda, estado,
-                participante_1_id, participante_2_id
+                participante_1_id, participante_2_id, ganador_id
          FROM encuentros_torneo
          WHERE encuentro_id = $1
          FOR UPDATE`,
@@ -48,14 +48,14 @@ const encuentrosController = {
       }
 
       const enc = rows[0];
+      const ganadorAnterior = enc.ganador_id;
 
-      // 2. Verificar estado
-      if (enc.estado === 'finalizado') {
+      if (enc.estado === 'finalizado' && !allowEdit) {
         await client.query('ROLLBACK');
         return res.status(409).json({ ok: false, error: 'No se puede editar un encuentro ya finalizado' });
       }
 
-      if (enc.estado !== 'programado') {
+      if (enc.estado !== 'programado' && !allowEdit) {
         await client.query('ROLLBACK');
         return res.status(409).json({ ok: false, error: `El encuentro no está en estado programado (estado actual: ${enc.estado})` });
       }
@@ -65,7 +65,7 @@ const encuentrosController = {
         return res.status(409).json({ ok: false, error: 'El encuentro aún no tiene ambos participantes asignados' });
       }
 
-      // 4. Determinar ganador
+      // Determinar nuevo ganador
       const ganadorId = marcador1 > marcador2 ? enc.participante_1_id : enc.participante_2_id;
 
       // UPDATE del encuentro actual
@@ -80,40 +80,66 @@ const encuentrosController = {
         [marcador1, marcador2, ganadorId, encuentroId]
       );
 
-      // 5. Buscar slot libre en la ronda siguiente
       const siguienteRonda = enc.ronda + 1;
-
-      const { rows: slotRows } = await client.query(
-        `SELECT encuentro_id, participante_1_id, participante_2_id
-         FROM encuentros_torneo
-         WHERE torneo_id = $1
-           AND ronda     = $2
-           AND (participante_1_id IS NULL OR participante_2_id IS NULL)
-         ORDER BY encuentro_id ASC
-         LIMIT 1
-         FOR UPDATE`,
-        [enc.torneo_id, siguienteRonda]
-      );
-
       let siguienteEncuentro = null;
 
-      // 6. Asignar ganador al slot libre
-      if (slotRows.length > 0) {
-        const slot = slotRows[0];
-        const campo = slot.participante_1_id === null ? 'participante_1_id' : 'participante_2_id';
-
-        const { rows: slotActualizado } = await client.query(
-          `UPDATE encuentros_torneo
-           SET ${campo} = $1
-           WHERE encuentro_id = $2
-           RETURNING encuentro_id, ronda, participante_1_id, participante_2_id`,
-          [ganadorId, slot.encuentro_id]
+      if (allowEdit && ganadorAnterior && ganadorAnterior !== ganadorId) {
+        // Edición: actualizar el ganador anterior por el nuevo en la siguiente ronda
+        const { rows: slotAnterior } = await client.query(
+          `SELECT encuentro_id, participante_1_id, participante_2_id
+           FROM encuentros_torneo
+           WHERE torneo_id = $1
+             AND ronda = $2
+             AND (participante_1_id = $3 OR participante_2_id = $3)
+           LIMIT 1 FOR UPDATE`,
+          [enc.torneo_id, siguienteRonda, ganadorAnterior]
         );
-        siguienteEncuentro = slotActualizado[0];
+
+        if (slotAnterior.length > 0) {
+          const slot = slotAnterior[0];
+          const campo = slot.participante_1_id === ganadorAnterior
+            ? 'participante_1_id'
+            : 'participante_2_id';
+
+          const { rows: slotActualizado } = await client.query(
+            `UPDATE encuentros_torneo
+             SET ${campo} = $1
+             WHERE encuentro_id = $2
+             RETURNING encuentro_id, ronda, participante_1_id, participante_2_id`,
+            [ganadorId, slot.encuentro_id]
+          );
+          siguienteEncuentro = slotActualizado[0];
+        }
+      } else if (!allowEdit) {
+        // Registro nuevo: buscar slot libre
+        const { rows: slotRows } = await client.query(
+          `SELECT encuentro_id, participante_1_id, participante_2_id
+           FROM encuentros_torneo
+           WHERE torneo_id = $1
+             AND ronda     = $2
+             AND (participante_1_id IS NULL OR participante_2_id IS NULL)
+           ORDER BY encuentro_id ASC
+           LIMIT 1
+           FOR UPDATE`,
+          [enc.torneo_id, siguienteRonda]
+        );
+
+        if (slotRows.length > 0) {
+          const slot = slotRows[0];
+          const campo = slot.participante_1_id === null ? 'participante_1_id' : 'participante_2_id';
+
+          const { rows: slotActualizado } = await client.query(
+            `UPDATE encuentros_torneo
+             SET ${campo} = $1
+             WHERE encuentro_id = $2
+             RETURNING encuentro_id, ronda, participante_1_id, participante_2_id`,
+            [ganadorId, slot.encuentro_id]
+          );
+          siguienteEncuentro = slotActualizado[0];
+        }
       }
 
-      // 7. Si todos los encuentros de esta ronda están finalizados,
-      //    activar automáticamente los de la siguiente ronda
+      // Activar siguiente ronda si todos finalizados
       const { rows: pendientesRonda } = await client.query(
         `SELECT COUNT(*) as total
          FROM encuentros_torneo
@@ -138,7 +164,7 @@ const encuentrosController = {
 
       return res.json({
         ok: true,
-        message: 'Resultado registrado correctamente',
+        message: allowEdit ? 'Resultado actualizado correctamente' : 'Resultado registrado correctamente',
         encuentro: updated[0],
         ganador_id: ganadorId,
         siguiente_encuentro: siguienteEncuentro

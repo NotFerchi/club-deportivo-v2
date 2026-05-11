@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import '../../../css/Dashboard.css';
 import TournamentBracket from '../../components/TournamentBracket';
+import ControlLudoteca from './recepcion/ControlLudoteca';
 
 import DashboardResumen    from './coordinador/DashboardResumen';
 import VistaSocios         from './coordinador/VistaSocios';
@@ -21,7 +22,7 @@ const TABS = [
   { key: 'recepcion',   label: 'Recepción',          icon: ClipboardList },
   { key: 'reservas',    label: 'Reservas',           icon: Calendar },
   { key: 'ludoteca',    label: 'Ludoteca',           icon: Puzzle },
-  { key: 'disciplinas', label: 'Disciplinas',        icon: Dumbbell },
+  { key: 'disciplinas', label: 'Clases e Instructores', icon: Dumbbell },
   { key: 'torneos',     label: 'Torneos',            icon: Trophy },
   { key: 'sanciones',   label: 'Sanciones',          icon: ShieldAlert },
 ];
@@ -32,7 +33,7 @@ const TITULOS = {
   recepcion:   { h: 'Recepción y Visitas',           p: 'Visitas activas en instalaciones' },
   reservas:    { h: 'Reservas',                      p: 'Reservaciones de espacios del día' },
   ludoteca:    { h: 'Ludoteca',                      p: 'Control de ludoteca' },
-  disciplinas: { h: 'Disciplinas e Instructores',    p: 'Programación de sesiones y cupos' },
+  disciplinas: { h: 'Clases e Instructores', p: 'Programación de clases, sesiones y cupos' },
   torneos:     { h: 'Torneos',                       p: 'Visualizacion de brackets y rondas' },
   sanciones:   { h: 'Sanciones',                    p: 'Sanciones aplicadas a socios' },
 };
@@ -79,12 +80,7 @@ function DashboardCoordinador() {
         subtitle="Supervisa los torneos del club y sus encuentros por ronda."
       />
     );
-    if (activeTab === 'ludoteca')   return (
-      <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0' }}>
-        <div style={{ fontSize: '3rem' }}>🧸</div>
-        <p style={{ color: '#64748b', margin: '0.5rem 0 0', fontWeight: 600 }}>Ludoteca — En desarrollo</p>
-      </div>
-    );
+    if (activeTab === 'ludoteca') return <ControlLudoteca />;
     if (activeTab === 'disciplinas') return (
       <>
         {/* Sub-tabs disciplinas */}
@@ -103,11 +99,7 @@ function DashboardCoordinador() {
               </button>
             ))}
           </div>
-          {disciplinaTab === 'disciplinas' && (
-            <button style={{ background: '#0f172a', color: 'white', border: 'none', padding: '0.45rem 1rem', borderRadius: '8px', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}>
-              + Nueva Sesión
-            </button>
-          )}
+          
         </div>
         {disciplinaTab === 'disciplinas' ? <GestionDisciplinas /> : <GestionInstructores />}
       </>

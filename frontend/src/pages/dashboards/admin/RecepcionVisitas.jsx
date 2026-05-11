@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Clock, DoorOpen, LogOut, UserPlus, Users, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, DoorOpen, LogOut, RefreshCw, UserPlus, Users, X } from 'lucide-react';
 import { adminApi } from '../../../services/api';
-import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
+import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput, StatCard } from '../../../components/admin/AdminUI';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
 const initialFormData = {
@@ -34,9 +34,12 @@ function RecepcionVisitas() {
   const [filtro, setFiltro] = useState('');
   const [filterHistorial, setFilterHistorial] = useState('');
   const [limitesPases, setLimitesPases] = useState({});
+  const [loadError, setLoadError] = useState('');
+  const [closingVisits, setClosingVisits] = useState(false);
 
   const fetchData = async () => {
     try {
+      await adminApi.cerrarVisitasVencidas().catch(() => null);
       const [visitasData, sociosData, historialData] = await Promise.all([
         adminApi.getVisitasActivas(),
         adminApi.getSociosVisitas(),
@@ -60,6 +63,7 @@ function RecepcionVisitas() {
         limites[socio.socio_id] = { usados: usos[socio.socio_id] || 0, maximo };
       });
       setLimitesPases(limites);
+      setLoadError('');
     } catch (error) {
       if (error.status === 401) {
         alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
@@ -68,7 +72,7 @@ function RecepcionVisitas() {
         window.location.href = '/login';
         return;
       }
-      alert(error.message || 'Error al cargar recepción');
+      setLoadError(error.message || 'Error al cargar recepcion');
     } finally {
       setLoading(false);
     }
@@ -155,6 +159,19 @@ function RecepcionVisitas() {
     }
   };
 
+  const cerrarVencidas = async () => {
+    setClosingVisits(true);
+    try {
+      const result = await adminApi.cerrarVisitasVencidas();
+      await fetchData();
+      showToast(`Cierre automatico aplicado: ${result?.cerradas || 0} visitas finalizadas`);
+    } catch (error) {
+      alert(error.message || 'Error al cerrar visitas vencidas');
+    } finally {
+      setClosingVisits(false);
+    }
+  };
+
   const visitasFiltradas = useMemo(() => {
     const query = normalizeText(filtro);
     return visitasActivas.filter(visita => {
@@ -188,7 +205,11 @@ function RecepcionVisitas() {
     });
   }, [historial, filtro, filterHistorial]);
 
-  if (loading) return <div className="chart-box"><p>Cargando recepción...</p></div>;
+  const visitasFinalizadas = historial.filter(registro => Boolean(registro.hora_salida)).length;
+  const visitasPendientes = historial.filter(registro => !registro.hora_salida).length;
+
+  if (loading) return <LoadingState message="Cargando recepcion..." />;
+  if (loadError) return <ErrorState message={loadError} onRetry={fetchData} />;
 
   return (
     <div className="chart-box">
@@ -206,12 +227,21 @@ function RecepcionVisitas() {
         actions={(
           <>
             <SearchInput value={filtro} onChange={setFiltro} placeholder="Buscar visitante o anfitrión" />
+            <button className="btn-outline" onClick={cerrarVencidas} disabled={closingVisits}>
+              <RefreshCw size={16} /> {closingVisits ? 'Cerrando...' : 'Cerrar vencidas'}
+            </button>
             <button className="btn-primary" onClick={() => setShowModal(true)}>
               <UserPlus size={16} /> Nueva Visita
             </button>
           </>
         )}
       />
+
+      <div className="reservation-stats-row">
+        <StatCard icon={Users} label="Activas" value={visitasActivas.length} tone="success" />
+        <StatCard icon={CheckCircle} label="Finalizadas" value={visitasFinalizadas} tone="info" />
+        <StatCard icon={AlertCircle} label="Pendientes de salida" value={visitasPendientes} tone="warning" />
+      </div>
 
       <div className="admin-filter-row">
         <FilterSelect label="Historial" value={filterHistorial} onChange={setFilterHistorial}>

@@ -22,6 +22,7 @@ import {
 import '../../../css/Dashboard.css';
 import { adminApi } from '../../services/api';
 import { estadoReservaLabel, normalizeEstadoReserva } from '../../utils/adminData';
+import OccupancyByHourChart from '../../components/admin/OccupancyByHourChart';
 
 import GestionSocios from './admin/GestionSocios';
 import RecepcionVisitas from './admin/RecepcionVisitas';
@@ -48,6 +49,12 @@ const HORAS_OPERACION = [
   '18:00',
   '19:00',
   '20:00'
+];
+
+const OCCUPANCY_VIEW_OPTIONS = [
+  { value: 'semana', label: 'Semana', days: 7 },
+  { value: 'quincena', label: 'Quincena', days: 15 },
+  { value: 'mes', label: 'Mes', days: 30 }
 ];
 
 const NAV_ITEMS = [
@@ -77,6 +84,23 @@ function getTipoSocio(socio) {
 
 function getDateOnly(value) {
   return String(value || '').split('T')[0];
+}
+
+function toLocalDateInput(date = new Date()) {
+  const value = new Date(date);
+  value.setMinutes(value.getMinutes() - value.getTimezoneOffset());
+  return value.toISOString().split('T')[0];
+}
+
+function getDefaultRange(viewType) {
+  const option = OCCUPANCY_VIEW_OPTIONS.find(item => item.value === viewType) || OCCUPANCY_VIEW_OPTIONS[0];
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - option.days + 1);
+  return {
+    startDate: toLocalDateInput(start),
+    endDate: toLocalDateInput(end)
+  };
 }
 
 function getEstadoBadgeClass(estado) {
@@ -194,6 +218,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('admin');
   const [kpis, setKpis] = useState({
     totalSocios: 0,
     accionistas: 0,
@@ -206,7 +231,10 @@ function Dashboard() {
     noShowsMes: 0
   });
   const [reservasRecientes, setReservasRecientes] = useState([]);
-  const [ocupacionPorHora, setOcupacionPorHora] = useState([]);
+  const [reservasDashboard, setReservasDashboard] = useState([]);
+  const [activeSpacesCount, setActiveSpacesCount] = useState(1);
+  const [occupancyView, setOccupancyView] = useState('semana');
+  const [occupancyRange, setOccupancyRange] = useState(getDefaultRange('semana'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -225,6 +253,7 @@ function Dashboard() {
     }
 
     setUserName(usuario.nombres || 'Administrador');
+    setUserRole(usuario.rol);
     fetchDashboardData();
   }, [navigate]);
 
@@ -234,12 +263,13 @@ function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [sociosResult, reservasResult, sancionesResult, visitasResult, ludotecaResult] = await Promise.allSettled([
+      const [sociosResult, reservasResult, sancionesResult, visitasResult, ludotecaResult, espaciosResult] = await Promise.allSettled([
         adminApi.getSocios(),
         adminApi.getReservas(),
         adminApi.getSanciones(),
         adminApi.getVisitasActivas(),
-        adminApi.getLudotecaActivos()
+        adminApi.getLudotecaActivos(),
+        adminApi.getEspacios()
       ]);
 
       const sociosLista = sociosResult.status === 'fulfilled' ? sociosResult.value : [];
@@ -247,6 +277,7 @@ function Dashboard() {
       const sancionesLista = sancionesResult.status === 'fulfilled' ? sancionesResult.value : [];
       const visitasLista = visitasResult.status === 'fulfilled' ? visitasResult.value : [];
       const ludotecaLista = ludotecaResult.status === 'fulfilled' ? ludotecaResult.value : [];
+      const espaciosLista = espaciosResult.status === 'fulfilled' ? espaciosResult.value : [];
       const hoy = new Date().toISOString().split('T')[0];
       const mesActual = hoy.slice(0, 7);
       const sociosActivos = sociosLista.filter(socio => isActive(socio.activo));
@@ -265,7 +296,8 @@ function Dashboard() {
         ? Math.floor(ocupacionData.reduce((sum, item) => sum + item.ocupacion, 0) / ocupacionData.length)
         : 0;
 
-      setOcupacionPorHora(ocupacionData);
+      setReservasDashboard(reservasLista);
+      setActiveSpacesCount(Math.max(espaciosLista.filter(espacio => isActive(espacio.activo)).length, 1));
       setReservasRecientes(reservasLista.slice(0, 3));
       setKpis({
         totalSocios: sociosActivos.length,
@@ -291,6 +323,11 @@ function Dashboard() {
     }
   };
 
+  const handleOccupancyViewChange = (value) => {
+    setOccupancyView(value);
+    setOccupancyRange(getDefaultRange(value));
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
@@ -298,6 +335,10 @@ function Dashboard() {
   };
 
   const getNavClass = (tab) => `nav-link ${activeTab === tab ? 'active' : ''}`;
+  const isManager = userRole === 'gerente';
+  const visibleAdminItems = ADMIN_ITEMS.filter(item => userRole === 'admin' || item.id !== 'usuarios');
+  const mobileItems = [...NAV_ITEMS, ...visibleAdminItems];
+  const dashboardTitle = isManager ? 'Panel Gerencial' : 'Dashboard Ejecutivo';
 
   if (loading) {
     return (
@@ -330,7 +371,7 @@ function Dashboard() {
           })}
 
           <span className="nav-section-label" style={{ marginTop: '1rem' }}>ADMINISTRACIÓN</span>
-          {ADMIN_ITEMS.map(item => {
+          {visibleAdminItems.map(item => {
             const Icon = item.icon;
             return (
               <button key={item.id} onClick={() => setActiveTab(item.id)} className={getNavClass(item.id)}>
@@ -348,9 +389,21 @@ function Dashboard() {
       </aside>
 
       <main className="main-content">
+        <header className="admin-mobile-top">
+          <div>
+            <strong>Club Social</strong>
+            <span>{dashboardTitle}</span>
+          </div>
+          <select value={activeTab} onChange={event => setActiveTab(event.target.value)}>
+            {mobileItems.map(item => (
+              <option key={item.id} value={item.id}>{item.label}</option>
+            ))}
+          </select>
+        </header>
+
         <header className="page-header">
           <div>
-            <h2>Dashboard Ejecutivo</h2>
+            <h2>{dashboardTitle}</h2>
             {userName && <p>Sesión activa: {userName}</p>}
           </div>
           <Link to="/" className="back-link">Volver al inicio</Link>
@@ -384,8 +437,30 @@ function Dashboard() {
             <section className="charts-row">
               <div className="chart-box">
                 <h4 className="chart-title-row"><TrendingUp size={18} /> Ocupación por Hora</h4>
-                <p>Porcentaje de uso de instalaciones hoy</p>
-                <AreaChart data={ocupacionPorHora} />
+                <p>Uso de espacios en el rango seleccionado</p>
+                <div className="occupancy-controls">
+                  <select value={occupancyView} onChange={event => handleOccupancyViewChange(event.target.value)}>
+                    {OCCUPANCY_VIEW_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={occupancyRange.startDate}
+                    onChange={event => setOccupancyRange(prev => ({ ...prev, startDate: event.target.value }))}
+                  />
+                  <input
+                    type="date"
+                    value={occupancyRange.endDate}
+                    onChange={event => setOccupancyRange(prev => ({ ...prev, endDate: event.target.value }))}
+                  />
+                </div>
+                <OccupancyByHourChart
+                  reservas={reservasDashboard}
+                  startDate={occupancyRange.startDate}
+                  endDate={occupancyRange.endDate}
+                  activeSpaces={activeSpacesCount}
+                />
               </div>
               <div className="chart-box">
                 <h4 className="chart-title-row"><Users size={18} /> Composición de Socios</h4>
@@ -434,20 +509,21 @@ function Dashboard() {
           </>
         )}
 
-        {activeTab === 'socios' && <GestionSocios />}
+        {activeTab === 'socios' && <GestionSocios readOnly={isManager} />}
         {activeTab === 'recepcion' && <RecepcionVisitas />}
-        {activeTab === 'reservas' && <Reservas />}
-        {activeTab === 'disciplinas' && <Disciplinas />}
+        {activeTab === 'reservas' && <Reservas readOnly={isManager} />}
+        {activeTab === 'disciplinas' && <Disciplinas readOnly={isManager} />}
         {activeTab === 'torneos' && (
           <TournamentBracket
             title="Torneos y brackets"
             subtitle="Consulta el estado de los torneos y sus cruces por ronda."
+            readOnly={isManager}
           />
         )}
         {activeTab === 'ludoteca' && <Ludoteca />}
         {activeTab === 'sanciones' && <Sanciones />}
-        {activeTab === 'usuarios' && <GestionUsuarios />}
-        {activeTab === 'espacios' && <ConfiguracionEspacios />}
+        {activeTab === 'usuarios' && userRole === 'admin' && <GestionUsuarios />}
+        {activeTab === 'espacios' && <ConfiguracionEspacios readOnly={isManager} />}
         {activeTab === 'logs' && <AuditoriaLogs />}
       </main>
     </div>

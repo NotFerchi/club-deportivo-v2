@@ -1,5 +1,7 @@
 const pool = require('../config/database');
+const { logAudit } = require('../utils/auditLogger');
 const LUDOTECA_TIME_ZONE = 'America/Mexico_City';
+const CLUB_CLOSE_TIME = process.env.CLUB_HORA_CIERRE || '22:00';
 
 const getToday = () => new Date().toISOString().split('T')[0];
 
@@ -95,9 +97,60 @@ const queryPasesWithFallback = async (pasesQuery, pasesParams, visitasQuery, vis
     }
 };
 
+const cerrarVisitasVencidasDb = async () => {
+    const localNow = `(NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}')`;
+
+    try {
+        const result = await pool.query(
+            `UPDATE pases
+             SET hora_salida = ${localNow},
+                 estado = 'finalizado'
+             WHERE estado = 'activo'
+               AND (
+                 fecha_pase < (${localNow})::date
+                 OR (fecha_pase = (${localNow})::date AND (${localNow})::time >= $1::time)
+               )
+             RETURNING pase_id`,
+            [CLUB_CLOSE_TIME]
+        );
+
+        return result.rowCount || 0;
+    } catch (error) {
+        if (!isMissingPasesTable(error)) throw error;
+
+        const result = await pool.query(
+            `UPDATE visitas
+             SET hora_salida = ${localNow},
+                 vigente = false
+             WHERE vigente = true
+               AND (
+                 fecha_visita < (${localNow})::date
+                 OR (fecha_visita = (${localNow})::date AND (${localNow})::time >= $1::time)
+               )
+             RETURNING visita_id`,
+            [CLUB_CLOSE_TIME]
+        );
+
+        return result.rowCount || 0;
+    }
+};
+
+const cerrarVisitasVencidasConAuditoria = async (req) => {
+    const cerradas = await cerrarVisitasVencidasDb();
+    if (cerradas > 0) {
+        await logAudit(req, {
+            accion: 'cierre_automatico_visitas',
+            tabla_afectada: 'pases',
+            detalles: `Visitas cerradas automaticamente: ${cerradas}`
+        });
+    }
+    return cerradas;
+};
+
 const recepcionController = {
     getDashboard: async (req, res) => {
         try {
+            await cerrarVisitasVencidasConAuditoria(req);
             const hoy = getToday();
 
             const ingresos = await pool.query(
@@ -445,6 +498,7 @@ const recepcionController = {
 
     visitasActivas: async (req, res) => {
         try {
+            await cerrarVisitasVencidasConAuditoria(req);
             const result = await queryPasesWithFallback(
                 `${pasesSelect}
                  WHERE p.estado = 'activo'
@@ -467,6 +521,7 @@ const recepcionController = {
         const dias = normalizePositiveInt(req.query.dias, 7);
 
         try {
+            await cerrarVisitasVencidasConAuditoria(req);
             const result = await queryPasesWithFallback(
                 `${pasesSelect}
                  WHERE p.fecha_pase >= CURRENT_DATE - ($1::int - 1)
@@ -490,6 +545,7 @@ const recepcionController = {
         const fechaConsulta = fecha || getToday();
 
         try {
+            await cerrarVisitasVencidasConAuditoria(req);
             const result = await queryPasesWithFallback(
                 `${pasesSelect}
                  WHERE p.fecha_pase = $1
@@ -505,6 +561,21 @@ const recepcionController = {
         } catch (error) {
             console.error(error);
             res.status(500).json({ error: 'Error al listar visitas' });
+        }
+    },
+
+    cerrarVisitasVencidas: async (req, res) => {
+        try {
+            const cerradas = await cerrarVisitasVencidasConAuditoria(req);
+
+            res.json({
+                ok: true,
+                cerradas,
+                hora_cierre: CLUB_CLOSE_TIME
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Error al cerrar visitas vencidas' });
         }
     },
 
@@ -634,6 +705,12 @@ const recepcionController = {
             ]);
 
             await client.query('COMMIT');
+            await logAudit(req, {
+                accion: 'crear_visita',
+                tabla_afectada: 'pases',
+                registro_id: result.rows[0].pase_id,
+                detalles: `Pase ${tipoPaseNormalizado} registrado`
+            });
 
             res.status(201).json({
                 ok: true,
@@ -695,6 +772,13 @@ const recepcionController = {
             if (result.rows.length === 0) {
                 return res.status(404).json({ error: 'Pase no encontrado o ya finalizado' });
             }
+
+            await logAudit(req, {
+                accion: 'registrar_salida_visita',
+                tabla_afectada: 'pases',
+                registro_id: id,
+                detalles: 'Salida de visita registrada'
+            });
 
             res.json({ ok: true, message: 'Salida registrada correctamente' });
         } catch (error) {

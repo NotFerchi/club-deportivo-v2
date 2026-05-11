@@ -13,7 +13,7 @@ const initialFormData = {
 
 const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
 
-function ConfiguracionEspacios() {
+function ConfiguracionEspacios({ readOnly = false }) {
   const [espacios, setEspacios] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -193,12 +193,15 @@ function ConfiguracionEspacios() {
         icon={MapPin}
         title="Configuración de Espacios"
         count={filteredEspacios.length}
+        subtitle={readOnly ? 'Vista gerencial de espacios, disponibilidad base y reglas visibles.' : 'Configura espacios, disciplinas, capacidad y disponibilidad.'}
         actions={(
           <>
             <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por nombre o disciplina" />
-            <button className="btn-primary" onClick={openCreateModal}>
-              <Plus size={16} /> Nuevo Espacio
-            </button>
+            {!readOnly && (
+              <button className="btn-primary" onClick={openCreateModal}>
+                <Plus size={16} /> Nuevo Espacio
+              </button>
+            )}
           </>
         )}
       />
@@ -217,11 +220,29 @@ function ConfiguracionEspacios() {
         </FilterSelect>
       </div>
 
+      <div className="space-rules-grid">
+        <div>
+          <span>Horario operativo</span>
+          <strong>06:00 - 22:00</strong>
+          <p>Base usada para disponibilidad y reservas del dia.</p>
+        </div>
+        <div>
+          <span>Duracion de reserva</span>
+          <strong>60 minutos</strong>
+          <p>La hora final se calcula automaticamente.</p>
+        </div>
+        <div>
+          <span>Regla por socio</span>
+          <strong>1 activa por dia</strong>
+          <p>Evita sobreocupacion y dobles reservas.</p>
+        </div>
+      </div>
+
       {filteredEspacios.length === 0 ? (
         <EmptyState
           icon={MapPin}
           title="No hay espacios con los filtros actuales."
-          action={<button className="btn-primary" onClick={openCreateModal}><Plus size={16} /> Crear espacio</button>}
+          action={!readOnly && <button className="btn-primary" onClick={openCreateModal}><Plus size={16} /> Crear espacio</button>}
         />
       ) : (
         <div className="grid-auto">
@@ -250,6 +271,7 @@ function ConfiguracionEspacios() {
                   </div>
                 </div>
 
+                {!readOnly && (
                 <div className="espacio-footer">
                   <button onClick={() => handleEdit(espacio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar espacio">
                     <Edit2 size={16} />
@@ -269,6 +291,7 @@ function ConfiguracionEspacios() {
                     </>
                   )}
                 </div>
+                )}
               </div>
             );
           })}

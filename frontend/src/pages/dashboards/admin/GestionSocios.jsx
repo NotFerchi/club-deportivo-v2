@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Edit2, RotateCcw, Trash2, UserPlus, Users, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertCircle, CheckCircle, Download, Edit2, RotateCcw, Trash2, Upload, UserPlus, Users, X } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { getFullName, getSocioNumero, getSocioTipo, isActiveValue, normalizeText, toDateInputValue } from '../../../utils/adminData';
@@ -20,7 +20,70 @@ const initialFormData = {
 
 const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
 
-function GestionSocios() {
+function csvEscape(value) {
+  const stringValue = String(value ?? '');
+  return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
+}
+
+function parseCsvRows(text) {
+  const rows = [];
+  let current = '';
+  let row = [];
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+
+    if (char === '"' && quoted && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === ',' && !quoted) {
+      row.push(current.trim());
+      current = '';
+    } else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && next === '\n') index += 1;
+      row.push(current.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  row.push(current.trim());
+  if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+
+function getImportValue(row, headers, options) {
+  const optionList = Array.isArray(options) ? options : [options];
+  const index = headers.findIndex(header => optionList.includes(header));
+  return index >= 0 ? row[index] || '' : '';
+}
+
+function buildImportPayload(row, headers) {
+  return {
+    nombres: getImportValue(row, headers, ['nombres', 'nombre']),
+    apellidoPaterno: getImportValue(row, headers, ['apellido_paterno', 'apellidoPaterno', 'apellidopaterno']),
+    apellidoMaterno: getImportValue(row, headers, ['apellido_materno', 'apellidoMaterno', 'apellidomaterno']),
+    email: getImportValue(row, headers, ['email', 'correo']),
+    telefono: getImportValue(row, headers, ['telefono', 'tel']),
+    curp: getImportValue(row, headers, 'curp').toUpperCase(),
+    fechaNacimiento: getImportValue(row, headers, ['fecha_nacimiento', 'fechaNacimiento', 'nacimiento']) || null,
+    genero: getImportValue(row, headers, 'genero') || null,
+    direccion: getImportValue(row, headers, 'direccion'),
+    tipo: getImportValue(row, headers, ['tipo', 'tipo_socio']) || 'Rentista',
+    tipo_socio: normalizeText(getImportValue(row, headers, ['tipo_socio', 'tipo'])) === 'accionista' ? 'accionista' : 'rentista',
+    modalidad: getImportValue(row, headers, 'modalidad') || 'Individual',
+    password: getImportValue(row, headers, ['password', 'contrasena'])
+  };
+}
+
+function GestionSocios({ readOnly = false }) {
   const [socios, setSocios] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
@@ -31,6 +94,8 @@ function GestionSocios() {
   const [editingSocio, setEditingSocio] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
+  const [fileState, setFileState] = useState({ status: 'idle', message: '' });
+  const fileInputRef = useRef(null);
 
   const fetchSocios = async () => {
     try {
@@ -220,6 +285,120 @@ function GestionSocios() {
     }
   };
 
+  const exportSocios = async () => {
+    const headers = [
+      'numero_socio',
+      'nombres',
+      'apellido_paterno',
+      'apellido_materno',
+      'email',
+      'telefono',
+      'curp',
+      'tipo_socio',
+      'activo'
+    ];
+    const rows = filteredSocios.map(socio => [
+      getSocioNumero(socio),
+      socio.nombres,
+      socio.apellido_paterno,
+      socio.apellido_materno,
+      socio.email,
+      socio.telefono,
+      socio.curp,
+      getSocioTipo(socio),
+      isActiveValue(socio.activo) ? 'activo' : 'inactivo'
+    ]);
+
+    const csv = [headers, ...rows].map(row => row.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `socios-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    setFileState({ status: 'success', message: `Exportados ${rows.length} socios en CSV.` });
+    try {
+      await adminApi.logAudit({
+        accion: 'exportar_socios',
+        tabla_afectada: 'socios',
+        detalles: `Exportacion CSV de ${rows.length} socios`
+      });
+    } catch {
+      // La exportacion no debe fallar si el log no esta disponible.
+    }
+  };
+
+  const importSocios = async (file) => {
+    if (!file) return;
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const allowed = ['csv', 'xls', 'xlsx'];
+
+    if (!allowed.includes(extension)) {
+      setFileState({ status: 'error', message: 'Formato no valido. Usa CSV, XLS o XLSX.' });
+      return;
+    }
+
+    if (extension !== 'csv') {
+      setFileState({ status: 'error', message: 'Excel detectado. En esta version la importacion masiva procesa CSV para evitar datos mal leidos.' });
+      return;
+    }
+
+    setFileState({ status: 'loading', message: 'Importando socios...' });
+
+    try {
+      const text = await file.text();
+      const [headerRow, ...dataRows] = parseCsvRows(text);
+      const headers = (headerRow || []).map(header => normalizeText(header).replace(/\s+/g, '_'));
+      const required = ['nombres', 'email', 'curp', 'direccion'];
+      const missing = required.filter(header => !headers.includes(header));
+
+      if (missing.length > 0) {
+        setFileState({ status: 'error', message: `Faltan columnas obligatorias: ${missing.join(', ')}` });
+        return;
+      }
+
+      let created = 0;
+      const errors = [];
+
+      for (const [index, row] of dataRows.entries()) {
+        const payload = buildImportPayload(row, headers);
+        if (!payload.password) {
+          errors.push(`Fila ${index + 2}: falta password`);
+          continue;
+        }
+
+        try {
+          await adminApi.saveSocio(payload);
+          created += 1;
+        } catch (error) {
+          errors.push(`Fila ${index + 2}: ${error.message}`);
+        }
+      }
+
+      await fetchSocios();
+      const message = errors.length
+        ? `Importados ${created}. Con errores: ${errors.slice(0, 3).join(' | ')}`
+        : `Importados ${created} socios correctamente.`;
+      setFileState({ status: errors.length ? 'error' : 'success', message });
+
+      try {
+        await adminApi.logAudit({
+          accion: 'importar_socios',
+          tabla_afectada: 'socios',
+          detalles: `Importacion CSV: ${created} creados, ${errors.length} errores`
+        });
+      } catch {
+        // El log no debe bloquear la carga masiva.
+      }
+    } catch (error) {
+      setFileState({ status: 'error', message: error.message || 'No se pudo importar el archivo.' });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   if (loading) return <div className="chart-box"><p>Cargando socios...</p></div>;
 
   return (
@@ -232,12 +411,36 @@ function GestionSocios() {
         actions={(
           <>
             <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar nombre, número, email o CURP" />
-            <button className="btn-primary" onClick={openCreateModal}>
-              <UserPlus size={16} /> Nuevo Socio
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xls,.xlsx"
+              onChange={event => importSocios(event.target.files?.[0])}
+              style={{ display: 'none' }}
+            />
+            {!readOnly && (
+              <button className="btn-outline" onClick={() => fileInputRef.current?.click()} disabled={fileState.status === 'loading'}>
+                <Upload size={16} /> Importar
+              </button>
+            )}
+            <button className="btn-outline" onClick={exportSocios}>
+              <Download size={16} /> Exportar
             </button>
+            {!readOnly && (
+              <button className="btn-primary" onClick={openCreateModal}>
+                <UserPlus size={16} /> Nuevo Socio
+              </button>
+            )}
           </>
         )}
       />
+
+      {fileState.message && (
+        <div className={`admin-file-message status-${fileState.status}`}>
+          {fileState.status === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+          <span>{fileState.message}</span>
+        </div>
+      )}
 
       <div className="admin-filter-row">
         <FilterSelect label="Tipo" value={filterTipo} onChange={setFilterTipo}>
@@ -267,7 +470,7 @@ function GestionSocios() {
               <th>Tipo</th>
               <th>Teléfono</th>
               <th>Estado</th>
-              <th>Acciones</th>
+              {!readOnly && <th>Acciones</th>}
             </tr>
           </thead>
           <tbody>
@@ -290,31 +493,33 @@ function GestionSocios() {
                   </td>
                   <td>{socio.telefono || '-'}</td>
                   <td><span className={activo ? 'badge-success' : 'badge-warning'}>{activo ? 'Activo' : 'Inactivo'}</span></td>
-                  <td style={{ display: 'flex', gap: '0.4rem' }}>
-                    <button onClick={() => handleEdit(socio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar">
-                      <Edit2 size={16} />
-                    </button>
-                    {activo ? (
-                      <button onClick={() => handleDelete(socio.socio_id)} className="btn-icon" style={{ color: '#ef4444' }} title="Inactivar">
-                        <Trash2 size={16} />
+                  {!readOnly && (
+                    <td style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button onClick={() => handleEdit(socio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar">
+                        <Edit2 size={16} />
                       </button>
-                    ) : (
-                      <>
-                        <button onClick={() => handleReactivate(socio)} className="btn-icon" style={{ color: '#10b981' }} title="Reactivar">
-                          <RotateCcw size={16} />
-                        </button>
-                        <button onClick={() => handlePermanentDelete(socio.socio_id)} className="btn-icon" style={{ color: '#b91c1c' }} title="Eliminar permanentemente">
+                      {activo ? (
+                        <button onClick={() => handleDelete(socio.socio_id)} className="btn-icon" style={{ color: '#ef4444' }} title="Inactivar">
                           <Trash2 size={16} />
                         </button>
-                      </>
-                    )}
-                  </td>
+                      ) : (
+                        <>
+                          <button onClick={() => handleReactivate(socio)} className="btn-icon" style={{ color: '#10b981' }} title="Reactivar">
+                            <RotateCcw size={16} />
+                          </button>
+                          <button onClick={() => handlePermanentDelete(socio.socio_id)} className="btn-icon" style={{ color: '#b91c1c' }} title="Eliminar permanentemente">
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}
             {filteredSocios.length === 0 && (
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                <td colSpan={readOnly ? 6 : 7} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                   No hay socios con los filtros actuales.
                 </td>
               </tr>

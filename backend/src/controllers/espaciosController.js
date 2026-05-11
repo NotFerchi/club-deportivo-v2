@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { logAudit } = require('../utils/auditLogger');
 
 const espaciosController = {
   // Obtener todos los espacios
@@ -56,6 +57,12 @@ const espaciosController = {
          RETURNING espacio_id`,
         [nombre, disciplina_id || null, capacidad_maxima, activo !== undefined ? activo : true]
       );
+      await logAudit(req, {
+        accion: 'crear_espacio',
+        tabla_afectada: 'espacios',
+        registro_id: result.rows[0].espacio_id,
+        detalles: `Espacio creado: ${nombre}`
+      });
       res.json({ ok: true, id: result.rows[0].espacio_id, message: 'Espacio creado correctamente' });
     } catch (error) {
       console.error('Error en createEspacio:', error);
@@ -83,6 +90,12 @@ const espaciosController = {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Espacio no encontrado' });
       }
+      await logAudit(req, {
+        accion: 'actualizar_espacio',
+        tabla_afectada: 'espacios',
+        registro_id: id,
+        detalles: `Espacio actualizado: ${nombre}`
+      });
       
       res.json({ ok: true, message: 'Espacio actualizado correctamente' });
     } catch (error) {
@@ -104,6 +117,12 @@ const espaciosController = {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Espacio no encontrado' });
       }
+      await logAudit(req, {
+        accion: 'eliminar_espacio',
+        tabla_afectada: 'espacios',
+        registro_id: id,
+        detalles: 'Espacio eliminado'
+      });
       
       res.json({ ok: true, message: 'Espacio eliminado correctamente' });
     } catch (error) {

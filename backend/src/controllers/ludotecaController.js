@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { logAudit } = require('../utils/auditLogger');
 const LUDOTECA_TIME_ZONE = 'America/Mexico_City';
 
 module.exports = {
@@ -43,41 +44,44 @@ module.exports = {
 
 
   registrarEntrada: async (req, res) => {
-    const { socio_id, nombre_nino, edad } = req.body;
-    try {
-      await pool.query(
-        `INSERT INTO ludoteca (socio_id, nombre_nino, edad, hora_entrada)
-         VALUES ($1, $2, $3, NOW())`,
-        [socio_id, nombre_nino, edad]
-      );
-      res.json({ ok: true });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
+    req.body = {
+      ...req.body,
+      socio_padre_id: req.body.socio_padre_id || req.body.socio_id,
+      nombre_hijo: req.body.nombre_hijo || req.body.nombre_nino
+    };
+    return module.exports.registrarEntradaLudoteca(req, res);
   },
 
   registrarSalida: async (req, res) => {
-    const { id } = req.params;
-    try {
-      await pool.query(
-        'UPDATE ludoteca SET hora_salida = NOW() WHERE registro_id = $1',
-        [id]
-      );
-      res.json({ ok: true });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
+    req.params.registro_id = req.params.registro_id || req.params.id;
+    return module.exports.registrarSalidaLudoteca(req, res);
   },
 
   historial: async (req, res) => {
     try {
+      const dias = Number.parseInt(req.query.dias || '7', 10);
       const result = await pool.query(`
-        SELECT l.*, s.nombres, s.apellido_paterno 
-        FROM ludoteca l
-        JOIN socios s ON l.socio_id = s.socio_id
-        ORDER BY l.hora_entrada DESC
+        SELECT
+          rl.registro_id,
+          rl.socio_padre_id,
+          rl.nombre_hijo,
+          rl.nombre_hijo AS nombre_nino,
+          rl.fecha_nacimiento,
+          rl.hora_entrada,
+          rl.hora_salida,
+          DATE_PART('year', AGE(CURRENT_DATE, rl.fecha_nacimiento))::int AS edad,
+          u.nombres,
+          u.apellido_paterno,
+          TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS nombre_padre,
+          TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS tutor_nombre,
+          NULL::text AS observaciones
+        FROM registro_ludoteca rl
+        JOIN socios s ON rl.socio_padre_id = s.socio_id
+        JOIN usuarios u ON s.usuario_id = u.usuario_id
+        WHERE rl.hora_entrada >= (NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}') - ($1::text || ' days')::interval
+        ORDER BY rl.hora_entrada DESC
         LIMIT 100
-      `);
+      `, [Number.isFinite(dias) && dias > 0 ? dias : 7]);
       res.json(result.rows);
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -137,6 +141,13 @@ module.exports = {
            TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local`,
         [socioPadreId, nombre_hijo.trim(), fecha_nacimiento]
       );
+
+      await logAudit(req, {
+        accion: 'entrada_ludoteca',
+        tabla_afectada: 'registro_ludoteca',
+        registro_id: result.rows[0].registro_id,
+        detalles: 'Entrada de ludoteca registrada'
+      });
 
       return res.status(201).json({
         ok: true,
@@ -214,6 +225,12 @@ module.exports = {
       }
 
       await client.query('COMMIT');
+      await logAudit(req, {
+        accion: 'salida_ludoteca',
+        tabla_afectada: 'registro_ludoteca',
+        registro_id: registroId,
+        detalles: `Salida de ludoteca. Duracion ${duracionMinutos} min. Sancion: ${sancionGenerada ? 'si' : 'no'}`
+      });
 
       return res.json({
         ok: true,

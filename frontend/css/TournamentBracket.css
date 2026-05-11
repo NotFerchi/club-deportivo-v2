@@ -122,6 +122,36 @@
   gap: 1.25rem;
 }
 
+.tb-split-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.tb-side-list,
+.tb-detail-placeholder {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.tb-side-list {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
+}
+
+.tb-detail-side {
+  min-width: 0;
+}
+
+.tb-detail-placeholder {
+  padding: 3rem;
+}
+
 /* ── Panel de torneos ── */
 .tb-tournament-panel {
   width: 100%;
@@ -537,6 +567,15 @@
   .tb-round-column {
     flex-basis: 84vw;
     min-width: 260px;
+  }
+
+  .tb-split-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tb-side-list {
+    position: static;
+    max-height: none;
   }
 }
 

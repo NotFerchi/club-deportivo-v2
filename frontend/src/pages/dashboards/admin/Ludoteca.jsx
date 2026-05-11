@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Baby, CheckCircle, Clock, LogOut, Plus, X } from 'lucide-react';
 import { adminApi, apiRequest, unwrapList } from '../../../services/api';
-import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
+import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
 const initialFormData = {
   nombre_nino: '',
-  edad: '',
+  fecha_nacimiento: '',
   socio_id: '',
   observaciones: ''
 };
@@ -14,7 +14,22 @@ const initialFormData = {
 const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
 
 function getSocioNombre(registro) {
-  return registro.socio_nombre || [registro.nombres, registro.apellido_paterno].filter(Boolean).join(' ').trim();
+  return registro.socio_nombre || registro.nombre_padre || registro.tutor_nombre || [registro.nombres, registro.apellido_paterno].filter(Boolean).join(' ').trim();
+}
+
+function getEdad(registro) {
+  if (Number.isFinite(Number(registro.edad))) return Number(registro.edad);
+  if (!registro.fecha_nacimiento) return null;
+  const nacimiento = new Date(registro.fecha_nacimiento);
+  if (Number.isNaN(nacimiento.getTime())) return null;
+  return Math.floor((new Date() - nacimiento) / (1000 * 60 * 60 * 24 * 365.25));
+}
+
+function calcularEdad(fechaNacimiento) {
+  if (!fechaNacimiento) return null;
+  const nacimiento = new Date(`${fechaNacimiento}T00:00:00`);
+  if (Number.isNaN(nacimiento.getTime())) return null;
+  return Math.floor((new Date() - nacimiento) / (1000 * 60 * 60 * 24 * 365.25));
 }
 
 function Ludoteca() {
@@ -29,6 +44,7 @@ function Ludoteca() {
   const [formErrors, setFormErrors] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   const fetchData = async () => {
     try {
@@ -40,8 +56,9 @@ function Ludoteca() {
       setRegistrosActivos(activos);
       setHistorial(historialData);
       setSocios(sociosData.filter(socio => socio.activo === true || socio.activo === 'true'));
+      setLoadError('');
     } catch (error) {
-      alert(error.message || 'Error al cargar ludoteca');
+      setLoadError(error.message || 'Error al cargar ludoteca');
     } finally {
       setLoading(false);
     }
@@ -64,10 +81,11 @@ function Ludoteca() {
 
   const validateForm = () => {
     const errors = {};
-    const edad = Number(formData.edad);
+    const edad = calcularEdad(formData.fecha_nacimiento);
 
     if (formData.nombre_nino.trim().length < 2) errors.nombre_nino = 'Nombre obligatorio';
-    if (!Number.isFinite(edad) || edad < 1 || edad > 12) errors.edad = 'Edad válida entre 1 y 12 años';
+    if (!formData.fecha_nacimiento) errors.fecha_nacimiento = 'Fecha de nacimiento obligatoria';
+    else if (!Number.isFinite(edad) || edad < 3 || edad > 7) errors.fecha_nacimiento = 'Edad valida entre 3 y 7 anos';
     if (!formData.socio_id) errors.socio_id = 'Seleccione socio responsable';
     return errors;
   };
@@ -82,12 +100,12 @@ function Ludoteca() {
     }
 
     try {
-      await apiRequest('/ludoteca', {
+      await apiRequest('/ludoteca/entrada', {
         method: 'POST',
         body: JSON.stringify({
-          nombre_nino: formData.nombre_nino.trim(),
-          edad: Number(formData.edad),
-          socio_id: formData.socio_id,
+          nombre_hijo: formData.nombre_nino.trim(),
+          fecha_nacimiento: formData.fecha_nacimiento,
+          socio_padre_id: Number(formData.socio_id),
           observaciones: formData.observaciones.trim()
         })
       });
@@ -104,7 +122,7 @@ function Ludoteca() {
   const registrarSalida = async (id) => {
     if (!confirm('¿Registrar salida?')) return;
     try {
-      await apiRequest(`/ludoteca/${id}/salida`, { method: 'PUT' });
+      await apiRequest(`/ludoteca/salida/${id}`, { method: 'PATCH' });
       await fetchData();
       showToast('Salida registrada correctamente');
     } catch (error) {
@@ -115,7 +133,7 @@ function Ludoteca() {
   const activosFiltrados = useMemo(() => {
     const query = normalizeText(filtro);
     return registrosActivos.filter(registro => {
-      const text = normalizeText([registro.nombre_nino, getSocioNombre(registro), registro.observaciones].filter(Boolean).join(' '));
+      const text = normalizeText([registro.nombre_nino, registro.nombre_hijo, getSocioNombre(registro), registro.observaciones].filter(Boolean).join(' '));
       return !query || text.includes(query);
     });
   }, [registrosActivos, filtro]);
@@ -124,7 +142,7 @@ function Ludoteca() {
     const query = normalizeText(filtro);
     return historial.filter(registro => {
       const finalizado = Boolean(registro.hora_salida);
-      const text = normalizeText([registro.nombre_nino, getSocioNombre(registro), registro.observaciones].filter(Boolean).join(' '));
+      const text = normalizeText([registro.nombre_nino, registro.nombre_hijo, getSocioNombre(registro), registro.observaciones].filter(Boolean).join(' '));
 
       if (query && !text.includes(query)) return false;
       if (filterHistorial === 'activos' && finalizado) return false;
@@ -133,7 +151,8 @@ function Ludoteca() {
     });
   }, [historial, filtro, filterHistorial]);
 
-  if (loading) return <div className="chart-box"><p>Cargando ludoteca...</p></div>;
+  if (loading) return <LoadingState message="Cargando ludoteca..." />;
+  if (loadError) return <ErrorState message={loadError} onRetry={fetchData} />;
 
   return (
     <div className="chart-box">
@@ -173,7 +192,7 @@ function Ludoteca() {
             <div key={registro.registro_id} className="espacio-card-modern">
               <div className="espacio-header">
                 <div>
-                  <h3 className="espacio-title">{registro.nombre_nino} ({registro.edad} años)</h3>
+                  <h3 className="espacio-title">{registro.nombre_nino || registro.nombre_hijo} ({getEdad(registro) ?? '-'} anos)</h3>
                   <p className="espacio-sub">{getSocioNombre(registro)}</p>
                 </div>
                 <span className="badge-success">
@@ -208,7 +227,7 @@ function Ludoteca() {
             <tbody>
               {historialFiltrado.map(registro => (
                 <tr key={registro.registro_id}>
-                  <td>{registro.nombre_nino} ({registro.edad})</td>
+                  <td>{registro.nombre_nino || registro.nombre_hijo} ({getEdad(registro) ?? '-'})</td>
                   <td>{getSocioNombre(registro)}</td>
                   <td>{formatDateTime(registro.hora_entrada)}</td>
                   <td>{registro.hora_salida ? formatDateTime(registro.hora_salida) : '-'}</td>
@@ -243,9 +262,9 @@ function Ludoteca() {
                     {formErrors.nombre_nino && <p className="field-error">{formErrors.nombre_nino}</p>}
                   </div>
                   <div className="form-group">
-                    <label className="required">Edad</label>
-                    <input type="number" min="1" max="12" value={formData.edad} onChange={event => updateForm('edad', event.target.value)} style={formErrors.edad ? inputErrorStyle : {}} />
-                    {formErrors.edad && <p className="field-error">{formErrors.edad}</p>}
+                    <label className="required">Fecha de nacimiento</label>
+                    <input type="date" value={formData.fecha_nacimiento} onChange={event => updateForm('fecha_nacimiento', event.target.value)} style={formErrors.fecha_nacimiento ? inputErrorStyle : {}} />
+                    {formErrors.fecha_nacimiento && <p className="field-error">{formErrors.fecha_nacimiento}</p>}
                   </div>
                   <div className="form-group form-group-full">
                     <label className="required">Socio responsable</label>

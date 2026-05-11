@@ -91,6 +91,8 @@ export const adminApi = {
     }),
   registrarSalidaVisita: (visitaId) =>
     apiRequest(`/recepcion/visitas/${visitaId}/salida`, { method: 'PUT' }),
+  cerrarVisitasVencidas: () =>
+    apiRequest('/recepcion/visitas/cerrar-vencidas', { method: 'POST' }),
   cancelarReserva: (reservaId) =>
     apiRequest(`/reservas/${reservaId}/cancelar`, { method: 'PUT' }),
   deleteReserva: (reservaId) =>
@@ -100,5 +102,10 @@ export const adminApi = {
   deleteSancion: (sancionId) =>
     apiRequest(`/sanciones/${sancionId}`, { method: 'DELETE' }),
   sincronizarNoShows: () =>
-    apiRequest('/sanciones/no-shows/sincronizar', { method: 'POST' })
+    apiRequest('/sanciones/no-shows/sincronizar', { method: 'POST' }),
+  logAudit: (payload) =>
+    apiRequest('/logs', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
 };

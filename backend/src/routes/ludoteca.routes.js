@@ -26,7 +26,7 @@ router.put('/:id/salida', verifyToken, controller.registrarSalida);
 router.post(
   '/entrada',
   verifyToken,
-  checkRole(['instructor', 'recepcion', 'admin', 'coordinador']),
+  checkRole(['instructor', 'recepcion', 'admin', 'coordinador', 'gerente']),
   controller.registrarEntradaLudoteca
 );
 
@@ -34,7 +34,7 @@ router.post(
 router.patch(
   '/salida/:registro_id',
   verifyToken,
-  checkRole(['instructor', 'recepcion', 'admin', 'coordinador']),
+  checkRole(['instructor', 'recepcion', 'admin', 'coordinador', 'gerente']),
   controller.registrarSalidaLudoteca
 );
 

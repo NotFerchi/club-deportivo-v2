@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { logAudit } = require('../utils/auditLogger');
 
 exports.login = async (req, res) => {
     const { email, contrasena } = req.body;
@@ -46,6 +47,13 @@ exports.login = async (req, res) => {
         );
 
         console.log("¡Login Exitoso!");
+        await logAudit(req, {
+            usuario_id: usuarioBD.usuario_id,
+            accion: 'login',
+            tabla_afectada: 'usuarios',
+            registro_id: usuarioBD.usuario_id,
+            detalles: `Inicio de sesion correcto para rol ${usuarioBD.rol}`
+        });
 
         let extraData = {};
         if (usuarioBD.rol === 'socio') {

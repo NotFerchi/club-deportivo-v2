@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 const { validarCURP } = require('../utils/validacionCurp');
+const { logAudit } = require('../utils/auditLogger');
 
 const normalizeTipoSocio = (tipo, tipoSocio) => {
   const value = String(tipo || tipoSocio || 'Rentista').toLowerCase();
@@ -167,10 +168,11 @@ const socioController = {
       const usuarioId = userResult.rows[0].usuario_id;
       
       // Insertar en socios
-      await client.query(`
+      const socioResult = await client.query(`
         INSERT INTO socios 
           (usuario_id, tipo, modalidad, es_titular, numero_socio, nombre_emergencia, tel_emergencia, activo)
         VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+        RETURNING socio_id
       `, [
         usuarioId,
         normalizeTipoSocio(tipo, tipo_socio),
@@ -182,6 +184,12 @@ const socioController = {
       ]);
       
       await client.query('COMMIT');
+      await logAudit(req, {
+        accion: 'crear_socio',
+        tabla_afectada: 'socios',
+        registro_id: socioResult.rows[0].socio_id,
+        detalles: `Socio creado con numero ${numeroSocioFinal}`
+      });
       res.json({ ok: true, message: 'Socio creado exitosamente' });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -304,6 +312,12 @@ const socioController = {
       ]);
       
       await client.query('COMMIT');
+      await logAudit(req, {
+        accion: 'actualizar_socio',
+        tabla_afectada: 'socios',
+        registro_id: id,
+        detalles: 'Socio actualizado'
+      });
       res.json({ ok: true, message: 'Socio actualizado exitosamente' });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -325,6 +339,12 @@ const socioController = {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Socio no encontrado' });
       }
+      await logAudit(req, {
+        accion: 'inactivar_socio',
+        tabla_afectada: 'socios',
+        registro_id: id,
+        detalles: 'Socio inactivado'
+      });
       res.json({ ok: true, message: 'Socio inactivado correctamente' });
     } catch (error) {
       console.error('Error en deleteSocio:', error);
@@ -349,6 +369,12 @@ const socioController = {
       await client.query('DELETE FROM usuarios WHERE usuario_id = $1', [userId]);
       
       await client.query('COMMIT');
+      await logAudit(req, {
+        accion: 'eliminar_socio_permanente',
+        tabla_afectada: 'socios',
+        registro_id: id,
+        detalles: 'Socio eliminado permanentemente'
+      });
       res.json({ ok: true, message: 'Socio eliminado permanentemente' });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -370,6 +396,12 @@ const socioController = {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Socio no encontrado' });
       }
+      await logAudit(req, {
+        accion: 'reactivar_socio',
+        tabla_afectada: 'socios',
+        registro_id: id,
+        detalles: 'Socio reactivado'
+      });
       res.json({ ok: true, message: 'Socio reactivado correctamente' });
     } catch (error) {
       console.error('Error en reactivar:', error);

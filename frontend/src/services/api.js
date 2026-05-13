@@ -1,6 +1,16 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-export const getAuthToken = () => localStorage.getItem('token');
+export const getAuthToken = () => {
+  const directToken = localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+  if (directToken) return directToken;
+
+  try {
+    const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+    return usuario.token || usuario.accessToken || '';
+  } catch {
+    return '';
+  }
+};
 
 export const unwrapList = (payload, keys = ['data']) => {
   if (Array.isArray(payload)) return payload;
@@ -48,6 +58,14 @@ export const adminApi = {
   getDisciplinas: async () => unwrapList(await apiRequest('/disciplinas'), ['data', 'disciplinas']),
   getSesiones: async () => unwrapList(await apiRequest('/sesiones'), ['data', 'sesiones']),
   getSanciones: async () => unwrapList(await apiRequest('/sanciones'), ['data', 'sanciones']),
+  getSancionesPage: (params = {}) => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') search.set(key, value);
+    });
+    const query = search.toString();
+    return apiRequest(`/sanciones${query ? `?${query}` : ''}`);
+  },
   getVisitasActivas: async () => unwrapList(await apiRequest('/recepcion/visitas/activas'), ['data']),
   getHistorialVisitas: async (dias = 7) =>
     unwrapList(await apiRequest(`/recepcion/visitas/historial?dias=${dias}`), ['data']),
@@ -99,6 +117,8 @@ export const adminApi = {
     apiRequest(`/reservas/${reservaId}`, { method: 'DELETE' }),
   levantarSancion: (sancionId) =>
     apiRequest(`/sanciones/${sancionId}/levantar`, { method: 'PUT' }),
+  resolverSancion: (sancionId) =>
+    apiRequest(`/sanciones/${sancionId}`, { method: 'PATCH' }),
   deleteSancion: (sancionId) =>
     apiRequest(`/sanciones/${sancionId}`, { method: 'DELETE' }),
   sincronizarNoShows: () =>

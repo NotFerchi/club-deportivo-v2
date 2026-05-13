@@ -166,15 +166,48 @@ const recepcionController = {
                 `SELECT COUNT(*) FROM sanciones WHERE LOWER(estado::text) IN ('activo', 'activa')`
             );
 
+            const sociosDentro = await pool.query(
+                `SELECT
+                    COUNT(DISTINCT a.socio_id)::int as total,
+                    COUNT(DISTINCT a.socio_id) FILTER (WHERE LOWER(COALESCE(s.tipo, s.modalidad, '')) = 'accionista')::int as accionistas,
+                    COUNT(DISTINCT a.socio_id) FILTER (WHERE LOWER(COALESCE(s.tipo, s.modalidad, '')) <> 'accionista')::int as rentistas
+                 FROM asistencia a
+                 JOIN socios s ON a.socio_id = s.socio_id
+                 WHERE a.fecha = $1
+                   AND a.presente = true
+                   AND a.socio_id IS NOT NULL`,
+                [hoy]
+            );
+
+            const reservasHoy = await pool.query(
+                `SELECT
+                    COUNT(*)::int as total,
+                    COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('confirmada', 'confirmado', 'pendiente'))::int as activas,
+                    COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('cancelada', 'cancelado'))::int as canceladas,
+                    COUNT(*) FILTER (WHERE COALESCE(no_show, false) = true OR LOWER(estado::text) IN ('no-show', 'no show'))::int as no_shows
+                 FROM reservaciones
+                 WHERE fecha_reserva = $1`,
+                [hoy]
+            );
+
             let visitasActivas = 0;
+            let pasesDiaActivos = 0;
+            let visitasInvitadosActivas = 0;
 
             try {
                 const visitas = await pool.query(
-                    `SELECT COUNT(*) FROM pases WHERE estado = 'activo' AND fecha_pase = $1`,
+                    `SELECT
+                        COUNT(*)::int as total,
+                        COUNT(*) FILTER (WHERE tipo_pase = 'dia')::int as pases_dia,
+                        COUNT(*) FILTER (WHERE tipo_pase = 'visita')::int as visitas
+                     FROM pases
+                     WHERE estado = 'activo' AND fecha_pase = $1`,
                     [hoy]
                 );
 
-                visitasActivas = parseInt(visitas.rows[0].count, 10);
+                visitasActivas = parseInt(visitas.rows[0].total, 10);
+                pasesDiaActivos = parseInt(visitas.rows[0].pases_dia, 10);
+                visitasInvitadosActivas = parseInt(visitas.rows[0].visitas, 10);
             } catch (error) {
                 if (!isMissingPasesTable(error)) {
                     throw error;
@@ -186,13 +219,24 @@ const recepcionController = {
                 );
 
                 visitasActivas = parseInt(visitas.rows[0].count, 10);
+                visitasInvitadosActivas = visitasActivas;
             }
 
             res.json({
                 ingresosHoy: parseInt(ingresos.rows[0].count, 10),
                 visitasActivas,
+                visitasInvitadosActivas,
+                pasesDiaActivos,
                 ninosLudoteca: parseInt(ludoteca.rows[0].count, 10),
-                sancionesActivas: parseInt(sanciones.rows[0].count, 10)
+                capacidadLudoteca: 15,
+                sancionesActivas: parseInt(sanciones.rows[0].count, 10),
+                sociosDentro: sociosDentro.rows[0]?.total || 0,
+                accionistasDentro: sociosDentro.rows[0]?.accionistas || 0,
+                rentistasDentro: sociosDentro.rows[0]?.rentistas || 0,
+                reservasHoy: reservasHoy.rows[0]?.total || 0,
+                reservasActivasHoy: reservasHoy.rows[0]?.activas || 0,
+                reservasCanceladasHoy: reservasHoy.rows[0]?.canceladas || 0,
+                noShowsHoy: reservasHoy.rows[0]?.no_shows || 0
             });
         } catch (error) {
             console.error(error);

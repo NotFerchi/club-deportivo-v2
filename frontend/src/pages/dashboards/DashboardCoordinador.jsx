@@ -12,7 +12,7 @@ import DashboardResumen    from './coordinador/DashboardResumen';
 import VistaSocios         from './coordinador/VistaSocios';
 import VistaVisitas        from './coordinador/VistaVisitas';
 import VistaReservas       from './coordinador/VistaReservas';
-import VistaSanciones      from './coordinador/VistaSanciones';
+import VistaSanciones      from '../../components/SancionesPanel';
 import GestionInstructores from './coordinador/GestionInstructores';
 import GestionDisciplinas  from './coordinador/GestionDisciplinas';
 

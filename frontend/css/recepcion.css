@@ -855,6 +855,155 @@ body {
     cursor: not-allowed;
 }
 
+.dashboard-root .reception-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.dashboard-root .reception-hero {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.dashboard-root .reception-eyebrow {
+    color: #0f766e;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.dashboard-root .reception-hero h3 {
+    margin: 0.25rem 0;
+    font-size: 22px;
+    color: #0f172a;
+}
+
+.dashboard-root .reception-hero p,
+.dashboard-root .reception-panel-header p,
+.dashboard-root .reception-panel-note {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.dashboard-root .reception-kpi-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.dashboard-root .reception-kpi-card {
+    min-height: 98px;
+}
+
+.dashboard-root .reception-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.dashboard-root .reception-panel,
+.dashboard-root .reception-actions-panel {
+    padding: 1.2rem;
+}
+
+.dashboard-root .reception-panel-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.dashboard-root .reception-panel-header h4 {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0 0 0.25rem;
+}
+
+.dashboard-root .reception-panel-header strong {
+    font-size: 24px;
+    color: #0f172a;
+}
+
+.dashboard-root .reception-meter-bar,
+.dashboard-root .reception-capacity {
+    height: 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e2e8f0;
+    display: flex;
+}
+
+.dashboard-root .reception-meter-bar span:first-child {
+    background: #2563eb;
+}
+
+.dashboard-root .reception-meter-bar span:last-child {
+    background: #059669;
+}
+
+.dashboard-root .reception-capacity span {
+    background: #f59e0b;
+}
+
+.dashboard-root .reception-meter-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-top: 0.85rem;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.dashboard-root .legend-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    display: inline-block;
+    margin-right: 0.35rem;
+}
+
+.dashboard-root .legend-dot.accionista {
+    background: #2563eb;
+}
+
+.dashboard-root .legend-dot.rentista {
+    background: #059669;
+}
+
+.dashboard-root .reception-mini-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.7rem;
+}
+
+.dashboard-root .reception-mini-stats button {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: #475569;
+    font-weight: 800;
+    cursor: pointer;
+    text-align: left;
+}
+
+.dashboard-root .reception-mini-stats span {
+    display: block;
+    color: #0f172a;
+    font-size: 22px;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
 /* Responsive para formularios */
 @media (max-width: 768px) {
     .dashboard-root .form-row {
@@ -863,5 +1012,23 @@ body {
     
     .dashboard-root .form-group-full {
         grid-column: span 1;
+    }
+}
+
+@media (max-width: 1100px) {
+    .dashboard-root .reception-kpi-grid,
+    .dashboard-root .reception-dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .dashboard-root .reception-hero {
+        flex-direction: column;
+    }
+
+    .dashboard-root .reception-kpi-grid,
+    .dashboard-root .reception-dashboard-grid {
+        grid-template-columns: 1fr;
     }
 }

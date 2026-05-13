@@ -29,7 +29,7 @@ import RecepcionVisitas from './admin/RecepcionVisitas';
 import Reservas from './admin/Reservas';
 import Disciplinas from './admin/Disciplinas';
 import Ludoteca from './admin/Ludoteca';
-import Sanciones from './admin/Sanciones';
+import Sanciones from '../../components/SancionesPanel';
 import GestionUsuarios from './admin/GestionUsuarios';
 import ConfiguracionEspacios from './admin/ConfiguracionEspacios';
 import AuditoriaLogs from './admin/AuditoriaLogs';

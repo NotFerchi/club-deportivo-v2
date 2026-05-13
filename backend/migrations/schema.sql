@@ -212,6 +212,7 @@ CREATE TABLE sanciones (
     fecha TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
     estado VARCHAR(20) DEFAULT 'Activo',
     resuelto_por INT REFERENCES usuarios(usuario_id),
+    fecha_resolucion TIMESTAMP(6),
     registro_ludoteca_id INT REFERENCES registro_ludoteca(registro_id)
 );
 

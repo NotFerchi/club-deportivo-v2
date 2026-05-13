@@ -12,18 +12,26 @@ import CentralReservas from './recepcion/CentralReservas';
 import ControlLudoteca from './recepcion/ControlLudoteca';
 import PaseLista from './recepcion/PaseLista';
 import GestionVisitas from './recepcion/GestionVisitas';
-import Sanciones from './recepcion/Sanciones';
+import Sanciones from '../../components/SancionesPanel';
+import { getAuthToken } from '../../services/api';
 
 function DashboardRecepcion() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
     if (!token || usuario.rol !== 'recepcion') {
+      if (!token) {
+        localStorage.removeItem('usuario');
+        localStorage.removeItem('token');
+        localStorage.removeItem('authToken');
+      }
       navigate('/login');
+      return;
     }
+    localStorage.setItem('token', token);
     document.title = 'Recepción | Club Social';
   }, [navigate]);
 

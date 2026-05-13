@@ -86,6 +86,7 @@ function Login() {
       }
 
       localStorage.setItem('token', data.token);
+      localStorage.setItem('authToken', data.token);
       localStorage.setItem('usuario', JSON.stringify(data.usuario));
       redirigirPorRol(data.usuario.rol);
     } catch (err) {

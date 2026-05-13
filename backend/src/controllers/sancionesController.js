@@ -8,7 +8,7 @@ const {
 } = require('../utils/adminRules');
 
 const activeEstadoSql = "LOWER(s.estado::text) IN ('activa', 'activo')";
-const staffRoles = ['instructor', 'recepcion', 'gerente', 'coordinador', 'admin'];
+const staffRoles = ['recepcion', 'coordinador', 'admin'];
 
 function normalizePagination(query) {
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
@@ -54,6 +54,14 @@ function pushOptionalFilters(query, values) {
         }
         values.push(socioId);
         filters.push(`s.socio_id = $${values.length}`);
+    }
+
+    if (query.socio) {
+        values.push(`%${String(query.socio).trim()}%`);
+        filters.push(`(
+            TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) ILIKE $${values.length}
+            OR soc.numero_socio::text ILIKE $${values.length}
+        )`);
     }
 
     return filters;
@@ -137,6 +145,22 @@ async function getHistorialSocio(socioId) {
     );
 
     return result.rows[0] || { total: 0, activas: 0, graves: 0 };
+}
+
+async function getSancionDetallada(sancionId) {
+    const { gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr } = await getSancionColumnInfo();
+    const selectSql = getSancionesSelect({ gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr });
+    const result = await pool.query(
+        `${selectSql}
+         WHERE s.sancion_id = $1`,
+        [sancionId]
+    );
+
+    return result.rows[0] || null;
+}
+
+function isSancionInactiva(estado) {
+    return ['inactivo', 'inactiva', 'resuelto', 'resuelta'].includes(String(estado || '').trim().toLowerCase());
 }
 
 async function resolveGravedad(socioId, gravedad, origen) {
@@ -490,6 +514,53 @@ const sancionesController = {
         } catch (error) {
             console.error('Error en levantarSancion:', error);
             res.status(500).json({ error: 'Error al levantar sancion' });
+        }
+    },
+
+    resolverSancion: async (req, res) => {
+        const sancionId = Number(req.params.sancion_id);
+
+        if (!Number.isInteger(sancionId) || sancionId <= 0) {
+            return res.status(400).json({ error: 'sancion_id debe ser un entero valido' });
+        }
+
+        if (req.user?.rol !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        try {
+            const sancion = await pool.query(
+                'SELECT * FROM sanciones WHERE sancion_id = $1',
+                [sancionId]
+            );
+
+            if (sancion.rowCount === 0) {
+                return res.status(404).json({ error: 'Sanción no encontrada' });
+            }
+
+            if (isSancionInactiva(sancion.rows[0].estado)) {
+                return res.status(409).json({ error: 'Esta sanción ya fue resuelta' });
+            }
+
+            const columns = await getTableColumns('sanciones');
+            if (!columns.has('resuelto_por') || !columns.has('fecha_resolucion')) {
+                return res.status(500).json({ error: 'La tabla sanciones no tiene campos de resolución configurados' });
+            }
+
+            await pool.query(
+                `UPDATE sanciones
+                 SET estado = 'Inactivo',
+                     resuelto_por = $1,
+                     fecha_resolucion = NOW()
+                 WHERE sancion_id = $2`,
+                [req.user.usuario_id, sancionId]
+            );
+
+            const sancionActualizada = await getSancionDetallada(sancionId);
+            res.json(sancionActualizada);
+        } catch (error) {
+            console.error('Error en resolverSancion:', error);
+            res.status(500).json({ error: 'Error al resolver sanción' });
         }
     },
 

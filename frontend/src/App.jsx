@@ -1,14 +1,13 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
 import Home from './pages/Home'
 import Login from './pages/Login'
-import DashboardGerente from './pages/dashboards/Dashboard'
-import DashboardAdmin from './pages/dashboards/Dashboard'  // Mismo componente por ahora
+import Dashboard from './pages/dashboards/Dashboard'
 import DashboardCoordinador from './pages/dashboards/DashboardCoordinador'
 import DashboardInstructor from './pages/dashboards/DashboardInstructor'
 import DashboardRecepcion from './pages/dashboards/DashboardRecepcion'
 import DashboardSocio from './pages/dashboards/DashboardSocio'
-
 import SocioLayout from './components/SocioLayout'
 import Reservas from './pages/dashboards/socio/Reservas'
 import Clases from './pages/dashboards/socio/Clases'
@@ -17,28 +16,94 @@ import Sanciones from './pages/dashboards/socio/Sanciones'
 import Torneos from './pages/dashboards/socio/Torneos'
 import Espacios from './pages/Espacios'
 
+function getStoredRol() {
+  try {
+    return JSON.parse(localStorage.getItem('usuario') || '{}').rol || ''
+  } catch {
+    return ''
+  }
+}
+
+function ProtectedRoute({ children, allowedRoles }) {
+  const token = localStorage.getItem('token')
+  const rol = getStoredRol()
+  if (!token) return <Navigate to="/login" replace />
+  if (allowedRoles && !allowedRoles.includes(rol)) return <Navigate to="/login" replace />
+  return children
+}
+
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard-gerente" element={<DashboardGerente />} />
-        <Route path="/dashboard-admin" element={<DashboardAdmin />} />
-        <Route path="/dashboard-coordinador" element={<DashboardCoordinador />} />
-        <Route path="/dashboard-instructor" element={<DashboardInstructor />} />
-        <Route path="/dashboard-recepcion" element={<DashboardRecepcion />} />
-        <Route path="/dashboard-socio" element={<DashboardSocio />} />
-                {/* 2. AGREGA LA RUTA PARA ESPACIOS */}
-        <Route path="/espacios" element={<Espacios />} />
-        <Route path="/reservas" element={<Reservas />} />
-        <Route path="/clases" element={<Clases />} />
-        <Route path="/ludoteca" element={<Ludoteca />} />
-        <Route path="/sanciones" element={<Sanciones />} />
-        <Route path="/torneos" element={<Torneos />} />
-        <Route path="/components/socio-layout" element={<SocioLayout />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+
+          {/* Admin y Gerente comparten el mismo dashboard — el componente distingue internamente */}
+          <Route
+            path="/dashboard-admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard-gerente"
+            element={
+              <ProtectedRoute allowedRoles={['gerente']}>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard-coordinador"
+            element={
+              <ProtectedRoute allowedRoles={['coordinador']}>
+                <DashboardCoordinador />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard-instructor"
+            element={
+              <ProtectedRoute allowedRoles={['instructor']}>
+                <DashboardInstructor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard-recepcion"
+            element={
+              <ProtectedRoute allowedRoles={['recepcion']}>
+                <DashboardRecepcion />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard-socio"
+            element={
+              <ProtectedRoute allowedRoles={['socio']}>
+                <DashboardSocio />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/espacios" element={<Espacios />} />
+
+          <Route path="/reservas" element={<ProtectedRoute allowedRoles={['socio']}><Reservas /></ProtectedRoute>} />
+          <Route path="/clases" element={<ProtectedRoute allowedRoles={['socio']}><Clases /></ProtectedRoute>} />
+          <Route path="/ludoteca" element={<ProtectedRoute allowedRoles={['socio']}><Ludoteca /></ProtectedRoute>} />
+          <Route path="/sanciones" element={<ProtectedRoute allowedRoles={['socio']}><Sanciones /></ProtectedRoute>} />
+          <Route path="/torneos" element={<ProtectedRoute allowedRoles={['socio']}><Torneos /></ProtectedRoute>} />
+          <Route path="/components/socio-layout" element={<SocioLayout />} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 

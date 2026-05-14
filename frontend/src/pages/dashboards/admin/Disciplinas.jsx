@@ -1,11 +1,27 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dumbbell, Edit2, Plus, Trash2, X } from 'lucide-react';
+import { Activity, Bike, CircleDot, Dumbbell, Edit2, Flame, Heart, Music2, Plus, Shield, Target, Trash2, Waves, X, Zap } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
 import { EmptyState, FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { normalizeText } from '../../../utils/adminData';
 
 const initialFormData = { nombre: '' };
 const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
+
+function getDisciplinaConfig(nombre) {
+  const n = String(nombre || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (n.includes('tenis') || n.includes('tennis') || n.includes('raqueta')) return { color: '#3b82f6', bg: '#eff6ff', Icon: Target };
+  if (n.includes('padel') || n.includes('paddle') || n.includes('fronton') || n.includes('squash')) return { color: '#0d9488', bg: '#f0fdfa', Icon: Zap };
+  if (n.includes('alberca') || n.includes('natacion') || n.includes('pool') || n.includes('nado') || n.includes('acuatico')) return { color: '#0ea5e9', bg: '#f0f9ff', Icon: Waves };
+  if (n.includes('gimnasio') || n.includes('gym') || n.includes('fitness') || n.includes('pesas') || n.includes('crossfit')) return { color: '#ef4444', bg: '#fef2f2', Icon: Dumbbell };
+  if (n.includes('futbol') || n.includes('soccer') || n.includes('foot')) return { color: '#22c55e', bg: '#f0fdf4', Icon: CircleDot };
+  if (n.includes('basquet') || n.includes('basketball') || n.includes('volei') || n.includes('volleyball')) return { color: '#f97316', bg: '#fff7ed', Icon: CircleDot };
+  if (n.includes('karate') || n.includes('taekwondo') || n.includes('judo') || n.includes('artes marciales') || n.includes('box') || n.includes('lucha')) return { color: '#dc2626', bg: '#fef2f2', Icon: Flame };
+  if (n.includes('yoga') || n.includes('pilates') || n.includes('meditacion') || n.includes('bienestar')) return { color: '#8b5cf6', bg: '#f5f3ff', Icon: Heart };
+  if (n.includes('zumba') || n.includes('aerobics') || n.includes('aerobic') || n.includes('baile') || n.includes('danza')) return { color: '#ec4899', bg: '#fdf2f8', Icon: Music2 };
+  if (n.includes('ciclismo') || n.includes('spinning') || n.includes('bici')) return { color: '#84cc16', bg: '#f7fee7', Icon: Bike };
+  if (n.includes('esgrima') || n.includes('tiro') || n.includes('arqueria')) return { color: '#6366f1', bg: '#eef2ff', Icon: Shield };
+  return { color: '#6366f1', bg: '#eef2ff', Icon: Activity };
+}
 
 function Disciplinas({ readOnly = false }) {
   const [disciplinas, setDisciplinas] = useState([]);
@@ -136,27 +152,32 @@ function Disciplinas({ readOnly = false }) {
         />
       ) : (
         <div className="grid-auto">
-          {filtered.map(disciplina => (
-            <div key={disciplina.disciplina_id} className="espacio-card-modern">
-              <div className="espacio-header">
-                <div>
-                  <h3 className="espacio-title">{disciplina.nombre}</h3>
-                  <p className="espacio-sub">ID: {disciplina.disciplina_id}</p>
+          {filtered.map(disciplina => {
+            const { color, bg, Icon } = getDisciplinaConfig(disciplina.nombre);
+            return (
+              <div key={disciplina.disciplina_id} className="espacio-card-modern" style={{ borderTop: `3px solid ${color}` }}>
+                <div className="espacio-header">
+                  <div>
+                    <h3 className="espacio-title">{disciplina.nombre}</h3>
+                    <p className="espacio-sub">ID: {disciplina.disciplina_id}</p>
+                  </div>
+                  <div style={{ width: 38, height: 38, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={20} style={{ color }} />
+                  </div>
                 </div>
-                <Dumbbell size={22} style={{ color: '#0ea5e9' }} />
+                {!readOnly && (
+                  <div className="espacio-footer">
+                    <button onClick={() => openEditModal(disciplina)} className="btn-outline" title="Editar disciplina">
+                      <Edit2 size={16} /> Editar
+                    </button>
+                    <button onClick={() => handleDelete(disciplina.disciplina_id)} className="btn-outline" title="Eliminar disciplina" style={{ color: '#b91c1c' }}>
+                      <Trash2 size={16} /> Eliminar
+                    </button>
+                  </div>
+                )}
               </div>
-              {!readOnly && (
-                <div className="espacio-footer">
-                  <button onClick={() => openEditModal(disciplina)} className="btn-outline" title="Editar disciplina">
-                    <Edit2 size={16} /> Editar
-                  </button>
-                  <button onClick={() => handleDelete(disciplina.disciplina_id)} className="btn-outline" title="Eliminar disciplina" style={{ color: '#b91c1c' }}>
-                    <Trash2 size={16} /> Eliminar
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

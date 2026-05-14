@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Edit2, MapPin, Plus, RotateCcw, Trash2, X } from 'lucide-react';
+import { Activity, Bike, CheckCircle, CircleDot, Dumbbell, Edit2, Flame, Heart, MapPin, Music2, Plus, RotateCcw, Shield, Target, Trash2, Waves, X, Zap } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
 import { EmptyState, FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { isActiveValue, normalizeText } from '../../../utils/adminData';
@@ -12,6 +12,23 @@ const initialFormData = {
 };
 
 const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
+
+function getEspacioConfig(nombre, disciplina) {
+  const n = String(`${nombre || ''} ${disciplina || ''}`).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (n.includes('tenis') || n.includes('tennis') || n.includes('raqueta')) return { color: '#3b82f6', bg: '#eff6ff', Icon: Target };
+  if (n.includes('padel') || n.includes('paddle') || n.includes('fronton') || n.includes('squash')) return { color: '#0d9488', bg: '#f0fdfa', Icon: Zap };
+  if (n.includes('alberca') || n.includes('natacion') || n.includes('pool') || n.includes('nado') || n.includes('acuatico')) return { color: '#0ea5e9', bg: '#f0f9ff', Icon: Waves };
+  if (n.includes('gimnasio') || n.includes('gym') || n.includes('fitness') || n.includes('pesas') || n.includes('crossfit')) return { color: '#ef4444', bg: '#fef2f2', Icon: Dumbbell };
+  if (n.includes('futbol') || n.includes('soccer') || n.includes('foot')) return { color: '#22c55e', bg: '#f0fdf4', Icon: CircleDot };
+  if (n.includes('basquet') || n.includes('basketball') || n.includes('volei') || n.includes('volleyball')) return { color: '#f97316', bg: '#fff7ed', Icon: CircleDot };
+  if (n.includes('karate') || n.includes('taekwondo') || n.includes('judo') || n.includes('marcial') || n.includes('box') || n.includes('lucha')) return { color: '#dc2626', bg: '#fef2f2', Icon: Flame };
+  if (n.includes('yoga') || n.includes('pilates') || n.includes('meditacion') || n.includes('bienestar')) return { color: '#8b5cf6', bg: '#f5f3ff', Icon: Heart };
+  if (n.includes('zumba') || n.includes('aerobic') || n.includes('baile') || n.includes('danza')) return { color: '#ec4899', bg: '#fdf2f8', Icon: Music2 };
+  if (n.includes('ciclismo') || n.includes('spinning') || n.includes('bici')) return { color: '#84cc16', bg: '#f7fee7', Icon: Bike };
+  if (n.includes('sala') || n.includes('salon') || n.includes('multi')) return { color: '#a855f7', bg: '#faf5ff', Icon: Activity };
+  if (n.includes('esgrima') || n.includes('tiro') || n.includes('arqueria')) return { color: '#6366f1', bg: '#eef2ff', Icon: Shield };
+  return { color: '#6366f1', bg: '#eef2ff', Icon: MapPin };
+}
 
 function ConfiguracionEspacios({ readOnly = false }) {
   const [espacios, setEspacios] = useState([]);
@@ -38,13 +55,6 @@ function ConfiguracionEspacios({ readOnly = false }) {
       setDisciplinas(disciplinasData);
       setLoadError('');
     } catch (error) {
-      if (error.status === 401) {
-        alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        localStorage.removeItem('token');
-        localStorage.removeItem('usuario');
-        window.location.href = '/login';
-        return;
-      }
       setLoadError(error.message || 'Error al cargar espacios');
     } finally {
       setLoading(false);
@@ -248,26 +258,38 @@ function ConfiguracionEspacios({ readOnly = false }) {
         <div className="grid-auto">
           {filteredEspacios.map(espacio => {
             const activo = isActiveValue(espacio.activo);
+            const { color, bg, Icon } = getEspacioConfig(espacio.nombre, espacio.disciplina);
             return (
-              <div key={espacio.espacio_id} className="espacio-card-modern">
+              <div key={espacio.espacio_id} className="espacio-card-modern" style={{ borderTop: `3px solid ${color}` }}>
                 <div className="espacio-header">
-                  <div>
-                    <h3 className="espacio-title">{espacio.nombre}</h3>
-                    <p className="espacio-sub">ID: {espacio.espacio_id}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 className="espacio-title" style={{ marginBottom: 2 }}>{espacio.nombre}</h3>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span className={activo ? 'badge-success' : 'badge-warning'} style={{ fontSize: 11 }}>
+                        {activo ? 'Activo' : 'Inactivo'}
+                      </span>
+                      {espacio.disciplina && (
+                        <span style={{ fontSize: 11, color, background: bg, borderRadius: 4, padding: '1px 7px', fontWeight: 600 }}>
+                          {espacio.disciplina}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className={activo ? 'badge-success' : 'badge-warning'}>
-                    {activo ? 'Activo' : 'Inactivo'}
-                  </span>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={20} style={{ color }} />
+                  </div>
                 </div>
 
-                <div className="espacio-body">
-                  <div className="espacio-stat">
-                    <span className="stat-label">Disciplina</span>
-                    <span className="stat-value">{espacio.disciplina || 'Sin disciplina asignada'}</span>
+                <div className="espacio-body" style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
+                  <div style={{ flex: 1, background: '#f8fafc', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Capacidad</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>{espacio.capacidad_maxima}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: '#64748b' }}>personas</p>
                   </div>
-                  <div className="espacio-stat">
-                    <span className="stat-label">Capacidad máxima</span>
-                    <span className="stat-value">{espacio.capacidad_maxima} personas</span>
+                  <div style={{ flex: 1, background: '#f8fafc', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>ID Espacio</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>#{espacio.espacio_id}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: '#64748b' }}>registro</p>
                   </div>
                 </div>
 

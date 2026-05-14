@@ -65,13 +65,6 @@ function RecepcionVisitas() {
       setLimitesPases(limites);
       setLoadError('');
     } catch (error) {
-      if (error.status === 401) {
-        alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        localStorage.removeItem('token');
-        localStorage.removeItem('usuario');
-        window.location.href = '/login';
-        return;
-      }
       setLoadError(error.message || 'Error al cargar recepcion');
     } finally {
       setLoading(false);

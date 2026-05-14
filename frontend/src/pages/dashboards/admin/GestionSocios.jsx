@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, CheckCircle, Download, Edit2, RotateCcw, Trash2, Upload, UserPlus, Users, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Download, Edit2, Eye, RotateCcw, Trash2, Upload, UserPlus, Users, X } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { getFullName, getSocioNumero, getSocioTipo, isActiveValue, normalizeText, toDateInputValue } from '../../../utils/adminData';
@@ -95,6 +95,7 @@ function GestionSocios({ readOnly = false }) {
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
   const [fileState, setFileState] = useState({ status: 'idle', message: '' });
+  const [viewingSocio, setViewingSocio] = useState(null);
   const fileInputRef = useRef(null);
 
   const fetchSocios = async () => {
@@ -461,65 +462,99 @@ function GestionSocios({ readOnly = false }) {
       </div>
 
       <div className="table-wrapper">
-        <table className="data-table">
+        <table className="data-table socios-table">
           <thead>
             <tr>
-              <th>Número</th>
-              <th>Nombre</th>
-              <th>Email</th>
+              <th>No. Socio</th>
+              <th>Nombre Completo</th>
               <th>Tipo</th>
-              <th>Teléfono</th>
               <th>Estado</th>
-              {!readOnly && <th>Acciones</th>}
+              <th>Teléfono</th>
+              <th>Acción Familiar</th>
+              <th>Sanciones</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {filteredSocios.map(socio => {
               const tipo = getSocioTipo(socio);
               const activo = isActiveValue(socio.activo);
+              const estadoLabel = activo
+                ? 'Activo'
+                : String(socio.activo || '').toLowerCase() === 'suspendido'
+                  ? 'Suspendido'
+                  : 'Baja';
+              const estadoBadge = activo
+                ? 'badge-success'
+                : estadoLabel === 'Suspendido'
+                  ? 'badge-warning'
+                  : 'badge-neutral';
+              const accionId = socio.accion_id;
+              const numSanciones = socio.num_sanciones ?? 0;
+
               return (
                 <tr key={socio.socio_id}>
-                  <td>{getSocioNumero(socio) || '-'}</td>
                   <td>
-                    <strong>{getFullName(socio)}</strong>
-                    <br />
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>{socio.curp}</span>
+                    <span className="socio-numero">{getSocioNumero(socio) || '-'}</span>
                   </td>
-                  <td>{socio.email}</td>
                   <td>
-                    <span className={tipo === 'accionista' ? 'badge-info' : 'badge-success'}>
+                    <strong className="socio-nombre">{getFullName(socio)}</strong>
+                    <br />
+                    <span className="socio-email">{socio.email}</span>
+                  </td>
+                  <td>
+                    <span className={tipo === 'accionista' ? 'badge-accionista' : 'badge-rentista'}>
                       {tipo === 'accionista' ? 'Accionista' : 'Rentista'}
                     </span>
                   </td>
+                  <td>
+                    <span className={estadoBadge}>{estadoLabel}</span>
+                  </td>
                   <td>{socio.telefono || '-'}</td>
-                  <td><span className={activo ? 'badge-success' : 'badge-warning'}>{activo ? 'Activo' : 'Inactivo'}</span></td>
-                  {!readOnly && (
-                    <td style={{ display: 'flex', gap: '0.4rem' }}>
-                      <button onClick={() => handleEdit(socio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar">
-                        <Edit2 size={16} />
+                  <td>
+                    {accionId
+                      ? <span className="accion-familiar"><Users size={13} /> {accionId}</span>
+                      : <span style={{ color: '#94a3b8' }}>-</span>
+                    }
+                  </td>
+                  <td>
+                    <span className={numSanciones > 0 ? 'sanciones-count active' : 'sanciones-count'}>
+                      {numSanciones}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                      <button onClick={() => setViewingSocio(socio)} className="btn-icon" style={{ color: '#6366f1' }} title="Ver detalle">
+                        <Eye size={15} />
                       </button>
-                      {activo ? (
-                        <button onClick={() => handleDelete(socio.socio_id)} className="btn-icon" style={{ color: '#ef4444' }} title="Inactivar">
-                          <Trash2 size={16} />
+                      {!readOnly && (
+                        <button onClick={() => handleEdit(socio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar">
+                          <Edit2 size={15} />
                         </button>
-                      ) : (
+                      )}
+                      {!readOnly && activo && (
+                        <button onClick={() => handleDelete(socio.socio_id)} className="btn-icon" style={{ color: '#ef4444' }} title="Inactivar">
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                      {!readOnly && !activo && (
                         <>
                           <button onClick={() => handleReactivate(socio)} className="btn-icon" style={{ color: '#10b981' }} title="Reactivar">
-                            <RotateCcw size={16} />
+                            <RotateCcw size={15} />
                           </button>
-                          <button onClick={() => handlePermanentDelete(socio.socio_id)} className="btn-icon" style={{ color: '#b91c1c' }} title="Eliminar permanentemente">
-                            <Trash2 size={16} />
+                          <button onClick={() => handlePermanentDelete(socio.socio_id)} className="btn-icon" style={{ color: '#b91c1c' }} title="Eliminar">
+                            <Trash2 size={15} />
                           </button>
                         </>
                       )}
-                    </td>
-                  )}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
             {filteredSocios.length === 0 && (
               <tr>
-                <td colSpan={readOnly ? 6 : 7} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                   No hay socios con los filtros actuales.
                 </td>
               </tr>
@@ -609,6 +644,58 @@ function GestionSocios({ readOnly = false }) {
           </div>
         </div>
       )}
+
+      {viewingSocio && (() => {
+        const s = viewingSocio;
+        const tipo = getSocioTipo(s);
+        const activo = isActiveValue(s.activo);
+        const estadoLabel = activo ? 'Activo' : String(s.activo || '').toLowerCase() === 'suspendido' ? 'Suspendido' : 'Baja';
+        const fields = [
+          { label: 'No. Socio', value: getSocioNumero(s) || '-' },
+          { label: 'Tipo', value: tipo === 'accionista' ? 'Accionista' : 'Rentista' },
+          { label: 'Estado', value: estadoLabel },
+          { label: 'Email', value: s.email || '-' },
+          { label: 'Teléfono', value: s.telefono || '-' },
+          { label: 'CURP', value: s.curp || '-' },
+          { label: 'Fecha nacimiento', value: s.fecha_nacimiento ? new Date(s.fecha_nacimiento).toLocaleDateString('es-MX') : '-' },
+          { label: 'Género', value: s.genero || '-' },
+          { label: 'Dirección', value: s.direccion || '-', full: true },
+          { label: 'Acción familiar', value: s.accion_id || '-' },
+          { label: 'Sanciones activas', value: s.num_sanciones ?? 0 },
+          { label: 'Registro', value: s.fecha_registro ? new Date(s.fecha_registro).toLocaleDateString('es-MX') : '-' },
+        ];
+        return (
+          <div className="modal-overlay">
+            <div className="modal-content" style={{ maxWidth: '600px' }}>
+              <div className="modal-header">
+                <div>
+                  <h3>{getFullName(s)}</h3>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Ficha completa del socio</p>
+                </div>
+                <button onClick={() => setViewingSocio(null)} className="close-modal"><X size={24} /></button>
+              </div>
+              <div className="modal-body">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem' }}>
+                  {fields.map(f => (
+                    <div key={f.label} style={f.full ? { gridColumn: '1 / -1' } : {}}>
+                      <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 14, color: '#1e293b', fontWeight: 500 }}>{String(f.value)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" onClick={() => setViewingSocio(null)} className="btn-outline">Cerrar</button>
+                {!readOnly && (
+                  <button type="button" onClick={() => { setViewingSocio(null); handleEdit(s); }} className="btn-primary">
+                    <Edit2 size={15} /> Editar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

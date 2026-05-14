@@ -1,17 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const torneosController = require('../controllers/torneosController');
-const verifyToken = require('../middleware/verifyToken');
+const { verifyToken, checkRole } = require('../middleware/auth.middleware');
 
-router.get('/', torneosController.getTorneos);
-router.get('/categorias', torneosController.getCategorias);
+const staffRoles = ['admin', 'gerente', 'coordinador'];
+
+router.get('/', verifyToken, torneosController.getTorneos);
+router.get('/categorias', verifyToken, torneosController.getCategorias);
 router.get('/mis-participaciones', verifyToken, torneosController.getMisParticipaciones);
-router.get('/:torneo_id/bracket', torneosController.getBracket);
+router.get('/:torneo_id/bracket', verifyToken, torneosController.getBracket);
 router.get('/:torneo_id/reporte', verifyToken, torneosController.getReporte);
-router.post('/', torneosController.createTorneo);
-router.post('/:torneo_id/inscribir', torneosController.inscribirParticipante);
-router.patch('/:torneo_id/cerrar-inscripciones', torneosController.cerrarInscripciones);
-router.patch('/:torneo_id/confirmar-bracket', torneosController.confirmarBracket);
-router.patch('/:torneo_id/finalizar', verifyToken, torneosController.finalizarTorneo);
+
+router.post('/', verifyToken, checkRole(staffRoles), torneosController.createTorneo);
+router.post('/:torneo_id/inscribir', verifyToken, checkRole(staffRoles), torneosController.inscribirParticipante);
+router.patch('/:torneo_id/cerrar-inscripciones', verifyToken, checkRole(staffRoles), torneosController.cerrarInscripciones);
+router.patch('/:torneo_id/confirmar-bracket', verifyToken, checkRole(staffRoles), torneosController.confirmarBracket);
+router.patch('/:torneo_id/finalizar', verifyToken, checkRole(staffRoles), torneosController.finalizarTorneo);
 
 module.exports = router;

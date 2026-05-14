@@ -4,6 +4,29 @@ import { adminApi, apiRequest, unwrapList } from '../../../services/api';
 import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
+const LUDOTECA_MAX_MIN = 120;
+
+function LudotecaTimeBar({ horaEntrada }) {
+  const minutos = Math.max(0, Math.floor((Date.now() - new Date(horaEntrada)) / 60000));
+  const pct = Math.min(Math.round((minutos / LUDOTECA_MAX_MIN) * 100), 100);
+  const horas = Math.floor(minutos / 60);
+  const mins = minutos % 60;
+  const label = horas > 0 ? `${horas}h ${mins}m` : `${mins}m`;
+  const barColor = pct >= 85 ? '#ef4444' : pct >= 65 ? '#f59e0b' : '#10b981';
+
+  return (
+    <div style={{ padding: '4px 0 8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+        <span>{label} en ludoteca</span>
+        <span style={{ color: barColor }}>{pct}% de {LUDOTECA_MAX_MIN / 60}h máx.</span>
+      </div>
+      <div style={{ height: 6, background: '#f1f5f9', borderRadius: 999, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 999 }} />
+      </div>
+    </div>
+  );
+}
+
 const initialFormData = {
   nombre_nino: '',
   fecha_nacimiento: '',
@@ -199,7 +222,10 @@ function Ludoteca() {
                   <Clock size={13} /> {new Date(registro.hora_entrada).toLocaleTimeString()}
                 </span>
               </div>
-              {registro.observaciones && <div className="espacio-body"><p>{registro.observaciones}</p></div>}
+              <div className="espacio-body">
+                <LudotecaTimeBar horaEntrada={registro.hora_entrada} />
+                {registro.observaciones && <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>{registro.observaciones}</p>}
+              </div>
               <div className="espacio-footer">
                 <button onClick={() => registrarSalida(registro.registro_id)} className="btn-primary">
                   <LogOut size={16} /> Salida

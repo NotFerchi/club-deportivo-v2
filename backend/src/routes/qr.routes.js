@@ -12,4 +12,11 @@ router.post(
   qrController.generarQrSocio
 );
 
+router.post(
+  '/generar-visita',
+  verifyToken,
+  checkRole(staffRoles),
+  qrController.generarQrVisita
+);
+
 module.exports = router;

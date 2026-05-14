@@ -307,10 +307,10 @@ function Dashboard() {
 
   // Ítems de administración según rol
   const adminItems = [
-    { id: 'usuarios', label: 'Gestión de Usuarios', icon: UserPlus, adminOnly: true },
-    { id: 'espacios', label: 'Configuración de Espacios', icon: Settings, adminOnly: false },
-    ...(!isManager ? [{ id: 'logs', label: 'Auditoría', icon: FileText, adminOnly: true }] : [])
-  ].filter(item => !item.adminOnly || userRole === 'admin');
+    { id: 'usuarios', label: 'Gestión de Usuarios', icon: UserPlus },
+    { id: 'espacios', label: 'Configuración de Espacios', icon: Settings },
+    ...(!isManager ? [{ id: 'logs', label: 'Auditoría', icon: FileText }] : [])
+  ];
 
   const mobileItems = [...NAV_ITEMS, ...adminItems];
   const getNavClass = (tab) => `nav-link ${activeTab === tab ? 'active' : ''}`;
@@ -585,21 +585,20 @@ function Dashboard() {
           </>
         )}
 
-        {activeTab === 'socios' && <GestionSocios readOnly={isManager} />}
+        {activeTab === 'socios' && <GestionSocios />}
         {activeTab === 'recepcion' && <RecepcionVisitas />}
-        {activeTab === 'reservas' && <Reservas readOnly={isManager} />}
+        {activeTab === 'reservas' && <Reservas />}
         {activeTab === 'disciplinas' && <Disciplinas readOnly={isManager} />}
         {activeTab === 'torneos' && (
           <TournamentBracket
             title="Torneos y Brackets"
             subtitle="Consulta el estado de los torneos y sus cruces por ronda."
-            readOnly={isManager}
           />
         )}
         {activeTab === 'ludoteca' && <Ludoteca />}
         {activeTab === 'sanciones' && <Sanciones />}
-        {activeTab === 'usuarios' && userRole === 'admin' && <GestionUsuarios />}
-        {activeTab === 'espacios' && <ConfiguracionEspacios readOnly={isManager} />}
+        {activeTab === 'usuarios' && <GestionUsuarios />}
+        {activeTab === 'espacios' && <ConfiguracionEspacios />}
         {activeTab === 'logs' && userRole === 'admin' && <AuditoriaLogs />}
       </main>
     </div>

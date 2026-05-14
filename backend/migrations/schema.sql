@@ -64,6 +64,25 @@ CREATE TABLE socios (
     tel_emergencia VARCHAR(20)
 );
 
+CREATE TABLE codigos_qr_socios (
+    qr_id SERIAL PRIMARY KEY,
+    socio_id INT NOT NULL REFERENCES socios(socio_id) ON DELETE CASCADE,
+    codigo_qr TEXT NOT NULL,
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_codigos_qr_socios_socio
+    ON codigos_qr_socios(socio_id);
+
+CREATE INDEX idx_codigos_qr_socios_socio_activo
+    ON codigos_qr_socios(socio_id, activo);
+
+CREATE UNIQUE INDEX idx_codigos_qr_socios_activo_unico
+    ON codigos_qr_socios(socio_id)
+    WHERE activo = TRUE;
+
 CREATE TABLE visitas (
     visita_id SERIAL PRIMARY KEY,
     nombre_completo VARCHAR(150) NOT NULL,

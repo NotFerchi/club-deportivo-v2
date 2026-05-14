@@ -7,6 +7,7 @@ require('./src/config/database');
 // --- IMPORTAR RUTAS ---
 const ludotecaRoutes    = require('./src/routes/ludoteca.routes');
 const authRoutes        = require('./src/routes/auth.routes');
+const qrRoutes          = require('./src/routes/qr.routes');
 const socioRoutes       = require('./src/routes/socio.routes');
 const usuariosRoutes    = require('./src/routes/usuarios.routes');
 const sesionesRoutes    = require('./src/routes/sesiones.routes');
@@ -41,6 +42,7 @@ app.get('/api/health', (req, res) => {
 
 // --- REGISTRAR RUTAS ---
 app.use('/api/auth',              authRoutes);
+app.use('/api/qr',                qrRoutes);
 app.use('/api/socios',            socioRoutes);
 app.use('/api/usuarios',          usuariosRoutes);
 app.use('/api/usuarios-internos', usuariosRoutes);
@@ -76,6 +78,7 @@ app.listen(PORT, () => {
   console.log('\nEndpoints activos:');
   console.log('  - GET  /api/health');
   console.log('  - ALL  /api/auth');
+  console.log('  - ALL  /api/qr');
   console.log('  - ALL  /api/usuarios');
   console.log('  - ALL  /api/roles');
   console.log('  - ALL  /api/espacios');

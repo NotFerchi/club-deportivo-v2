@@ -107,14 +107,5 @@ const reportesController = {
         }
     }
 };
-sanciones: async (req, res) => {
-  const result = await pool.query(`
-    SELECT s.*, soc.nombres, soc.apellido_paterno, soc.email
-    FROM sanciones s
-    JOIN socios soc ON s.socio_id = soc.socio_id
-    WHERE s.fecha_fin >= CURRENT_DATE OR s.fecha_fin IS NULL
-    ORDER BY s.fecha_inicio DESC
-  `);
-  res.json(result.rows);
-}
+
 module.exports = reportesController;

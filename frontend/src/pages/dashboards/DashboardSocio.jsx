@@ -11,7 +11,8 @@ function todayISO() {
 export default function DashboardSocio() {
   const usuario   = JSON.parse(localStorage.getItem('usuario') || '{}')
   const socioId   = usuario?.socio_id
-  const userName  = usuario?.email?.split('@')[0] || 'Socio'
+  const fullName  = [usuario?.nombres, usuario?.apellido_paterno].filter(Boolean).join(' ') || usuario?.email?.split('@')[0] || 'Socio'
+  const initials  = [usuario?.nombres, usuario?.apellido_paterno].filter(Boolean).map(s => s[0].toUpperCase()).join('') || '?'
 
   const [reservasHoy,    setReservasHoy]    = useState([])
   const [sanciones,      setSanciones]      = useState([])
@@ -100,22 +101,33 @@ export default function DashboardSocio() {
     <SocioLayout activeTab="inicio" title="Club Social y Deportivo | Inicio">
 
       {/* HERO */}
-      <section className="ds-welcome-card">
-        <div className="ds-welcome-info">
-          <h2 className="ds-title-serif">Buen día, {userName}</h2>
-          <p className="ds-subtitle" style={{ textTransform: 'capitalize' }}>{fechaLabel}</p>
+      <section className="ds-welcome-card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: '50%', flexShrink: 0,
+          background: 'linear-gradient(135deg, #0f2146 0%, #1e6091 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', fontWeight: 800, fontSize: 22, letterSpacing: '-0.5px',
+          boxShadow: '0 4px 14px rgba(15,33,70,0.25)'
+        }}>
+          {initials}
         </div>
-        <div className="ds-status-tags">
-          <span className={`tag-active ${estadoCuenta !== 'activo' ? 'tag-warn' : ''}`}
-            style={estadoCuenta === 'sancionado' ? { background: '#fee2e2', color: '#991b1b' }
-                 : estadoCuenta === 'advertencia' ? { background: '#fef3c7', color: '#92400e' }
-                 : {}}>
-            <CheckCircle size={14} />
-            {estadoCuenta === 'activo' ? 'Al corriente' : estadoCuenta === 'advertencia' ? 'Advertencia' : 'Sancionado'}
-          </span>
-          {usuario.numero_socio && (
-            <span className="tag-category">Socio #{usuario.numero_socio}</span>
-          )}
+        <div style={{ flex: 1 }}>
+          <div className="ds-welcome-info" style={{ marginBottom: 8 }}>
+            <h2 className="ds-title-serif" style={{ marginBottom: 2 }}>Buen día, {fullName}</h2>
+            <p className="ds-subtitle" style={{ textTransform: 'capitalize', margin: 0 }}>{fechaLabel}</p>
+          </div>
+          <div className="ds-status-tags">
+            <span className={`tag-active ${estadoCuenta !== 'activo' ? 'tag-warn' : ''}`}
+              style={estadoCuenta === 'sancionado' ? { background: '#fee2e2', color: '#991b1b' }
+                   : estadoCuenta === 'advertencia' ? { background: '#fef3c7', color: '#92400e' }
+                   : {}}>
+              <CheckCircle size={14} />
+              {estadoCuenta === 'activo' ? 'Al corriente' : estadoCuenta === 'advertencia' ? 'Advertencia' : 'Sancionado'}
+            </span>
+            {usuario.numero_socio && (
+              <span className="tag-category">Socio #{usuario.numero_socio}</span>
+            )}
+          </div>
         </div>
       </section>
 

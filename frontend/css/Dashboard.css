@@ -1596,3 +1596,538 @@ body {
         grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
     }
 }
+
+/* ══════════════════════════════════════════════
+   OCUPACIÓN MULTI-LÍNEA (OccupancyByHourChart)
+══════════════════════════════════════════════ */
+.occupancy-multiline {
+    position: relative;
+    margin-top: 0.5rem;
+}
+
+.occupancy-peak-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #1e293b;
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.occupancy-legend {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+    justify-content: center;
+}
+
+.occupancy-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.occupancy-box .chart-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0;
+}
+
+.occupancy-controls {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 0;
+}
+
+.occupancy-controls select,
+.occupancy-controls input[type="date"] {
+    width: auto;
+    min-width: 120px;
+    font-size: 12px;
+    padding: 0.35rem 0.55rem;
+}
+
+/* ══════════════════════════════════════════════
+   SIDEBAR USER FOOTER
+══════════════════════════════════════════════ */
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0;
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0ea5e9;
+    color: white;
+    font-weight: 800;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sidebar-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin: 0;
+}
+
+.sidebar-role {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* ══════════════════════════════════════════════
+   REJILLA DE RESERVAS
+══════════════════════════════════════════════ */
+.reservas-root {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.reservas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.reservas-header-left h3 {
+    margin: 0 0 2px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.reservas-header-left p {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.reservas-header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.reservas-legend {
+    display: flex;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.reservas-filter-select {
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: white;
+    font: inherit;
+    font-size: 13px;
+    padding: 0.45rem 0.75rem;
+    color: #0f172a;
+    cursor: pointer;
+    min-width: 160px;
+}
+
+.reservas-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.5rem;
+    flex-wrap: wrap;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.reservas-date-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.reservas-date-label {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.reservas-date-label strong {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.reservas-date-label span {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.btn-icon-nav {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+}
+
+.btn-icon-nav:hover { background: #f1f5f9; }
+
+.btn-outline-sm {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0.4rem 0.75rem;
+    color: #475569;
+}
+
+.btn-outline-sm:hover { background: #f1f5f9; }
+
+/* GRID */
+.reservas-grid-wrapper {
+    overflow-x: auto;
+    padding-bottom: 1rem;
+}
+
+.reservas-grid {
+    min-width: 900px;
+    cursor: default;
+}
+
+.grid-header {
+    display: flex;
+    border-bottom: 2px solid #e2e8f0;
+    background: #f8fafc;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.grid-space-col {
+    width: 220px;
+    min-width: 220px;
+    padding: 0.6rem 1rem;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.5px;
+    border-right: 1px solid #e2e8f0;
+}
+
+.grid-hour-label {
+    flex: 1;
+    min-width: 56px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    padding: 0.6rem 0;
+    border-right: 1px solid #f1f5f9;
+}
+
+.grid-row {
+    display: flex;
+    border-bottom: 1px solid #f1f5f9;
+    min-height: 52px;
+}
+
+.grid-row:hover {
+    background: #fafbfc;
+}
+
+.grid-space-info {
+    width: 220px;
+    min-width: 220px;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1rem;
+    border-right: 1px solid #e2e8f0;
+}
+
+.grid-space-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.grid-space-info strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.grid-space-info span {
+    display: block;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 1px;
+}
+
+.grid-cell {
+    flex: 1;
+    min-width: 56px;
+    border-right: 1px solid #f1f5f9;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.grid-cell.disponible {
+    background: rgba(16, 185, 129, 0.04);
+}
+
+.grid-cell.disponible:hover {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.grid-cell.has-reserva {
+    background: transparent;
+}
+
+.grid-block {
+    position: absolute;
+    inset: 3px 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.grid-block:hover {
+    filter: brightness(1.1);
+}
+
+.grid-empty {
+    padding: 3rem;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+/* Tooltip de reserva */
+.reserva-tooltip {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    min-width: 180px;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.14);
+    pointer-events: all;
+}
+
+.tooltip-espacio {
+    margin: 0 0 2px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.tooltip-socio {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.tooltip-horario {
+    margin: 0 0 6px;
+    font-size: 11px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tooltip-actions {
+    display: flex;
+    gap: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.tooltip-actions button {
+    width: 26px;
+    height: 26px;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+}
+
+.tooltip-actions button:hover { background: #f1f5f9; }
+
+/* ══════════════════════════════════════════════
+   TABLA DE SOCIOS (nuevo diseño)
+══════════════════════════════════════════════ */
+.socios-table .socio-numero {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    font-family: 'Courier New', monospace;
+}
+
+.socios-table .socio-nombre {
+    font-size: 13px;
+    color: #0f172a;
+}
+
+.socios-table .socio-email {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.badge-accionista {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #eff6ff;
+    color: #1d4ed8;
+    white-space: nowrap;
+}
+
+.badge-rentista {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #dcfce7;
+    color: #166534;
+    white-space: nowrap;
+}
+
+.accion-familiar {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    background: #f1f5f9;
+    border-radius: 6px;
+    padding: 3px 8px;
+}
+
+.sanciones-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 800;
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.sanciones-count.active {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* ══════════════════════════════════════════════
+   TB-PANEL (Tournament / Reservas panel title)
+══════════════════════════════════════════════ */
+.tb-panel-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.tb-panel-title span {
+    background: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+}

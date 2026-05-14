@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Clock, Lock, Plus, RefreshCw, Search, ShieldAlert, UserCheck, X } from 'lucide-react';
+import { AlertTriangle, Calendar, CheckCircle, Clock, CreditCard, Hash, Lock, Plus, RefreshCw, Search, ShieldAlert, User, UserCheck, X } from 'lucide-react';
 import { adminApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatDate, formatDateTime, normalizeText } from '../utils/adminData';
@@ -302,93 +302,109 @@ function SancionesPanel() {
         </button>
       </div>
 
-      {selected && (
-        <div className="modal-overlay">
-          <div className="modal-content sanciones-modal">
-            <div className="modal-header">
-              <div>
-                <h3>Sancion #{selected.sancion_id}</h3>
-                <p className="sanciones-modal-subtitle">{getNombreSocio(selected)}</p>
-              </div>
-              <button className="close-modal" type="button" onClick={() => setSelected(null)}><X size={24} /></button>
-            </div>
+      {selected && (() => {
+        const activa = isActiva(selected);
+        const gravedad = selected.gravedad || 'Leve';
+        const gravedadConfig = gravedad === 'Grave'
+          ? { color: '#dc2626', bg: '#fef2f2', borderColor: '#fca5a5' }
+          : gravedad === 'Moderada'
+            ? { color: '#d97706', bg: '#fffbeb', borderColor: '#fde68a' }
+            : { color: '#16a34a', bg: '#f0fdf4', borderColor: '#bbf7d0' };
 
-            <div className="modal-body">
-              <div className="sanciones-detail-layout">
-                <section className="sanciones-detail-main">
-                  <div className="sanciones-detail-title">
-                    <span className={isActiva(selected) ? 'badge-warning' : 'badge-success'}>{estadoLabel(selected)}</span>
-                    <span className="badge-neutral">{selected.origen || 'Administracion'}</span>
-                  </div>
-                  <h5>{selected.motivo}</h5>
-                  <dl className="sanciones-detail-grid">
-                    <div><dt>Socio</dt><dd>{getNombreSocio(selected)}</dd></div>
-                    <div><dt>Numero</dt><dd>{selected.numero_socio || `ID ${selected.socio_id}`}</dd></div>
-                    <div><dt>Fecha</dt><dd>{formatDateTime(selected.fecha_inicio || selected.fecha)}</dd></div>
-                    <div><dt>Gravedad</dt><dd>{selected.gravedad || '-'}</dd></div>
-                  </dl>
-                </section>
-
-                <aside className={`sanciones-resolution-card ${isActiva(selected) ? 'is-pending' : 'is-done'}`}>
-                  <div className="sanciones-resolution-icon">
-                    {isActiva(selected) ? <Clock size={18} /> : <UserCheck size={18} />}
+        return (
+          <div className="modal-overlay">
+            <div className="modal-content sanciones-modal">
+              <div className="modal-header" style={{ borderBottom: `3px solid ${gravedadConfig.color}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 10, background: gravedadConfig.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <ShieldAlert size={22} style={{ color: gravedadConfig.color }} />
                   </div>
                   <div>
-                    <span>Resolucion</span>
-                    {isActiva(selected) ? (
+                    <h3 style={{ margin: 0 }}>Sancion #{selected.sancion_id}</h3>
+                    <p className="sanciones-modal-subtitle">{getNombreSocio(selected)}</p>
+                  </div>
+                </div>
+                <button className="close-modal" type="button" onClick={() => setSelected(null)}><X size={24} /></button>
+              </div>
+
+              <div className="modal-body">
+                {/* Badges de estado */}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1rem' }}>
+                  <span className={activa ? 'badge-warning' : 'badge-success'}>{estadoLabel(selected)}</span>
+                  <span className="badge-neutral">{selected.origen || 'Administracion'}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 10px', borderRadius: 20, background: gravedadConfig.bg, color: gravedadConfig.color, border: `1px solid ${gravedadConfig.borderColor}` }}>
+                    <AlertTriangle size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
+                    {gravedad}
+                  </span>
+                </div>
+
+                {/* Motivo destacado */}
+                <div style={{ background: '#f8fafc', borderLeft: `4px solid ${gravedadConfig.color}`, borderRadius: '0 8px 8px 0', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
+                  <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Motivo</p>
+                  <p style={{ margin: 0, fontSize: 15, color: '#0f172a', fontWeight: 600 }}>{selected.motivo}</p>
+                </div>
+
+                {/* Grid de info */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  {[
+                    { Icon: User,       label: 'Socio',   value: getNombreSocio(selected) },
+                    { Icon: Hash,       label: 'Número',  value: selected.numero_socio || `ID ${selected.socio_id}` },
+                    { Icon: Calendar,   label: 'Fecha',   value: formatDateTime(selected.fecha_inicio || selected.fecha) },
+                    { Icon: CreditCard, label: 'ID Sancion', value: `#${selected.sancion_id}` },
+                  ].map(({ Icon, label, value }) => (
+                    <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: '#f8fafc', borderRadius: 8, padding: '10px 12px' }}>
+                      <div style={{ width: 30, height: 30, borderRadius: 7, background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon size={15} style={{ color: '#475569' }} />
+                      </div>
+                      <div>
+                        <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 13, color: '#1e293b', fontWeight: 600 }}>{value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Card de resolución */}
+                <div style={{ border: `1px solid ${activa ? '#fde68a' : '#bbf7d0'}`, borderRadius: 10, background: activa ? '#fffbeb' : '#f0fdf4', padding: '1rem', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 9, background: activa ? '#fef3c7' : '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {activa ? <Clock size={18} style={{ color: '#92400e' }} /> : <UserCheck size={18} style={{ color: '#166534' }} />}
+                  </div>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resolución</p>
+                    {activa ? (
                       <>
-                        <strong>Pendiente</strong>
-                        <p>{canResolve ? 'Puedes marcarla como resuelta desde este panel.' : 'Tu rol solo permite consultar el estado de la sancion.'}</p>
+                        <p style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 700, color: '#92400e' }}>Pendiente</p>
+                        <p style={{ margin: '3px 0 0', fontSize: 12, color: '#78716c' }}>{canResolve ? 'Puedes marcarla como resuelta desde este panel.' : 'Tu rol solo permite consultar el estado.'}</p>
                       </>
                     ) : (
                       <>
-                        <strong>{selected.nombre_resolvente || 'Sin registro'}</strong>
-                        <p>{formatDateTime(selected.fecha_resolucion)}</p>
+                        <p style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 700, color: '#166534' }}>{selected.nombre_resolvente || 'Sin registro'}</p>
+                        <p style={{ margin: '3px 0 0', fontSize: 12, color: '#4b7a57' }}>{formatDateTime(selected.fecha_resolucion)}</p>
                       </>
                     )}
                   </div>
-                </aside>
+                </div>
 
-                <details className="sanciones-raw-details">
-                  <summary>Ver todos los campos</summary>
-                  <div>
-                    {Object.entries(selected).map(([key, value]) => (
-                      <p key={key}>
-                        <strong>{key}:</strong> {value === null || value === undefined || value === '' ? '-' : String(value)}
-                      </p>
-                    ))}
+                {isActiva(selected) && !canResolve && (
+                  <div className="sanciones-readonly-alert" style={{ marginTop: '0.75rem' }}>
+                    <Lock size={16} />
+                    Coordinacion y recepcion pueden visualizar sanciones, pero la resolucion solo corresponde al administrador.
                   </div>
-                </details>
+                )}
               </div>
 
-              {isActiva(selected) && !canResolve && (
-                <div className="sanciones-readonly-alert">
-                  <Lock size={16} />
-                  Coordinacion y recepcion pueden visualizar sanciones, pero la resolucion solo corresponde al administrador.
-                </div>
-              )}
-
-              {!isActiva(selected) && (
-                <div className="sanciones-resolved-alert">
-                  <UserCheck size={16} />
-                  Resuelta por {selected.nombre_resolvente || 'Sin registro'} el {formatDateTime(selected.fecha_resolucion)}
-                </div>
-              )}
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn-outline" type="button" onClick={() => setSelected(null)}>
-                Cerrar
-              </button>
-              {canResolve && isActiva(selected) && (
-                <button className="btn-primary" type="button" onClick={() => handleResolve(selected)}>
-                  <CheckCircle size={16} /> {resolving ? 'Resolviendo...' : 'Resolver sancion'}
-                </button>
-              )}
+              <div className="modal-footer">
+                <button className="btn-outline" type="button" onClick={() => setSelected(null)}>Cerrar</button>
+                {canResolve && activa && (
+                  <button className="btn-primary" type="button" onClick={() => handleResolve(selected)}>
+                    <CheckCircle size={16} /> {resolving ? 'Resolviendo...' : 'Resolver sancion'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {showCreateModal && canResolve && (
         <div className="modal-overlay">

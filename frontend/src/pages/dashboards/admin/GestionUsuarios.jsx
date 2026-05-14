@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Edit2, RotateCcw, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { Edit2, Eye, RotateCcw, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { getFullName, isActiveValue, normalizeText, toDateInputValue } from '../../../utils/adminData';
@@ -30,6 +30,7 @@ function GestionUsuarios() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [viewingUser, setViewingUser] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
 
@@ -290,6 +291,9 @@ function GestionUsuarios() {
                   <td>{user.telefono || '-'}</td>
                   <td><span className={activo ? 'badge-success' : 'badge-warning'}>{activo ? 'Activo' : 'Inactivo'}</span></td>
                   <td style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <button onClick={() => setViewingUser(user)} className="btn-icon" style={{ color: '#6366f1' }} title="Ver detalle">
+                      <Eye size={16} />
+                    </button>
                     <button onClick={() => handleEdit(user)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar usuario">
                       <Edit2 size={16} />
                     </button>
@@ -415,6 +419,50 @@ function GestionUsuarios() {
           </div>
         </div>
       )}
+
+      {viewingUser && (() => {
+        const u = viewingUser;
+        const activo = isActiveValue(u.activo);
+        const fields = [
+          { label: 'Rol', value: u.rol || '-' },
+          { label: 'Estado', value: activo ? 'Activo' : 'Inactivo' },
+          { label: 'Email', value: u.email || '-' },
+          { label: 'Teléfono', value: u.telefono || '-' },
+          { label: 'CURP', value: u.curp || '-' },
+          { label: 'Fecha nacimiento', value: u.fecha_nacimiento ? new Date(u.fecha_nacimiento).toLocaleDateString('es-MX') : '-' },
+          { label: 'Género', value: u.genero || '-' },
+          { label: 'Dirección', value: u.direccion || '-', full: true },
+        ];
+        return (
+          <div className="modal-overlay">
+            <div className="modal-content" style={{ maxWidth: '580px' }}>
+              <div className="modal-header">
+                <div>
+                  <h3>{getFullName(u)}</h3>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Ficha de usuario interno</p>
+                </div>
+                <button onClick={() => setViewingUser(null)} className="close-modal"><X size={24} /></button>
+              </div>
+              <div className="modal-body">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem' }}>
+                  {fields.map(f => (
+                    <div key={f.label} style={f.full ? { gridColumn: '1 / -1' } : {}}>
+                      <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 14, color: '#1e293b', fontWeight: 500 }}>{String(f.value)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" onClick={() => setViewingUser(null)} className="btn-outline">Cerrar</button>
+                <button type="button" onClick={() => { setViewingUser(null); handleEdit(u); }} className="btn-primary">
+                  <Edit2 size={15} /> Editar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

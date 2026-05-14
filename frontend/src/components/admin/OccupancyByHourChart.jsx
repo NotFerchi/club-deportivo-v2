@@ -1,106 +1,189 @@
 import React, { useMemo } from 'react';
-import { ArrowDown, ArrowUp, TrendingUp } from 'lucide-react';
 import { normalizeEstadoReserva, toDateInputValue, toTimeInputValue } from '../../utils/adminData';
 
-const HOURS = Array.from({ length: 17 }, (_, index) => `${String(index + 6).padStart(2, '0')}:00`);
+const HOURS = Array.from({ length: 15 }, (_, i) => `${String(i + 7).padStart(2, '0')}:00`);
 
-function dateToLocal(value) {
-  const [year, month, day] = String(value || '').split('-').map(Number);
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
+const W = 700, H = 260, PX = 44, PY = 20;
+
+const DISCIPLINE_COLORS = [
+  { key: 'tenis',    label: 'Tenis',    stroke: '#3b82f6', fill: 'rgba(59,130,246,0.12)',  dash: '' },
+  { key: 'padel',    label: 'Padel',    stroke: '#10b981', fill: 'rgba(16,185,129,0.10)',  dash: '' },
+  { key: 'alberca',  label: 'Alberca',  stroke: '#f59e0b', fill: 'rgba(245,158,11,0.10)',  dash: '6 3' },
+  { key: 'gimnasio', label: 'Gimnasio', stroke: '#ef4444', fill: 'rgba(239,68,68,0.08)',   dash: '4 2' },
+];
+
+function normalizeDiscipline(name) {
+  const n = String(name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (n.includes('tenis') || n.includes('tennis')) return 'tenis';
+  if (n.includes('padel') || n.includes('paddle')) return 'padel';
+  if (n.includes('alberca') || n.includes('pool') || n.includes('natacion')) return 'alberca';
+  if (n.includes('gimnasio') || n.includes('gym') || n.includes('fitness')) return 'gimnasio';
+  return 'otro';
 }
 
-function daysBetween(startDate, endDate) {
-  const start = dateToLocal(startDate);
-  const end = dateToLocal(endDate);
-  if (!start || !end || end < start) return 1;
-  return Math.floor((end - start) / 86400000) + 1;
+function dateInRange(value, startDate, endDate) {
+  const d = toDateInputValue(value);
+  return d && d >= startDate && d <= endDate;
 }
 
-function isInRange(value, startDate, endDate) {
-  const date = toDateInputValue(value);
-  return date && date >= startDate && date <= endDate;
+function smooth(points, width, height, padX, padY) {
+  if (points.length < 2) return { line: '', area: '' };
+  const chartW = width - padX * 2;
+  const chartH = height - padY * 2;
+  const pts = points.map(([xi, y], i) => ({
+    x: padX + (i / (points.length - 1)) * chartW,
+    y: padY + chartH - (y / 100) * chartH
+  }));
+  const cmd = pts.map((p, i) => {
+    if (i === 0) return `M ${p.x},${p.y}`;
+    const prev = pts[i - 1];
+    const cpx = (prev.x + p.x) / 2;
+    return `C ${cpx},${prev.y} ${cpx},${p.y} ${p.x},${p.y}`;
+  }).join(' ');
+  const bottom = padY + chartH;
+  const area = `${cmd} L ${pts[pts.length - 1].x},${bottom} L ${pts[0].x},${bottom} Z`;
+  return { line: cmd, area };
 }
 
-function getReservaHour(reserva) {
-  const time = toTimeInputValue(reserva.hora_inicio);
-  if (!time) return '';
-  return `${time.slice(0, 2)}:00`;
-}
+export default function OccupancyByHourChart({ reservas = [], startDate, endDate, activeSpaces = 1, espacios = [] }) {
+  const seriesData = useMemo(() => {
+    // Build map espacio_id → discipline key
+    const espacioDisc = new Map();
+    espacios.forEach(e => {
+      const disc = normalizeDiscipline(e.disciplina || e.nombre);
+      espacioDisc.set(String(e.espacio_id), disc);
+    });
 
-export default function OccupancyByHourChart({
-  reservas,
-  startDate,
-  endDate,
-  activeSpaces = 1
-}) {
-  const data = useMemo(() => {
-    const denominator = Math.max(daysBetween(startDate, endDate) * Number(activeSpaces || 1), 1);
-    const activeReservas = reservas.filter(reserva =>
-      isInRange(reserva.fecha || reserva.fecha_reserva, startDate, endDate) &&
-      !['cancelada', 'sancionada'].includes(normalizeEstadoReserva(reserva.estado))
+    const activeReservas = (reservas || []).filter(r =>
+      dateInRange(r.fecha || r.fecha_reserva, startDate, endDate) &&
+      !['cancelada', 'sancionada'].includes(normalizeEstadoReserva(r.estado))
     );
 
-    return HOURS.map(hora => {
-      const count = activeReservas.filter(reserva => getReservaHour(reserva) === hora).length;
-      return {
-        hora,
-        count,
-        ocupacion: Math.min(Math.round((count / denominator) * 100), 100)
-      };
+    // Group by discipline
+    const byDisc = {};
+    DISCIPLINE_COLORS.forEach(d => { byDisc[d.key] = {}; });
+
+    activeReservas.forEach(r => {
+      const disc = espacioDisc.get(String(r.espacio_id)) || normalizeDiscipline(r.espacio_nombre || '');
+      if (!byDisc[disc]) byDisc[disc] = {};
+      const hour = toTimeInputValue(r.hora_inicio)?.slice(0, 2);
+      const key = hour ? `${hour}:00` : null;
+      if (key) byDisc[disc][key] = (byDisc[disc][key] || 0) + 1;
     });
-  }, [activeSpaces, endDate, reservas, startDate]);
 
-  const maxValue = Math.max(...data.map(item => item.ocupacion), 0);
-  const minValue = Math.min(...data.filter(item => item.count > 0).map(item => item.ocupacion));
-  const high = data.find(item => item.ocupacion === maxValue && item.count > 0);
-  const low = Number.isFinite(minValue) ? data.find(item => item.ocupacion === minValue && item.count > 0) : null;
-  const average = data.length ? Math.round(data.reduce((sum, item) => sum + item.ocupacion, 0) / data.length) : 0;
+    // Determine denominator per discipline
+    const totalSpaces = Math.max(activeSpaces, 1);
 
-  if (!data.some(item => item.count > 0)) {
+    return DISCIPLINE_COLORS.map(def => {
+      const counts = byDisc[def.key] || {};
+      const hasData = Object.values(counts).some(v => v > 0);
+      const data = HOURS.map(h => {
+        const count = counts[h] || 0;
+        return Math.min(Math.round((count / totalSpaces) * 100), 100);
+      });
+      const pts = data.map((v, i) => [i, v]);
+      const paths = hasData ? smooth(pts, W, H, PX, PY) : { line: '', area: '' };
+      return { ...def, data, hasData, paths };
+    });
+  }, [reservas, startDate, endDate, activeSpaces, espacios]);
+
+  const hasSomeData = seriesData.some(s => s.hasData);
+
+  const chartW = W - PX * 2;
+  const chartH = H - PY * 2;
+
+  const peakHour = useMemo(() => {
+    const totals = HOURS.map((h, i) =>
+      seriesData.reduce((sum, s) => sum + s.data[i], 0)
+    );
+    const maxVal = Math.max(...totals);
+    const maxIdx = totals.indexOf(maxVal);
+    if (maxVal === 0) return null;
+    const end = HOURS[Math.min(maxIdx + 1, HOURS.length - 1)];
+    return `${HOURS[maxIdx]} - ${end}`;
+  }, [seriesData]);
+
+  if (!hasSomeData) {
     return (
-      <div className="occupancy-empty">
-        <TrendingUp size={36} />
-        <strong>Sin ocupacion en el rango seleccionado</strong>
-        <span>Ajusta las fechas o revisa las reservas registradas.</span>
+      <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+        <p>Sin datos de ocupación en el rango seleccionado</p>
       </div>
     );
   }
 
   return (
-    <div className="occupancy-chart">
-      <div className="occupancy-insights">
-        <span className="occupancy-chip tone-info">Promedio {average}%</span>
-        {high && (
-          <span className="occupancy-chip tone-danger">
-            <ArrowUp size={14} /> Mayor: {high.hora} ({high.ocupacion}%)
-          </span>
-        )}
-        {low && (
-          <span className="occupancy-chip tone-success">
-            <ArrowDown size={14} /> Menor: {low.hora} ({low.ocupacion}%)
-          </span>
-        )}
+    <div className="occupancy-multiline">
+      {peakHour && (
+        <div className="occupancy-peak-badge">
+          <span>⏱ Pico: {peakHour}</span>
+        </div>
+      )}
+      <div style={{ overflowX: 'auto' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: 480, display: 'block' }}>
+          <defs>
+            {seriesData.map(s => (
+              <linearGradient key={s.key} id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={s.stroke} stopOpacity="0.3" />
+                <stop offset="100%" stopColor={s.stroke} stopOpacity="0.02" />
+              </linearGradient>
+            ))}
+          </defs>
+
+          {/* Grid lines */}
+          {[0, 25, 50, 75, 100].map(v => {
+            const y = PY + chartH - (v / 100) * chartH;
+            return (
+              <g key={v}>
+                <line x1={PX} x2={W - PX} y1={y} y2={y} stroke="#e5e7eb" strokeWidth="1" />
+                <text x={PX - 6} y={y + 4} fontSize="10" fill="#94a3b8" textAnchor="end">{v}</text>
+              </g>
+            );
+          })}
+
+          {/* Hour labels on X axis */}
+          {HOURS.map((h, i) => {
+            const x = PX + (i / (HOURS.length - 1)) * chartW;
+            return (
+              <text key={h} x={x} y={H - 4} fontSize="10" fill="#94a3b8" textAnchor="middle">
+                {h}
+              </text>
+            );
+          })}
+
+          {/* Areas first so they don't cover lines */}
+          {seriesData.filter(s => s.hasData).map(s => (
+            <path key={`area-${s.key}`} d={s.paths.area} fill={`url(#grad-${s.key})`} />
+          ))}
+          {seriesData.filter(s => s.hasData).map(s => (
+            <path
+              key={`line-${s.key}`}
+              d={s.paths.line}
+              fill="none"
+              stroke={s.stroke}
+              strokeWidth="2.5"
+              strokeDasharray={s.dash}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ))}
+        </svg>
       </div>
 
-      <div className="occupancy-bars" role="img" aria-label="Ocupacion por hora">
-        {data.map(item => {
-          const isHigh = high?.hora === item.hora;
-          const isLow = low?.hora === item.hora;
-          return (
-            <div key={item.hora} className="occupancy-bar-item">
-              <div className="occupancy-bar-track">
-                <div
-                  className={`occupancy-bar ${isHigh ? 'is-high' : ''} ${isLow ? 'is-low' : ''}`}
-                  style={{ height: `${Math.max(item.ocupacion, item.count ? 8 : 2)}%` }}
-                  title={`${item.hora}: ${item.ocupacion}% (${item.count} reservas)`}
-                />
-              </div>
-              <strong>{item.ocupacion}%</strong>
-              <span>{item.hora}</span>
-            </div>
-          );
-        })}
+      {/* Legend */}
+      <div className="occupancy-legend">
+        {seriesData.filter(s => s.hasData).map(s => (
+          <span key={s.key} className="occupancy-legend-item">
+            <svg width="24" height="10">
+              <line
+                x1="0" y1="5" x2="24" y2="5"
+                stroke={s.stroke}
+                strokeWidth="2.5"
+                strokeDasharray={s.dash}
+              />
+            </svg>
+            {s.label}
+          </span>
+        ))}
       </div>
     </div>
   );

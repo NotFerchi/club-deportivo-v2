@@ -3,20 +3,19 @@ const router = express.Router();
 const usuariosController = require('../controllers/usuariosController');
 const { verifyToken, checkRole } = require('../middleware/auth.middleware');
 
-// Todas las rutas requieren autenticación
-router.use(verifyToken);
+const adminRoles = ['admin', 'gerente'];
 
-// Solo admin puede gestionar usuarios internos.
-router.use(checkRole(['admin']));
+router.use(verifyToken);
+router.use(checkRole(adminRoles));
 
 router.get('/', usuariosController.getUsuarios);
 router.get('/roles', usuariosController.getRoles);
 router.get('/:id', usuariosController.getUsuarioById);
 router.post('/', usuariosController.createUsuario);
 router.put('/:id', usuariosController.updateUsuario);
-router.delete('/:id', usuariosController.deleteUsuario);
 router.put('/:id/desactivar', usuariosController.desactivarUsuario);
 router.put('/:id/reactivar', usuariosController.reactivarUsuario);
+router.delete('/:id', usuariosController.deleteUsuario);
 router.delete('/:id/permanente', usuariosController.deleteUsuarioPermanente);
 
 module.exports = router;

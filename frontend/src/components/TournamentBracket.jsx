@@ -154,7 +154,7 @@ function MatchCard({ encuentro, onResultadoGuardado, readOnly }) {
 
   const showScore   = finalizado && (encuentro.marcador_1 != null || encuentro.marcador_2 != null);
   const puedeEditar = finalizado && !readOnly;
-  const puedeGuardar = programado || (finalizado && editando);
+  const puedeGuardar = (programado || (finalizado && editando)) && ambosListos;
 
   const guardar = async (esEdicion = false) => {
     setError(null);

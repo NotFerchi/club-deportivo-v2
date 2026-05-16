@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import SocioLayout from '../../../components/SocioLayout'
 import { MapPin, Clock, CheckCircle, AlertCircle, Zap, CalendarDays, RotateCcw, XCircle } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
@@ -51,6 +51,13 @@ export default function Reservas() {
   const [modal,           setModal]           = useState(false)
   const [saving,          setSaving]          = useState(false)
   const [feedback,        setFeedback]        = useState(null)
+  const slotsRef = useRef(null)
+
+  useEffect(() => {
+    if (selectedEspacio && slotsRef.current) {
+      slotsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [selectedEspacio])
 
   useEffect(() => {
     apiRequest('/espacios/todos')
@@ -138,6 +145,9 @@ export default function Reservas() {
   }
 
   const slotValido = (slot) => {
+    const horaActual = new Date().getHours()
+    const horaSlot = parseInt(slot.hora.split(':')[0])
+    if (horaSlot <= horaActual) return false
     if (!slot.libre) return false
     if (duracion === 2) {
       const idx = slots.findIndex(s => s.hora === slot.hora)
@@ -331,7 +341,7 @@ export default function Reservas() {
 
       {/* PASO 3: HORARIO */}
       {selectedEspacio && (
-        <section className="rs-section">
+        <section ref={slotsRef} className="rs-section">
           <header className="section-header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ background: '#0f2146', color: 'white', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>3</span>
@@ -386,6 +396,7 @@ export default function Reservas() {
                   const idx = slots.findIndex(s => s.hora === selectedSlot)
                   return slots[idx + 1]?.hora === slot.hora
                 })()
+                const isPast = parseInt(slot.hora.split(':')[0]) <= new Date().getHours()
                 const valid = slotValido(slot)
 
                 let bg = '#dcfce7', border = '#86efac', color = '#166534'
@@ -393,8 +404,9 @@ export default function Reservas() {
                   if (slot.motivo === 'sesion') { bg = '#dbeafe'; border = '#93c5fd'; color = '#1e40af' }
                   else { bg = '#fee2e2'; border = '#fca5a5'; color = '#991b1b' }
                 }
+                if (isPast) { bg = '#f1f5f9'; border = '#e2e8f0'; color = '#94a3b8' }
                 if (isSelected || isExt) { bg = '#0f2146'; border = '#0f2146'; color = 'white' }
-                if (slot.libre && !valid && !isSelected) { bg = '#f8fafc'; border = '#e2e8f0'; color = '#cbd5e1' }
+                if (!isPast && slot.libre && !valid && !isSelected) { bg = '#f8fafc'; border = '#e2e8f0'; color = '#cbd5e1' }
 
                 return (
                   <button key={slot.hora}
@@ -406,7 +418,7 @@ export default function Reservas() {
                       fontWeight: 700, fontSize: '0.78rem', cursor: valid || isSelected ? 'pointer' : 'default',
                       transition: 'all 0.15s', textAlign: 'center'
                     }}
-                    title={!slot.libre ? (slot.motivo === 'sesion' ? 'Clase programada' : 'Ya reservado') : ''}
+                    title={isPast ? 'Horario pasado' : !slot.libre ? (slot.motivo === 'sesion' ? 'Clase programada' : 'Ya reservado') : ''}
                   >
                     {slotLabel(slot.hora)}
                     {isExt && <div style={{ fontSize: '0.65rem', opacity: 0.8, marginTop: '2px' }}>+1h</div>}

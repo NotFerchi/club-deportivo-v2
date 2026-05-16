@@ -36,11 +36,11 @@ function Clases() {
   const [disciplinas, setDisciplinas] = useState([])
   const [instructores, setInstructores] = useState([])
   
-  // Filtros del catálogo
+  // Filtros del catálogo (arrays para multi-selección)
   const [filtros, setFiltros] = useState({
-    disciplina: '',
-    dia: '',
-    instructor: ''
+    disciplinas: [],
+    dias: [],
+    instructores: []
   })
   
   // Modal de inscripción
@@ -51,6 +51,10 @@ function Clases() {
   // Modal de baja
   const [claseABaja, setClaseABaja] = useState(null)
   const [showModalBaja, setShowModalBaja] = useState(false)
+
+  // Panel de filtros
+  const [showFiltros, setShowFiltros] = useState(false)
+  const [filtrosTmp, setFiltrosTmp] = useState({ disciplinas: [], dias: [], instructores: [] })
 
   // ==================== API BASE URL ====================
   const API_BASE = 'http://localhost:3000/api'
@@ -149,23 +153,12 @@ function Clases() {
     fetchMisClases()
   }, [vista])
 
-  // Cargar catálogo de clases desde la API
+  // Cargar catálogo de clases desde la API (sin filtros — el filtrado es en cliente)
   useEffect(() => {
     const fetchCatalogo = async () => {
       setLoading(true)
       try {
-        // Construir query params
-        const params = new URLSearchParams()
-        if (filtros.disciplina) params.append('disciplina', filtros.disciplina)
-        if (filtros.dia) params.append('dia', filtros.dia)
-        if (filtros.instructor) params.append('instructor', filtros.instructor)
-        
-        const queryString = params.toString()
-        const url = queryString 
-          ? `${API_BASE}/sesiones?${queryString}` 
-          : `${API_BASE}/sesiones`
-        
-        const response = await fetch(url)
+        const response = await fetch(`${API_BASE}/sesiones`)
         const data = await response.json()
         
         // Transformar datos de la BD al formato de la UI
@@ -204,11 +197,10 @@ function Clases() {
       }
     }
     
-    // Solo cargar catálogo cuando estamos en esa vista
     if (vista === 'catalogo') {
       fetchCatalogo()
     }
-  }, [vista, filtros])
+  }, [vista])
 
   // ==================== HELPERS ====================
   const getNombreDia = (diaSemana) => {
@@ -232,12 +224,39 @@ function Clases() {
   }
 
   // ==================== HANDLERS ====================
-  const handleFiltroChange = (campo, valor) => {
-    setFiltros(prev => ({ ...prev, [campo]: valor }))
+  const handleLimpiarFiltros = () => {
+    setFiltros({ disciplinas: [], dias: [], instructores: [] })
   }
 
-  const handleLimpiarFiltros = () => {
-    setFiltros({ disciplina: '', dia: '', instructor: '' })
+  const activeFilterCount = filtros.disciplinas.length + filtros.dias.length + filtros.instructores.length
+  const tmpFilterCount = filtrosTmp.disciplinas.length + filtrosTmp.dias.length + filtrosTmp.instructores.length
+
+  const handleOpenFiltros = () => {
+    setFiltrosTmp({
+      disciplinas: [...filtros.disciplinas],
+      dias: [...filtros.dias],
+      instructores: [...filtros.instructores]
+    })
+    setShowFiltros(true)
+  }
+
+  const handleAplicarFiltros = () => {
+    setFiltros({ ...filtrosTmp })
+    setShowFiltros(false)
+  }
+
+  const handleLimpiarTmp = () => {
+    setFiltrosTmp({ disciplinas: [], dias: [], instructores: [] })
+  }
+
+  const toggleChip = (campo, valor) => {
+    setFiltrosTmp(prev => {
+      const lista = prev[campo]
+      return {
+        ...prev,
+        [campo]: lista.includes(valor) ? lista.filter(x => x !== valor) : [...lista, valor]
+      }
+    })
   }
 
   const handleInscribirse = (clase) => {
@@ -426,8 +445,12 @@ function Clases() {
     }
   }
 
-  // El catálogo ya viene filtrado del backend
-  const catalogoFiltrado = catalogoClases
+  const catalogoFiltrado = catalogoClases.filter(clase => {
+    if (filtros.disciplinas.length > 0 && !filtros.disciplinas.includes(clase.disciplina)) return false
+    if (filtros.dias.length > 0 && !filtros.dias.includes(String(clase.dia_semana))) return false
+    if (filtros.instructores.length > 0 && !filtros.instructores.includes(clase.instructor)) return false
+    return true
+  })
 
   return (
     <SocioLayout activeTab="clases" title="Club Social | Mis Clases">
@@ -524,44 +547,19 @@ function Clases() {
       {/* ==================== VISTA: CATÁLOGO ==================== */}
       {vista === 'catalogo' && (
         <div className="catalogo-view">
-          {/* Filtros */}
-          <div className="filtros-container">
-            <div className="filtro-group">
-              <label><Filter size={16} /> Disciplina</label>
-              <select 
-                value={filtros.disciplina}
-                onChange={(e) => handleFiltroChange('disciplina', e.target.value)}
-              >
-                <option value="">Todas</option>
-                {disciplinas.map(d => <option key={d.disciplina_id} value={d.nombre}>{d.nombre}</option>)}
-              </select>
-            </div>
-            
-            <div className="filtro-group">
-              <label><Calendar size={16} /> Día</label>
-              <select 
-                value={filtros.dia}
-                onChange={(e) => handleFiltroChange('dia', e.target.value)}
-              >
-                <option value="">Todos</option>
-                {DIAS_SEMANA.map(d => <option key={d.valor} value={d.valor}>{d.nombre}</option>)}
-              </select>
-            </div>
-            
-            <div className="filtro-group">
-              <label><User size={16} /> Instructor</label>
-              <select 
-                value={filtros.instructor}
-                onChange={(e) => handleFiltroChange('instructor', e.target.value)}
-              >
-                <option value=" ">Todos</option>
-                {instructores.map(i => <option key={i.instructor_id} value={i.nombre}>{i.nombre}</option>)}
-              </select>
-            </div>
-
-            {(filtros.disciplina || filtros.dia || filtros.instructor) && (
+          {/* Botón de filtros */}
+          <div className="filtros-btn-row">
+            <button
+              className={`btn-filtros ${activeFilterCount > 0 ? 'active' : ''}`}
+              onClick={handleOpenFiltros}
+            >
+              <Filter size={16} />
+              Filtros
+              {activeFilterCount > 0 && <span className="filtros-badge">{activeFilterCount}</span>}
+            </button>
+            {activeFilterCount > 0 && (
               <button className="btn-limpiar-filtros" onClick={handleLimpiarFiltros}>
-                Limpiar Filtros
+                Limpiar
               </button>
             )}
           </div>
@@ -750,6 +748,73 @@ function Clases() {
                 Mantener Inscripción
               </button>
             </footer>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== PANEL: FILTROS ==================== */}
+      {showFiltros && (
+        <div className="filtros-overlay" onClick={() => setShowFiltros(false)}>
+          <div className="filtros-panel" onClick={e => e.stopPropagation()}>
+
+            <div className="filtros-panel-header">
+              <h3>Filtros</h3>
+              <button className="filtros-reset" onClick={handleLimpiarTmp}>Limpiar</button>
+            </div>
+
+            <div className="filtros-panel-body">
+              <div className="filtro-section">
+                <span className="filtro-section-label">Disciplina</span>
+                <div className="filtro-chips">
+                  {disciplinas.map(d => (
+                    <button
+                      key={d.disciplina_id}
+                      className={`filtro-chip ${filtrosTmp.disciplinas.includes(d.nombre) ? 'selected' : ''}`}
+                      onClick={() => toggleChip('disciplinas', d.nombre)}
+                    >
+                      {d.nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filtro-section">
+                <span className="filtro-section-label">Día de la semana</span>
+                <div className="filtro-chips">
+                  {DIAS_SEMANA.map(d => (
+                    <button
+                      key={d.valor}
+                      className={`filtro-chip ${filtrosTmp.dias.includes(String(d.valor)) ? 'selected' : ''}`}
+                      onClick={() => toggleChip('dias', String(d.valor))}
+                    >
+                      {d.nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filtro-section">
+                <span className="filtro-section-label">Instructor</span>
+                <div className="filtro-chips">
+                  {instructores.map(i => (
+                    <button
+                      key={i.instructor_id}
+                      className={`filtro-chip ${filtrosTmp.instructores.includes(i.nombre) ? 'selected' : ''}`}
+                      onClick={() => toggleChip('instructores', i.nombre)}
+                    >
+                      {i.nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="filtros-panel-footer">
+              <button className="btn-aplicar-filtros" onClick={handleAplicarFiltros}>
+                Aplicar filtros{tmpFilterCount > 0 ? ` (${tmpFilterCount})` : ''}
+              </button>
+            </div>
+
           </div>
         </div>
       )}

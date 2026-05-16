@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../components/SocioLayout'
-import { CheckCircle, AlertTriangle, Trophy, Clock, MapPin, Baby, CalendarDays, ShieldAlert } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Trophy, Clock, Baby, CalendarDays, ShieldAlert } from 'lucide-react'
 import { apiRequest } from '../../services/api'
 
 function todayISO() {
@@ -14,12 +14,14 @@ export default function DashboardSocio() {
   const fullName  = [usuario?.nombres, usuario?.apellido_paterno].filter(Boolean).join(' ') || usuario?.email?.split('@')[0] || 'Socio'
   const initials  = [usuario?.nombres, usuario?.apellido_paterno].filter(Boolean).map(s => s[0].toUpperCase()).join('') || '?'
 
-  const [reservasHoy,    setReservasHoy]    = useState([])
-  const [sanciones,      setSanciones]      = useState([])
-  const [torneos,        setTorneos]        = useState([])
-  const [ludoteca,       setLudoteca]       = useState([])
-  const [aforo,          setAforo]          = useState(null)
-  const [loading,        setLoading]        = useState(true)
+  const [reservasHoy,  setReservasHoy]  = useState([])
+  const [sanciones,    setSanciones]    = useState([])
+  const [torneos,      setTorneos]      = useState([])
+  const [ludoteca,     setLudoteca]     = useState([])
+  const [aforo,        setAforo]        = useState(null)
+  const [loading,      setLoading]      = useState(true)
+  const [fotoPerfil,   setFotoPerfil]   = useState(usuario?.foto_perfil || null)
+  const [subiendoFoto, setSubiendoFoto] = useState(false)
 
   useEffect(() => {
     if (!socioId) { setLoading(false); return }
@@ -57,44 +59,52 @@ export default function DashboardSocio() {
     })
   }, [socioId])
 
-  const sancionesActivas  = sanciones.filter(s => String(s.estado).toLowerCase() === 'activa' || String(s.estado).toLowerCase() === 'activo')
-  const niosActivos       = ludoteca.filter(r => r.estado === 'activo')
-  const torneosActivos    = torneos.filter(t => t.estado !== 'Finalizado')
+  const handleFotoChange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { alert('La imagen debe ser menor a 5MB'); return }
 
-  const estadoCuenta = sancionesActivas.some(s => ['grave','moderada'].includes(String(s.gravedad).toLowerCase()))
-    ? 'sancionado'
-    : sancionesActivas.length > 0 ? 'advertencia' : 'activo'
+    setSubiendoFoto(true)
+    try {
+      const token = localStorage.getItem('token')
+      const formData = new FormData()
+      formData.append('foto', file)
+      const res = await fetch('http://localhost:3000/api/usuarios/me/foto', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error || 'Error al subir foto'); return }
+      setFotoPerfil(data.foto_perfil)
+      const usuarioActualizado = { ...usuario, foto_perfil: data.foto_perfil }
+      localStorage.setItem('usuario', JSON.stringify(usuarioActualizado))
+    } catch { alert('Error de conexión') }
+    finally { setSubiendoFoto(false) }
+  }
+
+  const sancionesActivas = sanciones.filter(s =>
+    String(s.estado).toLowerCase() === 'activa' ||
+    String(s.estado).toLowerCase() === 'activo'
+  )
+  const niosActivos    = ludoteca.filter(r => r.estado === 'activo')
+  const torneosActivos = torneos.filter(t => t.estado !== 'Finalizado')
+
+  const estadoCuenta = sancionesActivas.some(s =>
+    ['grave','moderada'].includes(String(s.gravedad).toLowerCase())
+  ) ? 'sancionado' : sancionesActivas.length > 0 ? 'advertencia' : 'activo'
 
   const fechaLabel = new Date().toLocaleDateString('es-MX', {
     weekday: 'long', day: 'numeric', month: 'long'
   })
 
   const kpis = [
-    {
-      icon: <CalendarDays size={20} />,
-      valor: loading ? '…' : reservasHoy.length,
-      label: 'Reservas hoy',
-      color: '#1e40af', bg: '#dbeafe',
-    },
-    {
-      icon: <Trophy size={20} />,
-      valor: loading ? '…' : torneosActivos.length,
-      label: 'Torneos activos',
-      color: '#15803d', bg: '#dcfce7',
-    },
-    {
-      icon: <Baby size={20} />,
-      valor: loading ? '…' : niosActivos.length,
-      label: 'Niños en ludoteca',
-      color: '#c2410c', bg: '#ffedd5',
-    },
-    {
-      icon: <ShieldAlert size={20} />,
-      valor: loading ? '…' : sancionesActivas.length,
-      label: 'Sanciones activas',
+    { icon: <CalendarDays size={20} />, valor: loading ? '…' : reservasHoy.length,     label: 'Reservas hoy',      color: '#1e40af', bg: '#dbeafe' },
+    { icon: <Trophy size={20} />,       valor: loading ? '…' : torneosActivos.length,   label: 'Torneos activos',   color: '#15803d', bg: '#dcfce7' },
+    { icon: <Baby size={20} />,         valor: loading ? '…' : niosActivos.length,      label: 'Niños en ludoteca', color: '#c2410c', bg: '#ffedd5' },
+    { icon: <ShieldAlert size={20} />,  valor: loading ? '…' : sancionesActivas.length, label: 'Sanciones activas',
       color: sancionesActivas.length > 0 ? '#991b1b' : '#166534',
-      bg:    sancionesActivas.length > 0 ? '#fee2e2' : '#dcfce7',
-    },
+      bg:    sancionesActivas.length > 0 ? '#fee2e2' : '#dcfce7' },
   ]
 
   return (
@@ -102,25 +112,74 @@ export default function DashboardSocio() {
 
       {/* HERO */}
       <section className="ds-welcome-card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: '50%', flexShrink: 0,
-          background: 'linear-gradient(135deg, #0f2146 0%, #1e6091 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', fontWeight: 800, fontSize: 22, letterSpacing: '-0.5px',
-          boxShadow: '0 4px 14px rgba(15,33,70,0.25)'
-        }}>
-          {initials}
+
+        {/* Avatar con foto */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div
+            onClick={() => document.getElementById('input-foto-perfil').click()}
+            title="Cambiar foto de perfil"
+            style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #0f2146 0%, #1e6091 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: 800, fontSize: 22, letterSpacing: '-0.5px',
+              boxShadow: '0 4px 14px rgba(15,33,70,0.25)',
+              overflow: 'hidden', cursor: 'pointer'
+            }}
+          >
+            {fotoPerfil
+              ? <img src={fotoPerfil} alt="Foto de perfil"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : initials
+            }
+          </div>
+
+          {/* Spinner subiendo */}
+          {subiendoFoto && (
+            <div style={{
+              position: 'absolute', inset: 0, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.5)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              fontSize: '10px', color: 'white', fontWeight: 700
+            }}>⏳</div>
+          )}
+
+          {/* Botón cámara */}
+          <div
+            onClick={() => document.getElementById('input-foto-perfil').click()}
+            style={{
+              position: 'absolute', bottom: 0, right: 0,
+              width: 20, height: 20, borderRadius: '50%',
+              background: '#2563eb', border: '2px solid white',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', fontSize: '10px'
+            }}
+          >📷</div>
+
+          <input
+            id="input-foto-perfil"
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleFotoChange}
+          />
         </div>
+
+        {/* Info */}
         <div style={{ flex: 1 }}>
           <div className="ds-welcome-info" style={{ marginBottom: 8 }}>
             <h2 className="ds-title-serif" style={{ marginBottom: 2 }}>Buen día, {fullName}</h2>
             <p className="ds-subtitle" style={{ textTransform: 'capitalize', margin: 0 }}>{fechaLabel}</p>
           </div>
           <div className="ds-status-tags">
-            <span className={`tag-active ${estadoCuenta !== 'activo' ? 'tag-warn' : ''}`}
-              style={estadoCuenta === 'sancionado' ? { background: '#fee2e2', color: '#991b1b' }
-                   : estadoCuenta === 'advertencia' ? { background: '#fef3c7', color: '#92400e' }
-                   : {}}>
+            <span
+              className={`tag-active ${estadoCuenta !== 'activo' ? 'tag-warn' : ''}`}
+              style={
+                estadoCuenta === 'sancionado' ? { background: '#fee2e2', color: '#991b1b' }
+                : estadoCuenta === 'advertencia' ? { background: '#fef3c7', color: '#92400e' }
+                : {}
+              }
+            >
               <CheckCircle size={14} />
               {estadoCuenta === 'activo' ? 'Al corriente' : estadoCuenta === 'advertencia' ? 'Advertencia' : 'Sancionado'}
             </span>
@@ -152,7 +211,8 @@ export default function DashboardSocio() {
               {k.icon}
             </div>
             <div className="stat-data">
-              <span className="stat-number" style={k.valor > 0 && k.label.includes('Sanción') ? { color: '#dc2626' } : {}}>
+              <span className="stat-number"
+                style={k.valor > 0 && k.label.includes('Sanción') ? { color: '#dc2626' } : {}}>
                 {k.valor}
               </span>
               <span className="stat-label">{k.label}</span>
@@ -218,8 +278,10 @@ export default function DashboardSocio() {
               </div>
             ) : (
               torneos.slice(0, 4).map(t => {
-                const estadoColor = t.estado === 'Finalizado' ? { bg: '#f1f5f9', color: '#64748b' }
-                  : t.estado === 'En_curso' ? { bg: '#dbeafe', color: '#1e40af' }
+                const estadoColor = t.estado === 'Finalizado'
+                  ? { bg: '#f1f5f9', color: '#64748b' }
+                  : t.estado === 'En_curso'
+                  ? { bg: '#dbeafe', color: '#1e40af' }
                   : { bg: '#dcfce7', color: '#15803d' }
                 return (
                   <div key={t.participante_id} className="ds-list-item">

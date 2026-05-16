@@ -123,12 +123,11 @@ function VistaSocios() {
                   onMouseLeave={e => e.currentTarget.style.background = 'white'}>
                   <td style={{ padding: '0.9rem 1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: 36, height: 36, borderRadius: '50%', background: color,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'white', fontWeight: 700, fontSize: '12px', flexShrink: 0
-                      }}>
-                        {iniciales(nombre, socio.email)}
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '12px', flexShrink: 0, overflow: 'hidden' }}>
+                        {socio.foto_perfil
+                          ? <img src={socio.foto_perfil} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : iniciales(nombre, socio.email)
+                        }
                       </div>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '13px', color: '#1e293b' }}>{nombre}</div>

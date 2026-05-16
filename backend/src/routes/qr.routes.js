@@ -21,4 +21,11 @@ router.post(
   qrController.generarQrVisita
 );
 
+router.post(
+  '/identificar-socio',
+  verifyToken,
+  checkRole(['admin', 'gerente', 'coordinador', 'recepcion', 'instructor']),
+  qrController.identificarSocio
+);
+
 module.exports = router;

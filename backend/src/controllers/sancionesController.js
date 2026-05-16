@@ -524,7 +524,7 @@ const sancionesController = {
             return res.status(400).json({ error: 'sancion_id debe ser un entero valido' });
         }
 
-        if (req.user?.rol !== 'admin') {
+        if (!['admin', 'gerente', 'coordinador'].includes(req.user?.rol)) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 

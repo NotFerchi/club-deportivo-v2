@@ -11,4 +11,8 @@ router.get('/asistencia', reportesController.getReporteAsistencia);
 router.get('/ocupacion', reportesController.getReporteOcupacion);
 router.get('/sanciones', reportesController.getReporteSanciones);
 
+// SCRUM-136 — Exportar socios activos
+const { exportarSocios } = require('../controllers/exportacionController');
+router.get('/socios/exportar', checkRole(['admin', 'gerente']), exportarSocios);
+
 module.exports = router;

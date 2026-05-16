@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatDate, formatDateTime, normalizeText } from '../utils/adminData';
 
 const PAGE_SIZE = 20;
-const RESOLVER_ROLES = ['admin'];
+const RESOLVER_ROLES = ['admin', 'coordinador'];
 const ORIGENES_BASE = ['Administracion', 'Ludoteca', 'Instalaciones', 'No-show reserva', 'No-show clase', 'Conducta', 'Reglamento'];
 const initialFormData = {
   socio_id: '',

@@ -202,7 +202,7 @@ function ModalNuevaSesion({ onClose, onCreada }) {
         />
         {form.fecha && (
           <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-            📅 {DIAS[new Date(form.fecha + 'T12:00:00').getDay() + 1] || DIAS[1]}
+            📅 {DIAS[new Date(form.fecha + 'T12:00:00').getDay()]}
           </span>
         )}
         </div>

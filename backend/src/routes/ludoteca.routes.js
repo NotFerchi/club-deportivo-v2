@@ -45,4 +45,11 @@ router.get(
   controller.misRegistros
 );
 
+router.post(
+  '/acceso-qr',
+  verifyToken,
+  checkRole(['instructor', 'recepcion', 'admin', 'coordinador', 'gerente']),
+  controller.accesoQrLudoteca
+);
+
 module.exports = router;

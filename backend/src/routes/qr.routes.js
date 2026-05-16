@@ -5,6 +5,8 @@ const { verifyToken, checkRole } = require('../middleware/auth.middleware');
 
 const staffRoles = ['admin', 'gerente', 'coordinador', 'recepcion'];
 
+router.get('/mi-qr', verifyToken, qrController.obtenerMiQr);
+
 router.post(
   '/generar-socio',
   verifyToken,

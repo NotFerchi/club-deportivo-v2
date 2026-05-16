@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { 
-  LayoutDashboard, Calendar, GraduationCap, Baby, 
-  AlertCircle, LogOut, ChevronDown, Bell, Trophy
+import {
+  LayoutDashboard, Calendar, GraduationCap, Baby,
+  AlertCircle, LogOut, ChevronDown, Bell, Trophy, QrCode, X
 } from 'lucide-react'
+import { apiRequest } from '../services/api'
 import '../../css/socio/DashboardSocio.css'
 import '../../css/socio/Reservas.css'
 import '../../css/socio/Ludoteca.css'
@@ -16,6 +17,10 @@ function SocioLayout({ children, activeTab = 'inicio', title }) {
   const navigate = useNavigate()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [userName, setUserName] = useState("Socio")
+  const [showQR, setShowQR] = useState(false)
+  const [qrData, setQrData] = useState(null)
+  const [loadingQR, setLoadingQR] = useState(false)
+  const [errorQR, setErrorQR] = useState(null)
 
   useEffect(() => {
     const usuarioSesion = localStorage.getItem('usuario')
@@ -31,6 +36,21 @@ function SocioLayout({ children, activeTab = 'inicio', title }) {
     localStorage.removeItem('usuario')
     navigate('/')
   }
+
+  const handleOpenQR = useCallback(async () => {
+    setShowQR(true)
+    setQrData(null)
+    setErrorQR(null)
+    setLoadingQR(true)
+    try {
+      const data = await apiRequest('/qr/mi-qr')
+      setQrData(data)
+    } catch (err) {
+      setErrorQR(err.message || 'No se pudo cargar tu QR')
+    } finally {
+      setLoadingQR(false)
+    }
+  }, [])
 
   // Configuración de las tabs
   const tabs = [
@@ -50,6 +70,10 @@ function SocioLayout({ children, activeTab = 'inicio', title }) {
           <h1 className="ds-brand-logo">Club Social y Deportivo</h1>
           
           <div className="ds-user-actions">
+            <button className="ds-qr-btn" onClick={handleOpenQR}>
+              <QrCode size={18} />
+              <span>Mi QR</span>
+            </button>
             <button className="ds-notif-badge-btn">
               <Bell size={20} />
               <span className="notification-ping"></span>
@@ -100,6 +124,44 @@ function SocioLayout({ children, activeTab = 'inicio', title }) {
           {children}
         </div>
       </main>
+
+      {/* --- MODAL MI QR --- */}
+      {showQR && (
+        <div className="qr-modal-overlay" onClick={() => setShowQR(false)}>
+          <div className="qr-modal-card" onClick={e => e.stopPropagation()}>
+            <div className="qr-modal-header">
+              <span className="qr-modal-title">Mi QR de Acceso</span>
+              <button className="qr-modal-close" onClick={() => setShowQR(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="qr-modal-body">
+              {loadingQR && (
+                <div className="qr-loading-state">Cargando tu código QR...</div>
+              )}
+              {!loadingQR && errorQR && (
+                <div className="qr-error-state">
+                  <div className="qr-error-icon"><QrCode size={40} opacity={0.3} /></div>
+                  <p>{errorQR}</p>
+                </div>
+              )}
+              {!loadingQR && qrData && (
+                <>
+                  <span className="qr-brand-label">Club Social y Deportivo</span>
+                  <div className="qr-image-wrapper">
+                    <img src={qrData.qr_image} alt="Mi código QR de acceso" />
+                  </div>
+                  <span className="qr-member-name">{userName}</span>
+                  {qrData.numero_socio && (
+                    <span className="qr-member-number">Socio #{qrData.numero_socio}</span>
+                  )}
+                  <p className="qr-hint">Muestra este QR en recepción para ingresar al club</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

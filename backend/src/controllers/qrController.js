@@ -181,85 +181,135 @@ const qrController = {
       return sendError(res, 500, 'Error al consultar codigo QR del socio');
     }
   },
+
+  obtenerMiQr: async (req, res) => {
+    const usuarioId = req.user?.usuario_id;
+    if (!usuarioId) {
+      return sendError(res, 401, 'No autenticado');
+    }
+
+    try {
+      const socioResult = await pool.query(
+        `SELECT socio_id, activo, numero_socio
+         FROM socios WHERE usuario_id = $1`,
+        [usuarioId]
+      );
+
+      if (socioResult.rows.length === 0) {
+        return sendError(res, 404, 'No se encontró perfil de socio para este usuario');
+      }
+
+      const socio = socioResult.rows[0];
+      if (!socio.activo) {
+        return sendError(res, 400, 'El socio no está activo');
+      }
+
+      const result = await pool.query(
+        `SELECT qr_id, socio_id, codigo_qr, created_at
+         FROM codigos_qr_socios
+         WHERE socio_id = $1 AND activo = TRUE
+         ORDER BY created_at DESC, qr_id DESC
+         LIMIT 1`,
+        [socio.socio_id]
+      );
+
+      if (result.rows.length === 0) {
+        return sendError(res, 404, 'No tienes un QR activo. Solicítalo en recepción.');
+      }
+
+      const qr = result.rows[0];
+      return res.json({
+        qr_id: qr.qr_id,
+        qr_image: qr.codigo_qr,
+        socio_id: qr.socio_id,
+        numero_socio: socio.numero_socio,
+        generado_en: qr.created_at
+      });
+    } catch (error) {
+      console.error('Error en obtenerMiQr:', error);
+      return sendError(res, 500, 'Error al obtener tu código QR');
+    }
+  }, // <-- Se agregó la coma de separación aquí
+
   identificarSocio: async (req, res) => {
-  const { codigo_qr } = req.body;
+    const { codigo_qr } = req.body;
 
-  if (!codigo_qr) {
-    return res.status(400).json({ error: 'codigo_qr es requerido' });
-  }
-
-  let payload;
-  try {
-    payload = validarQrFirmado(codigo_qr);
-  } catch (err) {
-    return res.status(err.statusCode || 401).json({ error: err.message });
-  }
-
-  if (payload.type !== 'socio') {
-    return res.status(400).json({ error: 'Este endpoint es solo para socios' });
-  }
-
-  const socioId = Number(payload.socio_id);
-  if (!Number.isInteger(socioId) || socioId <= 0) {
-    return res.status(400).json({ error: 'QR inválido: socio_id no válido' });
-  }
-
-  try {
-    const result = await pool.query(
-      `SELECT
-         s.socio_id,
-         s.numero_socio,
-         s.activo,
-         s.tipo,
-         s.modalidad,
-         s.es_titular,
-         u.nombres,
-         u.apellido_paterno,
-         u.apellido_materno,
-         u.telefono,
-         u.fecha_nacimiento,
-         TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) AS nombre_completo
-       FROM socios s
-       JOIN usuarios u ON s.usuario_id = u.usuario_id
-       WHERE s.socio_id = $1`,
-      [socioId]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Socio no encontrado' });
+    if (!codigo_qr) {
+      return res.status(400).json({ error: 'codigo_qr es requerido' });
     }
 
-    const socio = result.rows[0];
-
-    if (!socio.activo) {
-      return res.status(403).json({ error: 'El socio no está activo' });
+    let payload;
+    try {
+      payload = validarQrFirmado(codigo_qr);
+    } catch (err) {
+      return res.status(err.statusCode || 401).json({ error: err.message });
     }
 
-    const sancionesResult = await pool.query(
-      `SELECT COUNT(*) AS total
-       FROM sanciones
-       WHERE socio_id = $1 AND estado = 'Activo'`,
-      [socioId]
-    );
-    const sancionesActivas = parseInt(sancionesResult.rows[0].total) || 0;
+    if (payload.type !== 'socio') {
+      return res.status(400).json({ error: 'Este endpoint es solo para socios' });
+    }
 
-    return res.json({
-      socio_id:          socio.socio_id,
-      numero_socio:      socio.numero_socio,
-      nombre_completo:   socio.nombre_completo,
-      telefono:          socio.telefono || null,
-      tipo:              socio.tipo || null,
-      modalidad:         socio.modalidad || null,
-      es_titular:        socio.es_titular ?? null,
-      fecha_nacimiento:  socio.fecha_nacimiento || null,
-      sanciones_activas: sancionesActivas
-    });
+    const socioId = Number(payload.socio_id);
+    if (!Number.isInteger(socioId) || socioId <= 0) {
+      return res.status(400).json({ error: 'QR inválido: socio_id no válido' });
+    }
 
-  } catch (error) {
-    console.error('Error en identificarSocio:', error);
-    return res.status(500).json({ error: 'Error interno del servidor' });
-  }
-},
+    try {
+      const result = await pool.query(
+        `SELECT
+            s.socio_id,
+            s.numero_socio,
+            s.activo,
+            s.tipo,
+            s.modalidad,
+            s.es_titular,
+            u.nombres,
+            u.apellido_paterno,
+            u.apellido_materno,
+            u.telefono,
+            u.fecha_nacimiento,
+            TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) AS nombre_completo
+         FROM socios s
+         JOIN usuarios u ON s.usuario_id = u.usuario_id
+         WHERE s.socio_id = $1`,
+        [socioId]
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Socio no encontrado' });
+      }
+
+      const socio = result.rows[0];
+
+      if (!socio.activo) {
+        return res.status(403).json({ error: 'El socio no está activo' });
+      }
+
+      const sancionesResult = await pool.query(
+        `SELECT COUNT(*) AS total
+         FROM sanciones
+         WHERE socio_id = $1 AND estado = 'Activo'`,
+         [socioId]
+      );
+      const sancionesActivas = parseInt(sancionesResult.rows[0].total) || 0;
+
+      return res.json({
+        socio_id:          socio.socio_id,
+        numero_socio:      socio.numero_socio,
+        nombre_completo:   socio.nombre_completo,
+        telefono:          socio.telefono || null,
+        tipo:              socio.tipo || null,
+        modalidad:         socio.modalidad || null,
+        es_titular:        socio.es_titular ?? null,
+        fecha_nacimiento:  socio.fecha_nacimiento || null,
+        sanciones_activas: sancionesActivas
+      });
+
+    } catch (error) {
+      console.error('Error en identificarSocio:', error);
+      return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
 };
 
 module.exports = qrController;

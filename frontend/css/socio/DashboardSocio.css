@@ -252,10 +252,162 @@ html, body {
 .ds-list-item p { margin: 4px 0 0; font-size: 0.8rem; color: var(--ds-text-light); }
 .item-badge { background: #f1f5f9; padding: 0.3rem 0.8rem; border-radius: 15px; font-size: 0.75rem; font-weight: 700; color: var(--ds-text-light); }
 
+/* --- BOTÓN MI QR --- */
+.ds-qr-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--ds-navy);
+    color: white;
+    border: none;
+    padding: 0.5rem 0.9rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.ds-qr-btn:hover {
+    background: #1a3460;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15,33,70,0.25);
+}
+
+/* --- MODAL MI QR --- */
+.qr-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,33,70,0.55);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.qr-modal-card {
+    background: white;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 24px 60px rgba(15,33,70,0.22);
+    overflow: hidden;
+    animation: qrModalIn 0.22s cubic-bezier(0.32,0.72,0,1);
+}
+
+@keyframes qrModalIn {
+    from { transform: scale(0.92); opacity: 0.3; }
+    to   { transform: scale(1);    opacity: 1;   }
+}
+
+.qr-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem 0;
+}
+
+.qr-modal-title {
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--ds-navy);
+}
+
+.qr-modal-close {
+    background: #f1f5f9;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--ds-text-light);
+    transition: all 0.15s;
+}
+
+.qr-modal-close:hover {
+    background: #e2e8f0;
+    color: var(--ds-navy);
+}
+
+.qr-modal-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+}
+
+.qr-brand-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--ds-text-light);
+    text-transform: uppercase;
+}
+
+.qr-image-wrapper {
+    background: #f8faff;
+    border: 2px solid var(--ds-border);
+    border-radius: 16px;
+    padding: 1rem;
+    display: inline-flex;
+}
+
+.qr-image-wrapper img {
+    width: 200px;
+    height: 200px;
+    display: block;
+}
+
+.qr-member-name {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--ds-navy);
+}
+
+.qr-member-number {
+    font-size: 0.78rem;
+    color: var(--ds-text-light);
+    font-weight: 600;
+}
+
+.qr-hint {
+    font-size: 0.75rem;
+    color: var(--ds-text-light);
+    margin: 0;
+    line-height: 1.4;
+    max-width: 260px;
+}
+
+.qr-loading-state,
+.qr-error-state {
+    padding: 2rem 1rem;
+    color: var(--ds-text-light);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.qr-error-state {
+    color: var(--ds-danger);
+}
+
+.qr-error-icon {
+    margin-bottom: 0.5rem;
+}
+
 /* --- RESPONSIVE --- */
 @media (max-width: 768px) {
     .ds-brand-logo { font-size: 1rem; }
     .ds-user-text, .tab-text { display: none; }
+    .ds-qr-btn span { display: none; }
+    .ds-qr-btn { padding: 0.5rem; border-radius: 12px; }
     
     .ds-nav-tabs { position: fixed; bottom: 0; left: 0; width: 100%; border-top: 1px solid var(--ds-border); z-index: 1000; padding: 0.75rem 0; }
     .ds-tabs-container { max-width: 100%; }

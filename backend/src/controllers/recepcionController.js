@@ -250,21 +250,22 @@ const recepcionController = {
         
         let query = `
             SELECT
-                s.socio_id,
-                u.usuario_id,
-                u.nombres,
-                u.apellido_paterno,
-                u.apellido_materno,
-                NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as nombre_completo,
-                u.username as email,
-                u.telefono,
-                u.activo,
-                s.tipo,
-                s.modalidad,
-                s.numero_socio,
-                s.activo as socio_activo
-            FROM socios s
-            JOIN usuarios u ON s.usuario_id = u.usuario_id
+    s.socio_id,
+    u.usuario_id,
+    u.nombres,
+    u.apellido_paterno,
+    u.apellido_materno,
+    NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as nombre_completo,
+    u.username as email,
+    u.telefono,
+    u.activo,
+    u.foto_perfil,
+    s.tipo,
+    s.modalidad,
+    s.numero_socio,
+    s.activo as socio_activo
+FROM socios s
+JOIN usuarios u ON s.usuario_id = u.usuario_id
         `;
 
         const valores = [];

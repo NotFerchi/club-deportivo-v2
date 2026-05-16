@@ -396,7 +396,56 @@ const usuariosController = {
         console.error('Error en deleteUsuarioPermanente:', error);
         res.status(500).json({ error: 'Error al eliminar definitivamente el usuario' });
       }
+    },
+
+    getMiPerfil: async (req, res) => {
+      try {
+        const usuarioId = req.user.usuario_id;
+        const result = await pool.query(
+          `SELECT u.usuario_id, u.username, u.nombres, u.apellido_paterno,
+                  u.apellido_materno, u.telefono, u.fecha_nacimiento,
+                  u.genero, u.direccion, u.foto_perfil,
+                  r.nombre as rol
+           FROM usuarios u
+           JOIN roles r ON u.rol_id = r.rol_id
+           WHERE u.usuario_id = $1`,
+          [usuarioId]
+        );
+        if (result.rowCount === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+        res.json(result.rows[0]);
+      } catch (error) {
+        console.error('Error en getMiPerfil:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+      }
+    },
+
+    actualizarFotoPerfil: async (req, res) => {
+      try {
+        if (!req.file) return res.status(400).json({ error: 'Se requiere una imagen' });
+
+        const usuarioId = req.user.usuario_id;
+
+        const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+        const result = await pool.query(
+          `UPDATE usuarios SET foto_perfil = $1 WHERE usuario_id = $2
+           RETURNING usuario_id, foto_perfil`,
+          [base64, usuarioId]
+        );
+
+        if (result.rowCount === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        res.json({
+          ok: true,
+          message: 'Foto de perfil actualizada correctamente',
+          foto_perfil: result.rows[0].foto_perfil
+        });
+      } catch (error) {
+        console.error('Error en actualizarFotoPerfil:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+      }
     }
+
 };
 
 module.exports = usuariosController;

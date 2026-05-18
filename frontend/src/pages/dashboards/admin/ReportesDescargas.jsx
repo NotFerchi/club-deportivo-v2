@@ -166,7 +166,7 @@ export default function ReportesDescargas() {
       <div className="chart-box">
         <h3 style={{ marginTop: 0, marginBottom: '0.5rem', color: '#0f172a' }}>Centro de reportes</h3>
         <p style={{ margin: 0, color: '#64748b', fontSize: 14 }}>
-          Descarga archivos separados para socios, ocupacion y sanciones. Los reportes con rango usan por defecto los ultimos 30 dias.
+          Descarga archivos separados para socios, ocupacion, afluencia y sanciones. Los reportes con rango usan por defecto los ultimos 30 dias.
         </p>
       </div>
 
@@ -183,6 +183,14 @@ export default function ReportesDescargas() {
           description="Uso de espacios, participacion por disciplina, ranking de instructores y horas sin actividad."
           endpoint="/reportes/ocupacion"
           filenameBase="reporte-ocupacion-espacios"
+          requiresRange
+        />
+
+        <DownloadCard
+          title="Reporte de Afluencia y Dias mas Frecuentados"
+          description="Entradas diarias, dias mas concurridos, horarios pico, top fechas y socios frecuentes."
+          endpoint="/reportes/afluencia"
+          filenameBase="reporte-afluencia-dias-frecuentados"
           requiresRange
         />
 

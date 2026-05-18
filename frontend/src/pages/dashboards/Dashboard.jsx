@@ -37,6 +37,7 @@ import Sanciones from '../../components/SancionesPanel';
 import GestionUsuarios from './admin/GestionUsuarios';
 import ConfiguracionEspacios from './admin/ConfiguracionEspacios';
 import AuditoriaLogs from './admin/AuditoriaLogs';
+import ReportesDescargas from './admin/ReportesDescargas';
 import TournamentBracket from '../../components/TournamentBracket';
 
 const OCCUPANCY_VIEW_OPTIONS = [
@@ -87,6 +88,15 @@ function getEstadoBadgeClass(estado) {
   if (n === 'confirmada') return 'confirmada';
   if (n === 'cancelada' || n === 'no-show' || n === 'sancionada') return 'badge-danger';
   return 'pendiente';
+}
+
+function withTimeout(promise, ms = 8000, label = 'solicitud') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error(`Tiempo de espera agotado al cargar ${label}`)), ms);
+    })
+  ]);
 }
 
 // Donut único con dos segmentos
@@ -150,6 +160,7 @@ function Dashboard() {
   const [occupancyView, setOccupancyView] = useState('semana');
   const [occupancyRange, setOccupancyRange] = useState(getDefaultRange('semana'));
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [trends, setTrends] = useState({ reservas: 0, sanciones: 0, socios: 0, visitas: 0 });
   const [notifications, setNotifications] = useState([]);
@@ -168,12 +179,19 @@ function Dashboard() {
 
     if (!token || !usuarioSesion) { navigate('/login'); return; }
 
-    const usuario = JSON.parse(usuarioSesion);
-    if (!['gerente', 'admin'].includes(usuario.rol)) { navigate('/login'); return; }
+    try {
+      const usuario = JSON.parse(usuarioSesion);
+      if (!['gerente', 'admin'].includes(usuario.rol)) { navigate('/login'); return; }
 
-    setUserName(usuario.nombres || 'Administrador');
-    setUserRole(usuario.rol);
-    fetchDashboardData();
+      setUserName(usuario.nombres || 'Administrador');
+      setUserRole(usuario.rol);
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error leyendo la sesion del dashboard:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('usuario');
+      navigate('/login');
+    }
   }, [navigate]);
 
   useEffect(() => {
@@ -182,13 +200,14 @@ function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
+      setLoadError('');
       const [sociosRes, reservasRes, sancionesRes, visitasRes, ludotecaRes, espaciosRes] = await Promise.allSettled([
-        adminApi.getSocios(),
-        adminApi.getReservas(),
-        adminApi.getSanciones(),
-        adminApi.getVisitasActivas(),
-        adminApi.getLudotecaActivos(),
-        adminApi.getEspacios()
+        withTimeout(adminApi.getSocios(), 8000, 'socios'),
+        withTimeout(adminApi.getReservas(), 8000, 'reservas'),
+        withTimeout(adminApi.getSanciones(), 8000, 'sanciones'),
+        withTimeout(adminApi.getVisitasActivas(), 8000, 'visitas activas'),
+        withTimeout(adminApi.getLudotecaActivos(), 8000, 'ludoteca'),
+        withTimeout(adminApi.getEspacios(), 8000, 'espacios')
       ]);
 
       const socios      = sociosRes.status      === 'fulfilled' ? sociosRes.value      : [];
@@ -197,6 +216,17 @@ function Dashboard() {
       const visitas     = visitasRes.status      === 'fulfilled' ? visitasRes.value     : [];
       const ludoteca    = ludotecaRes.status     === 'fulfilled' ? ludotecaRes.value    : [];
       const espacios    = espaciosRes.status     === 'fulfilled' ? espaciosRes.value    : [];
+      const settledResults = [sociosRes, reservasRes, sancionesRes, visitasRes, ludotecaRes, espaciosRes];
+      const failedResults = settledResults.filter(result => result.status === 'rejected');
+
+      if (failedResults.length === settledResults.length) {
+        throw new Error('No se pudieron cargar los datos principales del dashboard.');
+      }
+
+      if (failedResults.length > 0) {
+        setLoadError('Algunos datos del dashboard no pudieron cargarse. Se muestra la informacion disponible.');
+        failedResults.forEach((result) => console.error('Carga parcial dashboard:', result.reason));
+      }
 
       const hoy = new Date().toISOString().split('T')[0];
       const mesActual = hoy.slice(0, 7);
@@ -276,6 +306,7 @@ function Dashboard() {
       });
     } catch (error) {
       console.error('Error cargando dashboard:', error);
+      setLoadError(error.message || 'No se pudo cargar el dashboard.');
     } finally {
       setLoading(false);
     }
@@ -307,6 +338,7 @@ function Dashboard() {
 
   // Ítems de administración según rol
   const adminItems = [
+    { id: 'reportes', label: 'Reportes', icon: FileText },
     { id: 'usuarios', label: 'Gestión de Usuarios', icon: UserPlus },
     { id: 'espacios', label: 'Configuración de Espacios', icon: Settings },
     ...(!isManager ? [{ id: 'logs', label: 'Auditoría', icon: FileText }] : [])
@@ -389,6 +421,11 @@ function Dashboard() {
             <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
               Vista general del club &mdash; {todayLabel}
             </p>
+            {loadError && (
+              <p style={{ fontSize: '13px', color: '#b91c1c', marginTop: 8 }}>
+                {loadError}
+              </p>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', position: 'relative' }}>
             {activeTab === 'dashboard' && (
@@ -597,6 +634,7 @@ function Dashboard() {
         )}
         {activeTab === 'ludoteca' && <Ludoteca />}
         {activeTab === 'sanciones' && <Sanciones />}
+        {activeTab === 'reportes' && <ReportesDescargas />}
         {activeTab === 'usuarios' && <GestionUsuarios />}
         {activeTab === 'espacios' && <ConfiguracionEspacios />}
         {activeTab === 'logs' && userRole === 'admin' && <AuditoriaLogs />}
@@ -606,3 +644,4 @@ function Dashboard() {
 }
 
 export default Dashboard;
+

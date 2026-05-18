@@ -1,3 +1,4 @@
+# Club Deportivo
 COMANDOS QUE DEBES CORRER PARA REACT Y NUEVO BCRYPT
 * npm install bcryptjs
 
@@ -12,3 +13,15 @@ COMANDOS QUE DEBES CORRER PARA REACT Y NUEVO BCRYPT
 
 * NUEVOS
 * npm install qrcode
+
+### Excel
+- Libreria usada: `exceljs`
+- Instalacion manual:
+  - `cd backend`
+  - `npm install exceljs`
+
+### PDF
+- Libreria usada: `pdfkit`
+- Instalacion manual:
+  - `cd backend`
+  - `npm install pdfkit`

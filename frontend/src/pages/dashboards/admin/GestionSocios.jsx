@@ -334,15 +334,10 @@ function GestionSocios({ readOnly = false }) {
   const importSocios = async (file) => {
     if (!file) return;
     const extension = file.name.split('.').pop()?.toLowerCase();
-    const allowed = ['csv', 'xls', 'xlsx'];
+    const allowed = ['csv'];
 
     if (!allowed.includes(extension)) {
-      setFileState({ status: 'error', message: 'Formato no valido. Usa CSV, XLS o XLSX.' });
-      return;
-    }
-
-    if (extension !== 'csv') {
-      setFileState({ status: 'error', message: 'Excel detectado. En esta version la importacion masiva procesa CSV para evitar datos mal leidos.' });
+      setFileState({ status: 'error', message: 'Formato no valido. Usa CSV.' });
       return;
     }
 
@@ -415,7 +410,7 @@ function GestionSocios({ readOnly = false }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.xls,.xlsx"
+              accept=".csv"
               onChange={event => importSocios(event.target.files?.[0])}
               style={{ display: 'none' }}
             />

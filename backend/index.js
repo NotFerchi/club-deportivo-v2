@@ -1,4 +1,4 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET no está definido. Revisa tu archivo .env');

@@ -56,6 +56,47 @@ export async function apiRequest(path, options = {}) {
   return data;
 }
 
+export async function downloadApiFile(path, { filename, ...options } = {}) {
+  const token = getAuthToken();
+  const headers = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers
+  };
+
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+
+  if (response.status === 401) {
+    handleUnauthorized();
+    const error = new Error('Sesion expirada. Por favor inicia sesion nuevamente.');
+    error.status = 401;
+    throw error;
+  }
+
+  if (!response.ok) {
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+    const message = data?.error || data?.message || `Error ${response.status}`;
+    const error = new Error(message);
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  const blob = await response.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename || 'archivo.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
+}
+
 export const adminApi = {
   getSocios: async () => unwrapList(await apiRequest('/socios'), ['data', 'socios']),
   getUsuarios: async () => unwrapList(await apiRequest('/usuarios'), ['data', 'usuarios']),
@@ -78,6 +119,8 @@ export const adminApi = {
     unwrapList(await apiRequest(`/recepcion/visitas/historial?dias=${dias}`), ['data']),
   getSociosVisitas: async () => unwrapList(await apiRequest('/recepcion/socios-lista'), ['data', 'socios']),
   getLudotecaActivos: async () => unwrapList(await apiRequest('/ludoteca/activos'), ['data']),
+  descargarReporte: (path, filename) =>
+    downloadApiFile(path, { filename }),
 
   saveSocio: (payload, id) =>
     apiRequest(id ? `/socios/${id}` : '/socios', {
@@ -131,3 +174,4 @@ export const adminApi = {
   logAudit: (payload) =>
     apiRequest('/logs', { method: 'POST', body: JSON.stringify(payload) })
 };
+

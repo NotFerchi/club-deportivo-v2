@@ -1,5 +1,4 @@
 const ExcelJS = require('exceljs');
-const XLSX    = require('xlsx');
 const bcrypt  = require('bcryptjs');
 const pool    = require('../config/database');
 
@@ -118,9 +117,47 @@ function parsearFecha(valor) {
     const fecha = new Date(Math.round((valor - 25569) * 86400 * 1000));
     return fecha.toISOString().split('T')[0];
   }
+  if (valor instanceof Date && !Number.isNaN(valor.getTime())) {
+    return valor.toISOString().split('T')[0];
+  }
   const str = String(valor).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
   return null;
+}
+
+async function leerFilasExcelDesdeBuffer(buffer) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+
+  const hoja = workbook.worksheets[0];
+  if (!hoja) return [];
+
+  const encabezados = [];
+  hoja.getRow(1).eachCell((cell, colNumber) => {
+    encabezados[colNumber] = String(cell.value || '').trim();
+  });
+
+  const filas = [];
+  hoja.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const fila = {};
+    let tieneDato = false;
+
+    encabezados.forEach((header, colNumber) => {
+      if (!header) return;
+      const cellValue = row.getCell(colNumber).value;
+      const value = cellValue && typeof cellValue === 'object' && Object.prototype.hasOwnProperty.call(cellValue, 'result')
+        ? cellValue.result
+        : cellValue;
+      const normalizado = value ?? '';
+      if (normalizado !== '') tieneDato = true;
+      fila[header] = normalizado;
+    });
+
+    if (tieneDato) filas.push(fila);
+  });
+
+  return filas;
 }
 
 // ── SCRUM-135: POST /api/importacion/socios ──────────────────────────────────
@@ -132,9 +169,7 @@ const importarSocios = async (req, res) => {
   // FASE 1 — Parsear
   let filas;
   try {
-    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    filas    = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    filas = await leerFilasExcelDesdeBuffer(req.file.buffer);
   } catch {
     return res.status(400).json({ error: 'No se pudo leer el archivo Excel' });
   }

@@ -19,7 +19,7 @@ router.put('/me/foto', verifyToken, upload.single('foto'), usuariosController.ac
 router.get('/me/perfil', verifyToken, usuariosController.getMiPerfil);
 
 // Rutas de admin
-router.use(checkRole(adminRoles));
+router.use(verifyToken, checkRole(adminRoles));
 router.get('/', usuariosController.getUsuarios);
 router.get('/roles', usuariosController.getRoles);
 router.get('/:id', usuariosController.getUsuarioById);

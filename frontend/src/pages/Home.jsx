@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Building2, Users, Award } from 'lucide-react'
 import '../../css/main.css'
+import '../../css/home.css'
 
 function Home() {
   const [scrolled, setScrolled] = useState(false)

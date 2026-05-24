@@ -1,0 +1,202 @@
+/* =============================================
+   HOME / LANDING PAGE — Responsive styles
+   Complementa main.css con adaptación móvil
+   ============================================= */
+
+/* ─────────────────────────────────────────────
+   TABLET  ≤ 900px
+   ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+
+    /* About */
+    .about-section .container {
+        grid-template-columns: 1fr;
+        gap: 48px;
+    }
+    .about-image-stack { height: 420px; }
+
+    /* How it works */
+    .how-inner { grid-template-columns: 1fr; }
+    .how-image { height: 280px; }
+    .how-img-overlay {
+        background: linear-gradient(to bottom, transparent 55%, var(--dark) 100%);
+    }
+    .how-content { padding: 40px 44px 48px; }
+    .how-content h2 { font-size: 30px; }
+
+    /* Activities */
+    .activities-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* CTA */
+    .cta-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 56px;
+        gap: 32px;
+    }
+    .cta-actions { flex-direction: row; align-items: center; }
+    .cta-text h2 { font-size: 36px; }
+}
+
+/* ─────────────────────────────────────────────
+   MOBILE  ≤ 640px
+   ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+
+    /* Base */
+    .container { padding: 0 20px; }
+
+    /* ── Navbar ── */
+    .nav-links { display: none; }
+    .navbar-inner { padding: 0 20px; height: 60px; }
+    .nav-cta { padding: 8px 16px; font-size: 12px; }
+
+    /* ── Hero ── */
+    .hero-section { min-height: 100svh; }
+    .hero-content { padding: 88px 24px 210px; }
+
+    .hero-section h1 {
+        font-size: 46px;
+        letter-spacing: -1.5px;
+        max-width: 100%;
+    }
+    .hero-subtitle {
+        font-size: 15px;
+        max-width: 100%;
+        margin-bottom: 32px;
+    }
+    .hero-buttons {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        max-width: 280px;
+    }
+    .btn-hero-primary,
+    .btn-hero-secondary {
+        text-align: center;
+        width: 100%;
+        padding: 14px 24px;
+    }
+
+    /* Stats 4→2 columnas */
+    .hero-stats {
+        left: 16px; right: 16px; bottom: 20px;
+        padding: 18px 16px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px 0;
+    }
+    .hero-stat:nth-child(2n)::after { display: none; } /* quita divisor columna derecha */
+    .hero-stat .snum  { font-size: 22px; }
+    .hero-stat .slabel { font-size: 11px; }
+
+    /* ── About ── */
+    .about-section { padding: 60px 0 48px; }
+    .about-section .container { grid-template-columns: 1fr; gap: 36px; }
+
+    .about-text-col h2 { font-size: 30px; letter-spacing: -1px; }
+
+    .about-image-stack { height: 300px; }
+    .about-img-main   { width: 88%; height: 255px; }
+    .about-img-secondary { width: 55%; height: 155px; }
+    .about-badge {
+        right: 0; bottom: 100px;
+        font-size: 12px; padding: 10px 14px;
+    }
+    .about-stat-card {
+        left: 0; top: 14px;
+        padding: 12px 14px; min-width: 130px;
+    }
+    .asc-num { font-size: 20px; }
+
+    /* ── Trust strip ── */
+    .trust-strip .container { gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .trust-strip p { font-size: 13px; text-align: center; }
+
+    /* ── Section headers (disciplines & activities) ── */
+    .section-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 28px;
+    }
+    .section-header-row h2 {
+        font-size: 30px;
+        letter-spacing: -1px;
+        max-width: 100%;
+    }
+    .section-desc { text-align: left; max-width: 100%; }
+
+    /* ── Disciplines ── */
+    .disciplines-section { padding: 56px 0; }
+    .disciplines-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        gap: 14px;
+    }
+    .disc-card:first-child { grid-row: auto; } /* cancela el span de 2 filas */
+    .disc-card { height: 220px; }
+    .disc-card:first-child .disc-content h3 { font-size: 24px; }
+    .disc-card:first-child .disc-rating      { font-size: 12px; }
+
+    /* ── How it works ── */
+    .how-section { padding: 56px 0; }
+    .how-inner {
+        grid-template-columns: 1fr;
+        border-radius: var(--radius-md);
+    }
+    .how-image { height: 220px; }
+    .how-img-overlay {
+        background: linear-gradient(to bottom, transparent 45%, var(--dark) 100%);
+    }
+    .how-img-badge { bottom: 20px; left: 20px; }
+    .hib-num { font-size: 22px; }
+    .how-content { padding: 32px 24px 40px; }
+    .how-content h2 {
+        font-size: 24px;
+        letter-spacing: -0.5px;
+        margin-bottom: 28px;
+        margin-top: 12px;
+    }
+    .step-body h4 { font-size: 14px; }
+
+    /* ── Activities ── */
+    .activities-section { padding: 56px 0; }
+    .activities-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-top: 20px;
+    }
+
+    /* ── Quote ── */
+    .quote-section { padding: 56px 0; }
+    .quote-mark { font-size: 60px; }
+    .quote-inner blockquote { font-size: 17px; }
+
+    /* ── CTA ── */
+    .cta-section { padding: 28px 0 56px; }
+    .cta-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 36px 28px;
+        gap: 28px;
+        border-radius: var(--radius-md);
+    }
+    .cta-text h2 {
+        font-size: 26px;
+        letter-spacing: -0.5px;
+        max-width: 100%;
+        margin-bottom: 10px;
+    }
+    .cta-text p { font-size: 14px; }
+    .cta-actions { width: 100%; align-items: stretch; }
+    .btn-cta     { text-align: center; padding: 15px 28px; }
+    .btn-cta-sec { text-align: center; }
+
+    /* ── Footer ── */
+    .footer-inner {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+        padding: 0 20px;
+    }
+}

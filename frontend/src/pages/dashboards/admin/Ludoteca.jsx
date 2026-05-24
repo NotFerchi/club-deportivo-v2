@@ -108,7 +108,7 @@ function Ludoteca() {
 
     if (formData.nombre_nino.trim().length < 2) errors.nombre_nino = 'Nombre obligatorio';
     if (!formData.fecha_nacimiento) errors.fecha_nacimiento = 'Fecha de nacimiento obligatoria';
-    else if (!Number.isFinite(edad) || edad < 3 || edad > 7) errors.fecha_nacimiento = 'Edad valida entre 3 y 7 anos';
+    else if (!Number.isFinite(edad) || edad < 3 || edad > 7) errors.fecha_nacimiento = 'Edad valida entre 3 y 7 años';
     if (!formData.socio_id) errors.socio_id = 'Seleccione socio responsable';
     return errors;
   };
@@ -215,7 +215,7 @@ function Ludoteca() {
             <div key={registro.registro_id} className="espacio-card-modern">
               <div className="espacio-header">
                 <div>
-                  <h3 className="espacio-title">{registro.nombre_nino || registro.nombre_hijo} ({getEdad(registro) ?? '-'} anos)</h3>
+                  <h3 className="espacio-title">{registro.nombre_nino || registro.nombre_hijo} ({getEdad(registro) ?? '-'} años)</h3>
                   <p className="espacio-sub">{getSocioNombre(registro)}</p>
                 </div>
                 <span className="badge-success">
@@ -253,7 +253,7 @@ function Ludoteca() {
             <tbody>
               {historialFiltrado.map(registro => (
                 <tr key={registro.registro_id}>
-                  <td>{registro.nombre_nino || registro.nombre_hijo} ({getEdad(registro) ?? '-'})</td>
+                  <td>{registro.nombre_nino || registro.nombre_hijo} ({getEdad(registro) ?? '-'} años)</td>
                   <td>{getSocioNombre(registro)}</td>
                   <td>{formatDateTime(registro.hora_entrada)}</td>
                   <td>{registro.hora_salida ? formatDateTime(registro.hora_salida) : '-'}</td>

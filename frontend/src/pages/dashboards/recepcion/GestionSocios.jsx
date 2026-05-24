@@ -467,7 +467,7 @@ function GestionSocios() {
                     </div>
                   </td>
                   <td>
-                    <strong>{edad !== null ? `${edad} anos` : 'Sin fecha'}</strong>
+                    <strong>{edad !== null ? `${edad} años` : 'Sin fecha'}</strong>
                     <br />
                     <span style={{ fontSize: '11px', color: '#64748b' }}>{getEdadLabel(edad)}</span>
                   </td>

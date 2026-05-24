@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, ClipboardList, Calendar,
-  Puzzle, Dumbbell, ShieldAlert, Trophy, LogOut, Menu, X
+  Puzzle, Dumbbell, ShieldAlert, Trophy, LogOut, Menu, X, MapPin
 } from 'lucide-react';
 import '../../../css/Dashboard.css';
 import TournamentBracket from '../../components/TournamentBracket';
@@ -15,6 +15,8 @@ import VistaReservas       from './coordinador/VistaReservas';
 import VistaSanciones      from '../../components/SancionesPanel';
 import GestionInstructores from './coordinador/GestionInstructores';
 import GestionDisciplinas  from './coordinador/GestionDisciplinas';
+import VistaEspacios from './coordinador/VistaEspacios';
+
 
 const TABS = [
   { key: 'dashboard',   label: 'Dashboard',         icon: LayoutDashboard },
@@ -25,6 +27,7 @@ const TABS = [
   { key: 'disciplinas', label: 'Clases e Instructores', icon: Dumbbell },
   { key: 'torneos',     label: 'Torneos',            icon: Trophy },
   { key: 'sanciones',   label: 'Sanciones',          icon: ShieldAlert },
+  { key: 'espacios', label: 'Espacios', icon: MapPin },
 ];
 
 const TITULOS = {
@@ -36,6 +39,7 @@ const TITULOS = {
   disciplinas: { h: 'Clases e Instructores', p: 'Programación de clases, sesiones y cupos' },
   torneos:     { h: 'Torneos',                       p: 'Visualizacion de brackets y rondas' },
   sanciones:   { h: 'Sanciones',                    p: 'Sanciones aplicadas a socios' },
+  espacios: { h: 'Espacios', p: 'Instalaciones y canchas del club' },
 };
 
 function DashboardCoordinador() {
@@ -102,8 +106,10 @@ function DashboardCoordinador() {
           
         </div>
         {disciplinaTab === 'disciplinas' ? <GestionDisciplinas /> : <GestionInstructores />}
+        
       </>
     );
+    if (activeTab === 'espacios') return <VistaEspacios />;
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, CheckCircle, Clock, Edit2, Filter, MapPin, Plus, RotateCcw, Trophy, Users, X } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Edit2, Filter, Lock, Loader2, MapPin, Plus, RotateCcw, Save, Trophy, Users, X } from 'lucide-react';
 import { apiRequest, unwrapList } from '../services/api';
 import '../../css/TournamentBracket.css';
 
@@ -249,9 +249,14 @@ function MatchCard({ encuentro, onResultadoGuardado, readOnly }) {
             background: cargando ? '#94a3b8' : editando ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #2563eb, #3b82f6)',
             color: 'white', border: 'none', borderRadius: '6px',
             padding: '5px 14px', fontSize: '12px', fontWeight: 700,
-            cursor: cargando ? 'not-allowed' : 'pointer'
+            cursor: cargando ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', gap: '5px'
           }}>
-            {cargando ? '⏳' : editando ? '✏️ Actualizar' : '💾 Guardar'}
+            {cargando
+              ? <><Loader2 size={13} className="icon-spin" /> Guardando...</>
+              : editando
+                ? <><Edit2 size={13} /> Actualizar</>
+                : <><Save size={13} /> Guardar</>}
           </button>
         </div>
       )}
@@ -296,20 +301,20 @@ function AccionesTorneo({ torneo, onActualizar, readOnly }) {
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
         {estadoReal === 'Abierto' && (
           <button onClick={() => { if (window.confirm('¿Cerrar inscripciones y generar el bracket?')) llamar('cerrar-inscripciones'); }}
-            disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer' }}>
-            {cargando ? '⏳...' : '🔒 Cerrar inscripciones'}
+            disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {cargando ? <><Loader2 size={13} className="icon-spin" /> Cerrando...</> : <><Lock size={13} /> Cerrar inscripciones</>}
           </button>
         )}
         {estadoReal === 'Inscripciones_cerradas' && (
           <button onClick={() => { if (window.confirm('¿Confirmar bracket?')) llamar('confirmar-bracket'); }}
-            disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer' }}>
-            {cargando ? '⏳...' : '✅ Confirmar bracket'}
+            disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {cargando ? <><Loader2 size={13} className="icon-spin" /> Confirmando...</> : <><CheckCircle size={13} /> Confirmar bracket</>}
           </button>
         )}
         {estadoReal === 'En_curso' && (
           <button onClick={() => { if (window.confirm('¿Finalizar el torneo? Esta acción no se puede deshacer.')) llamar('finalizar'); }}
-            disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #6d28d9, #8b5cf6)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer' }}>
-            {cargando ? '⏳...' : '🏆 Finalizar torneo'}
+            disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #6d28d9, #8b5cf6)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {cargando ? <><Loader2 size={13} className="icon-spin" /> Finalizando...</> : <><Trophy size={13} /> Finalizar torneo</>}
           </button>
         )}
       </div>

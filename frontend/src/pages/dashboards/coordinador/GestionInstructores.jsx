@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Users, UserCheck, UserX, Mail, Phone, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Search, Users, UserCheck, UserX, Mail, Phone, Plus, Edit2, Trash2, X, Loader2 } from 'lucide-react';
 
 function iniciales(nombre) {
   if (!nombre) return '?';
@@ -196,9 +196,12 @@ function ModalInstructor({ instructor, onClose, onGuardado }) {
           <button onClick={handleSubmit} disabled={cargando} style={{
             flex: 2, background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #0f172a, #1e293b)',
             color: 'white', border: 'none', borderRadius: '10px', padding: '11px',
-            fontSize: '13px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer'
+            fontSize: '13px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
           }}>
-            {cargando ? '⏳ Guardando...' : esEdicion ? '✓ Actualizar' : '+ Crear Instructor'}
+            {cargando
+              ? <><Loader2 size={14} className="icon-spin" /> Guardando...</>
+              : esEdicion ? '✓ Actualizar' : '+ Crear Instructor'}
           </button>
         </div>
       </div>
@@ -256,8 +259,8 @@ function GestionInstructores() {
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏳</div>
-      Cargando instructores...
+      <Loader2 size={36} className="icon-spin" style={{ marginBottom: '0.5rem', color: '#94a3b8' }} />
+      <div>Cargando instructores...</div>
     </div>
   );
 

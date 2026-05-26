@@ -23,32 +23,60 @@ const formatFecha = (f) => {
   return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-// ── Buscador de socios con tecleo ─────────────────────────────────────────────
-function SocioBuscador({ socios, value, onChange }) {
-  const [query, setQuery]       = useState('');
-  const [abierto, setAbierto]   = useState(false);
-  const ref                     = useRef(null);
+// ── Buscador de socios con búsqueda en servidor ───────────────────────────────
+function SocioBuscador({ value, onChange }) {
+  const [query, setQuery]         = useState('');
+  const [resultados, setResultados] = useState([]);
+  const [buscando, setBuscando]   = useState(false);
+  const [abierto, setAbierto]     = useState(false);
+  const [seleccionado, setSeleccionado] = useState(null);
+  const ref                       = useRef(null);
+  const timerRef                  = useRef(null);
 
   // Nombre visible del socio seleccionado
-  const seleccionado = socios.find(s => String(s.socio_id) === String(value));
   const nombreVisible = seleccionado
     ? `${seleccionado.nombre_completo || `${seleccionado.nombres || ''} ${seleccionado.apellido_paterno || ''}`.trim()} — ${seleccionado.numero_socio}`
     : '';
 
-  const filtrados = socios.filter(s => {
-    const texto = `${s.nombre_completo || ''} ${s.nombres || ''} ${s.apellido_paterno || ''} ${s.numero_socio || ''}`.toLowerCase();
-    return texto.includes(query.toLowerCase());
-  });
+  // Búsqueda en servidor con debounce 300 ms
+  const buscarEnServidor = (texto) => {
+    clearTimeout(timerRef.current);
+    if (!texto.trim()) { setResultados([]); setBuscando(false); return; }
+    setBuscando(true);
+    timerRef.current = setTimeout(async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(
+          `http://localhost:3000/api/recepcion/socios?q=${encodeURIComponent(texto)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
+        setResultados(Array.isArray(data) ? data : []);
+      } catch { setResultados([]); }
+      finally { setBuscando(false); }
+    }, 300);
+  };
 
   // Cerrar al hacer click fuera
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setAbierto(false); };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    return () => { document.removeEventListener('mousedown', handler); clearTimeout(timerRef.current); };
   }, []);
 
+  const handleFocus = () => { setAbierto(true); setQuery(''); setResultados([]); };
+  const handleChange = (e) => { setQuery(e.target.value); buscarEnServidor(e.target.value); };
+  const handleSelect = (socio) => {
+    setSeleccionado(socio);
+    onChange(String(socio.socio_id));
+    setAbierto(false);
+    setQuery('');
+    setResultados([]);
+  };
+  const handleClear = () => { setSeleccionado(null); onChange(''); setQuery(''); setResultados([]); };
+
   const inputStyle = {
-    width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1',
+    width: '100%', padding: '9px 12px 9px 32px', border: '1px solid #cbd5e1',
     borderRadius: '8px', fontSize: '13px', outline: 'none',
     boxSizing: 'border-box', background: 'white'
   };
@@ -57,16 +85,20 @@ function SocioBuscador({ socios, value, onChange }) {
     <div ref={ref} style={{ position: 'relative' }}>
       {/* Input de búsqueda */}
       <div style={{ position: 'relative' }}>
-        <Search size={13} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+        {buscando
+          ? <Loader2 size={13} className="icon-spin" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+          : <Search size={13} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+        }
         <input
-          style={{ ...inputStyle, paddingLeft: 30 }}
-          placeholder="Buscar socio por nombre o número..."
+          style={inputStyle}
+          placeholder="Escribe el nombre o número del socio..."
           value={abierto ? query : nombreVisible}
-          onFocus={() => { setAbierto(true); setQuery(''); }}
-          onChange={e => setQuery(e.target.value)}
+          onFocus={handleFocus}
+          onChange={handleChange}
+          autoComplete="off"
         />
         {value && !abierto && (
-          <button onClick={() => { onChange(''); setQuery(''); }} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+          <button onMouseDown={handleClear} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
             <X size={13} color="#94a3b8" />
           </button>
         )}
@@ -77,15 +109,25 @@ function SocioBuscador({ socios, value, onChange }) {
         <div style={{
           position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
           background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 200, overflowY: 'auto', marginTop: 2
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 220, overflowY: 'auto', marginTop: 2
         }}>
-          {filtrados.length === 0 ? (
-            <div style={{ padding: '0.75rem 1rem', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>Sin resultados</div>
-          ) : filtrados.map(s => {
+          {!query.trim() ? (
+            <div style={{ padding: '0.75rem 1rem', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
+              Empieza a escribir para buscar...
+            </div>
+          ) : buscando ? (
+            <div style={{ padding: '0.75rem 1rem', fontSize: '12px', color: '#94a3b8', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <Loader2 size={13} className="icon-spin" /> Buscando...
+            </div>
+          ) : resultados.length === 0 ? (
+            <div style={{ padding: '0.75rem 1rem', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
+              Sin resultados para "{query}"
+            </div>
+          ) : resultados.map(s => {
             const nombre = s.nombre_completo || `${s.nombres || ''} ${s.apellido_paterno || ''}`.trim();
             return (
               <div key={s.socio_id}
-                onMouseDown={() => { onChange(String(s.socio_id)); setAbierto(false); setQuery(''); }}
+                onMouseDown={() => handleSelect(s)}
                 style={{
                   padding: '0.6rem 1rem', fontSize: '13px', cursor: 'pointer',
                   borderBottom: '1px solid #f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
@@ -93,8 +135,13 @@ function SocioBuscador({ socios, value, onChange }) {
                 onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                 onMouseLeave={e => e.currentTarget.style.background = 'white'}
               >
-                <span style={{ fontWeight: 600, color: '#1e293b' }}>{nombre}</span>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>{s.numero_socio}</span>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#1e293b' }}>{nombre}</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>{s.tipo} · {s.modalidad}</div>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#3b82f6', background: '#eff6ff', padding: '2px 8px', borderRadius: '20px', flexShrink: 0 }}>
+                  {s.numero_socio}
+                </span>
               </div>
             );
           })}
@@ -242,7 +289,6 @@ function ModalEditarSancion({ sancion, onClose, onActualizada }) {
 
 // ── Modal Nueva Sanción ───────────────────────────────────────────────────────
 function ModalNuevaSancion({ onClose, onCreada }) {
-  const [socios, setSocios]     = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError]       = useState(null);
   const [form, setForm] = useState({
@@ -251,16 +297,6 @@ function ModalNuevaSancion({ onClose, onCreada }) {
     origen:   'Administración',
     gravedad: 'Leve',
   });
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch('http://localhost:3000/api/recepcion/socios', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(r => r.json())
-      .then(data => setSocios(Array.isArray(data) ? data : []))
-      .catch(console.error);
-  }, []);
 
   const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -311,11 +347,10 @@ function ModalNuevaSancion({ onClose, onCreada }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-          {/* Socio con búsqueda por tecleo */}
+          {/* Socio con búsqueda en servidor */}
           <div>
             <label style={labelStyle}>Socio *</label>
             <SocioBuscador
-              socios={socios}
               value={form.socio_id}
               onChange={(val) => setForm(prev => ({ ...prev, socio_id: val }))}
             />

@@ -134,7 +134,7 @@ function TicketModal({ ticket, onClose }) {
             {(ticket.nombre_hijo || '?')[0].toUpperCase()}
           </div>
           <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, letterSpacing: '0.5px' }}>Ticket de Ludoteca</h3>
-          <p style={{ margin: '6px 0 0', fontSize: '11px', opacity: 0.6, letterSpacing: '0.5px', textTransform: 'uppercase' }}>Club Social y Deportivo</p>
+          <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'rgba(255,255,255,0.85)', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600 }}>Club Social y Deportivo</p>
         </div>
 
         <div style={{ padding: '1.5rem' }}>
@@ -206,9 +206,9 @@ function ModalRegistroEntrada({ onClose, onExito }) {
     if (edad === null) { setEdadInfo(null); return; }
     const anios = Math.floor(edad);
     if (edad < 3 || edad > 7) {
-      setEdadInfo({ valida: false, texto: `No cumple la edad permitida (3-7 anos). Tiene ${anios} anos.` });
+      setEdadInfo({ valida: false, texto: `No cumple la edad permitida (3-7 anos). Tiene ${anios} años.` });
     } else {
-      setEdadInfo({ valida: true, texto: `Edad valida: ${anios} anos` });
+      setEdadInfo({ valida: true, texto: `Edad valida: ${anios} años` });
     }
   };
 

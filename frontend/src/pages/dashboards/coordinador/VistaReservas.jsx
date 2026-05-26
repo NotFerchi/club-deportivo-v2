@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapPin, Clock, Calendar, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { MapPin, Clock, Calendar, CheckCircle, XCircle, AlertCircle, CalendarX } from 'lucide-react';
 
 function VistaReservas() {
   const [reservas, setReservas] = useState([]);
@@ -100,7 +100,7 @@ function VistaReservas() {
         <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>Cargando reservas...</div>
       ) : filtradas.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', background: 'white', borderRadius: '14px', border: '2px dashed #e2e8f0' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📅</div>
+          <CalendarX size={48} color="#cbd5e1" style={{ marginBottom: '0.75rem' }} />
           <p style={{ color: '#64748b', margin: 0, fontWeight: 600 }}>No hay reservas para el {formatFecha(fecha)}</p>
         </div>
       ) : (

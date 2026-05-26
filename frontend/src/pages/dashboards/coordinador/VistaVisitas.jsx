@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { UserCheck, Clock, Users, LogIn, LogOut } from 'lucide-react';
+import { UserCheck, Clock, Users, LogIn, LogOut, Loader2 } from 'lucide-react';
 
 function VistaVisitas() {
   const [visitas, setVisitas] = useState([]);
@@ -42,8 +42,8 @@ function VistaVisitas() {
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏳</div>
-      Cargando visitas...
+      <Loader2 size={36} className="icon-spin" style={{ marginBottom: '0.5rem', color: '#94a3b8' }} />
+      <div>Cargando visitas...</div>
     </div>
   );
 

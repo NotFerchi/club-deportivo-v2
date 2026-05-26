@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Calendar, CheckCircle, Clock, CreditCard, Edit2, Hash, Lock, Plus, RefreshCw, Search, ShieldAlert, User, UserCheck, X } from 'lucide-react';
-import { adminApi } from '../services/api';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, Calendar, CheckCircle, Clock, CreditCard, Edit2, Hash, Loader2, Lock, Plus, RefreshCw, Search, ShieldAlert, User, UserCheck, X } from 'lucide-react';
+import { adminApi, apiRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatDate, formatDateTime, normalizeText } from '../utils/adminData';
 
@@ -45,6 +45,116 @@ function useSancionesFilters() {
   return { filters, updateFilter, clearFilters };
 }
 
+// ── Buscador de socios con búsqueda en servidor ───────────────────────────────
+function SocioBuscador({ value, onChange }) {
+  const [query, setQuery]             = useState('');
+  const [resultados, setResultados]   = useState([]);
+  const [buscando, setBuscando]       = useState(false);
+  const [abierto, setAbierto]         = useState(false);
+  const [seleccionado, setSeleccionado] = useState(null);
+  const ref      = useRef(null);
+  const timerRef = useRef(null);
+
+  const nombreVisible = seleccionado
+    ? `${seleccionado.nombre_completo || `${seleccionado.nombres || ''} ${seleccionado.apellido_paterno || ''}`.trim()} — ${seleccionado.numero_socio}`
+    : '';
+
+  const buscarEnServidor = (texto) => {
+    clearTimeout(timerRef.current);
+    if (!texto.trim()) { setResultados([]); setBuscando(false); return; }
+    setBuscando(true);
+    timerRef.current = setTimeout(async () => {
+      try {
+        const data = await apiRequest(`/recepcion/socios?q=${encodeURIComponent(texto)}`);
+        setResultados(Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []));
+      } catch { setResultados([]); }
+      finally { setBuscando(false); }
+    }, 300);
+  };
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setAbierto(false); };
+    document.addEventListener('mousedown', handler);
+    return () => { document.removeEventListener('mousedown', handler); clearTimeout(timerRef.current); };
+  }, []);
+
+  const handleFocus  = () => { setAbierto(true); setQuery(''); setResultados([]); };
+  const handleChange = (e) => { setQuery(e.target.value); buscarEnServidor(e.target.value); };
+  const handleSelect = (socio) => {
+    setSeleccionado(socio);
+    onChange(String(socio.socio_id));
+    setAbierto(false);
+    setQuery('');
+    setResultados([]);
+  };
+  const handleClear = () => { setSeleccionado(null); onChange(''); setQuery(''); setResultados([]); };
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <div style={{ position: 'relative' }}>
+        {buscando
+          ? <Loader2 size={13} className="icon-spin" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+          : <Search size={13} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+        }
+        <input
+          style={{ width: '100%', padding: '9px 12px 9px 32px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', background: 'white' }}
+          placeholder="Escribe el nombre o número de socio..."
+          value={abierto ? query : nombreVisible}
+          onFocus={handleFocus}
+          onChange={handleChange}
+          autoComplete="off"
+        />
+        {value && !abierto && (
+          <button onMouseDown={handleClear} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+            <X size={13} color="#94a3b8" />
+          </button>
+        )}
+      </div>
+
+      {abierto && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 300,
+          background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 220, overflowY: 'auto', marginTop: 2
+        }}>
+          {!query.trim() ? (
+            <div style={{ padding: '0.75rem 1rem', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
+              Empieza a escribir para buscar...
+            </div>
+          ) : buscando ? (
+            <div style={{ padding: '0.75rem 1rem', fontSize: '12px', color: '#94a3b8', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <Loader2 size={13} className="icon-spin" /> Buscando...
+            </div>
+          ) : resultados.length === 0 ? (
+            <div style={{ padding: '0.75rem 1rem', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
+              Sin resultados para "{query}"
+            </div>
+          ) : resultados.map(s => {
+            const nombre = s.nombre_completo || `${s.nombres || ''} ${s.apellido_paterno || ''}`.trim();
+            return (
+              <div
+                key={s.socio_id}
+                onMouseDown={() => handleSelect(s)}
+                style={{ padding: '0.6rem 1rem', fontSize: '13px', cursor: 'pointer', borderBottom: '1px solid #f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                onMouseLeave={e => e.currentTarget.style.background = 'white'}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, color: '#1e293b' }}>{nombre}</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>{s.tipo} · {s.modalidad}</div>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#3b82f6', background: '#eff6ff', padding: '2px 8px', borderRadius: '20px', flexShrink: 0 }}>
+                  {s.numero_socio}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SancionesPanel() {
   const { rol } = useAuth();
   const [sanciones, setSanciones] = useState([]);
@@ -53,7 +163,6 @@ function SancionesPanel() {
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0, total_pages: 1 });
   const [selected, setSelected] = useState(null);
   const [resolving, setResolving] = useState(false);
-  const [socios, setSocios] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingSancion, setEditingSancion] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
@@ -85,14 +194,6 @@ function SancionesPanel() {
   useEffect(() => {
     fetchSanciones();
   }, [page, filters.origen, filters.estado, filters.socio]);
-
-  useEffect(() => {
-    if (!canResolve) return;
-
-    adminApi.getSocios()
-      .then((data) => setSocios(data.filter((socio) => socio.activo === true || socio.activo === 'true')))
-      .catch(() => setSocios([]));
-  }, [canResolve]);
 
   useEffect(() => {
     setPage(1);
@@ -446,17 +547,13 @@ function SancionesPanel() {
               <div className="modal-body">
                 <div className="sanciones-form-grid">
                   {!editingSancion && (
-                    <label className="form-group form-group-full">
-                      <span>Socio</span>
-                      <select value={formData.socio_id} onChange={(event) => setFormData((current) => ({ ...current, socio_id: event.target.value }))}>
-                        <option value="">Selecciona un socio</option>
-                        {socios.map((socio) => (
-                          <option key={socio.socio_id} value={socio.socio_id}>
-                            {[socio.nombres, socio.apellido_paterno, socio.apellido_materno].filter(Boolean).join(' ')} - {socio.numero_socio || 'Sin numero'}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <div className="form-group form-group-full">
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>Socio</span>
+                      <SocioBuscador
+                        value={formData.socio_id}
+                        onChange={(val) => setFormData((current) => ({ ...current, socio_id: val }))}
+                      />
+                    </div>
                   )}
 
                   <label className="form-group">

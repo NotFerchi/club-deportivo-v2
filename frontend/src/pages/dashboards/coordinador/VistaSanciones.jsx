@@ -232,12 +232,17 @@ function VistaSanciones() {
       </div>
 
       {/* Buscador */}
-      <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
-        <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-        <input type="text" placeholder="Buscar por socio, motivo u origen..."
-          value={busqueda} onChange={e => setBusqueda(e.target.value)}
-          style={{ width: '100%', paddingLeft: 40, paddingRight: 16, paddingTop: 10, paddingBottom: 10, border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, outline: 'none', boxSizing: 'border-box', background: 'white' }}
-        />
+      <div className="admin-filter-row" style={{ marginBottom: '1.25rem' }}>
+        <div className="search-wrapper">
+          <Search className="search-icon" />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Buscar por socio, motivo u origen..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* Lista */}

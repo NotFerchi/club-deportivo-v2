@@ -240,7 +240,7 @@ const importarSocios = async (req, res) => {
       const telEmerg   = String(fila.Telefono_Particular || '').trim() || null;
       const domicilio  = String(fila.Domicilio || '').trim() || null;
       const parentesco = String(fila.Parentesco || '').trim() || null;
-      const username   = normalizarUsername(email);
+      const username   = email;
 
       try {
         await client.query('SAVEPOINT sp_fila');
@@ -293,12 +293,12 @@ const importarSocios = async (req, res) => {
 
           // iv. INSERT usuario
           const nuevoUsuario = await client.query(
-            `INSERT INTO usuarios (username, password_hash, password_temporal, rol_id,
+            `INSERT INTO usuarios (username, password_hash, rol_id,
               nombres, apellido_paterno, apellido_materno, genero, fecha_nacimiento,
               telefono, direccion, curp)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NULL)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NULL)
              RETURNING usuario_id`,
-            [username, passwordHash, passwordTemporal, rolSocioId,
+            [username, passwordHash, rolSocioId,
              nombres, apellido_paterno, apellido_materno, genero, fechaNac,
              telefono, domicilio]
           );

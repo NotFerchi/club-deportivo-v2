@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Filter, MapPin, RotateCcw, Trophy, Edit2, CheckCircle } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Edit2, Filter, MapPin, Plus, RotateCcw, Trophy, Users, X } from 'lucide-react';
 import { apiRequest, unwrapList } from '../services/api';
 import '../../css/TournamentBracket.css';
 
@@ -377,6 +377,14 @@ function TournamentBracket({
   const [loadingBracket, setLoadingBracket] = useState(false);
   const [torneosError, setTorneosError] = useState('');
   const [bracketError, setBracketError] = useState('');
+  const [showTorneoModal, setShowTorneoModal] = useState(false);
+  const [editingTorneo, setEditingTorneo] = useState(null);
+  const [formTorneo, setFormTorneo] = useState({ nombre: '', disciplina_id: '', fecha_inicio: '', fecha_fin: '', estado: 'Abierto' });
+  const [torneoFormErrors, setTorneoFormErrors] = useState({});
+  const [savingTorneo, setSavingTorneo] = useState(false);
+  const [showParticipantes, setShowParticipantes] = useState(false);
+  const [participantes, setParticipantes] = useState([]);
+  const [loadingParticipantes, setLoadingParticipantes] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -436,6 +444,87 @@ function TournamentBracket({
     loadBracket();
     return () => controller.abort();
   }, [selectedTorneo]);
+
+  const openCreateModal = () => {
+    setEditingTorneo(null);
+    setFormTorneo({ nombre: '', disciplina_id: '', fecha_inicio: '', fecha_fin: '', estado: 'Abierto' });
+    setTorneoFormErrors({});
+    setShowTorneoModal(true);
+  };
+
+  const openEditModal = (torneo) => {
+    setEditingTorneo(torneo);
+    setFormTorneo({
+      nombre: torneo.nombre || '',
+      disciplina_id: String(torneo.disciplina_id || ''),
+      fecha_inicio: torneo.fecha_inicio ? String(torneo.fecha_inicio).split('T')[0] : '',
+      fecha_fin: torneo.fecha_fin ? String(torneo.fecha_fin).split('T')[0] : '',
+      estado: torneo.estado || 'Abierto'
+    });
+    setTorneoFormErrors({});
+    setShowTorneoModal(true);
+  };
+
+  const validateTorneoForm = () => {
+    const errors = {};
+    if (!formTorneo.nombre.trim()) errors.nombre = 'El nombre es requerido';
+    if (!formTorneo.disciplina_id) errors.disciplina_id = 'La disciplina es requerida';
+    if (formTorneo.fecha_inicio && formTorneo.fecha_fin && formTorneo.fecha_fin < formTorneo.fecha_inicio) {
+      errors.fecha_fin = 'La fecha fin no puede ser anterior a la fecha inicio';
+    }
+    return errors;
+  };
+
+  const handleSaveTorneo = async (e) => {
+    e.preventDefault();
+    const errors = validateTorneoForm();
+    if (Object.keys(errors).length > 0) { setTorneoFormErrors(errors); return; }
+    setSavingTorneo(true);
+    try {
+      const token = localStorage.getItem('token');
+      const payload = {
+        nombre: formTorneo.nombre.trim(),
+        disciplina_id: Number(formTorneo.disciplina_id),
+        fecha_inicio: formTorneo.fecha_inicio || null,
+        fecha_fin: formTorneo.fecha_fin || null,
+        estado: formTorneo.estado
+      };
+      const url = editingTorneo
+        ? `http://localhost:3000/api/torneos/${editingTorneo.torneo_id}`
+        : 'http://localhost:3000/api/torneos';
+      const res = await fetch(url, {
+        method: editingTorneo ? 'PUT' : 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) { setTorneoFormErrors({ general: data.error || 'Error al guardar' }); return; }
+      setShowTorneoModal(false);
+      await cargarTorneos();
+    } catch {
+      setTorneoFormErrors({ general: 'Error de conexión' });
+    } finally {
+      setSavingTorneo(false);
+    }
+  };
+
+  const handleVerParticipantes = async (torneo) => {
+    setShowParticipantes(true);
+    setLoadingParticipantes(true);
+    setParticipantes([]);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:3000/api/torneos/${torneo.torneo_id}/participantes`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setParticipantes(data.participantes || data.data || []);
+    } catch {
+      setParticipantes([]);
+    } finally {
+      setLoadingParticipantes(false);
+    }
+  };
 
   const handleFilterSubmit = (e) => {
     e.preventDefault();
@@ -509,6 +598,15 @@ function TournamentBracket({
             <strong>Torneos</strong>
             <span>{torneos.length}</span>
           </div>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              style={{ width: '100%', marginBottom: 10, background: 'linear-gradient(135deg,#2563eb,#3b82f6)', color: 'white', border: 'none', borderRadius: 8, padding: '8px 12px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            >
+              <Plus size={15} /> Nuevo Torneo
+            </button>
+          )}
           {loadingTorneos && <div className="tb-loading">Cargando...</div>}
           {torneosError && <div className="tb-error">{torneosError}</div>}
           {!loadingTorneos && !torneosError && torneos.length === 0 && (
@@ -535,6 +633,26 @@ function TournamentBracket({
             <>
               {/* Detalle del torneo */}
               <DetalleTorneo torneo={selectedTorneo} />
+
+              {/* Botones de gestión */}
+              {!readOnly && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(selectedTorneo)}
+                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, padding: '7px 14px', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, color: '#1e3a5f' }}
+                  >
+                    <Edit2 size={13} /> Editar torneo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleVerParticipantes(selectedTorneo)}
+                    style={{ background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: 8, padding: '7px 14px', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, color: '#1d4ed8' }}
+                  >
+                    <Users size={13} /> Inscritos ({selectedTorneo.total_participantes ?? 0})
+                  </button>
+                </div>
+              )}
 
               {/* Acciones */}
               <AccionesTorneo torneo={selectedTorneo} onActualizar={handleTorneoActualizado} readOnly={readOnly} />
@@ -573,6 +691,136 @@ function TournamentBracket({
           )}
         </div>
       </div>
+      {/* Modal crear/editar torneo */}
+      {showTorneoModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0' }}>
+              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', color: '#0f172a' }}>
+                {editingTorneo ? 'Editar Torneo' : 'Nuevo Torneo'}
+              </h3>
+              <button onClick={() => setShowTorneoModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={22} /></button>
+            </div>
+            <form onSubmit={handleSaveTorneo}>
+              <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {torneoFormErrors.general && (
+                  <p style={{ margin: 0, color: '#dc2626', fontWeight: 600, fontSize: 13 }}>{torneoFormErrors.general}</p>
+                )}
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>Nombre <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input value={formTorneo.nombre} onChange={e => setFormTorneo(p => ({ ...p, nombre: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${torneoFormErrors.nombre ? '#ef4444' : '#cbd5e1'}`, fontSize: 14, boxSizing: 'border-box' }}
+                    placeholder="Ej: Copa Verano 2025" />
+                  {torneoFormErrors.nombre && <p style={{ margin: '4px 0 0', color: '#ef4444', fontSize: 12 }}>{torneoFormErrors.nombre}</p>}
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>Disciplina <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select value={formTorneo.disciplina_id} onChange={e => setFormTorneo(p => ({ ...p, disciplina_id: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${torneoFormErrors.disciplina_id ? '#ef4444' : '#cbd5e1'}`, fontSize: 14, boxSizing: 'border-box' }}>
+                    <option value="">Seleccionar disciplina</option>
+                    {disciplinas.map(d => <option key={d.disciplina_id} value={d.disciplina_id}>{d.nombre}</option>)}
+                  </select>
+                  {torneoFormErrors.disciplina_id && <p style={{ margin: '4px 0 0', color: '#ef4444', fontSize: 12 }}>{torneoFormErrors.disciplina_id}</p>}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>Fecha inicio</label>
+                    <input type="date" value={formTorneo.fecha_inicio} onChange={e => setFormTorneo(p => ({ ...p, fecha_inicio: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>Fecha fin</label>
+                    <input type="date" value={formTorneo.fecha_fin} onChange={e => setFormTorneo(p => ({ ...p, fecha_fin: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${torneoFormErrors.fecha_fin ? '#ef4444' : '#cbd5e1'}`, fontSize: 14, boxSizing: 'border-box' }} />
+                    {torneoFormErrors.fecha_fin && <p style={{ margin: '4px 0 0', color: '#ef4444', fontSize: 12 }}>{torneoFormErrors.fecha_fin}</p>}
+                  </div>
+                </div>
+                {editingTorneo && (
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>Estado</label>
+                    <select value={formTorneo.estado} onChange={e => setFormTorneo(p => ({ ...p, estado: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box' }}>
+                      {DEFAULT_ESTADO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0' }}>
+                <button type="button" onClick={() => setShowTorneoModal(false)} disabled={savingTorneo}
+                  style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 20px', fontWeight: 600, fontSize: 13, cursor: 'pointer', color: '#374151' }}>
+                  Cancelar
+                </button>
+                <button type="submit" disabled={savingTorneo}
+                  style={{ background: savingTorneo ? '#94a3b8' : 'linear-gradient(135deg,#2563eb,#3b82f6)', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, fontSize: 13, cursor: savingTorneo ? 'not-allowed' : 'pointer' }}>
+                  {savingTorneo ? 'Guardando...' : editingTorneo ? 'Actualizar' : 'Crear Torneo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal ver participantes */}
+      {showParticipantes && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div>
+                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', color: '#0f172a' }}>
+                  Inscritos — {selectedTorneo?.nombre}
+                </h3>
+                {!loadingParticipantes && (
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: participantes.length >= 4 ? '#15803d' : '#b45309', fontWeight: 700 }}>
+                    {participantes.length} participante{participantes.length !== 1 ? 's' : ''} —
+                    {participantes.length >= 4 ? ' ✅ Se realizará (mínimo 4 alcanzado)' : ` ⚠️ Faltan ${4 - participantes.length} para realizarse`}
+                  </p>
+                )}
+              </div>
+              <button onClick={() => setShowParticipantes(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={22} /></button>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1, padding: '1rem 1.5rem' }}>
+              {loadingParticipantes && <p style={{ color: '#64748b', textAlign: 'center' }}>Cargando...</p>}
+              {!loadingParticipantes && participantes.length === 0 && (
+                <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem 0' }}>No hay participantes inscritos aún.</p>
+              )}
+              {!loadingParticipantes && participantes.length > 0 && (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                      <th style={{ textAlign: 'left', padding: '8px 4px', color: '#475569', fontWeight: 700 }}>#</th>
+                      <th style={{ textAlign: 'left', padding: '8px 4px', color: '#475569', fontWeight: 700 }}>Participante</th>
+                      <th style={{ textAlign: 'left', padding: '8px 4px', color: '#475569', fontWeight: 700 }}>Tipo</th>
+                      <th style={{ textAlign: 'left', padding: '8px 4px', color: '#475569', fontWeight: 700 }}>Categoría</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {participantes.map((p, i) => (
+                      <tr key={p.participante_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px 4px', color: '#94a3b8', fontWeight: 700 }}>{i + 1}</td>
+                        <td style={{ padding: '8px 4px', fontWeight: 600, color: '#0f172a' }}>{p.nombre_participante}</td>
+                        <td style={{ padding: '8px 4px' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                            background: p.tipo_participante === 'Socio' ? '#dbeafe' : p.tipo_participante === 'Visita' ? '#dcfce7' : '#f1f5f9',
+                            color: p.tipo_participante === 'Socio' ? '#1d4ed8' : p.tipo_participante === 'Visita' ? '#15803d' : '#475569' }}>
+                            {p.tipo_participante}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px 4px', color: '#64748b', fontSize: 12 }}>{p.categoria || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowParticipantes(false)}
+                style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 20px', fontWeight: 600, fontSize: 13, cursor: 'pointer', color: '#374151' }}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

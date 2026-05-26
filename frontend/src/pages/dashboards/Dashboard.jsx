@@ -165,6 +165,33 @@ function Dashboard() {
   const [trends, setTrends] = useState({ reservas: 0, sanciones: 0, socios: 0, visitas: 0 });
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [dismissedIds, setDismissedIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('notif_dismissed') || '[]')); }
+    catch { return new Set(); }
+  });
+
+  const visibleNotifs = useMemo(
+    () => notifications.filter(n => !dismissedIds.has(n.id)),
+    [notifications, dismissedIds]
+  );
+
+  const dismissNotif = (id) => {
+    setDismissedIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem('notif_dismissed', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const clearAllNotifs = () => {
+    const allIds = notifications.map(n => n.id);
+    setDismissedIds(prev => {
+      const next = new Set([...prev, ...allIds]);
+      localStorage.setItem('notif_dismissed', JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!showNotifications) return;
@@ -347,6 +374,22 @@ function Dashboard() {
   const mobileItems = [...NAV_ITEMS, ...adminItems];
   const getNavClass = (tab) => `nav-link ${activeTab === tab ? 'active' : ''}`;
 
+  /* Etiquetas cortas para la barra de tabs horizontal en móvil */
+  const MOBILE_TAB_ITEMS = [
+    { id: 'dashboard',   label: 'Inicio',       icon: LayoutDashboard },
+    { id: 'socios',      label: 'Socios',        icon: Users },
+    { id: 'recepcion',   label: 'Recepción',     icon: ClipboardList },
+    { id: 'reservas',    label: 'Reservas',      icon: Calendar },
+    { id: 'ludoteca',    label: 'Ludoteca',      icon: Puzzle },
+    { id: 'disciplinas', label: 'Disciplinas',   icon: Dumbbell },
+    { id: 'torneos',     label: 'Torneos',       icon: Trophy },
+    { id: 'sanciones',   label: 'Sanciones',     icon: ShieldAlert },
+    { id: 'reportes',    label: 'Reportes',      icon: FileText },
+    { id: 'usuarios',    label: 'Usuarios',      icon: UserPlus },
+    { id: 'espacios',    label: 'Espacios',      icon: Settings },
+    ...(!isManager ? [{ id: 'logs', label: 'Auditoría', icon: FileText }] : []),
+  ];
+
   if (loading) {
     return (
       <div className="dashboard-root">
@@ -402,20 +445,44 @@ function Dashboard() {
         </div>
       </aside>
 
-      <main className="main-content">
-        <header className="admin-mobile-top">
-          <div>
-            <strong>Club Social y Deportivo</strong>
-            <span>{dashboardTitle}</span>
+      <div className="admin-main-wrapper">
+        {/* ── Header móvil — estilo blanco, igual que instructor ── */}
+        <header className="admin-mobile-header">
+          <div className="admin-mobile-left">
+            <div className="admin-mobile-brand-mark" />
+            <div>
+              <span className="admin-mobile-title">Club Social y Deportivo</span>
+              <span className="admin-mobile-subtitle">{dashboardTitle}</span>
+            </div>
           </div>
-          <select value={activeTab} onChange={e => setActiveTab(e.target.value)}>
-            {mobileItems.map(item => (
-              <option key={item.id} value={item.id}>{item.label}</option>
-            ))}
-          </select>
+          <div className="admin-mobile-right">
+            <span className="admin-mobile-username">{userName}</span>
+            <div className="admin-mobile-avatar">{userName.charAt(0).toUpperCase()}</div>
+            <button onClick={handleLogout} className="admin-mobile-logout-btn" title="Cerrar sesión">
+              <LogOut size={18} />
+            </button>
+          </div>
         </header>
 
-        <header className="page-header">
+        {/* ── Tab bar móvil — scroll horizontal, igual que instructor ── */}
+        <div className="admin-tabs-mobile">
+          {MOBILE_TAB_ITEMS.map(item => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                className={`admin-tab-mobile-btn${activeTab === item.id ? ' active' : ''}`}
+                onClick={() => setActiveTab(item.id)}
+              >
+                <Icon size={17} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <main className="main-content">
+          <header className="page-header">
           <div>
             <h2>{dashboardTitle}</h2>
             <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
@@ -448,7 +515,7 @@ function Dashboard() {
               title="Notificaciones"
             >
               <Bell size={17} />
-              {notifications.length > 0 && (
+              {visibleNotifs.length > 0 && (
                 <span style={{
                   position: 'absolute', top: -4, right: -4,
                   background: '#ef4444', color: '#fff',
@@ -456,36 +523,88 @@ function Dashboard() {
                   fontSize: 10, fontWeight: 700,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   border: '2px solid #fff'
-                }}>{notifications.length > 9 ? '9+' : notifications.length}</span>
+                }}>{visibleNotifs.length > 9 ? '9+' : visibleNotifs.length}</span>
               )}
             </button>
 
             {showNotifications && (
-              <div data-notif-panel style={{
+              <div data-notif-panel className="notif-dropdown" style={{
                 position: 'absolute', top: 44, right: 0, zIndex: 200,
                 background: '#fff', border: '1px solid #e2e8f0',
-                borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                width: 320, overflow: 'hidden'
+                borderRadius: 14, boxShadow: '0 12px 40px rgba(0,0,0,0.14)',
+                width: 340, overflow: 'hidden'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Alertas recientes</span>
-                  <button onClick={() => setShowNotifications(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><X size={16} /></button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Bell size={15} style={{ color: '#6366f1' }} />
+                    <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Alertas recientes</span>
+                    {visibleNotifs.length > 0 && (
+                      <span style={{ background: '#ef4444', color: '#fff', borderRadius: 99, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+                        {visibleNotifs.length}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {visibleNotifs.length > 0 && (
+                      <button
+                        onClick={clearAllNotifs}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 6, transition: 'background 0.15s' }}
+                        title="Borrar todas las alertas"
+                      >
+                        Borrar todo
+                      </button>
+                    )}
+                    <button onClick={() => setShowNotifications(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4, borderRadius: 6 }}>
+                      <X size={15} />
+                    </button>
+                  </div>
                 </div>
-                {notifications.length === 0 ? (
-                  <p style={{ padding: '1.25rem 1rem', color: '#64748b', fontSize: 13, textAlign: 'center', margin: 0 }}>Sin alertas en los últimos 3 días</p>
+
+                {visibleNotifs.length === 0 ? (
+                  <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                      <Bell size={20} style={{ color: '#94a3b8' }} />
+                    </div>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: 13, fontWeight: 500 }}>Sin alertas pendientes</p>
+                    <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: 12 }}>Todo al día en los últimos 3 días</p>
+                  </div>
                 ) : (
-                  <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                    {notifications.map(n => (
-                      <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 16px', borderBottom: '1px solid #f8fafc' }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: n.type === 'noshow' ? '#fff7ed' : '#fef2f2' }}>
+                  <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                    {visibleNotifs.map(n => (
+                      <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '11px 16px', borderBottom: '1px solid #f8fafc', transition: 'background 0.1s' }}>
+                        <div style={{
+                          width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: n.type === 'noshow' ? '#fff7ed' : '#fef2f2'
+                        }}>
                           {n.type === 'noshow'
                             ? <AlertTriangle size={14} style={{ color: '#d97706' }} />
                             : <ShieldAlert size={14} style={{ color: '#dc2626' }} />
                           }
                         </div>
-                        <p style={{ margin: 0, fontSize: 12, color: '#374151', lineHeight: 1.5 }}>{n.text}</p>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: 12, color: '#1e293b', lineHeight: 1.5, fontWeight: 500 }}>{n.text}</p>
+                          <span style={{ fontSize: 11, color: '#94a3b8', background: n.type === 'noshow' ? '#fff7ed' : '#fef2f2', padding: '1px 6px', borderRadius: 4, marginTop: 3, display: 'inline-block', fontWeight: 600 }}>
+                            {n.type === 'noshow' ? 'No-show' : 'Sanción'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); dismissNotif(n.id); }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: '2px', borderRadius: 4, flexShrink: 0, marginTop: 2 }}
+                          title="Descartar alerta"
+                        >
+                          <X size={13} />
+                        </button>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {notifications.length > 0 && visibleNotifs.length < notifications.length && (
+                  <div style={{ padding: '8px 16px', borderTop: '1px solid #f1f5f9', textAlign: 'center' }}>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                      {notifications.length - visibleNotifs.length} alerta(s) descartada(s)
+                    </span>
                   </div>
                 )}
               </div>
@@ -625,7 +744,7 @@ function Dashboard() {
         {activeTab === 'socios' && <GestionSocios />}
         {activeTab === 'recepcion' && <RecepcionVisitas />}
         {activeTab === 'reservas' && <Reservas />}
-        {activeTab === 'disciplinas' && <Disciplinas readOnly={isManager} />}
+        {activeTab === 'disciplinas' && <Disciplinas />}
         {activeTab === 'torneos' && (
           <TournamentBracket
             title="Torneos y Brackets"
@@ -638,7 +757,8 @@ function Dashboard() {
         {activeTab === 'usuarios' && <GestionUsuarios />}
         {activeTab === 'espacios' && <ConfiguracionEspacios />}
         {activeTab === 'logs' && userRole === 'admin' && <AuditoriaLogs />}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

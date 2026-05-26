@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { getTableColumns } = require('../utils/adminRules');
 
 const inscripcionesController = {
     // ============================================
@@ -13,12 +14,28 @@ inscribir: async (req, res) => {
         
         try {
             // 1. Verificar sesión y que el ESPACIO esté activo (JOIN con espacios)
+            const espacioCols = await getTableColumns('espacios');
+            const estadoCond = espacioCols.has('estado')
+              ? "AND LOWER(COALESCE(e.estado, 'activo')) <> 'mantenimiento'"
+              : '';
+            const mantenimientoCols = await getTableColumns('mantenimiento_espacios');
+            const mantenimientoCond = mantenimientoCols.size > 0
+              ? `AND NOT EXISTS (
+                    SELECT 1
+                    FROM mantenimiento_espacios me
+                    WHERE me.espacio_id = e.espacio_id
+                      AND COALESCE(me.activo, true) = true
+                  )`
+              : '';
             const sesionQuery = `
-                SELECT sp.sesion_id, sp.cupo_maximo, sp.dia_semana, sp.hora_inicio, sp.hora_fin 
+                SELECT sp.sesion_id, sp.cupo_maximo, sp.dia_semana, sp.hora_inicio, sp.hora_fin
                 FROM sesiones_programadas sp
                 JOIN espacios e ON sp.espacio_id = e.espacio_id
-                WHERE sp.sesion_id = $1 AND e.activo = true`;
-            
+                WHERE sp.sesion_id = $1
+                  AND e.activo = true
+                  ${estadoCond}
+                  ${mantenimientoCond}`;
+
             const sesion = await pool.query(sesionQuery, [sesionId]);
             
             if (sesion.rows.length === 0) {

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle, Clock, DoorOpen, LogOut, RefreshCw, UserPlus, Users, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertCircle, CheckCircle, Clock, DoorOpen, Download, Eye, LogOut, Mail, Printer, RefreshCw, UserPlus, Users, X } from 'lucide-react';
 import { adminApi } from '../../../services/api';
 import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput, StatCard } from '../../../components/admin/AdminUI';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
@@ -36,6 +36,9 @@ function RecepcionVisitas() {
   const [limitesPases, setLimitesPases] = useState({});
   const [loadError, setLoadError] = useState('');
   const [closingVisits, setClosingVisits] = useState(false);
+  const [qrModal, setQrModal] = useState({ open: false, qrImage: null, nombre: '', expiraEn: null, correo: '' });
+  const [viewingVisita, setViewingVisita] = useState(null);
+  const qrPrintRef = useRef(null);
 
   const fetchData = async () => {
     try {
@@ -129,15 +132,59 @@ function RecepcionVisitas() {
     };
 
     try {
-      await adminApi.registrarVisita(payload);
+      const respuesta = await adminApi.registrarVisita(payload);
       setShowModal(false);
       setFormData(initialFormData);
       setFormErrors({});
       await fetchData();
-      showToast('Visita registrada correctamente');
+      if (respuesta?.qr_image) {
+        setQrModal({
+          open: true,
+          qrImage: respuesta.qr_image,
+          nombre: nombreCompleto,
+          expiraEn: respuesta.expira_en,
+          correo: formData.correo.trim() || ''
+        });
+      } else {
+        showToast('Visita registrada correctamente');
+      }
     } catch (error) {
       alert(error.message || 'Error al registrar visita');
     }
+  };
+
+  const handlePrintQr = () => {
+    const win = window.open('', '_blank', 'width=400,height=500');
+    win.document.write(`
+      <html><head><title>QR Visita</title>
+      <style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;}
+      img{width:260px;height:260px;} p{margin:6px 0;font-size:14px;color:#1e3a5f;}</style></head>
+      <body>
+        <p style="font-weight:700;font-size:16px;">${qrModal.nombre}</p>
+        <img src="${qrModal.qrImage}" alt="QR" />
+        <p>Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}</p>
+        <script>window.onload=()=>{ window.print(); window.close(); }</script>
+      </body></html>
+    `);
+    win.document.close();
+  };
+
+  const handleEmailQr = () => {
+    const asunto = encodeURIComponent(`QR de acceso - ${qrModal.nombre}`);
+    const cuerpo = encodeURIComponent(
+      `Hola ${qrModal.nombre},\n\nTu código QR de acceso ha sido generado.\n` +
+      `Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}\n\n` +
+      `Presenta este correo en recepción para que escaneen tu QR.\n\nClub Deportivo`
+    );
+    const to = qrModal.correo ? encodeURIComponent(qrModal.correo) : '';
+    window.open(`mailto:${to}?subject=${asunto}&body=${cuerpo}`, '_blank');
+  };
+
+  const handleDownloadQr = () => {
+    const link = document.createElement('a');
+    link.href = qrModal.qrImage;
+    link.download = `qr_visita_${qrModal.nombre.replace(/\s+/g, '_')}.png`;
+    link.click();
   };
 
   const registrarSalida = async (visitaId) => {
@@ -274,6 +321,9 @@ function RecepcionVisitas() {
                 </div>
               </div>
               <div className="espacio-footer">
+                <button onClick={() => setViewingVisita(visita)} className="btn-secondary" title="Ver detalle">
+                  <Eye size={14} /> Detalle
+                </button>
                 <button onClick={() => registrarSalida(visita.visita_id || visita.pase_id)} className="btn-primary">
                   <LogOut size={14} /> Registrar salida
                 </button>
@@ -295,6 +345,7 @@ function RecepcionVisitas() {
                 <th>Entrada</th>
                 <th>Salida</th>
                 <th>Estado</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -306,6 +357,11 @@ function RecepcionVisitas() {
                   <td>{formatDateTime(registro.hora_entrada)}</td>
                   <td>{registro.hora_salida ? formatDateTime(registro.hora_salida) : '-'}</td>
                   <td><span className={registro.hora_salida ? 'badge-warning' : 'badge-success'}>{registro.hora_salida ? 'Finalizada' : 'Activa'}</span></td>
+                  <td>
+                    <button onClick={() => setViewingVisita(registro)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} title="Ver detalle">
+                      <Eye size={13} />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {historialFiltrado.length === 0 && (
@@ -319,6 +375,124 @@ function RecepcionVisitas() {
           </table>
         </div>
       </div>
+
+      {qrModal.open && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 420, textAlign: 'center' }}>
+            <div className="modal-header">
+              <h3>QR de Acceso Generado</h3>
+              <button onClick={() => setQrModal(prev => ({ ...prev, open: false }))} className="close-modal"><X size={24} /></button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: 16, color: '#1e3a5f' }}>{qrModal.nombre}</p>
+              <img ref={qrPrintRef} src={qrModal.qrImage} alt="QR de acceso" style={{ width: 220, height: 220, border: '4px solid #1e3a5f', borderRadius: 8 }} />
+              <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                Válido hasta: {qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}
+              </p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button onClick={handlePrintQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Printer size={15} /> Imprimir
+                </button>
+                <button onClick={handleDownloadQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Download size={15} /> Descargar
+                </button>
+                <button onClick={handleEmailQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }} title={qrModal.correo ? `Enviar a ${qrModal.correo}` : 'Abrir cliente de correo'}>
+                  <Mail size={15} /> Enviar por correo
+                </button>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => { setQrModal(prev => ({ ...prev, open: false })); showToast('Visita registrada correctamente'); }} className="btn-primary">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewingVisita && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <h3>Detalle de Visita</h3>
+              <button onClick={() => setViewingVisita(null)} className="close-modal"><X size={24} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Visitante</label>
+                  <p style={{ margin: 0, fontWeight: 600 }}>{getVisitanteNombre(viewingVisita)}</p>
+                </div>
+                <div className="form-group">
+                  <label>Tipo de pase</label>
+                  <span className={viewingVisita.tipo_pase === 'dia' ? 'badge-info' : 'badge-success'}>
+                    {viewingVisita.tipo_pase === 'dia' ? 'Pase de día' : 'Visita de invitado'}
+                  </span>
+                </div>
+                <div className="form-group">
+                  <label>Teléfono</label>
+                  <p style={{ margin: 0 }}>{viewingVisita.telefono || '-'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Correo</label>
+                  <p style={{ margin: 0 }}>{viewingVisita.correo || '-'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Identificación</label>
+                  <p style={{ margin: 0 }}>{viewingVisita.identificacion || viewingVisita.identificacion_tipo || '-'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Mayor de 16 años</label>
+                  <p style={{ margin: 0 }}>{viewingVisita.mayor_16 === false ? 'No' : 'Sí'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Socio anfitrión</label>
+                  <p style={{ margin: 0 }}>
+                    {[viewingVisita.socio_anfitrion_nombre, viewingVisita.socio_anfitrion_apellido].filter(Boolean).join(' ') ||
+                     viewingVisita.socio_nombre || 'Ninguno'}
+                  </p>
+                </div>
+                <div className="form-group">
+                  <label>Número de socio anfitrión</label>
+                  <p style={{ margin: 0 }}>{viewingVisita.numero_socio || '-'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Fecha de visita</label>
+                  <p style={{ margin: 0 }}>{viewingVisita.fecha_pase || viewingVisita.fecha_visita || '-'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Hora de entrada</label>
+                  <p style={{ margin: 0 }}>{viewingVisita.hora_entrada ? formatDateTime(viewingVisita.hora_entrada) : '-'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Hora de salida</label>
+                  <p style={{ margin: 0 }}>{viewingVisita.hora_salida ? formatDateTime(viewingVisita.hora_salida) : 'Aún en el club'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Estado</label>
+                  <span className={viewingVisita.hora_salida ? 'badge-warning' : 'badge-success'}>
+                    {viewingVisita.hora_salida ? 'Finalizada' : 'Activa'}
+                  </span>
+                </div>
+                {(viewingVisita.observaciones || viewingVisita.motivo) && (
+                  <div className="form-group form-group-full">
+                    <label>Observaciones / Motivo</label>
+                    <p style={{ margin: 0 }}>{viewingVisita.observaciones || viewingVisita.motivo}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setViewingVisita(null)} className="btn-outline">Cerrar</button>
+              {!viewingVisita.hora_salida && (
+                <button onClick={() => { registrarSalida(viewingVisita.visita_id || viewingVisita.pase_id); setViewingVisita(null); }} className="btn-primary">
+                  <LogOut size={14} /> Registrar salida
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="modal-overlay">

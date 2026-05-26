@@ -12,6 +12,7 @@ const {
 
 const RESERVA_CONFIG = {
   sameDayOnly: process.env.RESERVAS_MISMO_DIA !== 'false',
+  allowPast: process.env.RESERVAS_PERMITIR_PASADAS === 'true',
   durationMinutes: Number(process.env.RESERVAS_DURACION_MINUTOS || 60),
   maxActiveReservationsPerSocio: Number(process.env.RESERVAS_MAX_ACTIVAS_SOCIO || 1)
 };
@@ -31,6 +32,49 @@ function normalizeDate(value) {
 
 function normalizeTime(value) {
   return String(value || '').slice(0, 5);
+}
+
+function localNowParts() {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return {
+    fecha: local.toISOString().split('T')[0],
+    hora: local.toISOString().slice(11, 16)
+  };
+}
+
+async function syncReservasNoShow(client = pool) {
+  const estadoNoShow = await resolveReservaEstado('no-show');
+  const { fecha, hora } = localNowParts();
+  const result = await client.query(
+    `UPDATE reservaciones r
+     SET estado = $1,
+         no_show = TRUE
+     WHERE LOWER(r.estado::text) IN ('confirmada', 'confirmado', 'pendiente')
+       AND (
+         r.fecha_reserva < $2::date
+         OR (r.fecha_reserva = $2::date AND r.hora_fin < $3::time)
+       )
+       AND NOT EXISTS (
+         SELECT 1
+         FROM asistencia a
+         WHERE a.socio_id = r.socio_id
+           AND a.fecha = r.fecha_reserva
+           AND COALESCE(a.presente, false) = TRUE
+           AND (
+             r.sesion_id IS NULL
+             OR a.sesion_id = r.sesion_id
+           )
+       )
+     RETURNING r.reserva_id, r.socio_id`,
+    [estadoNoShow, fecha, hora]
+  );
+
+  for (const reserva of result.rows) {
+    await ensureNoShowSancion(client, reserva.reserva_id, reserva.socio_id);
+  }
+
+  return result.rowCount || 0;
 }
 
 async function ensureNoShowSancion(client, reservaId, socioId) {
@@ -93,6 +137,13 @@ async function validateReserva(payload, options = {}) {
     errors.push('Solo se permiten reservas para el mismo dia');
   }
 
+  if (!RESERVA_CONFIG.allowPast) {
+    const now = localNowParts();
+    if (fecha < now.fecha || (fecha === now.fecha && horaInicio < now.hora)) {
+      errors.push('No se pueden crear reservas en horarios pasados');
+    }
+  }
+
   const duration = minutesBetween(horaInicio, horaFin);
   if (duration <= 0) {
     errors.push('La hora de fin debe ser mayor a la hora de inicio');
@@ -111,6 +162,39 @@ async function validateReserva(payload, options = {}) {
   );
   if (sancion.rows.length > 0) {
     errors.push('El socio tiene una sancion activa');
+  }
+
+  const espacioColumns = await getTableColumns('espacios');
+  const estadoExpr = espacioColumns.has('estado') ? "LOWER(COALESCE(estado, 'activo'))" : "'activo'";
+  const espacio = await pool.query(
+    `SELECT espacio_id
+     FROM espacios
+     WHERE espacio_id = $1
+       AND COALESCE(activo, true) = true
+       AND ${estadoExpr} NOT IN ('mantenimiento', 'maintenance')
+     LIMIT 1`,
+    [espacioId]
+  );
+  if (espacio.rows.length === 0) {
+    errors.push('El espacio no esta disponible para reservas');
+  }
+
+  try {
+    const mantenimiento = await pool.query(
+      `SELECT 1
+       FROM mantenimiento_espacios
+       WHERE espacio_id = $1
+         AND COALESCE(activo, true) = true
+         AND fecha_inicio < ($2::date + $4::time)
+         AND COALESCE(fecha_fin, 'infinity'::timestamp) > ($2::date + $3::time)
+       LIMIT 1`,
+      [espacioId, fecha, horaInicio, horaFin]
+    );
+    if (mantenimiento.rows.length > 0) {
+      errors.push('El espacio esta en mantenimiento en ese horario');
+    }
+  } catch (error) {
+    if (error?.code !== '42P01' && error?.code !== '42703') throw error;
   }
 
   const socioReservas = await pool.query(
@@ -163,6 +247,11 @@ async function validateReserva(payload, options = {}) {
 const reservasController = {
   getReservas: async (req, res) => {
     try {
+      await syncReservasNoShow();
+      const espacioCols = await getTableColumns('espacios');
+      const espacioEstadoExpr = espacioCols.has('estado')
+        ? "e.estado as espacio_estado"
+        : "CASE WHEN e.activo THEN 'Activo' ELSE 'Inactivo' END as espacio_estado";
       const result = await pool.query(`
         SELECT
           r.reserva_id,
@@ -175,6 +264,7 @@ const reservasController = {
           r.no_show,
           r.fecha_creacion,
           e.nombre as espacio_nombre,
+          ${espacioEstadoExpr},
           u.nombres as socio_nombre,
           u.apellido_paterno as socio_apellido,
           s.numero_socio
@@ -201,8 +291,19 @@ const reservasController = {
   getReservaById: async (req, res) => {
     const { id } = req.params;
     try {
+      await syncReservasNoShow();
+      const espacioCols = await getTableColumns('espacios');
+      const espacioEstadoExpr = espacioCols.has('estado')
+        ? "e.estado as espacio_estado"
+        : "CASE WHEN e.activo THEN 'Activo' ELSE 'Inactivo' END as espacio_estado";
       const result = await pool.query(
-        `SELECT r.*, r.estado::text as estado_original, e.nombre as espacio_nombre
+        `SELECT r.*, r.estado::text as estado_original, e.nombre as espacio_nombre,
+                ${espacioEstadoExpr},
+                CASE
+                  WHEN COALESCE(r.no_show, false) = true OR LOWER(r.estado::text) IN ('no-show', 'no show')
+                  THEN 'El usuario no se presento a la reserva.'
+                  ELSE NULL
+                END as no_show_detalle
          FROM reservaciones r
          LEFT JOIN espacios e ON r.espacio_id = e.espacio_id
          WHERE r.reserva_id = $1`,

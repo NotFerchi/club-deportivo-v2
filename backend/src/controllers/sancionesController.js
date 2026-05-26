@@ -8,7 +8,7 @@ const {
 } = require('../utils/adminRules');
 
 const activeEstadoSql = "LOWER(s.estado::text) IN ('activa', 'activo')";
-const staffRoles = ['recepcion', 'coordinador', 'admin'];
+const staffRoles = ['recepcion', 'coordinador', 'admin', 'gerente'];
 
 function normalizePagination(query) {
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
@@ -524,7 +524,7 @@ const sancionesController = {
             return res.status(400).json({ error: 'sancion_id debe ser un entero valido' });
         }
 
-        if (!['admin', 'gerente', 'coordinador'].includes(req.user?.rol)) {
+        if (!['admin', 'coordinador'].includes(req.user?.rol)) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 

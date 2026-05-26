@@ -13,7 +13,7 @@ router.get('/template', verifyToken, checkRole(['admin', 'gerente']), importacio
 router.post(
   '/socios',
   verifyToken,
-  checkRole(['admin']),
+  checkRole(['admin', 'gerente']),
   upload.single('archivo'),
   importacionController.importarSocios
 );

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Baby, CheckCircle, Clock, LogOut, Plus, X } from 'lucide-react';
+import { Baby, CheckCircle, Clock, Eye, LogOut, Plus, X } from 'lucide-react';
 import { adminApi, apiRequest, unwrapList } from '../../../services/api';
 import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
@@ -68,6 +68,7 @@ function Ludoteca() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [loadError, setLoadError] = useState('');
+  const [viewingRegistro, setViewingRegistro] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -227,6 +228,9 @@ function Ludoteca() {
                 {registro.observaciones && <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>{registro.observaciones}</p>}
               </div>
               <div className="espacio-footer">
+                <button onClick={() => setViewingRegistro(registro)} className="btn-secondary" title="Ver detalle">
+                  <Eye size={14} /> Detalle
+                </button>
                 <button onClick={() => registrarSalida(registro.registro_id)} className="btn-primary">
                   <LogOut size={16} /> Salida
                 </button>
@@ -248,6 +252,7 @@ function Ludoteca() {
                 <th>Entrada</th>
                 <th>Salida</th>
                 <th>Estado</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -258,6 +263,11 @@ function Ludoteca() {
                   <td>{formatDateTime(registro.hora_entrada)}</td>
                   <td>{registro.hora_salida ? formatDateTime(registro.hora_salida) : '-'}</td>
                   <td><span className={registro.hora_salida ? 'badge-warning' : 'badge-success'}>{registro.hora_salida ? 'Finalizado' : 'Activo'}</span></td>
+                  <td>
+                    <button onClick={() => setViewingRegistro(registro)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} title="Ver detalle">
+                      <Eye size={13} />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {historialFiltrado.length === 0 && (
@@ -271,6 +281,71 @@ function Ludoteca() {
           </table>
         </div>
       </div>
+
+      {viewingRegistro && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <h3>Detalle — {viewingRegistro.nombre_nino || viewingRegistro.nombre_hijo}</h3>
+              <button onClick={() => setViewingRegistro(null)} className="close-modal"><X size={24} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Nombre del niño</label>
+                  <p style={{ margin: 0, fontWeight: 600 }}>{viewingRegistro.nombre_nino || viewingRegistro.nombre_hijo}</p>
+                </div>
+                <div className="form-group">
+                  <label>Edad</label>
+                  <p style={{ margin: 0 }}>{getEdad(viewingRegistro) ?? '-'} años</p>
+                </div>
+                <div className="form-group">
+                  <label>Fecha de nacimiento</label>
+                  <p style={{ margin: 0 }}>{viewingRegistro.fecha_nacimiento ? String(viewingRegistro.fecha_nacimiento).split('T')[0] : '-'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Socio responsable</label>
+                  <p style={{ margin: 0 }}>{getSocioNombre(viewingRegistro)}</p>
+                </div>
+                <div className="form-group">
+                  <label>Hora de entrada</label>
+                  <p style={{ margin: 0 }}>{viewingRegistro.hora_entrada ? formatDateTime(viewingRegistro.hora_entrada) : '-'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Hora de salida</label>
+                  <p style={{ margin: 0 }}>{viewingRegistro.hora_salida ? formatDateTime(viewingRegistro.hora_salida) : 'Aún en ludoteca'}</p>
+                </div>
+                <div className="form-group">
+                  <label>Estado</label>
+                  <span className={viewingRegistro.hora_salida ? 'badge-warning' : 'badge-success'}>
+                    {viewingRegistro.hora_salida ? 'Finalizado' : 'Activo'}
+                  </span>
+                </div>
+                {!viewingRegistro.hora_salida && (
+                  <div className="form-group">
+                    <label>Tiempo en ludoteca</label>
+                    <LudotecaTimeBar horaEntrada={viewingRegistro.hora_entrada} />
+                  </div>
+                )}
+                {viewingRegistro.observaciones && (
+                  <div className="form-group form-group-full">
+                    <label>Observaciones</label>
+                    <p style={{ margin: 0 }}>{viewingRegistro.observaciones}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setViewingRegistro(null)} className="btn-outline">Cerrar</button>
+              {!viewingRegistro.hora_salida && (
+                <button onClick={() => { registrarSalida(viewingRegistro.registro_id); setViewingRegistro(null); }} className="btn-primary">
+                  <LogOut size={14} /> Registrar salida
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="modal-overlay">

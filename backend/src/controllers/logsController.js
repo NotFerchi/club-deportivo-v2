@@ -36,6 +36,7 @@ const logsController = {
                     l.tabla_afectada,
                     l.detalles,
                     l.fecha,
+                    TO_CHAR(l.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD"T"HH24:MI:SS') as fecha_local,
                     l.ip_origen
                 FROM logs_sistema l
                 LEFT JOIN usuarios u ON l.usuario_id = u.usuario_id
@@ -94,6 +95,7 @@ const logsController = {
                     l.accion,
                     l.detalles,
                     l.fecha,
+                    TO_CHAR(l.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD"T"HH24:MI:SS') as fecha_local,
                     l.ip_origen
                 FROM logs_sistema l
                 LEFT JOIN usuarios u ON l.usuario_id = u.usuario_id

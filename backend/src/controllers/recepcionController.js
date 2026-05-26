@@ -1,7 +1,11 @@
 const pool = require('../config/database');
 const { logAudit } = require('../utils/auditLogger');
+const QRCode = require('qrcode');
+const { generarHmacSha256 } = require('../utils/qrCrypto');
+const { resolveReservaEstado } = require('../utils/adminRules');
 const LUDOTECA_TIME_ZONE = 'America/Mexico_City';
 const CLUB_CLOSE_TIME = process.env.CLUB_HORA_CIERRE || '22:00';
+const VISITA_QR_TTL_MS = 24 * 60 * 60 * 1000;
 
 const getToday = () => new Date().toISOString().split('T')[0];
 
@@ -145,6 +149,79 @@ const cerrarVisitasVencidasConAuditoria = async (req) => {
         });
     }
     return cerradas;
+};
+
+const generarQrPase = async (client, paseId) => {
+    const expiraEn = new Date(Date.now() + VISITA_QR_TTL_MS);
+    const expiraEnIso = expiraEn.toISOString();
+    const payload = {
+        type: 'pase',
+        pase_id: Number(paseId),
+        expira_en: expiraEnIso
+    };
+    const hash = generarHmacSha256(payload);
+    const codigoQr = JSON.stringify({ ...payload, hash });
+    const qrImage = await QRCode.toDataURL(codigoQr);
+
+    try {
+        const qrResult = await client.query(
+            `INSERT INTO codigos_qr_pases (pase_id, codigo_qr, expira_en, activo)
+             VALUES ($1, $2, $3, TRUE)
+             RETURNING qr_id`,
+            [paseId, qrImage, expiraEn]
+        );
+
+        return {
+            qr_id: qrResult.rows[0].qr_id,
+            qr_image: qrImage,
+            codigo_qr: codigoQr,
+            expira_en: expiraEnIso
+        };
+    } catch (error) {
+        if (error?.code !== '42P01') throw error;
+        return {
+            qr_id: null,
+            qr_image: qrImage,
+            codigo_qr: codigoQr,
+            expira_en: expiraEnIso
+        };
+    }
+};
+
+const generarQrVisitaLegacy = async (visitaId) => {
+    const expiraEn = new Date(Date.now() + VISITA_QR_TTL_MS);
+    const expiraEnIso = expiraEn.toISOString();
+    const payload = {
+        type: 'visita',
+        visita_id: Number(visitaId),
+        expira_en: expiraEnIso
+    };
+    const hash = generarHmacSha256(payload);
+    const codigoQr = JSON.stringify({ ...payload, hash });
+    const qrImage = await QRCode.toDataURL(codigoQr);
+
+    try {
+        const qrResult = await pool.query(
+            `INSERT INTO codigos_qr_visitas (visita_id, codigo_qr, expira_en, activo)
+             VALUES ($1, $2, $3, TRUE)
+             RETURNING qr_id`,
+            [visitaId, qrImage, expiraEn]
+        );
+        return {
+            qr_id: qrResult.rows[0].qr_id,
+            qr_image: qrImage,
+            codigo_qr: codigoQr,
+            expira_en: expiraEnIso
+        };
+    } catch (error) {
+        if (error?.code !== '42P01') throw error;
+        return {
+            qr_id: null,
+            qr_image: qrImage,
+            codigo_qr: codigoQr,
+            expira_en: expiraEnIso
+        };
+    }
 };
 
 const recepcionController = {
@@ -748,19 +825,25 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                 usuarioCreador,
                 observacionesFinales
             ]);
+            const paseId = result.rows[0].pase_id;
+            const qr = await generarQrPase(client, paseId);
 
             await client.query('COMMIT');
             await logAudit(req, {
                 accion: 'crear_visita',
                 tabla_afectada: 'pases',
-                registro_id: result.rows[0].pase_id,
+                registro_id: paseId,
                 detalles: `Pase ${tipoPaseNormalizado} registrado`
             });
 
             res.status(201).json({
                 ok: true,
-                id: result.rows[0].pase_id,
-                pase_id: result.rows[0].pase_id,
+                id: paseId,
+                pase_id: paseId,
+                qr,
+                qr_image: qr.qr_image,
+                codigo_qr: qr.codigo_qr,
+                expira_en: qr.expira_en,
                 message: 'Pase registrado correctamente'
             });
         } catch (error) {
@@ -784,10 +867,17 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                         ]
                     );
 
+                    const visitaId = legacyResult.rows[0].visita_id;
+                    const qr = await generarQrVisitaLegacy(visitaId);
+
                     return res.status(201).json({
                         ok: true,
-                        id: legacyResult.rows[0].visita_id,
-                        visitaId: legacyResult.rows[0].visita_id,
+                        id: visitaId,
+                        visitaId,
+                        qr,
+                        qr_image: qr.qr_image,
+                        codigo_qr: qr.codigo_qr,
+                        expira_en: qr.expira_en,
                         message: 'Visita registrada correctamente'
                     });
                 } catch (fallbackError) {
@@ -894,6 +984,7 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                     rl.fecha_nacimiento,
                     rl.hora_entrada,
                     rl.hora_salida,
+                    rl.observaciones,
                     TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local,
                     u.nombres || ' ' || u.apellido_paterno as tutor_nombre,
                     GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}') - rl.hora_entrada)))::int, 0) AS segundos_transcurridos,
@@ -913,7 +1004,7 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
     },
 
     registrarEntradaLudoteca: async (req, res) => {
-        const { socioId, nombreHijo, fechaNacimiento } = req.body;
+        const { socioId, nombreHijo, fechaNacimiento, observaciones } = req.body;
 
         try {
             const result = await pool.query(
@@ -921,11 +1012,12 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                     socio_padre_id,
                     nombre_hijo,
                     fecha_nacimiento,
-                    hora_entrada
+                    hora_entrada,
+                    observaciones
                 )
-                VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}')
+                VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}', $4)
                 RETURNING registro_id`,
-                [socioId, nombreHijo, fechaNacimiento]
+                [socioId, nombreHijo, fechaNacimiento, String(observaciones || '').trim() || null]
             );
 
             res.status(201).json({
@@ -1036,6 +1128,9 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
             const result = await pool.query(`
                 SELECT
                     r.reserva_id,
+                    r.estado::text as reserva_estado,
+                    r.no_show,
+                    r.hora_fin,
                     s.socio_id,
                     u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as nombre_socio,
                     u.username as contacto,
@@ -1072,21 +1167,64 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
             });
         }
 
+        const client = await pool.connect();
         try {
-            const existente = await pool.query(`
+            await client.query('BEGIN');
+
+            const reservaResult = await client.query(`
+                SELECT reserva_id, estado::text as estado, hora_fin, no_show
+                FROM reservaciones
+                WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3
+                ORDER BY reserva_id DESC
+                LIMIT 1
+                FOR UPDATE
+            `, [sesionId, socioId, fecha]);
+
+            if (reservaResult.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({ error: 'No existe una reserva para este alumno en la fecha seleccionada' });
+            }
+
+            const reserva = reservaResult.rows[0];
+            const estadoReserva = String(reserva.estado || '').toLowerCase();
+            if (reserva.no_show === true || ['no-show', 'no show'].includes(estadoReserva)) {
+                await client.query('ROLLBACK');
+                return res.status(409).json({ error: 'La reserva ya fue marcada como No Show y no permite pase de lista posterior' });
+            }
+
+            const now = new Date();
+            const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+            const hoyLocal = localNow.toISOString().slice(0, 10);
+            const horaLocal = localNow.toISOString().slice(11, 16);
+            const horaFin = String(reserva.hora_fin || '').slice(0, 5);
+            if (fecha < hoyLocal || (fecha === hoyLocal && horaFin && horaFin < horaLocal)) {
+                const estadoNoShow = await resolveReservaEstado('no-show');
+                await client.query(
+                    `UPDATE reservaciones
+                     SET estado = $1, no_show = TRUE
+                     WHERE reserva_id = $2`,
+                    [estadoNoShow, reserva.reserva_id]
+                );
+                await client.query('COMMIT');
+                return res.status(409).json({
+                    error: 'La reserva ya caduco sin pase de lista. Se marco automaticamente como No Show.'
+                });
+            }
+
+            const existente = await client.query(`
                 SELECT asistencia_id
                 FROM asistencia
                 WHERE sesion_id = $1 AND socio_id = $2 AND fecha = $3
             `, [sesionId, socioId, fecha]);
 
             if (existente.rows.length > 0) {
-                await pool.query(`
+                await client.query(`
                     UPDATE asistencia
                     SET presente = $1, registro = NOW()
                     WHERE asistencia_id = $2
                 `, [presente, existente.rows[0].asistencia_id]);
             } else {
-                await pool.query(`
+                await client.query(`
                     INSERT INTO asistencia (
                         sesion_id,
                         socio_id,
@@ -1098,13 +1236,17 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                 `, [sesionId, socioId, fecha, presente]);
             }
 
+            await client.query('COMMIT');
             res.json({
                 ok: true,
                 message: 'Asistencia registrada correctamente'
             });
         } catch (error) {
+            await client.query('ROLLBACK');
             console.error('Error en registrarAsistenciaManual:', error);
             res.status(500).json({ error: 'Error al registrar asistencia' });
+        } finally {
+            client.release();
         }
     }
 };

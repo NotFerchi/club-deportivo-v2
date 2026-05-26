@@ -27,8 +27,9 @@ function handleUnauthorized() {
 
 export async function apiRequest(path, options = {}) {
   const token = getAuthToken();
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = {
-    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers
   };
@@ -121,6 +122,24 @@ export const adminApi = {
   getLudotecaActivos: async () => unwrapList(await apiRequest('/ludoteca/activos'), ['data']),
   descargarReporte: (path, filename) =>
     downloadApiFile(path, { filename }),
+  exportarSocios: (params = {}) => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') search.set(k, v);
+    });
+    const q = search.toString();
+    const fecha = new Date().toISOString().slice(0, 10);
+    return downloadApiFile(`/reportes/socios/exportar${q ? `?${q}` : ''}`, {
+      filename: `socios_${fecha}.xlsx`
+    });
+  },
+  descargarTemplateSocios: () =>
+    downloadApiFile('/importacion/template?tipo=socios', { filename: 'template_socios.xlsx' }),
+  importarSocios: (file) => {
+    const body = new FormData();
+    body.append('archivo', file);
+    return apiRequest('/importacion/socios', { method: 'POST', body });
+  },
 
   saveSocio: (payload, id) =>
     apiRequest(id ? `/socios/${id}` : '/socios', {
@@ -146,6 +165,11 @@ export const adminApi = {
     apiRequest(id ? `/espacios/${id}` : '/espacios', {
       method: id ? 'PUT' : 'POST',
       body: JSON.stringify(payload)
+    }),
+  toggleEspacioEstado: (id, estado, motivo, fecha_fin) =>
+    apiRequest(`/espacios/${id}/estado`, {
+      method: 'PATCH',
+      body: JSON.stringify({ estado, motivo, fecha_fin })
     }),
   saveSancion: (payload, id) =>
     apiRequest(id ? `/sanciones/${id}` : '/sanciones', {

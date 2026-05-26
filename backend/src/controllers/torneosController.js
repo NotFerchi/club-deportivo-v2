@@ -68,10 +68,14 @@ const torneosController = {
           d.nombre AS nombre_disciplina,
           t.fecha_inicio,
           t.fecha_fin,
-          t.estado
+          t.estado,
+          COUNT(pt.participante_id)::int AS total_participantes,
+          (COUNT(pt.participante_id) >= 4) AS se_realiza
         FROM torneos t
         JOIN disciplinas d ON t.disciplina_id = d.disciplina_id
+        LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id
         ${where}
+        GROUP BY t.torneo_id, d.nombre
         ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC
       `, valores);
 
@@ -83,7 +87,7 @@ const torneosController = {
   },
 
   createTorneo: async (req, res) => {
-    const { nombre, disciplina_id, fecha_inicio, fecha_fin } = req.body;
+    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado } = req.body;
 
     if (typeof nombre !== 'string' || nombre.trim() === '') {
       return res.status(400).json({ error: 'El nombre es requerido' });
@@ -117,7 +121,7 @@ const torneosController = {
           nombre.trim(),
           normalizarFechaOpcional(fecha_inicio),
           normalizarFechaOpcional(fecha_fin),
-          'Abierto',
+          estado || 'Abierto',
         ]
       );
 
@@ -130,6 +134,109 @@ const torneosController = {
       if (error.code === '22007' || error.code === '22008') return res.status(400).json({ error: 'Formato de fecha invalido' });
 
       res.status(500).json({ error: 'Error al crear torneo' });
+    }
+  },
+
+  updateTorneo: async (req, res) => {
+    const torneoId = esEnteroValido(req.params.torneo_id);
+    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado } = req.body;
+
+    if (torneoId === null) {
+      return res.status(400).json({ error: 'torneo_id debe ser un entero valido' });
+    }
+
+    if (typeof nombre !== 'string' || nombre.trim() === '') {
+      return res.status(400).json({ error: 'El nombre es requerido' });
+    }
+
+    const disciplinaId = esEnteroValido(disciplina_id);
+    if (disciplinaId === null) {
+      return res.status(400).json({ error: 'disciplina_id debe ser un entero valido' });
+    }
+
+    try {
+      const result = await pool.query(
+        `UPDATE torneos
+         SET disciplina_id = $1,
+             nombre = $2,
+             fecha_inicio = $3,
+             fecha_fin = $4,
+             estado = COALESCE($5, estado)
+         WHERE torneo_id = $6
+         RETURNING torneo_id`,
+        [
+          disciplinaId,
+          nombre.trim(),
+          normalizarFechaOpcional(fecha_inicio),
+          normalizarFechaOpcional(fecha_fin),
+          estado || null,
+          torneoId
+        ]
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Torneo no encontrado' });
+      }
+
+      res.json({ ok: true, torneo_id: torneoId, message: 'Torneo actualizado correctamente' });
+    } catch (error) {
+      console.error('Error al actualizar torneo:', error);
+      if (error.code === '23514') return res.status(400).json({ error: ERROR_FECHAS_TORNEO });
+      if (error.code === '23503') return res.status(400).json({ error: ERROR_DISCIPLINA_NO_EXISTE });
+      if (error.code === '22007' || error.code === '22008') return res.status(400).json({ error: 'Formato de fecha invalido' });
+      res.status(500).json({ error: 'Error al actualizar torneo' });
+    }
+  },
+
+  getParticipantes: async (req, res) => {
+    const torneoId = esEnteroValido(req.params.torneo_id);
+    if (torneoId === null) {
+      return res.status(400).json({ error: 'torneo_id debe ser un entero valido' });
+    }
+
+    try {
+      const result = await pool.query(
+        `SELECT
+           pt.participante_id,
+           pt.torneo_id,
+           pt.socio_id,
+           pt.visita_id,
+           pt.nombre_externo,
+           pt.resultado_final,
+           c.nombre AS categoria,
+           COALESCE(
+             NULLIF(TRIM(eq.nombre_equipo), ''),
+             NULLIF(TRIM(CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, ''), ' ', COALESCE(u.apellido_materno, ''))), ''),
+             NULLIF(TRIM(v.nombre_completo), ''),
+             NULLIF(TRIM(pt.nombre_externo), ''),
+             'Participante sin nombre'
+           ) AS nombre_participante,
+           CASE
+             WHEN pt.socio_id IS NOT NULL THEN 'Socio'
+             WHEN pt.visita_id IS NOT NULL THEN 'Visita'
+             ELSE 'Externo'
+           END AS tipo_participante
+         FROM participantes_torneo pt
+         LEFT JOIN categorias_torneo c ON c.categoria_id = pt.categoria_id
+         LEFT JOIN socios s ON s.socio_id = pt.socio_id
+         LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id
+         LEFT JOIN visitas v ON v.visita_id = pt.visita_id
+         LEFT JOIN equipos eq ON eq.equipo_id = pt.equipo_id
+         WHERE pt.torneo_id = $1
+         ORDER BY c.nombre, nombre_participante`,
+        [torneoId]
+      );
+
+      res.json({
+        data: result.rows,
+        participantes: result.rows,
+        total: result.rowCount,
+        se_realiza: result.rowCount >= 4,
+        minimo_participantes: 4
+      });
+    } catch (error) {
+      console.error('Error al obtener participantes:', error);
+      res.status(500).json({ error: 'Error al obtener participantes del torneo' });
     }
   },
 

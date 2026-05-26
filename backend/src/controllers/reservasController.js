@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const { logAudit } = require('../utils/auditLogger');
+const { getMexicoDateISO, getMexicoTimeISO } = require('../utils/mexicoDate');
 const {
   addDaysISO,
   getDiaSemana,
@@ -35,11 +36,10 @@ function normalizeTime(value) {
 }
 
 function localNowParts() {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  // Usa México City — getTimezoneOffset() refleja la TZ del servidor (USA), no México
   return {
-    fecha: local.toISOString().split('T')[0],
-    hora: local.toISOString().slice(11, 16)
+    fecha: getMexicoDateISO(),
+    hora: getMexicoTimeISO()
   };
 }
 

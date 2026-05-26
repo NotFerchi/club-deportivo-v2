@@ -3,11 +3,13 @@ const { logAudit } = require('../utils/auditLogger');
 const QRCode = require('qrcode');
 const { generarHmacSha256 } = require('../utils/qrCrypto');
 const { resolveReservaEstado } = require('../utils/adminRules');
+const { getMexicoDateISO, getMexicoTimeISO } = require('../utils/mexicoDate');
 const LUDOTECA_TIME_ZONE = 'America/Mexico_City';
 const CLUB_CLOSE_TIME = process.env.CLUB_HORA_CIERRE || '22:00';
 const VISITA_QR_TTL_MS = 24 * 60 * 60 * 1000;
 
-const getToday = () => new Date().toISOString().split('T')[0];
+// Usa México City — no toISOString() que devuelve fecha UTC
+const getToday = () => getMexicoDateISO();
 
 const isMissingPasesTable = (error) =>
     error?.code === '42P01' && String(error.message || '').includes('pases');
@@ -1192,10 +1194,9 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                 return res.status(409).json({ error: 'La reserva ya fue marcada como No Show y no permite pase de lista posterior' });
             }
 
-            const now = new Date();
-            const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-            const hoyLocal = localNow.toISOString().slice(0, 10);
-            const horaLocal = localNow.toISOString().slice(11, 16);
+            // Usa México City — getTimezoneOffset() refleja la TZ del servidor (USA), no México
+            const hoyLocal  = getMexicoDateISO();
+            const horaLocal = getMexicoTimeISO();
             const horaFin = String(reserva.hora_fin || '').slice(0, 5);
             if (fecha < hoyLocal || (fecha === hoyLocal && horaFin && horaFin < horaLocal)) {
                 const estadoNoShow = await resolveReservaEstado('no-show');

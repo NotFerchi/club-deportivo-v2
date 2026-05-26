@@ -4,7 +4,11 @@ import CardEspacio from '../components/CardEspacio'
 const Espacios = () => {
 
   const [espacios, setEspacios] = useState([]);
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  // toISOString() retorna fecha UTC — usamos métodos locales para fecha en México
+  const [fecha, setFecha] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [horaInicio, setHoraInicio] = useState("10:00");
   const [horaFin, setHoraFin] = useState("11:00");
 

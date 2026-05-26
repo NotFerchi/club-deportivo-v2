@@ -9,17 +9,19 @@ function calcularEdadAnios(fechaNacimiento) {
   return (new Date() - nacimiento) / (1000 * 60 * 60 * 24 * 365.25);
 }
 
+const MX_TZ = 'America/Mexico_City';
+
 function formatHora(ts) {
   if (!ts) return '';
   const fecha = new Date(ts);
-  return fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  return fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: MX_TZ });
 }
 
 function horaLimite(horaEntrada) {
   if (!horaEntrada) return '';
-  const d = new Date(horaEntrada);
-  d.setHours(d.getHours() + 2);
-  return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  // +2 h como milisegundos para no depender de getHours() (que usa TZ del navegador)
+  const d = new Date(new Date(horaEntrada).getTime() + 2 * 60 * 60 * 1000);
+  return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: MX_TZ });
 }
 
 function getMinutosTranscurridos(nino) {

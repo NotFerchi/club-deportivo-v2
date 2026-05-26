@@ -198,7 +198,7 @@ function ModalNuevaSesion({ onClose, onCreada }) {
             setForm(prev => ({ ...prev, fecha, dia_semana: diaSemana }));
           }}
           style={selectStyle}
-          min={new Date().toISOString().split('T')[0]}
+          min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })()}
         />
         {form.fecha && (
           <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>

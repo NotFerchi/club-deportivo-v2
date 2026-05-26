@@ -4,7 +4,7 @@ import { MapPin, Clock, Calendar, CheckCircle, XCircle, AlertCircle } from 'luci
 function VistaReservas() {
   const [reservas, setReservas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [fecha, setFecha] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
   const [filtro, setFiltro] = useState('todas');
 
   useEffect(() => {

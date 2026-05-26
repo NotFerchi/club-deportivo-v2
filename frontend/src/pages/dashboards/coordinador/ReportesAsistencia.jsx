@@ -4,8 +4,9 @@ import { Calendar, Users, TrendingUp } from 'lucide-react';
 function ReportesAsistencia() {
   const [reportes, setReportes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [fechaInicio, setFechaInicio] = useState(new Date().toISOString().split('T')[0]);
-  const [fechaFin, setFechaFin] = useState(new Date().toISOString().split('T')[0]);
+  // toISOString() retorna UTC — usamos getFullYear/Month/Date para fecha local MX
+  const [fechaInicio, setFechaInicio] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
+  const [fechaFin, setFechaFin] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
 
   const fetchReportes = async () => {
     setLoading(true);

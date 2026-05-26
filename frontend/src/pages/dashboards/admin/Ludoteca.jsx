@@ -220,7 +220,10 @@ function Ludoteca() {
                   <p className="espacio-sub">{getSocioNombre(registro)}</p>
                 </div>
                 <span className="badge-success">
-                  <Clock size={13} /> {new Date(registro.hora_entrada).toLocaleTimeString()}
+                  <Clock size={13} /> {new Date(registro.hora_entrada).toLocaleTimeString('es-MX', {
+                    timeZone: 'America/Mexico_City',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                  })}
                 </span>
               </div>
               <div className="espacio-body">

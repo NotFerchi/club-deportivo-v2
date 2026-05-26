@@ -10,7 +10,7 @@ function PaseLista() {
   const fetchClases = async () => {
     try {
       const token = localStorage.getItem('token');
-      const fecha = new Date().toISOString().split('T')[0];
+      const fecha = (() => { const _d = new Date(); return `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`; })();
       const res = await fetch(`http://localhost:3000/api/recepcion/clases?fecha=${fecha}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -28,7 +28,7 @@ function PaseLista() {
   const fetchAlumnos = async (sesionId) => {
     try {
       const token = localStorage.getItem('token');
-      const fecha = new Date().toISOString().split('T')[0];
+      const fecha = (() => { const _d = new Date(); return `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`; })();
       const res = await fetch(`http://localhost:3000/api/recepcion/clases/${sesionId}/alumnos?fecha=${fecha}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -61,7 +61,7 @@ function PaseLista() {
         body: JSON.stringify({
           sesionId: parseInt(selectedSesion),
           socioId: parseInt(socioId),
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: (() => { const _d = new Date(); return `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`; })(),
           presente: true
         })
       });

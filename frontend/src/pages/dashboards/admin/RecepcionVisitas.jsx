@@ -38,6 +38,7 @@ function RecepcionVisitas() {
   const [closingVisits, setClosingVisits] = useState(false);
   const [qrModal, setQrModal] = useState({ open: false, qrImage: null, nombre: '', expiraEn: null, correo: '' });
   const [viewingVisita, setViewingVisita] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const qrPrintRef = useRef(null);
 
   const fetchData = async () => {
@@ -131,6 +132,7 @@ function RecepcionVisitas() {
       observaciones: formData.motivo.trim()
     };
 
+    setIsSubmitting(true);
     try {
       const respuesta = await adminApi.registrarVisita(payload);
       setShowModal(false);
@@ -150,6 +152,8 @@ function RecepcionVisitas() {
       }
     } catch (error) {
       alert(error.message || 'Error al registrar visita');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -162,7 +166,7 @@ function RecepcionVisitas() {
       <body>
         <p style="font-weight:700;font-size:16px;">${qrModal.nombre}</p>
         <img src="${qrModal.qrImage}" alt="QR" />
-        <p>Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}</p>
+        <p>Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '24 horas'}</p>
         <script>window.onload=()=>{ window.print(); window.close(); }</script>
       </body></html>
     `);
@@ -173,7 +177,7 @@ function RecepcionVisitas() {
     const asunto = encodeURIComponent(`QR de acceso - ${qrModal.nombre}`);
     const cuerpo = encodeURIComponent(
       `Hola ${qrModal.nombre},\n\nTu código QR de acceso ha sido generado.\n` +
-      `Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}\n\n` +
+      `Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '24 horas'}\n\n` +
       `Presenta este correo en recepción para que escaneen tu QR.\n\nClub Deportivo`
     );
     const to = qrModal.correo ? encodeURIComponent(qrModal.correo) : '';
@@ -307,7 +311,10 @@ function RecepcionVisitas() {
                   <p className="espacio-sub">{visita.identificacion ? `ID: ${visita.identificacion}` : 'Sin identificación'}</p>
                 </div>
                 <span className="badge-success">
-                  <Clock size={13} /> {new Date(visita.hora_entrada).toLocaleTimeString()}
+                  <Clock size={13} /> {new Date(visita.hora_entrada).toLocaleTimeString('es-MX', {
+                    timeZone: 'America/Mexico_City',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                  })}
                 </span>
               </div>
               <div className="espacio-body">
@@ -387,7 +394,7 @@ function RecepcionVisitas() {
               <p style={{ margin: 0, fontWeight: 600, fontSize: 16, color: '#1e3a5f' }}>{qrModal.nombre}</p>
               <img ref={qrPrintRef} src={qrModal.qrImage} alt="QR de acceso" style={{ width: 220, height: 220, border: '4px solid #1e3a5f', borderRadius: 8 }} />
               <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                Válido hasta: {qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}
+                Válido hasta: {qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '24 horas'}
               </p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button onClick={handlePrintQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -557,7 +564,9 @@ function RecepcionVisitas() {
               </div>
               <div className="modal-footer">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-outline">Cancelar</button>
-                <button type="submit" className="btn-primary">Registrar entrada</button>
+                <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Registrando...' : 'Registrar entrada'}
+                </button>
               </div>
             </form>
           </div>

@@ -30,7 +30,7 @@ function VistaVisitas() {
 
   const formatHora = (ts) => {
     if (!ts) return '—';
-    return new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    return new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' });
   };
 
   const duracion = (entrada, salida) => {

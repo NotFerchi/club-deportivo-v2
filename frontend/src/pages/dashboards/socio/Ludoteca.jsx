@@ -424,13 +424,15 @@ function Ludoteca() {
             <div className="historial-list">
               {historial.map(r => {
                 const fechaEntrada = new Date(r.hora_entrada)
+                const _mxFmt = isNaN(fechaEntrada) ? null
+                  : new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', timeZone: 'America/Mexico_City' }).formatToParts(fechaEntrada)
+                const _dia = _mxFmt ? (_mxFmt.find(p => p.type === 'day')?.value ?? '—') : '—'
+                const _mes = _mxFmt ? (_mxFmt.find(p => p.type === 'month')?.value ?? '') : ''
                 return (
                   <div key={r.registro_id} className="historial-item">
                     <div className="historial-fecha">
-                      <span className="dia">{isNaN(fechaEntrada) ? '—' : fechaEntrada.getDate()}</span>
-                      <span className="mes">
-                        {isNaN(fechaEntrada) ? '' : fechaEntrada.toLocaleString('es-MX', { month: 'short' })}
-                      </span>
+                      <span className="dia">{_dia}</span>
+                      <span className="mes">{_mes}</span>
                     </div>
                     <div className="historial-detalles">
                       <h4>{r.nombre_hijo}</h4>

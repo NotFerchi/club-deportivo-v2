@@ -62,7 +62,7 @@ function MantenimientoModal({ espacio, onClose, onConfirm }) {
                 type="date"
                 value={fechaFin}
                 onChange={e => setFechaFin(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+                min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })()}
               />
               <p className="field-hint">Opcional. Puedes reactivar el espacio manualmente en cualquier momento.</p>
             </div>

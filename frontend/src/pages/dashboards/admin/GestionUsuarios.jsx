@@ -429,7 +429,7 @@ function GestionUsuarios() {
           { label: 'Email', value: u.email || '-' },
           { label: 'Teléfono', value: u.telefono || '-' },
           { label: 'CURP', value: u.curp || '-' },
-          { label: 'Fecha nacimiento', value: u.fecha_nacimiento ? new Date(u.fecha_nacimiento).toLocaleDateString('es-MX') : '-' },
+          { label: 'Fecha nacimiento', value: u.fecha_nacimiento ? new Date(String(u.fecha_nacimiento).split('T')[0] + 'T00:00:00').toLocaleDateString('es-MX') : '-' },
           { label: 'Género', value: u.genero || '-' },
           { label: 'Dirección', value: u.direccion || '-', full: true },
         ];

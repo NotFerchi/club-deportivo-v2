@@ -25,6 +25,7 @@ function GestionVisitas() {
   const [qrModal, setQrModal] = useState({ open: false, qrImage: null, nombre: '', expiraEn: null, correo: '' });
   const [viewingPase, setViewingPase] = useState(null);
   const [savingExit, setSavingExit] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const resetModalState = () => {
     setShowModal(false);
@@ -113,6 +114,7 @@ function GestionVisitas() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:3000/api/recepcion/visitas', {
@@ -146,6 +148,8 @@ function GestionVisitas() {
       }
     } catch (error) {
       alert('Error: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -178,7 +182,7 @@ function GestionVisitas() {
       <body>
         <div class="title">${qrModal.nombre}</div>
         <img src="${qrModal.qrImage}" alt="QR" />
-        <div class="sub">Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}</div>
+        <div class="sub">Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '24 horas'}</div>
         <div class="sub">Club Deportivo — Pase de Acceso</div>
         <script>window.onload=()=>{ window.print(); window.close(); }</script>
       </body></html>
@@ -197,13 +201,13 @@ function GestionVisitas() {
     const asunto = encodeURIComponent(`Código QR de acceso - ${qrModal.nombre}`);
     const cuerpo = encodeURIComponent(
       `Hola ${qrModal.nombre},\n\nTu código QR de acceso ha sido generado.\n` +
-      `Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}\n\n` +
+      `Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '24 horas'}\n\n` +
       `Presenta este correo en recepción para que escaneen tu QR.\n\nClub Deportivo`
     );
     window.open(`mailto:${qrModal.correo ? encodeURIComponent(qrModal.correo) : ''}?subject=${asunto}&body=${cuerpo}`, '_blank');
   };
 
-  const formatTime = (ts) => ts ? new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '—';
+  const formatTime = (ts) => ts ? new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }) : '—';
 
   const kpiCards = [
     { label: 'Pases Activos', value: kpis.activos, Icon: Users, color: '#3b82f6', bg: '#eff6ff' },
@@ -409,7 +413,7 @@ function GestionVisitas() {
 
               {qrModal.expiraEn && (
                 <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '0.6rem 1rem', fontSize: 13, color: '#92400e', fontWeight: 600 }}>
-                  Válido hasta: {new Date(qrModal.expiraEn).toLocaleString('es-MX')}
+                  Válido hasta: {new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}
                 </div>
               )}
 
@@ -558,8 +562,10 @@ function GestionVisitas() {
 
               <div className="modal-footer">
                 <button type="button" onClick={resetModalState} className="btn-outline">Cancelar</button>
-                <button type="submit" className="btn-primary">
-                  <QrCode size={15} style={{ display: 'inline', marginRight: 6 }} /> Registrar y generar QR
+                <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                  {isSubmitting
+                    ? 'Registrando...'
+                    : <><QrCode size={15} style={{ display: 'inline', marginRight: 6 }} /> Registrar y generar QR</>}
                 </button>
               </div>
             </form>

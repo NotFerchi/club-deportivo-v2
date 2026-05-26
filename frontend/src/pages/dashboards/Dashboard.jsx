@@ -69,10 +69,10 @@ function getDateOnly(value) {
   return String(value || '').split('T')[0];
 }
 
+// toISOString() retorna UTC — usamos métodos locales (getFullYear/Month/Date) para fecha MX
 function toLocalDateInput(date = new Date()) {
   const d = new Date(date);
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().split('T')[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function getDefaultRange(viewType) {
@@ -255,7 +255,8 @@ function Dashboard() {
         failedResults.forEach((result) => console.error('Carga parcial dashboard:', result.reason));
       }
 
-      const hoy = new Date().toISOString().split('T')[0];
+      const _d = new Date();
+      const hoy = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
       const mesActual = hoy.slice(0, 7);
       const sociosActivos = socios.filter(s => isActive(s.activo));
       const reservasActivas = reservas.filter(r => normalizeEstadoReserva(r.estado) !== 'cancelada');

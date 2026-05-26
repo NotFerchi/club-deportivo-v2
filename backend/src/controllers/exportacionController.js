@@ -1,5 +1,6 @@
 const ExcelJS = require('exceljs');
 const pool    = require('../config/database');
+const { getMexicoDateISO } = require('../utils/mexicoDate');
 
 const exportarSocios = async (req, res) => {
   const { activo = 'true', tipo, modalidad } = req.query;
@@ -124,7 +125,7 @@ const exportarSocios = async (req, res) => {
     });
   });
 
-  const fecha    = new Date().toISOString().split('T')[0];
+  const fecha    = getMexicoDateISO();
   const filename = `socios_${fecha}.xlsx`;
 
   res.setHeader('Content-Type',        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

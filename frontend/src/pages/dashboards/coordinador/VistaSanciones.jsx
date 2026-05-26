@@ -152,7 +152,10 @@ function VistaSanciones() {
 
   const formatFecha = (f) => {
     if (!f) return '—';
-    return new Date(f).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+    const str = String(f);
+    // Fecha-solo "YYYY-MM-DD": T00:00:00 evita parseo UTC que desplaza un día en México
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(str) ? new Date(`${str}T00:00:00`) : new Date(str);
+    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const esActiva   = (s) => s.estado === 'Activa' || s.estado === 'Activo';

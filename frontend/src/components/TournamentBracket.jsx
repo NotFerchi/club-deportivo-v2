@@ -41,7 +41,7 @@ function formatTime(value) {
   if (timeOnlyMatch && !stringValue.includes('T')) return `${timeOnlyMatch[1]}:${timeOnlyMatch[2]}`;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return stringValue;
-  return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' });
 }
 
 function buildTorneosPath(filters) {

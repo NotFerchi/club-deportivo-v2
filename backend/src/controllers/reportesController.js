@@ -2,6 +2,7 @@ const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 const pool = require('../config/database');
 const { normalizeText } = require('../utils/adminRules');
+const { getMexicoDateISO } = require('../utils/mexicoDate');
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const PDF_MIME = 'application/pdf';
@@ -22,7 +23,8 @@ function parseISODate(value) {
 }
 
 function getTodayISO() {
-  return new Date().toISOString().slice(0, 10);
+  // Usa México City — toISOString() devuelve fecha UTC (errónea después de las ~6pm MX)
+  return getMexicoDateISO();
 }
 
 function addDaysISO(dateValue, days) {
@@ -1306,7 +1308,7 @@ async function buildDemographicPdf(res) {
   const doc = createPdf(res, 'reporte-demografico-socios.pdf', 'Reporte Demografico de Socios');
 
   writePdfTitle(doc, 'Reporte Demografico de Socios', [
-    `Generado: ${formatDateValue(new Date().toISOString())}`,
+    `Generado: ${getMexicoDateISO()}`,
     `Total de socios considerados: ${totalSocios}`
   ]);
 

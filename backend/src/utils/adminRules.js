@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { getMexicoDateISO } = require('./mexicoDate');
 
 const tableColumnsCache = new Map();
 let reservaEstadosCache = null;
@@ -35,9 +36,8 @@ function normalizeGravedad(value = '') {
 }
 
 function localTodayISO() {
-  const now = new Date();
-  const offsetMs = now.getTimezoneOffset() * 60 * 1000;
-  return new Date(now.getTime() - offsetMs).toISOString().split('T')[0];
+  // Usa México City — no getTimezoneOffset() que refleja la TZ del servidor (USA)
+  return getMexicoDateISO();
 }
 
 function addDaysISO(dateValue, days) {

@@ -295,7 +295,7 @@ function ClaseCard({ clase, fecha }) {
 function AgendaDia() {
   const [clases, setClases] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [fecha, setFecha] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
 
   useEffect(() => {
     const fetchClases = async () => {

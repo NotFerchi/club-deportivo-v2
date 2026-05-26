@@ -5,7 +5,11 @@ export const normalizeText = (value) =>
     .toLowerCase()
     .trim();
 
-export const todayISO = () => new Date().toISOString().split('T')[0];
+// Usa métodos locales — toISOString() retorna fecha UTC (errónea después de ~6 pm MX)
+export const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 export const isActiveValue = (value) => value === true || value === 'true' || value === 'Activo';
 
@@ -74,18 +78,33 @@ export const minutesBetween = (start, end) => {
 export const timesOverlap = (startA, endA, startB, endB) =>
   toTimeInputValue(startA) < toTimeInputValue(endB) && toTimeInputValue(endA) > toTimeInputValue(startB);
 
+const MX_TZ = 'America/Mexico_City';
+
 export const formatDate = (value) => {
   if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString();
+  const str = String(value);
+  // Valor solo-fecha "YYYY-MM-DD": parseamos como medianoche local para no cambiar el día.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const d = new Date(`${str}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? str : d.toLocaleDateString('es-MX');
+  }
+  // Timestamp completo de la BD (UTC): forzamos visualización en México City.
+  const date = new Date(str);
+  if (Number.isNaN(date.getTime())) return str;
+  return date.toLocaleDateString('es-MX', { timeZone: MX_TZ });
 };
 
 export const formatDateTime = (value) => {
   if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString();
+  const str = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const d = new Date(`${str}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? str : d.toLocaleDateString('es-MX');
+  }
+  // Timestamp completo de la BD (UTC): forzamos visualización en México City.
+  const date = new Date(str);
+  if (Number.isNaN(date.getTime())) return str;
+  return date.toLocaleString('es-MX', { timeZone: MX_TZ });
 };
 
 export const normalizeGravedad = (value) => {

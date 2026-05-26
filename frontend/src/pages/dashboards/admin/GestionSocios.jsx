@@ -589,12 +589,12 @@ function GestionSocios({ readOnly = false }) {
           { label: 'Email', value: s.email || '-' },
           { label: 'Teléfono', value: s.telefono || '-' },
           { label: 'CURP', value: s.curp || '-' },
-          { label: 'Fecha nacimiento', value: s.fecha_nacimiento ? new Date(s.fecha_nacimiento).toLocaleDateString('es-MX') : '-' },
+          { label: 'Fecha nacimiento', value: s.fecha_nacimiento ? new Date(String(s.fecha_nacimiento).split('T')[0] + 'T00:00:00').toLocaleDateString('es-MX') : '-' },
           { label: 'Género', value: s.genero || '-' },
           { label: 'Dirección', value: s.direccion || '-', full: true },
           { label: 'Acción familiar', value: s.accion_id || '-' },
           { label: 'Sanciones activas', value: s.num_sanciones ?? 0 },
-          { label: 'Registro', value: s.fecha_registro ? new Date(s.fecha_registro).toLocaleDateString('es-MX') : '-' },
+          { label: 'Registro', value: s.fecha_registro ? new Date(String(s.fecha_registro).split('T')[0] + 'T00:00:00').toLocaleDateString('es-MX') : '-' },
         ];
         return (
           <div className="modal-overlay">

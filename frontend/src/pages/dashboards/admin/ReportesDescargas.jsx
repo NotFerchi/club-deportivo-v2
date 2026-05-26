@@ -2,10 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { BarChart2, Download, ShieldAlert, TrendingUp, Users } from 'lucide-react';
 import { adminApi } from '../../../services/api';
 
+// getTimezoneOffset() refleja TZ del navegador pero toISOString() igual devuelve UTC.
+// Usamos métodos locales que ya devuelven la fecha correcta para México.
 function toDateInput(value = new Date()) {
-  const date = new Date(value);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().split('T')[0];
+  const d = new Date(value);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function getDefaultRange() {

@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { getMexicoDateISO, getMexicoDayOfWeek } = require('../utils/mexicoDate');
 
 const instructorController = {
 
@@ -238,7 +239,8 @@ const instructorController = {
                 ORDER BY DATE_TRUNC('month', a.fecha)
             `, [instructorId]);
 
-            const diaSemana = new Date().getDay() + 1;
+            // Usa México City — new Date().getDay() usa TZ del servidor (USA)
+            const diaSemana = getMexicoDayOfWeek();
             const sesionesHoyQuery = await pool.query(`
                 SELECT COUNT(*) as total
                 FROM sesiones_programadas sp
@@ -268,7 +270,8 @@ const instructorController = {
 
     getClasesGeneral: async (req, res) => {
     const { fecha } = req.query;
-    const fechaConsulta = fecha || new Date().toISOString().split('T')[0];
+    // getMexicoDateISO() evita que toISOString() devuelva fecha UTC en vez de fecha MX
+    const fechaConsulta = fecha || getMexicoDateISO();
     const [y, m, d] = fechaConsulta.split('-').map(Number);
     const diaSemana = new Date(y, m - 1, d).getDay() + 1;
 

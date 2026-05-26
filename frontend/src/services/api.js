@@ -128,7 +128,8 @@ export const adminApi = {
       if (v !== undefined && v !== null && v !== '') search.set(k, v);
     });
     const q = search.toString();
-    const fecha = new Date().toISOString().slice(0, 10);
+    const _fd = new Date();
+    const fecha = `${_fd.getFullYear()}-${String(_fd.getMonth() + 1).padStart(2, '0')}-${String(_fd.getDate()).padStart(2, '0')}`;
     return downloadApiFile(`/reportes/socios/exportar${q ? `?${q}` : ''}`, {
       filename: `socios_${fecha}.xlsx`
     });

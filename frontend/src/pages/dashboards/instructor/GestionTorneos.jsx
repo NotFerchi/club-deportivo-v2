@@ -10,21 +10,33 @@ const COLORES_TORNEO = [
   { grad: 'linear-gradient(135deg, #6d28d9, #8b5cf6)', borde: '#a78bfa', bg: '#ede9fe' },
 ];
 
+// Convierte string a Date sin corrimiento de zona horaria.
+// new Date("2024-01-15") parsea como UTC → en México muestra el día anterior.
+// Con "T00:00:00" (sin Z) JS lo interpreta como hora LOCAL.
+function parseLocalDate(str) {
+  if (!str) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(str) ? new Date(`${str}T00:00:00`) : new Date(str);
+}
+
 function formatFecha(f) {
   if (!f) return '';
-  return new Date(f).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+  const d = parseLocalDate(f);
+  return d ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 }
 
 function formatHora(ts) {
   if (!ts) return '';
-  return new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  const d = parseLocalDate(ts);
+  // Si es timestamp completo de BD (tiene T o Z), usar México City para no depender del TZ del navegador
+  const opts = { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' };
+  return d ? d.toLocaleTimeString('es-MX', opts) : '';
 }
 
 function getEstado(inicio, fin) {
   const hoy = new Date();
-  if (hoy < new Date(inicio)) return { label: 'Próximo',    color: '#3b82f6', bg: '#eff6ff' };
-  if (hoy > new Date(fin))   return { label: 'Finalizado', color: '#64748b', bg: '#f1f5f9' };
-  return                             { label: 'En curso',  color: '#10b981', bg: '#f0fdf4' };
+  if (hoy < parseLocalDate(inicio)) return { label: 'Próximo',    color: '#3b82f6', bg: '#eff6ff' };
+  if (hoy > parseLocalDate(fin))   return { label: 'Finalizado', color: '#64748b', bg: '#f1f5f9' };
+  return                                   { label: 'En curso',  color: '#10b981', bg: '#f0fdf4' };
 }
 
 function EncuentroRow({ encuentro, onResultadoGuardado }) {

@@ -66,27 +66,18 @@ function formatDuracion(elapsedMs) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+const MX_TZ = 'America/Mexico_City';
+
 function formatHora(value) {
   if (!value) return '-';
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return '-';
-
-  return date.toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: MX_TZ });
 }
 
 function formatSync(value) {
   if (!value) return 'Sin sincronizar';
-
-  return value.toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+  return value.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: MX_TZ });
 }
 
 function getNombrePadre(nino) {

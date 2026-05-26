@@ -5,7 +5,8 @@ import {
   Users,
   CheckCircle,
   XCircle,
-  Dumbbell
+  Dumbbell,
+  Loader2
 } from 'lucide-react';
 
 const PALETA = [
@@ -110,9 +111,7 @@ function VistaEspacios() {
           color: '#94a3b8'
         }}
       >
-        <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
-          ⏳
-        </div>
+        <Loader2 size={36} className="icon-spin" style={{ marginBottom: '0.5rem', color: '#94a3b8' }} />
 
         <div style={{ fontWeight: 700 }}>
           Cargando espacios...

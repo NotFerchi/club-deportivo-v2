@@ -76,7 +76,7 @@ const instructoresController = {
                     const rolId = rolResult.rows[0].rol_id;
                     const userResult = await client.query(
                         `INSERT INTO usuarios (username, nombres, password_hash, rol_id, activo)
-                         VALUES ($1, $2, $3, $4, true) RETURNING usuario_id`,
+                         VALUES ($1, $2, crypt($3, gen_salt('bf')), $4, true) RETURNING usuario_id`,
                         [email, nombre, passwordDefault, rolId]
                     );
                     usuarioId = userResult.rows[0].usuario_id;

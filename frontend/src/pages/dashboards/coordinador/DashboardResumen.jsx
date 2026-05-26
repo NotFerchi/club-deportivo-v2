@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Calendar, ShieldAlert, UserCheck, ArrowRight, TrendingUp } from 'lucide-react';
+import { Users, Calendar, ShieldAlert, UserCheck, ArrowRight, Loader2, Inbox, LayoutDashboard, Circle } from 'lucide-react';
 
 function KpiCard({ valor, label, color, icono, sub, onClick }) {
   return (
@@ -48,7 +48,9 @@ function PreviewCard({ titulo, color, icono, items, emptyMsg, onClick }) {
       </div>
       {items.length === 0 ? (
         <div style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
-          <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>📭</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.4rem' }}>
+            <Inbox size={24} color="#cbd5e1" />
+          </div>
           {emptyMsg}
         </div>
       ) : (
@@ -135,9 +137,10 @@ function DashboardResumen({ onNavigate }) {
   }, []);
 
   if (loading) return (
-    <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏳</div>
-      Cargando resumen...
+    <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+      <Loader2 size={32} color="#cbd5e1" style={{ animation: 'spin 1s linear infinite' }} />
+      <span style={{ fontSize: '13px' }}>Cargando resumen...</span>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
@@ -151,9 +154,14 @@ function DashboardResumen({ onNavigate }) {
         borderRadius: '16px', padding: '1.5rem 2rem', marginBottom: '1.5rem',
         color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem'
       }}>
-        <div>
-          <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>👋 Bienvenido al Panel de Coordinación</h3>
-          <p style={{ margin: '4px 0 0', opacity: 0.8, fontSize: '13px', textTransform: 'capitalize' }}>{hoy}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ width: 40, height: 40, borderRadius: '10px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <LayoutDashboard size={20} color="white" />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Bienvenido al Panel de Coordinación</h3>
+            <p style={{ margin: '4px 0 0', opacity: 0.8, fontSize: '13px', textTransform: 'capitalize' }}>{hoy}</p>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '1.5rem' }}>
           <div style={{ textAlign: 'center' }}>
@@ -161,8 +169,11 @@ function DashboardResumen({ onNavigate }) {
             <div style={{ fontSize: '11px', opacity: 0.7 }}>Socios activos</div>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{stats.visitasHoy}</div>
-            <div style={{ fontSize: '11px', opacity: 0.7 }}>Visitas hoy</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+              <Circle size={10} color="#4ade80" fill="#4ade80" />
+              <span style={{ fontSize: '1.5rem', fontWeight: 800 }}>{stats.visitasHoy}</span>
+            </div>
+            <div style={{ fontSize: '11px', opacity: 0.7 }}>Visitas activas</div>
           </div>
         </div>
       </div>
@@ -210,9 +221,10 @@ function DashboardResumen({ onNavigate }) {
           onClick={() => onNavigate('recepcion')}
           items={visitas.filter(v => v.vigente).map(v => ({
             principal: v.nombre_completo,
-            secundario: '🟢 En instalaciones',
+            secundario: 'En instalaciones',
             badgeBg: '#f0fdf4',
-            badgeColor: '#15803d'
+            badgeColor: '#15803d',
+            avatar: <Circle size={8} color="#22c55e" fill="#22c55e" />
           }))}
         />
         <PreviewCard
@@ -230,7 +242,7 @@ function DashboardResumen({ onNavigate }) {
           titulo="Sanciones Activas"
           color="#ef4444"
           icono={<ShieldAlert size={14} color="#ef4444" />}
-          emptyMsg="Sin sanciones activas 🎉"
+          emptyMsg="Sin sanciones activas"
           onClick={() => onNavigate('sanciones')}
           items={sanciones.filter(s => s.estado === 'Activa').map(s => ({
             principal: s.socio_nombre || '—',

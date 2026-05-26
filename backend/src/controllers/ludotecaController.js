@@ -17,6 +17,7 @@ module.exports = {
           rl.hora_entrada,
           rl.hora_salida,
           TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local,
+          TO_CHAR(rl.hora_salida, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_salida_local,
           rl.socio_padre_id,
 
           DATE_PART('year', AGE(CURRENT_DATE, rl.fecha_nacimiento))::int AS edad,
@@ -70,6 +71,8 @@ module.exports = {
           rl.fecha_nacimiento,
           rl.hora_entrada,
           rl.hora_salida,
+          TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local,
+          TO_CHAR(rl.hora_salida, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_salida_local,
           DATE_PART('year', AGE(CURRENT_DATE, rl.fecha_nacimiento))::int AS edad,
           u.nombres,
           u.apellido_paterno,
@@ -83,6 +86,7 @@ module.exports = {
         ORDER BY rl.hora_entrada DESC
         LIMIT 100
       `, [Number.isFinite(dias) && dias > 0 ? dias : 7]);
+      res.setHeader('Cache-Control', 'no-store');
       res.json(result.rows);
     } catch (error) {
       res.status(500).json({ error: error.message });

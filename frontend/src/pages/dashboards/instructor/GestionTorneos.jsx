@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, ChevronDown, ChevronUp, Calendar, Users, Medal } from 'lucide-react';
+import { Trophy, ChevronDown, ChevronUp, Calendar, Users, Medal, Loader2, Lock, Save, CheckCircle } from 'lucide-react';
 
 const RONDAS = { 1: 'Cuartos de Final', 2: 'Semifinales', 3: 'Final' };
 
@@ -192,9 +192,10 @@ function EncuentroRow({ encuentro, onResultadoGuardado }) {
             color: 'white', border: 'none', borderRadius: '8px',
             padding: '6px 16px', fontSize: '12px', fontWeight: 700,
             cursor: cargando ? 'not-allowed' : 'pointer',
-            boxShadow: cargando ? 'none' : '0 2px 8px rgba(37,99,235,0.4)'
+            boxShadow: cargando ? 'none' : '0 2px 8px rgba(37,99,235,0.4)',
+            display: 'flex', alignItems: 'center', gap: '6px'
           }}>
-            {cargando ? '⏳ Guardando...' : '💾 Guardar resultado'}
+            {cargando ? <><Loader2 size={13} className="icon-spin" /> Guardando...</> : <><Save size={13} /> Guardar resultado</>}
           </button>
         )}
       </div>
@@ -377,9 +378,10 @@ function TorneoCard({ torneo, index, onTorneoActualizado }) {
                       background: accionCargando ? '#94a3b8' : 'linear-gradient(135deg, #f59e0b, #d97706)',
                       color: 'white', border: 'none', borderRadius: '8px',
                       padding: '7px 16px', fontSize: '12px', fontWeight: 700,
-                      cursor: accionCargando ? 'not-allowed' : 'pointer'
+                      cursor: accionCargando ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '6px'
                     }}>
-                    {accionCargando ? '⏳...' : '🔒 Cerrar inscripciones'}
+                    {accionCargando ? <><Loader2 size={13} className="icon-spin" /> Cerrando...</> : <><Lock size={13} /> Cerrar inscripciones</>}
                   </button>
                 )}
                 {torneo.estado_bd === 'Inscripciones_cerradas' && (
@@ -389,9 +391,10 @@ function TorneoCard({ torneo, index, onTorneoActualizado }) {
                       background: accionCargando ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)',
                       color: 'white', border: 'none', borderRadius: '8px',
                       padding: '7px 16px', fontSize: '12px', fontWeight: 700,
-                      cursor: accionCargando ? 'not-allowed' : 'pointer'
+                      cursor: accionCargando ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '6px'
                     }}>
-                    {accionCargando ? '⏳...' : '✅ Confirmar bracket'}
+                    {accionCargando ? <><Loader2 size={13} className="icon-spin" /> Confirmando...</> : <><CheckCircle size={13} /> Confirmar bracket</>}
                   </button>
                 )}
               </div>
@@ -421,8 +424,8 @@ function TorneoCard({ torneo, index, onTorneoActualizado }) {
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⏳</div>
-              Cargando encuentros...
+              <Loader2 size={28} className="icon-spin" style={{ marginBottom: '0.5rem', color: '#94a3b8' }} />
+              <div>Cargando encuentros...</div>
             </div>
           ) : encuentros.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0' }}>
@@ -486,8 +489,8 @@ function GestionTorneos() {
 
   if (loading) return (
     <div className="chart-box" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏳</div>
-      Cargando torneos...
+      <Loader2 size={36} className="icon-spin" style={{ marginBottom: '0.5rem', color: '#94a3b8' }} />
+      <div>Cargando torneos...</div>
     </div>
   );
 

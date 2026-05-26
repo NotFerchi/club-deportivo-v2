@@ -273,7 +273,10 @@ const instructorController = {
     // getMexicoDateISO() evita que toISOString() devuelva fecha UTC en vez de fecha MX
     const fechaConsulta = fecha || getMexicoDateISO();
     const [y, m, d] = fechaConsulta.split('-').map(Number);
-    const diaSemana = new Date(y, m - 1, d).getDay() + 1;
+    // ISO 8601: Lun=1, Mar=2, Mié=3, Jue=4, Vie=5, Sáb=6, Dom=7
+    // getDay() devuelve Dom=0..Sáb=6; hacer +1 correría un día (Dom→1=Lun)
+    const rawDay = new Date(y, m - 1, d).getDay();
+    const diaSemana = rawDay === 0 ? 7 : rawDay;
 
     try {
         const query = `

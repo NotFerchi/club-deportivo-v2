@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Calendar, CheckCircle, ChevronLeft, ChevronRight,
-  Clock, Edit2, Plus, RefreshCw, Trash2, X, XCircle
+  Clock, Edit2, Plus, RefreshCw, Trash2, Users, X, XCircle
 } from 'lucide-react';
 import { adminApi } from '../../../services/api';
 import {
@@ -32,7 +32,7 @@ const RESERVA_CONFIG = { sameDayOnly: true, durationMinutes: DURACION_MIN, maxPe
 
 const initialForm = {
   espacio_id: '', socio_id: '', fecha: todayISO(),
-  hora_inicio: '', hora_fin: '', estado: 'confirmada'
+  hora_inicio: '', hora_fin: '', estado: 'confirmada', duracion: 60
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ function getDiaSemana(fecha) {
 }
 
 // ─── Modal de formulario ──────────────────────────────────────────────────────
-function ReservaModal({ editing, form, errors, espacios, socios, sancionados, onClose, onSubmit, onUpdate, onUpdateHora }) {
+function ReservaModal({ editing, form, errors, espacios, socios, sancionados, onClose, onSubmit, onUpdate, onUpdateHora, onUpdateDuracion }) {
   const err = (f) => errors[f] ? { borderColor: '#ef4444', backgroundColor: '#fff1f0' } : {};
   return (
     <div className="modal-overlay">
@@ -55,7 +55,7 @@ function ReservaModal({ editing, form, errors, espacios, socios, sancionados, on
         <div className="modal-header">
           <div>
             <h3>{editing ? 'Editar Reserva' : 'Nueva Reserva'}</h3>
-            <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>La hora fin se calcula automáticamente ({DURACION_MIN} min)</p>
+            <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>La hora fin se calcula automáticamente según la duración elegida</p>
           </div>
           <button onClick={onClose} className="close-modal"><X size={22} /></button>
         </div>
@@ -92,6 +92,28 @@ function ReservaModal({ editing, form, errors, espacios, socios, sancionados, on
                   min={todayISO()} max={RESERVA_CONFIG.sameDayOnly ? todayISO() : undefined}
                   onChange={e => onUpdate('fecha', e.target.value)} style={err('fecha')} />
                 {errors.fecha && <p className="field-error">{errors.fecha}</p>}
+              </div>
+              <div className="form-group form-group-full">
+                <label>Duración</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[60, 120].map(mins => (
+                    <button
+                      key={mins}
+                      type="button"
+                      onClick={() => onUpdateDuracion(mins)}
+                      style={{
+                        flex: 1, padding: '9px 0', borderRadius: 8,
+                        border: `2px solid ${form.duracion === mins ? '#3b82f6' : '#e2e8f0'}`,
+                        background: form.duracion === mins ? '#eff6ff' : '#fff',
+                        color: form.duracion === mins ? '#1d4ed8' : '#475569',
+                        fontWeight: form.duracion === mins ? 700 : 400,
+                        cursor: 'pointer', fontSize: 14
+                      }}
+                    >
+                      {mins === 60 ? '1 hora' : '2 horas'}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="form-group">
                 <label className="required">Hora inicio</label>
@@ -186,7 +208,7 @@ export default function Reservas({ readOnly = false }) {
         adminApi.getSanciones()
       ]);
       setReservas(rRes);
-      setEspacios(eRes.filter(e => e.activo === true || e.activo === 'true'));
+      setEspacios(eRes.filter(e => e.estado === 'Activo' || e.estado === 'Mantenimiento'));
       setSocios(sRes.filter(s => s.activo === true || s.activo === 'true'));
       setSesiones(sesRes);
       setSanciones(sanRes);
@@ -232,6 +254,11 @@ export default function Reservas({ readOnly = false }) {
     return ids;
   }, [sanciones]);
 
+  const espaciosActivos = useMemo(() =>
+    espacios.filter(e => e.estado !== 'Mantenimiento'),
+    [espacios]
+  );
+
   // O(1) lookup: espacio_id → hour → reserva
   const slotMap = useMemo(() => {
     const map = new Map();
@@ -246,6 +273,25 @@ export default function Reservas({ readOnly = false }) {
     });
     return map;
   }, [reservasDelDia]);
+
+  // O(1) lookup: espacio_id → hour → sesion (for selected day-of-week)
+  const sessionMap = useMemo(() => {
+    const dia = getDiaSemana(selectedDate);
+    if (!dia) return new Map();
+    const map = new Map();
+    sesiones.forEach(s => {
+      if (Number(s.dia_semana) !== dia) return;
+      const eid = String(s.espacio_id || '');
+      if (!eid) return;
+      const inicio = parseHHMM(toTimeInputValue(s.hora_inicio));
+      const fin    = parseHHMM(toTimeInputValue(s.hora_fin));
+      if (inicio === null || fin === null) return;
+      if (!map.has(eid)) map.set(eid, {});
+      const byHour = map.get(eid);
+      HOURS.forEach(h => { if (h >= inicio && h < fin) byHour[h] = s; });
+    });
+    return map;
+  }, [sesiones, selectedDate]);
 
   // Navegación de fecha
   const changeDate = (delta) => {
@@ -263,9 +309,17 @@ export default function Reservas({ readOnly = false }) {
     setForm(prev => ({
       ...prev,
       hora_inicio: value,
-      hora_fin: value ? addMinutesToTime(value, DURACION_MIN) : ''
+      hora_fin: value ? addMinutesToTime(value, prev.duracion || DURACION_MIN) : ''
     }));
     setFormErrors(prev => ({ ...prev, hora_inicio: undefined, hora_fin: undefined }));
+  };
+
+  const updateDuracion = (mins) => {
+    setForm(prev => ({
+      ...prev,
+      duracion: mins,
+      hora_fin: prev.hora_inicio ? addMinutesToTime(prev.hora_inicio, mins) : ''
+    }));
   };
 
   const resetForm = () => {
@@ -280,7 +334,7 @@ export default function Reservas({ readOnly = false }) {
       ...prev,
       espacio_id: espacioId ? String(espacioId) : '',
       hora_inicio: hora,
-      hora_fin: hora ? addMinutesToTime(hora, DURACION_MIN) : '',
+      hora_fin: hora ? addMinutesToTime(hora, prev.duracion || DURACION_MIN) : '',
       fecha: selectedDate
     }));
     setShowModal(true);
@@ -288,13 +342,16 @@ export default function Reservas({ readOnly = false }) {
 
   const openEdit = (r) => {
     setEditingReserva(r);
+    const duracionExistente = minutesBetween(toTimeInputValue(r.hora_inicio), toTimeInputValue(r.hora_fin));
+    const duracion = (duracionExistente === 60 || duracionExistente === 120) ? duracionExistente : 60;
     setForm({
       espacio_id: String(r.espacio_id || ''),
       socio_id: String(r.socio_id || ''),
       fecha: toDateInputValue(r.fecha),
       hora_inicio: toTimeInputValue(r.hora_inicio),
       hora_fin: toTimeInputValue(r.hora_fin),
-      estado: normalizeEstadoReserva(r.estado)
+      estado: normalizeEstadoReserva(r.estado),
+      duracion
     });
     setFormErrors({});
     setShowModal(true);
@@ -339,7 +396,8 @@ export default function Reservas({ readOnly = false }) {
       errors.fecha = 'Solo se permiten reservas para hoy';
     if (form.hora_inicio && form.hora_fin) {
       const dur = minutesBetween(form.hora_inicio, form.hora_fin);
-      if (dur !== DURACION_MIN) errors.hora_fin = `La reserva debe durar ${DURACION_MIN} minutos`;
+      const duracionEsperada = form.duracion || DURACION_MIN;
+      if (dur !== duracionEsperada) errors.hora_fin = `La reserva debe durar ${duracionEsperada} minutos`;
     }
     const activa = !INACTIVE_ESTADOS.includes(form.estado);
     if (activa) {
@@ -420,18 +478,22 @@ export default function Reservas({ readOnly = false }) {
             <span className="legend-item"><span className="legend-dot" style={{ background: '#1e3a5f' }} /> Confirmada</span>
             <span className="legend-item"><span className="legend-dot" style={{ background: '#f59e0b' }} /> Pendiente</span>
             <span className="legend-item"><span className="legend-dot" style={{ background: '#ef4444' }} /> No Show</span>
-            <span className="legend-item"><span className="legend-dot" style={{ background: '#9ca3af' }} /> Mantenimiento</span>
+            <span className="legend-item"><span className="legend-dot" style={{ background: '#0d9488' }} /> Sesión</span>
           </div>
-          <select
-            className="reservas-filter-select"
-            value={filterEspacio}
-            onChange={e => setFilterEspacio(e.target.value)}
-          >
-            <option value="">Todos los espacios</option>
-            {espacios.map(e => (
-              <option key={e.espacio_id} value={e.espacio_id}>{e.nombre}</option>
-            ))}
-          </select>
+          <label className="admin-filter">
+            <span>Espacio</span>
+            <select
+              value={filterEspacio}
+              onChange={e => setFilterEspacio(e.target.value)}
+            >
+              <option value="">Todos los espacios</option>
+              {espacios.map(e => (
+                <option key={e.espacio_id} value={e.espacio_id}>
+                  {e.nombre}{e.estado === 'Mantenimiento' ? ' — Mant.' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
@@ -476,10 +538,17 @@ export default function Reservas({ readOnly = false }) {
               <div className="grid-space-info">
                 <span
                   className="grid-space-dot"
-                  style={{ background: espacio.activo ? '#10b981' : '#94a3b8' }}
+                  style={{ background: espacio.estado === 'Mantenimiento' ? '#f97316' : (espacio.activo ? '#10b981' : '#94a3b8') }}
                 />
                 <div>
-                  <strong>{espacio.nombre}</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <strong>{espacio.nombre}</strong>
+                    {espacio.estado === 'Mantenimiento' && (
+                      <span style={{ fontSize: 10, color: '#c2410c', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 3, padding: '1px 5px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        Mantenimiento
+                      </span>
+                    )}
+                  </div>
                   <span>{espacio.disciplina || 'General'} &mdash; Cap. {espacio.capacidad_maxima || 'N/D'}</span>
                 </div>
               </div>
@@ -488,27 +557,42 @@ export default function Reservas({ readOnly = false }) {
               {HOURS.map(h => {
                 const hora = h;
                 const reserva = slotMap.get(String(espacio.espacio_id))?.[hora] ?? null;
+                const sesion  = !reserva ? (sessionMap.get(String(espacio.espacio_id))?.[hora] ?? null) : null;
                 const estado = reserva ? normalizeEstadoReserva(reserva.estado) : null;
                 const meta = estado ? (ESTADO_META[estado] || ESTADO_META.confirmada) : null;
                 const isTooltipActive = reserva && activeTooltip === reserva.reserva_id;
-
-                // Si ya hay una reserva que empieza en una hora anterior y cubre este slot, no la repintamos
                 const isStart = reserva && parseHHMM(toTimeInputValue(reserva.hora_inicio)) === hora;
+                const isSesionStart = sesion && parseHHMM(toTimeInputValue(sesion.hora_inicio)) === hora;
 
+                const enMantenimiento = espacio.estado === 'Mantenimiento';
                 return (
                   <div
                     key={h}
-                    className={`grid-cell ${reserva ? 'has-reserva' : 'disponible'}`}
+                    className={`grid-cell ${enMantenimiento ? 'mantenimiento' : (reserva ? 'has-reserva' : 'disponible')}`}
+                    style={enMantenimiento ? { background: '#fff7ed', cursor: 'not-allowed' } : (sesion && !reserva ? { background: '#f0fdfa' } : {})}
                     onClick={e => {
                       e.stopPropagation();
-                      if (!reserva && !readOnly) {
-                        openCreate(espacio.espacio_id, `${String(hora).padStart(2, '0')}:00`);
-                      } else if (reserva) {
+                      if (enMantenimiento) return;
+                      if (reserva) {
                         setActiveTooltip(isTooltipActive ? null : reserva.reserva_id);
+                      } else if (sesion) {
+                        setActiveTooltip(null);
+                      } else if (!readOnly) {
+                        openCreate(espacio.espacio_id, `${String(hora).padStart(2, '0')}:00`);
                       }
                     }}
                   >
-                    {isStart && reserva && meta && (
+                    {enMantenimiento && h === GRID_START && (
+                      <div
+                        className="grid-block"
+                        style={{ background: '#f97316', cursor: 'not-allowed', minWidth: 80, whiteSpace: 'nowrap' }}
+                        title="Espacio en mantenimiento — no disponible para reservas"
+                      >
+                        <span style={{ fontSize: 9, fontWeight: 600 }}>En mantenimiento</span>
+                      </div>
+                    )}
+
+                    {!enMantenimiento && isStart && reserva && meta && (
                       <div
                         className="grid-block"
                         style={{ background: meta.color }}
@@ -518,8 +602,20 @@ export default function Reservas({ readOnly = false }) {
                       </div>
                     )}
 
-                    {/* Tooltip */}
-                    {isTooltipActive && isStart && (
+                    {!enMantenimiento && isSesionStart && sesion && (
+                      <div
+                        className="grid-block"
+                        style={{ background: '#0d9488', cursor: 'default', gap: 3 }}
+                        title={`Sesión: ${sesion.disciplina || 'Clase'} — ${toTimeInputValue(sesion.hora_inicio)} a ${toTimeInputValue(sesion.hora_fin)} | Instructor: ${sesion.instructor || 'N/A'} | ${sesion.inscritos_actuales ?? 0}/${sesion.cupo_maximo ?? '?'} inscritos`}
+                      >
+                        <Users size={10} color="#fff" style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 9 }}>
+                          {sesion.disciplina || 'Sesión'}
+                        </span>
+                      </div>
+                    )}
+
+                    {!enMantenimiento && isTooltipActive && isStart && (
                       <ReservaTooltip
                         reserva={reserva}
                         onEdit={openEdit}
@@ -546,13 +642,14 @@ export default function Reservas({ readOnly = false }) {
           editing={editingReserva}
           form={form}
           errors={formErrors}
-          espacios={espacios}
+          espacios={espaciosActivos}
           socios={socios}
           sancionados={sancionados}
           onClose={() => { setShowModal(false); resetForm(); }}
           onSubmit={handleSubmit}
           onUpdate={updateForm}
           onUpdateHora={updateHoraInicio}
+          onUpdateDuracion={updateDuracion}
         />
       )}
     </div>

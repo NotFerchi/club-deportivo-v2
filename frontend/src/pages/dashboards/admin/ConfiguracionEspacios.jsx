@@ -1,35 +1,88 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, Bike, CheckCircle, CircleDot, Dumbbell, Edit2, Flame, Heart, MapPin, Music2, Plus, RotateCcw, Shield, Target, Trash2, Waves, X, Zap } from 'lucide-react';
+import { CheckCircle, Edit2, MapPin, Plus, RotateCcw, Trash2, Wrench, X } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
 import { EmptyState, FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { isActiveValue, normalizeText } from '../../../utils/adminData';
+import { getDeporteIcono } from '../../../utils/deporteIconos';
 
 const initialFormData = {
   nombre: '',
-  disciplina_id: '',
+  disciplina_ids: [],
   capacidad_maxima: '',
-  activo: true
+  estado: 'Activo'
 };
 
 const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
 
-function getEspacioConfig(nombre, disciplina) {
-  const n = String(`${nombre || ''} ${disciplina || ''}`).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  if (n.includes('tenis') || n.includes('tennis') || n.includes('raqueta')) return { color: '#3b82f6', bg: '#eff6ff', Icon: Target };
-  if (n.includes('padel') || n.includes('paddle') || n.includes('fronton') || n.includes('squash')) return { color: '#0d9488', bg: '#f0fdfa', Icon: Zap };
-  if (n.includes('alberca') || n.includes('natacion') || n.includes('pool') || n.includes('nado') || n.includes('acuatico')) return { color: '#0ea5e9', bg: '#f0f9ff', Icon: Waves };
-  if (n.includes('gimnasio') || n.includes('gym') || n.includes('fitness') || n.includes('pesas') || n.includes('crossfit')) return { color: '#ef4444', bg: '#fef2f2', Icon: Dumbbell };
-  if (n.includes('futbol') || n.includes('soccer') || n.includes('foot')) return { color: '#22c55e', bg: '#f0fdf4', Icon: CircleDot };
-  if (n.includes('basquet') || n.includes('basketball') || n.includes('volei') || n.includes('volleyball')) return { color: '#f97316', bg: '#fff7ed', Icon: CircleDot };
-  if (n.includes('karate') || n.includes('taekwondo') || n.includes('judo') || n.includes('marcial') || n.includes('box') || n.includes('lucha')) return { color: '#dc2626', bg: '#fef2f2', Icon: Flame };
-  if (n.includes('yoga') || n.includes('pilates') || n.includes('meditacion') || n.includes('bienestar')) return { color: '#8b5cf6', bg: '#f5f3ff', Icon: Heart };
-  if (n.includes('zumba') || n.includes('aerobic') || n.includes('baile') || n.includes('danza')) return { color: '#ec4899', bg: '#fdf2f8', Icon: Music2 };
-  if (n.includes('ciclismo') || n.includes('spinning') || n.includes('bici')) return { color: '#84cc16', bg: '#f7fee7', Icon: Bike };
-  if (n.includes('sala') || n.includes('salon') || n.includes('multi')) return { color: '#a855f7', bg: '#faf5ff', Icon: Activity };
-  if (n.includes('esgrima') || n.includes('tiro') || n.includes('arqueria')) return { color: '#6366f1', bg: '#eef2ff', Icon: Shield };
-  return { color: '#6366f1', bg: '#eef2ff', Icon: MapPin };
+// ── Modal de mantenimiento ────────────────────────────────────────────────────
+function MantenimientoModal({ espacio, onClose, onConfirm }) {
+  const [motivo, setMotivo] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    await onConfirm(motivo.trim(), fechaFin || null);
+    setSaving(false);
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ maxWidth: 440 }}>
+        <div className="modal-header">
+          <div>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Wrench size={18} style={{ color: '#f97316' }} />
+              Poner en mantenimiento
+            </h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+              {espacio.nombre}
+            </p>
+          </div>
+          <button onClick={onClose} className="close-modal"><X size={22} /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-group form-group-full">
+              <label>Motivo del mantenimiento</label>
+              <textarea
+                rows={3}
+                placeholder="Ej: Reparación de piso, pintura, revisión eléctrica..."
+                value={motivo}
+                onChange={e => setMotivo(e.target.value)}
+                style={{ resize: 'vertical', minHeight: 70 }}
+                autoFocus
+              />
+              <p className="field-hint">Opcional pero recomendado para el historial.</p>
+            </div>
+            <div className="form-group form-group-full">
+              <label>Fecha estimada de finalización</label>
+              <input
+                type="date"
+                value={fechaFin}
+                onChange={e => setFechaFin(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+              <p className="field-hint">Opcional. Puedes reactivar el espacio manualmente en cualquier momento.</p>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" onClick={onClose} className="btn-outline" disabled={saving}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn-primary" disabled={saving}
+              style={{ background: '#f97316', borderColor: '#f97316' }}>
+              {saving ? 'Guardando...' : 'Confirmar mantenimiento'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 
+// ── Componente principal ──────────────────────────────────────────────────────
 function ConfiguracionEspacios({ readOnly = false }) {
   const [espacios, setEspacios] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
@@ -38,6 +91,7 @@ function ConfiguracionEspacios({ readOnly = false }) {
   const [filterEstado, setFilterEstado] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showMantModal, setShowMantModal] = useState(null); // espacio seleccionado
   const [editingEspacio, setEditingEspacio] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -61,20 +115,20 @@ function ConfiguracionEspacios({ readOnly = false }) {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const filteredEspacios = useMemo(() => {
     const query = normalizeText(searchTerm);
     return espacios.filter(espacio => {
-      const activo = isActiveValue(espacio.activo);
-      const text = normalizeText([espacio.nombre, espacio.disciplina].filter(Boolean).join(' '));
+      const estado = espacio.estado || (isActiveValue(espacio.activo) ? 'Activo' : 'Inactivo');
+      const text = normalizeText([espacio.nombre, espacio.disciplinas_texto || espacio.disciplina].filter(Boolean).join(' '));
+      const disciplinaIds = Array.isArray(espacio.disciplina_ids) ? espacio.disciplina_ids : [];
 
       if (query && !text.includes(query)) return false;
-      if (filterDisciplina && String(espacio.disciplina_id || '') !== filterDisciplina) return false;
-      if (filterEstado === 'activos' && !activo) return false;
-      if (filterEstado === 'inactivos' && activo) return false;
+      if (filterDisciplina && !disciplinaIds.includes(Number(filterDisciplina)) && String(espacio.disciplina_id || '') !== filterDisciplina) return false;
+      if (filterEstado === 'activos' && estado !== 'Activo') return false;
+      if (filterEstado === 'inactivos' && estado !== 'Inactivo') return false;
+      if (filterEstado === 'mantenimiento' && estado !== 'Mantenimiento') return false;
       return true;
     });
   }, [espacios, searchTerm, filterDisciplina, filterEstado]);
@@ -90,16 +144,13 @@ function ConfiguracionEspacios({ readOnly = false }) {
     const errors = {};
     const nombre = formData.nombre.trim();
     const capacidad = Number(formData.capacidad_maxima);
-    const repeated = espacios.some(espacio =>
-      normalizeText(espacio.nombre) === normalizeText(nombre) &&
-      espacio.espacio_id !== editingEspacio?.espacio_id
+    const repeated = espacios.some(e =>
+      normalizeText(e.nombre) === normalizeText(nombre) && e.espacio_id !== editingEspacio?.espacio_id
     );
-
     if (nombre.length < 3) errors.nombre = 'El nombre debe tener al menos 3 caracteres';
     if (repeated) errors.nombre = 'Ya existe un espacio con ese nombre';
     if (!Number.isFinite(capacidad) || capacidad <= 0) errors.capacidad = 'La capacidad debe ser mayor a 0';
     else if (capacidad > 500) errors.capacidad = 'La capacidad máxima no puede superar 500';
-
     return errors;
   };
 
@@ -109,18 +160,15 @@ function ConfiguracionEspacios({ readOnly = false }) {
     setFormErrors({});
   };
 
-  const openCreateModal = () => {
-    resetForm();
-    setShowModal(true);
-  };
+  const openCreateModal = () => { resetForm(); setShowModal(true); };
 
   const handleEdit = (espacio) => {
     setEditingEspacio(espacio);
     setFormData({
       nombre: espacio.nombre || '',
-      disciplina_id: espacio.disciplina_id?.toString() || '',
+      disciplina_ids: Array.isArray(espacio.disciplina_ids) ? espacio.disciplina_ids : (espacio.disciplina_id ? [espacio.disciplina_id] : []),
       capacidad_maxima: espacio.capacidad_maxima?.toString() || '',
-      activo: isActiveValue(espacio.activo)
+      estado: espacio.estado || (isActiveValue(espacio.activo) ? 'Activo' : 'Inactivo')
     });
     setFormErrors({});
     setShowModal(true);
@@ -135,19 +183,16 @@ function ConfiguracionEspacios({ readOnly = false }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
     const errors = validateForm();
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
 
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-
+    const disciplinaIds = formData.disciplina_ids.map(Number).filter(Boolean);
     const payload = {
       nombre: formData.nombre.trim(),
-      disciplina_id: formData.disciplina_id ? Number(formData.disciplina_id) : null,
+      disciplina_ids: disciplinaIds,
+      disciplina_id: disciplinaIds[0] || null,
       capacidad_maxima: Number(formData.capacidad_maxima),
-      activo: formData.activo
+      estado: formData.estado
     };
-
     try {
       await adminApi.saveEspacio(payload, editingEspacio?.espacio_id);
       await fetchData();
@@ -159,20 +204,45 @@ function ConfiguracionEspacios({ readOnly = false }) {
     }
   };
 
-  const handleToggleActivo = async (espacio, activo) => {
-    if (!confirm(activo ? '¿Reactivar este espacio?' : '¿Inactivar este espacio?')) return;
+  // Poner en mantenimiento — abre modal
+  const handlePedirMantenimiento = (espacio) => {
+    setShowMantModal(espacio);
+  };
 
+  // Confirmar mantenimiento con motivo/fecha
+  const handleConfirmarMantenimiento = async (motivo, fechaFin) => {
+    const espacio = showMantModal;
     try {
-      await adminApi.saveEspacio({
-        nombre: espacio.nombre,
-        disciplina_id: espacio.disciplina_id || null,
-        capacidad_maxima: espacio.capacidad_maxima,
-        activo
-      }, espacio.espacio_id);
+      await adminApi.toggleEspacioEstado(espacio.espacio_id, 'Mantenimiento', motivo, fechaFin);
+      setShowMantModal(null);
       await fetchData();
-      showToast(activo ? 'Espacio reactivado correctamente' : 'Espacio inactivado correctamente');
+      showToast('Espacio puesto en mantenimiento');
     } catch (error) {
-      alert(error.message || 'Error al actualizar estado del espacio');
+      alert(error.message || 'Error al poner en mantenimiento');
+    }
+  };
+
+  // Reactivar espacio
+  const handleReactivar = async (espacio) => {
+    if (!confirm(`¿Reactivar "${espacio.nombre}"?`)) return;
+    try {
+      await adminApi.toggleEspacioEstado(espacio.espacio_id, 'Activo');
+      await fetchData();
+      showToast('Espacio reactivado correctamente');
+    } catch (error) {
+      alert(error.message || 'Error al reactivar espacio');
+    }
+  };
+
+  // Inactivar espacio
+  const handleInactivar = async (espacio) => {
+    if (!confirm(`¿Inactivar "${espacio.nombre}"?`)) return;
+    try {
+      await adminApi.toggleEspacioEstado(espacio.espacio_id, 'Inactivo');
+      await fetchData();
+      showToast('Espacio inactivado');
+    } catch (error) {
+      alert(error.message || 'Error al inactivar espacio');
     }
   };
 
@@ -219,33 +289,22 @@ function ConfiguracionEspacios({ readOnly = false }) {
       <div className="admin-filter-row">
         <FilterSelect label="Disciplina" value={filterDisciplina} onChange={setFilterDisciplina}>
           <option value="">Todas</option>
-          {disciplinas.map(disciplina => (
-            <option key={disciplina.disciplina_id} value={disciplina.disciplina_id}>{disciplina.nombre}</option>
+          {disciplinas.map(d => (
+            <option key={d.disciplina_id} value={d.disciplina_id}>{d.nombre}</option>
           ))}
         </FilterSelect>
         <FilterSelect label="Estado" value={filterEstado} onChange={setFilterEstado}>
           <option value="">Todos</option>
           <option value="activos">Activos</option>
           <option value="inactivos">Inactivos</option>
+          <option value="mantenimiento">En mantenimiento</option>
         </FilterSelect>
       </div>
 
       <div className="space-rules-grid">
-        <div>
-          <span>Horario operativo</span>
-          <strong>06:00 - 22:00</strong>
-          <p>Base usada para disponibilidad y reservas del dia.</p>
-        </div>
-        <div>
-          <span>Duracion de reserva</span>
-          <strong>60 minutos</strong>
-          <p>La hora final se calcula automaticamente.</p>
-        </div>
-        <div>
-          <span>Regla por socio</span>
-          <strong>1 activa por dia</strong>
-          <p>Evita sobreocupacion y dobles reservas.</p>
-        </div>
+        <div><span>Horario operativo</span><strong>06:00 - 22:00</strong><p>Base usada para disponibilidad y reservas del dia.</p></div>
+        <div><span>Duracion de reserva</span><strong>60 o 120 minutos</strong><p>El socio elige 1 o 2 horas al hacer la reserva.</p></div>
+        <div><span>Regla por socio</span><strong>1 activa por dia</strong><p>Evita sobreocupacion y dobles reservas.</p></div>
       </div>
 
       {filteredEspacios.length === 0 ? (
@@ -257,20 +316,29 @@ function ConfiguracionEspacios({ readOnly = false }) {
       ) : (
         <div className="grid-auto">
           {filteredEspacios.map(espacio => {
-            const activo = isActiveValue(espacio.activo);
-            const { color, bg, Icon } = getEspacioConfig(espacio.nombre, espacio.disciplina);
+            const estado = espacio.estado || (isActiveValue(espacio.activo) ? 'Activo' : 'Inactivo');
+            const { Icon, color, bg } = getDeporteIcono(espacio.nombre);
+
+            const estadoBadgeStyle = estado === 'Mantenimiento'
+              ? { background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa' }
+              : estado === 'Inactivo'
+              ? { background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }
+              : { background: '#d1fae5', color: '#065f46', border: '1px solid #a7f3d0' };
+
             return (
-              <div key={espacio.espacio_id} className="espacio-card-modern" style={{ borderTop: `3px solid ${color}` }}>
+              <div key={espacio.espacio_id} className="espacio-card-modern"
+                style={{ borderTop: `3px solid ${estado === 'Mantenimiento' ? '#f97316' : estado === 'Inactivo' ? '#f59e0b' : color}` }}>
+
                 <div className="espacio-header">
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 className="espacio-title" style={{ marginBottom: 2 }}>{espacio.nombre}</h3>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <span className={activo ? 'badge-success' : 'badge-warning'} style={{ fontSize: 11 }}>
-                        {activo ? 'Activo' : 'Inactivo'}
+                      <span style={{ ...estadoBadgeStyle, borderRadius: 4, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
+                        {estado}
                       </span>
-                      {espacio.disciplina && (
+                      {(espacio.disciplinas_texto || espacio.disciplina) && (
                         <span style={{ fontSize: 11, color, background: bg, borderRadius: 4, padding: '1px 7px', fontWeight: 600 }}>
-                          {espacio.disciplina}
+                          {espacio.disciplinas_texto || espacio.disciplina}
                         </span>
                       )}
                     </div>
@@ -294,25 +362,44 @@ function ConfiguracionEspacios({ readOnly = false }) {
                 </div>
 
                 {!readOnly && (
-                <div className="espacio-footer">
-                  <button onClick={() => handleEdit(espacio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar espacio">
-                    <Edit2 size={16} />
-                  </button>
-                  {activo ? (
-                    <button onClick={() => handleToggleActivo(espacio, false)} className="btn-icon" style={{ color: '#ef4444' }} title="Inactivar espacio">
-                      <Trash2 size={16} />
+                  <div className="espacio-footer">
+                    <button onClick={() => handleEdit(espacio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar espacio">
+                      <Edit2 size={16} />
                     </button>
-                  ) : (
-                    <>
-                      <button onClick={() => handleToggleActivo(espacio, true)} className="btn-icon" style={{ color: '#10b981' }} title="Reactivar espacio">
-                        <RotateCcw size={16} />
-                      </button>
-                      <button onClick={() => handlePermanentDelete(espacio.espacio_id)} className="btn-icon" style={{ color: '#b91c1c' }} title="Eliminar permanentemente">
-                        <Trash2 size={16} />
-                      </button>
-                    </>
-                  )}
-                </div>
+
+                    {estado === 'Activo' && (
+                      <>
+                        <button onClick={() => handlePedirMantenimiento(espacio)} className="btn-icon" style={{ color: '#f97316' }} title="Poner en mantenimiento">
+                          <Wrench size={16} />
+                        </button>
+                        <button onClick={() => handleInactivar(espacio)} className="btn-icon" style={{ color: '#ef4444' }} title="Inactivar espacio">
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
+
+                    {estado === 'Mantenimiento' && (
+                      <>
+                        <button onClick={() => handleReactivar(espacio)} className="btn-icon" style={{ color: '#10b981' }} title="Reactivar espacio">
+                          <RotateCcw size={16} />
+                        </button>
+                        <button onClick={() => handleInactivar(espacio)} className="btn-icon" style={{ color: '#ef4444' }} title="Inactivar espacio">
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
+
+                    {estado === 'Inactivo' && (
+                      <>
+                        <button onClick={() => handleReactivar(espacio)} className="btn-icon" style={{ color: '#10b981' }} title="Reactivar espacio">
+                          <RotateCcw size={16} />
+                        </button>
+                        <button onClick={() => handlePermanentDelete(espacio.espacio_id)} className="btn-icon" style={{ color: '#b91c1c' }} title="Eliminar permanentemente">
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             );
@@ -320,6 +407,7 @@ function ConfiguracionEspacios({ readOnly = false }) {
         </div>
       )}
 
+      {/* Modal crear/editar espacio */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
@@ -328,11 +416,8 @@ function ConfiguracionEspacios({ readOnly = false }) {
                 <h3>{editingEspacio ? 'Editar Espacio' : 'Nuevo Espacio'}</h3>
                 <p className="form-alert" style={{ margin: 0 }}>Los campos marcados como obligatorios se validan antes de guardar.</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="close-modal">
-                <X size={24} />
-              </button>
+              <button onClick={() => setShowModal(false)} className="close-modal"><X size={24} /></button>
             </div>
-
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="form-row">
@@ -342,7 +427,7 @@ function ConfiguracionEspacios({ readOnly = false }) {
                       type="text"
                       placeholder="Ej: Cancha de Fútbol"
                       value={formData.nombre}
-                      onChange={event => updateForm('nombre', event.target.value)}
+                      onChange={e => updateForm('nombre', e.target.value)}
                       style={getInputStyles('nombre')}
                       autoFocus
                     />
@@ -350,14 +435,29 @@ function ConfiguracionEspacios({ readOnly = false }) {
                   </div>
 
                   <div className="form-group form-group-full">
-                    <label>Disciplina</label>
-                    <select value={formData.disciplina_id} onChange={event => updateForm('disciplina_id', event.target.value)}>
-                      <option value="">Sin disciplina asignada</option>
-                      {disciplinas.map(disciplina => (
-                        <option key={disciplina.disciplina_id} value={disciplina.disciplina_id}>{disciplina.nombre}</option>
-                      ))}
-                    </select>
-                    {disciplinas.length === 0 && <p className="field-hint">No hay disciplinas registradas; puedes dejarlo vacío.</p>}
+                    <label>Disciplinas</label>
+                    {disciplinas.length === 0 ? (
+                      <p className="field-hint">No hay disciplinas registradas.</p>
+                    ) : (
+                      <div style={{ maxHeight: 140, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6, background: '#fff' }}>
+                        {disciplinas.map(d => (
+                          <label key={d.disciplina_id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: '#1e293b', userSelect: 'none' }}>
+                            <input
+                              type="checkbox"
+                              checked={formData.disciplina_ids.includes(d.disciplina_id)}
+                              onChange={e => {
+                                const id = d.disciplina_id;
+                                const curr = formData.disciplina_ids;
+                                updateForm('disciplina_ids', e.target.checked ? [...curr, id] : curr.filter(x => x !== id));
+                              }}
+                              style={{ accentColor: '#3b82f6', width: 15, height: 15 }}
+                            />
+                            {d.nombre}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    <p className="field-hint">Selecciona una o más disciplinas que se practican en este espacio.</p>
                   </div>
 
                   <div className="form-group form-group-full">
@@ -366,7 +466,7 @@ function ConfiguracionEspacios({ readOnly = false }) {
                       type="number"
                       placeholder="Ej: 100"
                       value={formData.capacidad_maxima}
-                      onChange={event => updateForm('capacidad_maxima', event.target.value)}
+                      onChange={e => updateForm('capacidad_maxima', e.target.value)}
                       style={getInputStyles('capacidad')}
                       min="1"
                       max="500"
@@ -376,7 +476,6 @@ function ConfiguracionEspacios({ readOnly = false }) {
                   </div>
                 </div>
               </div>
-
               <div className="modal-footer">
                 <button type="button" onClick={() => { setShowModal(false); setFormErrors({}); }} className="btn-outline">
                   Cancelar
@@ -388,6 +487,15 @@ function ConfiguracionEspacios({ readOnly = false }) {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal de mantenimiento */}
+      {showMantModal && (
+        <MantenimientoModal
+          espacio={showMantModal}
+          onClose={() => setShowMantModal(null)}
+          onConfirm={handleConfirmarMantenimiento}
+        />
       )}
     </div>
   );

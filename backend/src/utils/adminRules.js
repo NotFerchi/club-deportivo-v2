@@ -74,6 +74,14 @@ async function getTableColumns(tableName) {
   return columns;
 }
 
+function clearTableColumnsCache(tableName) {
+  if (tableName) {
+    tableColumnsCache.delete(tableName);
+  } else {
+    tableColumnsCache.clear();
+  }
+}
+
 async function getReservaEstadoLabels() {
   if (reservaEstadosCache) return reservaEstadosCache;
 
@@ -85,6 +93,11 @@ async function getReservaEstadoLabels() {
     ORDER BY e.enumsortorder
   `);
   reservaEstadosCache = result.rows.map(row => row.enumlabel);
+  // If Pendiente was just added via migration, the old cache may be stale — never cache permanently
+  if (!reservaEstadosCache.some(l => normalizeReservaEstado(l) === 'pendiente')) {
+    reservaEstadosCache = null;
+    return result.rows.map(row => row.enumlabel);
+  }
   return reservaEstadosCache;
 }
 
@@ -99,16 +112,17 @@ async function resolveReservaEstado(value) {
   const exact = labels.find(label => normalizeReservaEstado(label) === normalized);
   if (exact) return exact;
 
-  if (normalized === 'pendiente') {
-    const confirmada = labels.find(label => normalizeReservaEstado(label) === 'confirmada');
-    if (confirmada) return confirmada;
-  }
+  // If state is known-valid but not yet in the DB enum (e.g. migration pending),
+  // return the normalized value and let the DB column decide.
+  const knownStates = new Set(['confirmada', 'cancelada', 'no-show', 'pendiente', 'sancionada', 'mantenimiento']);
+  if (knownStates.has(normalized)) return normalized;
 
   throw new Error(`Estado de reserva invalido: ${value}`);
 }
 
 module.exports = {
   addDaysISO,
+  clearTableColumnsCache,
   getDiaSemana,
   getTableColumns,
   gravedadDias,

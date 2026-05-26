@@ -342,17 +342,21 @@ function GestionDisciplinas() {
       </div>
 
       {/* Búsqueda y fecha */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-          <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-          <input type="text" placeholder="Buscar disciplina, instructor o espacio..."
-            value={busqueda} onChange={e => setBusqueda(e.target.value)}
-            style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, outline: 'none', boxSizing: 'border-box', background: 'white' }}
+      <div className="admin-filter-row" style={{ marginBottom: '0.5rem' }}>
+        <div className="search-wrapper" style={{ flex: 1 }}>
+          <Search className="search-icon" />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Buscar disciplina, instructor o espacio..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
           />
         </div>
-        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
-          style={{ padding: '9px 12px', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13, outline: 'none', cursor: 'pointer', background: 'white' }}
-        />
+        <label className="admin-filter">
+          <span>Fecha</span>
+          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+        </label>
       </div>
 
       <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 1.25rem' }}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Calendar, CheckCircle, Clock, CreditCard, Hash, Lock, Plus, RefreshCw, Search, ShieldAlert, User, UserCheck, X } from 'lucide-react';
+import { AlertTriangle, Calendar, CheckCircle, Clock, CreditCard, Edit2, Hash, Lock, Plus, RefreshCw, Search, ShieldAlert, User, UserCheck, X } from 'lucide-react';
 import { adminApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatDate, formatDateTime, normalizeText } from '../utils/adminData';
@@ -55,6 +55,7 @@ function SancionesPanel() {
   const [resolving, setResolving] = useState(false);
   const [socios, setSocios] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingSancion, setEditingSancion] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
   const { filters, updateFilter, clearFilters } = useSancionesFilters();
@@ -124,10 +125,21 @@ function SancionesPanel() {
     }
   };
 
+  const handleOpenEdit = (sancion) => {
+    setEditingSancion(sancion);
+    setFormData({
+      socio_id: String(sancion.socio_id || ''),
+      origen: sancion.origen || 'Administracion',
+      motivo: sancion.motivo || '',
+      gravedad: sancion.gravedad || 'Leve'
+    });
+    setShowCreateModal(true);
+  };
+
   const handleCreateSancion = async (event) => {
     event.preventDefault();
 
-    if (!formData.socio_id) {
+    if (!editingSancion && !formData.socio_id) {
       alert('Selecciona un socio');
       return;
     }
@@ -139,18 +151,21 @@ function SancionesPanel() {
 
     setSaving(true);
     try {
-      await adminApi.saveSancion({
-        socio_id: formData.socio_id,
+      const payload = {
         origen: formData.origen,
         motivo: formData.motivo.trim(),
         gravedad: formData.gravedad
-      });
+      };
+      if (!editingSancion) payload.socio_id = formData.socio_id;
+
+      await adminApi.saveSancion(payload, editingSancion?.sancion_id);
       setShowCreateModal(false);
+      setEditingSancion(null);
       setFormData(initialFormData);
-      setPage(1);
+      if (!editingSancion) setPage(1);
       await fetchSanciones();
     } catch (error) {
-      alert(error.message || 'Error al crear sancion');
+      alert(error.message || (editingSancion ? 'Error al actualizar sancion' : 'Error al crear sancion'));
     } finally {
       setSaving(false);
     }
@@ -206,7 +221,7 @@ function SancionesPanel() {
         </div>
       </div>
 
-      <div className="sanciones-filter-row">
+      <div className="admin-filter-row">
         <div className="search-wrapper">
           <Search className="search-icon" />
           <input
@@ -217,7 +232,7 @@ function SancionesPanel() {
           />
         </div>
 
-        <label className="sanciones-filter">
+        <label className="admin-filter">
           <span>Origen</span>
           <select value={filters.origen} onChange={(event) => updateFilter('origen', event.target.value)}>
             <option value="">Todos</option>
@@ -225,7 +240,7 @@ function SancionesPanel() {
           </select>
         </label>
 
-        <label className="sanciones-filter">
+        <label className="admin-filter">
           <span>Estado</span>
           <select value={filters.estado} onChange={(event) => updateFilter('estado', event.target.value)}>
             <option value="">Todos</option>
@@ -396,6 +411,11 @@ function SancionesPanel() {
               <div className="modal-footer">
                 <button className="btn-outline" type="button" onClick={() => setSelected(null)}>Cerrar</button>
                 {canResolve && activa && (
+                  <button className="btn-outline" type="button" onClick={() => { setSelected(null); handleOpenEdit(selected); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Edit2 size={15} /> Editar
+                  </button>
+                )}
+                {canResolve && activa && (
                   <button className="btn-primary" type="button" onClick={() => handleResolve(selected)}>
                     <CheckCircle size={16} /> {resolving ? 'Resolviendo...' : 'Resolver sancion'}
                   </button>
@@ -411,26 +431,32 @@ function SancionesPanel() {
           <div className="modal-content sanciones-create-modal">
             <div className="modal-header">
               <div>
-                <h3>Nueva sancion</h3>
-                <p className="sanciones-modal-subtitle">Registro disponible solo para administracion.</p>
+                <h3>{editingSancion ? 'Editar sancion' : 'Nueva sancion'}</h3>
+                <p className="sanciones-modal-subtitle">
+                  {editingSancion
+                    ? `Modificando sancion #${editingSancion.sancion_id} — ${getNombreSocio(editingSancion)}`
+                    : 'Registro disponible solo para administracion y coordinacion.'}
+                </p>
               </div>
-              <button className="close-modal" type="button" onClick={() => setShowCreateModal(false)}><X size={24} /></button>
+              <button className="close-modal" type="button" onClick={() => { setShowCreateModal(false); setEditingSancion(null); setFormData(initialFormData); }}><X size={24} /></button>
             </div>
 
             <form onSubmit={handleCreateSancion}>
               <div className="modal-body">
                 <div className="sanciones-form-grid">
-                  <label className="form-group form-group-full">
-                    <span>Socio</span>
-                    <select value={formData.socio_id} onChange={(event) => setFormData((current) => ({ ...current, socio_id: event.target.value }))}>
-                      <option value="">Selecciona un socio</option>
-                      {socios.map((socio) => (
-                        <option key={socio.socio_id} value={socio.socio_id}>
-                          {[socio.nombres, socio.apellido_paterno, socio.apellido_materno].filter(Boolean).join(' ')} - {socio.numero_socio || 'Sin numero'}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  {!editingSancion && (
+                    <label className="form-group form-group-full">
+                      <span>Socio</span>
+                      <select value={formData.socio_id} onChange={(event) => setFormData((current) => ({ ...current, socio_id: event.target.value }))}>
+                        <option value="">Selecciona un socio</option>
+                        {socios.map((socio) => (
+                          <option key={socio.socio_id} value={socio.socio_id}>
+                            {[socio.nombres, socio.apellido_paterno, socio.apellido_materno].filter(Boolean).join(' ')} - {socio.numero_socio || 'Sin numero'}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
 
                   <label className="form-group">
                     <span>Origen</span>
@@ -461,11 +487,11 @@ function SancionesPanel() {
               </div>
 
               <div className="modal-footer">
-                <button className="btn-outline" type="button" onClick={() => setShowCreateModal(false)}>
+                <button className="btn-outline" type="button" onClick={() => { setShowCreateModal(false); setEditingSancion(null); setFormData(initialFormData); }}>
                   Cancelar
                 </button>
                 <button className="btn-primary" type="submit">
-                  {saving ? 'Guardando...' : 'Crear sancion'}
+                  {saving ? 'Guardando...' : editingSancion ? 'Guardar cambios' : 'Crear sancion'}
                 </button>
               </div>
             </form>

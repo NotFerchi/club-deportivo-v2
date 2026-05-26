@@ -43,6 +43,8 @@ const socioController = {
           s.nombre_emergencia,
           s.tel_emergencia,
           s.activo,
+          s.fecha_alta,
+          s.fecha_alta as fecha_registro,
           u.nombres,
           u.apellido_paterno,
           u.apellido_materno,
@@ -52,9 +54,16 @@ const socioController = {
           u.genero,
           u.telefono,
           u.direccion,
-          u.activo as usuario_activo
+          u.activo as usuario_activo,
+          COALESCE(sa.total_activas, 0)::int as num_sanciones
         FROM socios s
         JOIN usuarios u ON s.usuario_id = u.usuario_id
+        LEFT JOIN (
+          SELECT socio_id, COUNT(*)::int as total_activas
+          FROM sanciones
+          WHERE LOWER(estado::text) IN ('activo', 'activa')
+          GROUP BY socio_id
+        ) sa ON sa.socio_id = s.socio_id
         ORDER BY s.socio_id
       `);
       
@@ -331,14 +340,21 @@ const socioController = {
   // Inactivar socio
   deleteSocio: async (req, res) => {
     const { id } = req.params;
+    const client = await pool.connect();
     try {
-      const result = await pool.query(
-        'UPDATE socios SET activo = false WHERE socio_id = $1 RETURNING socio_id',
+      await client.query('BEGIN');
+      const result = await client.query(
+        'UPDATE socios SET activo = false WHERE socio_id = $1 RETURNING socio_id, usuario_id',
         [id]
       );
       if (result.rows.length === 0) {
+        await client.query('ROLLBACK');
         return res.status(404).json({ error: 'Socio no encontrado' });
       }
+      if (result.rows[0].usuario_id) {
+        await client.query('UPDATE usuarios SET activo = false WHERE usuario_id = $1', [result.rows[0].usuario_id]);
+      }
+      await client.query('COMMIT');
       await logAudit(req, {
         accion: 'inactivar_socio',
         tabla_afectada: 'socios',
@@ -347,8 +363,11 @@ const socioController = {
       });
       res.json({ ok: true, message: 'Socio inactivado correctamente' });
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Error en deleteSocio:', error);
       res.status(500).json({ error: 'Error al inactivar socio' });
+    } finally {
+      client.release();
     }
   },
 
@@ -388,14 +407,21 @@ const socioController = {
   // Reactivar socio
   reactivar: async (req, res) => {
     const { id } = req.params;
+    const client = await pool.connect();
     try {
-      const result = await pool.query(
-        'UPDATE socios SET activo = true WHERE socio_id = $1 RETURNING socio_id',
+      await client.query('BEGIN');
+      const result = await client.query(
+        'UPDATE socios SET activo = true WHERE socio_id = $1 RETURNING socio_id, usuario_id',
         [id]
       );
       if (result.rows.length === 0) {
+        await client.query('ROLLBACK');
         return res.status(404).json({ error: 'Socio no encontrado' });
       }
+      if (result.rows[0].usuario_id) {
+        await client.query('UPDATE usuarios SET activo = true WHERE usuario_id = $1', [result.rows[0].usuario_id]);
+      }
+      await client.query('COMMIT');
       await logAudit(req, {
         accion: 'reactivar_socio',
         tabla_afectada: 'socios',
@@ -404,8 +430,11 @@ const socioController = {
       });
       res.json({ ok: true, message: 'Socio reactivado correctamente' });
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Error en reactivar:', error);
       res.status(500).json({ error: 'Error al reactivar socio' });
+    } finally {
+      client.release();
     }
   }
 };

@@ -28,7 +28,7 @@ module.exports = {
           u.apellido_paterno,
           TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS nombre_padre,
           TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS tutor_nombre,
-          NULL::text AS observaciones
+          rl.observaciones
 
         FROM registro_ludoteca rl
         JOIN socios s ON rl.socio_padre_id = s.socio_id
@@ -75,7 +75,7 @@ module.exports = {
           u.apellido_paterno,
           TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS nombre_padre,
           TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS tutor_nombre,
-          NULL::text AS observaciones
+          rl.observaciones
         FROM registro_ludoteca rl
         JOIN socios s ON rl.socio_padre_id = s.socio_id
         JOIN usuarios u ON s.usuario_id = u.usuario_id
@@ -91,7 +91,7 @@ module.exports = {
 
   // ── SCRUM-108: POST /api/ludoteca/entrada ──
   registrarEntradaLudoteca: async (req, res) => {
-    const { socio_padre_id, nombre_hijo, fecha_nacimiento } = req.body;
+    const { socio_padre_id, nombre_hijo, fecha_nacimiento, observaciones } = req.body;
 
     if (!socio_padre_id || !nombre_hijo || !fecha_nacimiento) {
       return res.status(400).json({
@@ -131,16 +131,17 @@ module.exports = {
       }
 
       const result = await pool.query(
-        `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada)
-         VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}')
+        `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones)
+         VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}', $4)
          RETURNING
            registro_id,
            socio_padre_id,
            nombre_hijo,
            fecha_nacimiento,
            hora_entrada,
-           TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local`,
-        [socioPadreId, nombre_hijo.trim(), fecha_nacimiento]
+           TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local,
+           observaciones`,
+        [socioPadreId, nombre_hijo.trim(), fecha_nacimiento, String(observaciones || '').trim() || null]
       );
 
       await logAudit(req, {
@@ -291,7 +292,7 @@ module.exports = {
 
   // ── Entrada autoservicio del socio ──
   socioEntradaLudoteca: async (req, res) => {
-    const { nombre_hijo, fecha_nacimiento } = req.body;
+    const { nombre_hijo, fecha_nacimiento, observaciones } = req.body;
 
     if (!nombre_hijo || !fecha_nacimiento) {
       return res.status(400).json({ error: 'nombre_hijo y fecha_nacimiento son requeridos' });
@@ -330,12 +331,13 @@ module.exports = {
       }
 
       const result = await pool.query(
-        `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada)
-         VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}')
+        `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones)
+         VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}', $4)
          RETURNING
            registro_id, socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada,
-           TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local`,
-        [socioPadreId, nombre_hijo.trim(), fecha_nacimiento]
+           TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local,
+           observaciones`,
+        [socioPadreId, nombre_hijo.trim(), fecha_nacimiento, String(observaciones || '').trim() || null]
       );
 
       return res.status(201).json({ ok: true, message: 'Entrada registrada', registro: result.rows[0] });
@@ -434,7 +436,7 @@ module.exports = {
   },
 
   accesoQrLudoteca: async (req, res) => {
-  const { codigo_qr, nombre_hijo, fecha_nacimiento } = req.body;
+  const { codigo_qr, nombre_hijo, fecha_nacimiento, observaciones } = req.body;
 
   if (!codigo_qr) {
     return res.status(400).json({ error: 'codigo_qr es requerido' });
@@ -557,14 +559,15 @@ module.exports = {
 
   try {
     const result = await pool.query(
-      `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada)
-       VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}')
+      `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones)
+       VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}', $4)
        RETURNING
          registro_id,
          nombre_hijo,
          hora_entrada,
-         TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local`,
-      [socioPadreId, nombre_hijo.trim(), fecha_nacimiento]
+         TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local,
+         observaciones`,
+      [socioPadreId, nombre_hijo.trim(), fecha_nacimiento, String(observaciones || '').trim() || null]
     );
 
     const reg = result.rows[0];

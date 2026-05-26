@@ -138,7 +138,7 @@ function SancionesRecepcion() {
         </div>
       </div>
 
-      <div className="recepcion-filter-row">
+      <div className="admin-filter-row">
         <div className="search-wrapper">
           <Search className="search-icon" />
           <input
@@ -149,7 +149,7 @@ function SancionesRecepcion() {
           />
         </div>
 
-        <label className="recepcion-filter">
+        <label className="admin-filter">
           <span>Estado</span>
           <select value={filterEstado} onChange={(event) => setFilterEstado(event.target.value)}>
             <option value="">Todos</option>
@@ -158,7 +158,7 @@ function SancionesRecepcion() {
           </select>
         </label>
 
-        <label className="recepcion-filter">
+        <label className="admin-filter">
           <span>Origen</span>
           <select value={filterOrigen} onChange={(event) => setFilterOrigen(event.target.value)}>
             <option value="">Todos</option>
@@ -166,7 +166,7 @@ function SancionesRecepcion() {
           </select>
         </label>
 
-        <label className="recepcion-filter">
+        <label className="admin-filter">
           <span>Gravedad</span>
           <select value={filterGravedad} onChange={(event) => setFilterGravedad(event.target.value)}>
             <option value="">Todas</option>

@@ -4,8 +4,12 @@ const pool    = require('../config/database');
 const exportarSocios = async (req, res) => {
   const { activo = 'true', tipo, modalidad } = req.query;
 
-  const condiciones = [`s.activo = ${activo === 'false' ? 'FALSE' : 'TRUE'}`];
+  const condiciones = [];
   const valores     = [];
+
+  if (!['todos', 'all'].includes(String(activo).toLowerCase())) {
+    condiciones.push(`s.activo = ${activo === 'false' ? 'FALSE' : 'TRUE'}`);
+  }
 
   if (tipo) {
     valores.push(tipo);
@@ -16,7 +20,7 @@ const exportarSocios = async (req, res) => {
     condiciones.push(`s.modalidad = $${valores.length}`);
   }
 
-  const where = condiciones.join(' AND ');
+  const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
 
   let socios;
   try {
@@ -38,9 +42,9 @@ const exportarSocios = async (req, res) => {
          DATE_PART('year', AGE(CURRENT_DATE, u.fecha_nacimiento))::int AS edad
        FROM socios s
        JOIN usuarios u ON s.usuario_id = u.usuario_id
-       JOIN acciones_familiares af ON s.accion_id = af.accion_id
-       WHERE ${where}
-       ORDER BY CAST(af.codigo_accion AS INT), s.es_titular DESC`,
+       LEFT JOIN acciones_familiares af ON s.accion_id = af.accion_id
+       ${where}
+       ORDER BY COALESCE(NULLIF(REGEXP_REPLACE(af.codigo_accion, '\\D', '', 'g'), '')::int, s.socio_id), s.es_titular DESC`,
       valores
     );
     socios = result.rows;
@@ -67,26 +71,32 @@ const exportarSocios = async (req, res) => {
     { header: 'Telefono_Particular', key: 'Telefono_Particular', width: 18 },
   ];
 
-  // Estilo headers
+  // Estilo header
+  hoja.getRow(1).height = 26;
   hoja.getRow(1).eachCell(cell => {
-    cell.font      = { bold: true, color: { argb: 'FF1e3a5f' } };
-    cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFbfdbfe' } };
+    cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+    cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
     cell.border    = {
-      top: { style: 'thin' }, bottom: { style: 'thin' },
-      left: { style: 'thin' }, right: { style: 'thin' }
+      top: { style: 'thin', color: { argb: 'FF1E3A5F' } },
+      bottom: { style: 'medium', color: { argb: 'FF3B82F6' } },
+      left: { style: 'thin', color: { argb: 'FF2D4A6B' } },
+      right: { style: 'thin', color: { argb: 'FF2D4A6B' } }
     };
     cell.alignment = { horizontal: 'center', vertical: 'middle' };
   });
+  hoja.views = [{ state: 'frozen', ySplit: 1 }];
+  hoja.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: hoja.columns.length } };
 
   // Filas de datos
-  socios.forEach(s => {
+  socios.forEach((s, idx) => {
     const nombreCompleto = [s.nombres, s.apellido_paterno, s.apellido_materno]
       .filter(Boolean).join(' ');
     const estatusAccion  = s.tipo === 'Accionista' ? 'Propia' : 'Rentada';
     const rol            = s.es_titular ? 'Titular' : 'Miembro';
     const email          = s.username || '';
+    const isEven         = idx % 2 === 0;
 
-    hoja.addRow({
+    const row = hoja.addRow({
       Numero_Accion:       s.codigo_accion,
       Tipo_Accion:         s.modalidad,
       Estatus_Accion:      estatusAccion,
@@ -100,6 +110,17 @@ const exportarSocios = async (req, res) => {
       Email:               email,
       Telefono_Celular:    s.telefono || '',
       Telefono_Particular: s.tel_emergencia || '',
+    });
+    row.height = 18;
+    row.eachCell({ includeEmpty: true }, cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFF1F5F9' : 'FFFFFFFF' } };
+      cell.font = { size: 10, color: { argb: 'FF1E293B' } };
+      cell.alignment = { vertical: 'middle' };
+      cell.border = {
+        bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } },
+        left:   { style: 'hair', color: { argb: 'FFE2E8F0' } },
+        right:  { style: 'hair', color: { argb: 'FFE2E8F0' } }
+      };
     });
   });
 

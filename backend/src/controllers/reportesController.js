@@ -77,18 +77,48 @@ function createWorkbook() {
 }
 
 function styleWorksheet(worksheet) {
-  worksheet.getRow(1).eachCell((cell) => {
-    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  const headerRow = worksheet.getRow(1);
+  headerRow.height = 26;
+  headerRow.eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
-    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: false };
     cell.border = {
-      top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
-      bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
-      left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
-      right: { style: 'thin', color: { argb: 'FFD1D5DB' } }
+      top: { style: 'thin', color: { argb: 'FF1E3A5F' } },
+      bottom: { style: 'medium', color: { argb: 'FF3B82F6' } },
+      left: { style: 'thin', color: { argb: 'FF2D4A6B' } },
+      right: { style: 'thin', color: { argb: 'FF2D4A6B' } }
     };
   });
+
+  const rowCount = worksheet.rowCount;
+  for (let i = 2; i <= rowCount; i++) {
+    const row = worksheet.getRow(i);
+    row.height = 18;
+    const isEven = i % 2 === 0;
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.fill = {
+        type: 'pattern', pattern: 'solid',
+        fgColor: { argb: isEven ? 'FFF1F5F9' : 'FFFFFFFF' }
+      };
+      cell.font = { size: 10, color: { argb: 'FF1E293B' } };
+      cell.alignment = { vertical: 'middle' };
+      cell.border = {
+        bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'hair', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'hair', color: { argb: 'FFE2E8F0' } }
+      };
+    });
+  }
+
   worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+  if (worksheet.columnCount > 0) {
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: worksheet.columnCount }
+    };
+  }
 }
 
 function setDateFormat(column) {
@@ -120,7 +150,7 @@ function createPdf(res, filename, title) {
   res.setHeader('Content-Type', PDF_MIME);
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-  const doc = new PDFDocument({ size: 'A4', margin: 50 });
+  const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
   const now = new Date();
   doc.info = {
     Title: title,
@@ -143,6 +173,18 @@ function createPdf(res, filename, title) {
 }
 
 function finalizePdf(doc) {
+  const range = doc.bufferedPageRange();
+  const total = range.count;
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  for (let i = 0; i < total; i++) {
+    doc.switchToPage(range.start + i);
+    doc.fontSize(8).fillColor('#94A3B8').font('Helvetica')
+      .text(`Página ${i + 1} de ${total}`,
+        doc.page.margins.left,
+        doc.page.height - doc.page.margins.bottom + 10,
+        { align: 'right', width: pageWidth });
+  }
+  doc.flushPages();
   doc.end();
 }
 
@@ -161,35 +203,75 @@ function ensurePdfSpace(doc, requiredHeight = 48) {
 }
 
 function writePdfTitle(doc, title, subtitleLines = []) {
-  doc.font('Helvetica-Bold').fontSize(18).text(title);
-  doc.moveDown(0.5);
-  doc.font('Helvetica').fontSize(10);
-  subtitleLines.forEach((line) => doc.text(line));
-  doc.moveDown();
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  doc.rect(doc.page.margins.left - 10, doc.y - 8, pageWidth + 20, subtitleLines.length > 0 ? 64 : 48)
+    .fill('#1E3A5F');
+
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(18).text(title, doc.page.margins.left, doc.y - 6, { width: pageWidth });
+  doc.moveDown(0.35);
+  doc.font('Helvetica').fontSize(10).fillColor('#BFDBFE');
+  subtitleLines.forEach((line) => doc.text(line, { width: pageWidth }));
+  doc.moveDown(1.2);
+  doc.fillColor('#1E293B');
 }
 
 function writePdfSection(doc, title) {
   ensurePdfSpace(doc, 40);
-  doc.font('Helvetica-Bold').fontSize(13).fillColor('#1E3A5F').text(title);
-  doc.moveDown(0.35);
-  doc.fillColor('black').font('Helvetica').fontSize(10);
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  doc.rect(doc.x, doc.y, pageWidth, 22).fill('#EFF6FF');
+  doc.fillColor('#1E3A5F').font('Helvetica-Bold').fontSize(11)
+    .text(title, doc.x + 8, doc.y - 16, { width: pageWidth });
+  doc.moveDown(0.8);
+  doc.fillColor('#1E293B').font('Helvetica').fontSize(10);
 }
 
 function writePdfBulletList(doc, rows) {
   rows.forEach((row) => {
     ensurePdfSpace(doc, 20);
-    doc.text(`- ${row}`);
+    doc.fillColor('#475569').text(`• ${row}`, { indent: 8 });
   });
   doc.moveDown(0.7);
 }
 
 function writePdfKeyValueRows(doc, rows) {
-  rows.forEach(([key, value]) => {
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  rows.forEach(([key, value], idx) => {
     ensurePdfSpace(doc, 20);
-    doc.font('Helvetica-Bold').text(`${key}: `, { continued: true });
-    doc.font('Helvetica').text(String(value));
+    const bg = idx % 2 === 0 ? '#F8FAFC' : '#FFFFFF';
+    doc.rect(doc.x, doc.y, pageWidth, 18).fill(bg);
+    doc.fillColor('#64748B').font('Helvetica-Bold').fontSize(9)
+      .text(`${key}:`, doc.x + 6, doc.y - 13, { width: pageWidth * 0.4, continued: false });
+    doc.fillColor('#1E293B').font('Helvetica').fontSize(10)
+      .text(String(value), doc.x + pageWidth * 0.4 + 6, doc.y - 13, { width: pageWidth * 0.55 });
   });
   doc.moveDown(0.7);
+}
+
+function writePdfTable(doc, headers, rows) {
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const colWidth = pageWidth / headers.length;
+
+  ensurePdfSpace(doc, 24);
+  doc.rect(doc.x, doc.y, pageWidth, 20).fill('#1E3A5F');
+  headers.forEach((h, i) => {
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9)
+      .text(h, doc.page.margins.left + i * colWidth + 4, doc.y - 15, { width: colWidth - 8 });
+  });
+  doc.moveDown(0.5);
+
+  rows.forEach((row, rowIdx) => {
+    ensurePdfSpace(doc, 18);
+    const bg = rowIdx % 2 === 0 ? '#F1F5F9' : '#FFFFFF';
+    doc.rect(doc.x, doc.y, pageWidth, 16).fill(bg);
+    row.forEach((cell, i) => {
+      doc.fillColor('#1E293B').font('Helvetica').fontSize(9)
+        .text(String(cell ?? '-'), doc.page.margins.left + i * colWidth + 4, doc.y - 12, { width: colWidth - 8 });
+    });
+    doc.moveDown(0.25);
+  });
+
+  doc.moveDown(0.5);
 }
 
 async function getDemographicRows() {
@@ -400,9 +482,9 @@ async function buildDemographicWorkbook() {
 
   const demographicSheet = workbook.addWorksheet('Distribución por Edad');
   demographicSheet.columns = [
-    { header: 'Rango_Edad', key: 'rango', width: 16 },
+    { header: 'Rango de Edad', key: 'rango', width: 16 },
     { header: 'Total', key: 'total', width: 12 },
-    { header: '% del total', key: 'porcentaje', width: 14 },
+    { header: '% del Total', key: 'porcentaje', width: 14 },
     { header: 'Hombres', key: 'hombres', width: 12 },
     { header: 'Mujeres', key: 'mujeres', width: 12 }
   ];
@@ -436,9 +518,9 @@ async function buildDemographicWorkbook() {
 
   const familiesSheet = workbook.addWorksheet('Familias más grandes');
   familiesSheet.columns = [
-    { header: 'Numero_Accion', key: 'numero_accion', width: 18 },
-    { header: 'Nombre_Titular', key: 'nombre_titular', width: 30 },
-    { header: 'Total_Miembros', key: 'total_miembros', width: 16 }
+    { header: 'Número de Acción', key: 'numero_accion', width: 20 },
+    { header: 'Nombre del Titular', key: 'nombre_titular', width: 30 },
+    { header: 'Total de Miembros', key: 'total_miembros', width: 18 }
   ];
   data.families.forEach((row) => familiesSheet.addRow(row));
   styleWorksheet(familiesSheet);
@@ -446,8 +528,8 @@ async function buildDemographicWorkbook() {
   const newMembersSheet = workbook.addWorksheet('Socios Nuevos por Mes');
   newMembersSheet.columns = [
     { header: 'Año-Mes', key: 'anio_mes', width: 14 },
-    { header: 'Nuevos_en_mes', key: 'nuevos_en_mes', width: 16 },
-    { header: 'Total_Acumulado', key: 'total_acumulado', width: 16 }
+    { header: 'Nuevos en el Mes', key: 'nuevos_en_mes', width: 18 },
+    { header: 'Total Acumulado', key: 'total_acumulado', width: 16 }
   ];
 
   data.nuevosPorMes.forEach((row) => newMembersSheet.addRow(row));
@@ -704,10 +786,10 @@ async function buildOccupationWorkbook(desde, hasta) {
   const summarySheet = workbook.addWorksheet('Reservaciones por Espacio');
   summarySheet.columns = [
     { header: 'Espacio', key: 'espacio', width: 24 },
-    { header: 'Total_Reservas', key: 'total_reservas', width: 16 },
+    { header: 'Total de Reservas', key: 'total_reservas', width: 18 },
     { header: 'Confirmadas', key: 'confirmadas', width: 14 },
     { header: 'Canceladas', key: 'canceladas', width: 14 },
-    { header: 'No_Show', key: 'no_show', width: 12 },
+    { header: 'No Show', key: 'no_show', width: 12 },
     { header: '% Ocupación', key: 'ocupacion', width: 14 }
   ];
 
@@ -728,9 +810,9 @@ async function buildOccupationWorkbook(desde, hasta) {
   const disciplineSheet = workbook.addWorksheet('Participación por Disciplina');
   disciplineSheet.columns = [
     { header: 'Disciplina', key: 'disciplina', width: 24 },
-    { header: 'Total_Sesiones', key: 'total_sesiones', width: 16 },
-    { header: 'Total_Asistentes', key: 'total_asistentes', width: 16 },
-    { header: 'Promedio_por_Sesión', key: 'promedio', width: 18 }
+    { header: 'Total de Sesiones', key: 'total_sesiones', width: 18 },
+    { header: 'Total de Asistentes', key: 'total_asistentes', width: 18 },
+    { header: 'Promedio por Sesión', key: 'promedio', width: 18 }
   ];
   data.disciplineRows.forEach((row) => disciplineSheet.addRow(row));
   styleWorksheet(disciplineSheet);
@@ -739,8 +821,8 @@ async function buildOccupationWorkbook(desde, hasta) {
   instructorSheet.columns = [
     { header: 'Instructor', key: 'instructor', width: 30 },
     { header: 'Disciplina', key: 'disciplina', width: 22 },
-    { header: 'Total_Sesiones', key: 'total_sesiones', width: 16 },
-    { header: 'Total_Asistentes', key: 'total_asistentes', width: 16 },
+    { header: 'Total de Sesiones', key: 'total_sesiones', width: 18 },
+    { header: 'Total de Asistentes', key: 'total_asistentes', width: 18 },
     { header: 'Promedio', key: 'promedio', width: 12 }
   ];
   data.instructorRows.forEach((row) => instructorSheet.addRow(row));
@@ -749,9 +831,9 @@ async function buildOccupationWorkbook(desde, hasta) {
   const lowActivitySheet = workbook.addWorksheet('Horas con baja actividad por Espacio');
   lowActivitySheet.columns = [
     { header: 'Espacio', key: 'espacio', width: 24 },
-    { header: 'Día_semana', key: 'dia_semana', width: 16 },
-    { header: 'Hora_inicio', key: 'hora_inicio', width: 12 },
-    { header: 'Hora_fin', key: 'hora_fin', width: 12 },
+    { header: 'Día de la Semana', key: 'dia_semana', width: 18 },
+    { header: 'Hora de Inicio', key: 'hora_inicio', width: 14 },
+    { header: 'Hora de Fin', key: 'hora_fin', width: 12 },
     { header: 'Estado', key: 'estado', width: 16 }
   ];
   data.lowActivityRows.forEach((row) => lowActivitySheet.addRow(row));
@@ -974,24 +1056,24 @@ async function buildAttendanceWorkbook(desde, hasta) {
   const dailySheet = workbook.addWorksheet('Afluencia diaria');
   dailySheet.columns = [
     { header: 'Fecha', key: 'fecha', width: 14 },
-    { header: 'Dia_semana', key: 'dia_semana', width: 16 },
-    { header: 'Total_Entradas', key: 'total_entradas', width: 16 },
-    { header: 'Entradas_Socios', key: 'entradas_socios', width: 16 },
-    { header: 'Entradas_Visitas', key: 'entradas_visitas', width: 16 },
-    { header: 'Socios_Unicos', key: 'socios_unicos', width: 14 },
-    { header: 'Visitas_Unicas', key: 'visitas_unicas', width: 14 }
+    { header: 'Día de la Semana', key: 'dia_semana', width: 18 },
+    { header: 'Total de Entradas', key: 'total_entradas', width: 18 },
+    { header: 'Entradas de Socios', key: 'entradas_socios', width: 18 },
+    { header: 'Entradas de Visitas', key: 'entradas_visitas', width: 18 },
+    { header: 'Socios Únicos', key: 'socios_unicos', width: 14 },
+    { header: 'Visitas Únicas', key: 'visitas_unicas', width: 14 }
   ];
   data.dailyRows.forEach((row) => dailySheet.addRow(row));
   styleWorksheet(dailySheet);
 
   const weekdaySheet = workbook.addWorksheet('Dias mas frecuentados');
   weekdaySheet.columns = [
-    { header: 'Dia_semana', key: 'dia_semana', width: 16 },
-    { header: 'Total_Entradas', key: 'total_entradas', width: 16 },
-    { header: 'Entradas_Socios', key: 'entradas_socios', width: 16 },
-    { header: 'Entradas_Visitas', key: 'entradas_visitas', width: 16 },
-    { header: 'Dias_Considerados', key: 'dias_considerados', width: 18 },
-    { header: 'Promedio_Diario', key: 'promedio_diario', width: 16 }
+    { header: 'Día de la Semana', key: 'dia_semana', width: 18 },
+    { header: 'Total de Entradas', key: 'total_entradas', width: 18 },
+    { header: 'Entradas de Socios', key: 'entradas_socios', width: 18 },
+    { header: 'Entradas de Visitas', key: 'entradas_visitas', width: 18 },
+    { header: 'Días Considerados', key: 'dias_considerados', width: 18 },
+    { header: 'Promedio Diario', key: 'promedio_diario', width: 16 }
   ];
   data.weekdayRows.forEach((row) => weekdaySheet.addRow(row));
   styleWorksheet(weekdaySheet);
@@ -999,9 +1081,9 @@ async function buildAttendanceWorkbook(desde, hasta) {
   const hourlySheet = workbook.addWorksheet('Horarios pico');
   hourlySheet.columns = [
     { header: 'Hora', key: 'hora', width: 12 },
-    { header: 'Total_Entradas', key: 'total_entradas', width: 16 },
-    { header: 'Entradas_Socios', key: 'entradas_socios', width: 16 },
-    { header: 'Entradas_Visitas', key: 'entradas_visitas', width: 16 }
+    { header: 'Total de Entradas', key: 'total_entradas', width: 18 },
+    { header: 'Entradas de Socios', key: 'entradas_socios', width: 18 },
+    { header: 'Entradas de Visitas', key: 'entradas_visitas', width: 18 }
   ];
   data.hourlyRows.forEach((row) => hourlySheet.addRow(row));
   styleWorksheet(hourlySheet);
@@ -1009,19 +1091,19 @@ async function buildAttendanceWorkbook(desde, hasta) {
   const topDatesSheet = workbook.addWorksheet('Top fechas');
   topDatesSheet.columns = [
     { header: 'Fecha', key: 'fecha', width: 14 },
-    { header: 'Dia_semana', key: 'dia_semana', width: 16 },
-    { header: 'Total_Entradas', key: 'total_entradas', width: 16 },
-    { header: 'Entradas_Socios', key: 'entradas_socios', width: 16 },
-    { header: 'Entradas_Visitas', key: 'entradas_visitas', width: 16 }
+    { header: 'Día de la Semana', key: 'dia_semana', width: 18 },
+    { header: 'Total de Entradas', key: 'total_entradas', width: 18 },
+    { header: 'Entradas de Socios', key: 'entradas_socios', width: 18 },
+    { header: 'Entradas de Visitas', key: 'entradas_visitas', width: 18 }
   ];
   data.topDatesRows.forEach((row) => topDatesSheet.addRow(row));
   styleWorksheet(topDatesSheet);
 
   const topMembersSheet = workbook.addWorksheet('Socios frecuentes');
   topMembersSheet.columns = [
-    { header: 'Socio_ID', key: 'socio_id', width: 12 },
-    { header: 'Nombre_Socio', key: 'nombre_socio', width: 32 },
-    { header: 'Total_Entradas', key: 'total_entradas', width: 16 }
+    { header: 'ID de Socio', key: 'socio_id', width: 12 },
+    { header: 'Nombre del Socio', key: 'nombre_socio', width: 32 },
+    { header: 'Total de Entradas', key: 'total_entradas', width: 18 }
   ];
   data.topMembersRows.forEach((row) => topMembersSheet.addRow(row));
   styleWorksheet(topMembersSheet);
@@ -1180,20 +1262,20 @@ async function buildSanctionsWorkbook(desde, hasta) {
   byMonthSheet.columns = [
     { header: 'Año-Mes', key: 'anio_mes', width: 14 },
     { header: 'Total', key: 'total', width: 12 },
-    { header: 'De_Ludoteca', key: 'de_ludoteca', width: 14 },
-    { header: 'De_Instalaciones', key: 'de_instalaciones', width: 18 },
-    { header: 'Resueltas_en_mes', key: 'resueltas_en_mes', width: 18 }
+    { header: 'De Ludoteca', key: 'de_ludoteca', width: 14 },
+    { header: 'De Instalaciones', key: 'de_instalaciones', width: 18 },
+    { header: 'Resueltas en el Mes', key: 'resueltas_en_mes', width: 20 }
   ];
   data.byMonthRows.forEach((row) => byMonthSheet.addRow(row));
   styleWorksheet(byMonthSheet);
 
   const topSheet = workbook.addWorksheet('Socios con más sanciones Top 20');
   topSheet.columns = [
-    { header: 'Numero_Socio', key: 'numero_socio', width: 18 },
-    { header: 'Nombre_Completo', key: 'nombre_completo', width: 30 },
-    { header: 'Total_Historico', key: 'total_historico', width: 16 },
+    { header: 'Número de Socio', key: 'numero_socio', width: 18 },
+    { header: 'Nombre Completo', key: 'nombre_completo', width: 30 },
+    { header: 'Total Histórico', key: 'total_historico', width: 16 },
     { header: 'Activas', key: 'activas', width: 12 },
-    { header: 'Ultima_Sancion', key: 'ultima_sancion', width: 18 }
+    { header: 'Última Sanción', key: 'ultima_sancion', width: 18 }
   ];
   data.topRows.forEach((row) => topSheet.addRow(row));
   styleWorksheet(topSheet);
@@ -1201,14 +1283,14 @@ async function buildSanctionsWorkbook(desde, hasta) {
 
   const detailSheet = workbook.addWorksheet('Detalle completo');
   detailSheet.columns = [
-    { header: 'sancion_id', key: 'sancion_id', width: 12 },
-    { header: 'fecha', key: 'fecha', width: 18 },
-    { header: 'origen', key: 'origen', width: 18 },
-    { header: 'motivo', key: 'motivo', width: 32 },
-    { header: 'nombre_socio', key: 'nombre_socio', width: 30 },
-    { header: 'estado', key: 'estado', width: 14 },
-    { header: 'resuelto_por', key: 'resuelto_por', width: 28 },
-    { header: 'fecha_resolucion', key: 'fecha_resolucion', width: 18 }
+    { header: 'ID de Sanción', key: 'sancion_id', width: 14 },
+    { header: 'Fecha', key: 'fecha', width: 18 },
+    { header: 'Origen', key: 'origen', width: 18 },
+    { header: 'Motivo', key: 'motivo', width: 34 },
+    { header: 'Nombre del Socio', key: 'nombre_socio', width: 30 },
+    { header: 'Estado', key: 'estado', width: 14 },
+    { header: 'Resuelto Por', key: 'resuelto_por', width: 28 },
+    { header: 'Fecha de Resolución', key: 'fecha_resolucion', width: 20 }
   ];
   data.detailRows.forEach((row) => detailSheet.addRow(row));
   styleWorksheet(detailSheet);
@@ -1229,25 +1311,31 @@ async function buildDemographicPdf(res) {
   ]);
 
   writePdfSection(doc, '1. Distribucion por Edad');
-  writePdfBulletList(doc, data.ageDistribution.map((row) => {
-    const porcentaje = totalSocios === 0 ? 0 : (row.total / totalSocios) * 100;
-    return `${row.rango}: Total ${row.total}, Hombres ${row.hombres}, Mujeres ${row.mujeres}, ${formatNumber(porcentaje)}%`;
-  }));
+  writePdfTable(doc,
+    ['Rango de Edad', 'Total', 'Hombres', 'Mujeres', '% del Total'],
+    data.ageDistribution.map((row) => {
+      const porcentaje = totalSocios === 0 ? 0 : (row.total / totalSocios) * 100;
+      return [row.rango, row.total, row.hombres, row.mujeres, `${formatNumber(porcentaje)}%`];
+    })
+  );
 
   writePdfSection(doc, '2. Distribucion por Tipo de Membresia');
-  writePdfBulletList(doc, data.memberships.map((row) =>
-    `${row.tipo} / ${row.modalidad}: Total ${row.total}, Titulares ${row.titulares}, Miembros ${row.miembros}`
-  ));
+  writePdfTable(doc,
+    ['Tipo', 'Modalidad', 'Total', 'Titulares', 'Miembros'],
+    data.memberships.map((row) => [row.tipo, row.modalidad, row.total, row.titulares, row.miembros])
+  );
 
   writePdfSection(doc, '3. Familias mas grandes');
-  writePdfBulletList(doc, data.families.map((row, index) =>
-    `${index + 1}. Accion ${row.numero_accion} - ${row.nombre_titular} - ${row.total_miembros} miembros`
-  ));
+  writePdfTable(doc,
+    ['#', 'Num. Accion', 'Titular', 'Miembros'],
+    data.families.map((row, index) => [index + 1, row.numero_accion, row.nombre_titular, row.total_miembros])
+  );
 
   writePdfSection(doc, '4. Socios Nuevos por Mes');
-  writePdfBulletList(doc, data.nuevosPorMes.map((row) =>
-    `${row.anio_mes}: Nuevos ${row.nuevos_en_mes}, Acumulado ${row.total_acumulado}`
-  ));
+  writePdfTable(doc,
+    ['Año-Mes', 'Nuevos en el Mes', 'Total Acumulado'],
+    data.nuevosPorMes.map((row) => [row.anio_mes, row.nuevos_en_mes, row.total_acumulado])
+  );
 
   finalizePdf(doc);
 }
@@ -1262,25 +1350,31 @@ async function buildOccupationPdf(res, desde, hasta) {
   ]);
 
   writePdfSection(doc, '1. Reservaciones por Espacio');
-  writePdfBulletList(doc, data.summaryRows.map((row) => {
-    const ocupacion = row.total_reservas === 0 ? 0 : (row.confirmadas / row.total_reservas) * 100;
-    return `${row.espacio}: Total ${row.total_reservas}, Confirmadas ${row.confirmadas}, Canceladas ${row.canceladas}, No-show ${row.no_show}, Ocupacion ${formatNumber(ocupacion)}%`;
-  }));
+  writePdfTable(doc,
+    ['Espacio', 'Total', 'Confirmadas', 'Canceladas', 'No Show', '% Ocup.'],
+    data.summaryRows.map((row) => {
+      const ocupacion = row.total_reservas === 0 ? 0 : (row.confirmadas / row.total_reservas) * 100;
+      return [row.espacio, row.total_reservas, row.confirmadas, row.canceladas, row.no_show, `${formatNumber(ocupacion)}%`];
+    })
+  );
 
   writePdfSection(doc, '2. Participacion por Disciplina');
-  writePdfBulletList(doc, data.disciplineRows.map((row) =>
-    `${row.disciplina}: Sesiones ${row.total_sesiones}, Asistentes ${row.total_asistentes}, Promedio ${formatNumber(row.promedio)}`
-  ));
+  writePdfTable(doc,
+    ['Disciplina', 'Sesiones', 'Asistentes', 'Promedio'],
+    data.disciplineRows.map((row) => [row.disciplina, row.total_sesiones, row.total_asistentes, formatNumber(row.promedio)])
+  );
 
-  writePdfSection(doc, '3. Ranking de Instructores por Asistencia');
-  writePdfBulletList(doc, data.instructorRows.map((row, index) =>
-    `${index + 1}. ${row.instructor} - ${row.disciplina}: Sesiones ${row.total_sesiones}, Asistentes ${row.total_asistentes}, Promedio ${formatNumber(row.promedio)}`
-  ));
+  writePdfSection(doc, '3. Ranking de Instructores');
+  writePdfTable(doc,
+    ['#', 'Instructor', 'Disciplina', 'Sesiones', 'Asistentes'],
+    data.instructorRows.map((row, index) => [index + 1, row.instructor, row.disciplina, row.total_sesiones, row.total_asistentes])
+  );
 
-  writePdfSection(doc, '4. Horas con baja actividad por Espacio');
-  writePdfBulletList(doc, data.lowActivityRows.map((row) =>
-    `${row.espacio} - ${row.dia_semana} ${row.hora_inicio} a ${row.hora_fin}: ${row.estado}`
-  ));
+  writePdfSection(doc, '4. Horas con baja actividad');
+  writePdfTable(doc,
+    ['Espacio', 'Dia', 'Hora Inicio', 'Hora Fin'],
+    data.lowActivityRows.map((row) => [row.espacio, row.dia_semana, row.hora_inicio, row.hora_fin])
+  );
 
   finalizePdf(doc);
 }
@@ -1307,24 +1401,28 @@ async function buildAttendancePdf(res, desde, hasta) {
   ]);
 
   writePdfSection(doc, '2. Dias mas frecuentados');
-  writePdfBulletList(doc, data.weekdayRows.map((row, index) =>
-    `${index + 1}. ${row.dia_semana}: ${row.total_entradas} entradas, promedio ${formatNumber(row.promedio_diario)} por dia`
-  ));
+  writePdfTable(doc,
+    ['Dia de la Semana', 'Total Entradas', 'Socios', 'Visitas', 'Promedio/Dia'],
+    data.weekdayRows.map((row) => [row.dia_semana, row.total_entradas, row.entradas_socios, row.entradas_visitas, formatNumber(row.promedio_diario)])
+  );
 
   writePdfSection(doc, '3. Top fechas');
-  writePdfBulletList(doc, data.topDatesRows.map((row, index) =>
-    `${index + 1}. ${row.fecha} (${row.dia_semana}): ${row.total_entradas} entradas, socios ${row.entradas_socios}, visitas ${row.entradas_visitas}`
-  ));
+  writePdfTable(doc,
+    ['#', 'Fecha', 'Dia', 'Total', 'Socios', 'Visitas'],
+    data.topDatesRows.map((row, index) => [index + 1, row.fecha, row.dia_semana, row.total_entradas, row.entradas_socios, row.entradas_visitas])
+  );
 
   writePdfSection(doc, '4. Horarios pico');
-  writePdfBulletList(doc, data.hourlyRows.slice(0, 10).map((row, index) =>
-    `${index + 1}. ${row.hora}: ${row.total_entradas} entradas, socios ${row.entradas_socios}, visitas ${row.entradas_visitas}`
-  ));
+  writePdfTable(doc,
+    ['#', 'Hora', 'Total', 'Socios', 'Visitas'],
+    data.hourlyRows.slice(0, 10).map((row, index) => [index + 1, row.hora, row.total_entradas, row.entradas_socios, row.entradas_visitas])
+  );
 
   writePdfSection(doc, '5. Socios frecuentes');
-  writePdfBulletList(doc, data.topMembersRows.map((row, index) =>
-    `${index + 1}. ${row.nombre_socio}: ${row.total_entradas} entradas`
-  ));
+  writePdfTable(doc,
+    ['#', 'Nombre del Socio', 'Entradas'],
+    data.topMembersRows.map((row, index) => [index + 1, row.nombre_socio, row.total_entradas])
+  );
 
   finalizePdf(doc);
 }
@@ -1350,24 +1448,24 @@ async function buildSanctionsPdf(res, desde, hasta) {
   ]);
 
   writePdfSection(doc, '2. Sanciones por Mes');
-  writePdfBulletList(doc, data.byMonthRows.map((row) =>
-    `${row.anio_mes}: Total ${row.total}, Ludoteca ${row.de_ludoteca}, Instalaciones ${row.de_instalaciones}, Resueltas ${row.resueltas_en_mes}`
-  ));
+  writePdfTable(doc,
+    ['Año-Mes', 'Total', 'Ludoteca', 'Instalaciones', 'Resueltas'],
+    data.byMonthRows.map((row) => [row.anio_mes, row.total, row.de_ludoteca, row.de_instalaciones, row.resueltas_en_mes])
+  );
 
   writePdfSection(doc, '3. Socios con mas sanciones Top 20');
-  writePdfBulletList(doc, data.topRows.map((row, index) =>
-    `${index + 1}. ${row.numero_socio || '-'} - ${row.nombre_completo}: Historico ${row.total_historico}, Activas ${row.activas}, Ultima ${formatDateValue(row.ultima_sancion)}`
-  ));
+  writePdfTable(doc,
+    ['#', 'Num. Socio', 'Nombre', 'Histórico', 'Activas', 'Última'],
+    data.topRows.map((row, index) => [index + 1, row.numero_socio || '-', row.nombre_completo, row.total_historico, row.activas, formatDateValue(row.ultima_sancion)])
+  );
 
-  writePdfSection(doc, '4. Detalle completo');
+  writePdfSection(doc, '4. Detalle de sanciones');
   data.detailRows.forEach((row) => {
     ensurePdfSpace(doc, 72);
-    doc.font('Helvetica-Bold').text(`#${row.sancion_id} - ${formatDateValue(row.fecha)}`);
+    doc.font('Helvetica-Bold').text(`#${row.sancion_id} — ${formatDateValue(row.fecha)}`);
     doc.font('Helvetica').text(`Socio: ${row.nombre_socio}`);
-    doc.text(`Origen: ${row.origen}`);
-    doc.text(`Estado: ${row.estado}`);
-    doc.text(`Resuelto por: ${row.resuelto_por || '-'}`);
-    doc.text(`Fecha resolucion: ${formatDateValue(row.fecha_resolucion)}`);
+    doc.text(`Origen: ${row.origen}  |  Estado: ${row.estado}`);
+    doc.text(`Resuelto por: ${row.resuelto_por || '-'}  |  Fecha: ${formatDateValue(row.fecha_resolucion)}`);
     doc.text(`Motivo: ${row.motivo}`);
     doc.moveDown(0.7);
   });

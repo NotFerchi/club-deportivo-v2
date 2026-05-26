@@ -287,107 +287,39 @@ function GestionSocios({ readOnly = false }) {
   };
 
   const exportSocios = async () => {
-    const headers = [
-      'numero_socio',
-      'nombres',
-      'apellido_paterno',
-      'apellido_materno',
-      'email',
-      'telefono',
-      'curp',
-      'tipo_socio',
-      'activo'
-    ];
-    const rows = filteredSocios.map(socio => [
-      getSocioNumero(socio),
-      socio.nombres,
-      socio.apellido_paterno,
-      socio.apellido_materno,
-      socio.email,
-      socio.telefono,
-      socio.curp,
-      getSocioTipo(socio),
-      isActiveValue(socio.activo) ? 'activo' : 'inactivo'
-    ]);
-
-    const csv = [headers, ...rows].map(row => row.map(csvEscape).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `socios-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-
-    setFileState({ status: 'success', message: `Exportados ${rows.length} socios en CSV.` });
+    setFileState({ status: 'loading', message: 'Generando archivo de socios...' });
     try {
-      await adminApi.logAudit({
-        accion: 'exportar_socios',
-        tabla_afectada: 'socios',
-        detalles: `Exportacion CSV de ${rows.length} socios`
+      await adminApi.exportarSocios({
+        activo: filterEstado === 'inactivos' ? 'false' : filterEstado === 'activos' ? 'true' : 'todos',
+        tipo: filterTipo ? (filterTipo === 'accionista' ? 'Accionista' : 'Rentista') : '',
       });
-    } catch {
-      // La exportacion no debe fallar si el log no esta disponible.
+      setFileState({ status: 'success', message: `Exportados ${filteredSocios.length} socios en Excel.` });
+    } catch (error) {
+      setFileState({ status: 'error', message: error.message || 'No se pudo exportar socios.' });
     }
   };
 
   const importSocios = async (file) => {
     if (!file) return;
     const extension = file.name.split('.').pop()?.toLowerCase();
-    const allowed = ['csv'];
+    const allowed = ['xlsx'];
 
     if (!allowed.includes(extension)) {
-      setFileState({ status: 'error', message: 'Formato no valido. Usa CSV.' });
+      setFileState({ status: 'error', message: 'Formato no valido. Usa XLSX.' });
       return;
     }
 
     setFileState({ status: 'loading', message: 'Importando socios...' });
 
     try {
-      const text = await file.text();
-      const [headerRow, ...dataRows] = parseCsvRows(text);
-      const headers = (headerRow || []).map(header => normalizeText(header).replace(/\s+/g, '_'));
-      const required = ['nombres', 'email', 'curp', 'direccion'];
-      const missing = required.filter(header => !headers.includes(header));
-
-      if (missing.length > 0) {
-        setFileState({ status: 'error', message: `Faltan columnas obligatorias: ${missing.join(', ')}` });
-        return;
-      }
-
-      let created = 0;
-      const errors = [];
-
-      for (const [index, row] of dataRows.entries()) {
-        const payload = buildImportPayload(row, headers);
-        if (!payload.password) {
-          errors.push(`Fila ${index + 2}: falta password`);
-          continue;
-        }
-
-        try {
-          await adminApi.saveSocio(payload);
-          created += 1;
-        } catch (error) {
-          errors.push(`Fila ${index + 2}: ${error.message}`);
-        }
-      }
-
+      const result = await adminApi.importarSocios(file);
       await fetchSocios();
-      const message = errors.length
-        ? `Importados ${created}. Con errores: ${errors.slice(0, 3).join(' | ')}`
-        : `Importados ${created} socios correctamente.`;
-      setFileState({ status: errors.length ? 'error' : 'success', message });
-
-      try {
-        await adminApi.logAudit({
-          accion: 'importar_socios',
-          tabla_afectada: 'socios',
-          detalles: `Importacion CSV: ${created} creados, ${errors.length} errores`
-        });
-      } catch {
-        // El log no debe bloquear la carga masiva.
-      }
+      const errores = Array.isArray(result?.errores) ? result.errores : [];
+      const resumen = `Procesados ${result?.total_procesados || 0}. Nuevos ${result?.nuevos || 0}, actualizados ${result?.actualizados || 0}.`;
+      const detalleErrores = errores.length
+        ? ` Errores: ${errores.slice(0, 3).map(e => `fila ${e.fila}: ${e.motivo}`).join(' | ')}`
+        : '';
+      setFileState({ status: errores.length ? 'error' : 'success', message: `${resumen}${detalleErrores}` });
     } catch (error) {
       setFileState({ status: 'error', message: error.message || 'No se pudo importar el archivo.' });
     } finally {
@@ -410,13 +342,18 @@ function GestionSocios({ readOnly = false }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv"
+              accept=".xlsx"
               onChange={event => importSocios(event.target.files?.[0])}
               style={{ display: 'none' }}
             />
             {!readOnly && (
               <button className="btn-outline" onClick={() => fileInputRef.current?.click()} disabled={fileState.status === 'loading'}>
                 <Upload size={16} /> Importar
+              </button>
+            )}
+            {!readOnly && (
+              <button className="btn-outline" onClick={adminApi.descargarTemplateSocios} disabled={fileState.status === 'loading'}>
+                <Download size={16} /> Plantilla
               </button>
             )}
             <button className="btn-outline" onClick={exportSocios}>

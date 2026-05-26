@@ -4,17 +4,6 @@ import { apiRequest, unwrapList } from '../../../services/api';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
-const AUDITABLE_EVENTS = [
-  'Inicio y cierre de sesion',
-  'Creacion, edicion, reactivacion e inactivacion de socios',
-  'Importaciones y exportaciones de datos',
-  'Creacion, cambio, cancelacion y eliminacion de reservas',
-  'Entradas, salidas y cierres automaticos de visitas',
-  'Entradas, salidas y sanciones generadas por ludoteca',
-  'Cambios de configuracion en espacios, disciplinas, usuarios y permisos',
-  'No registrar passwords, tokens, documentos completos ni datos sensibles innecesarios'
-];
-
 function AccionIcon({ accion }) {
   const action = normalizeText(accion);
   if (action.includes('insert') || action.includes('crear') || action.includes('create')) return <FilePlus size={13} />;
@@ -144,15 +133,6 @@ function AuditoriaLogs() {
         </div>
       )}
 
-      <div className="audit-policy-panel">
-        <strong>Eventos auditables sugeridos</strong>
-        <div>
-          {AUDITABLE_EVENTS.map(event => (
-            <span key={event}>{event}</span>
-          ))}
-        </div>
-      </div>
-
       <div className="table-wrapper">
         <table className="data-table">
           <thead>
@@ -168,7 +148,7 @@ function AuditoriaLogs() {
           <tbody>
             {filteredLogs.map(log => (
               <tr key={log.log_id}>
-                <td>{formatDateTime(log.fecha)}</td>
+                <td>{formatDateTime(log.fecha_local || log.fecha)}</td>
                 <td>
                   <strong>{log.usuario_nombre || 'Sistema'}</strong>
                   <br />

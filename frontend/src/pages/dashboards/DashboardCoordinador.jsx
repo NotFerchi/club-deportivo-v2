@@ -82,6 +82,7 @@ function DashboardCoordinador() {
       <TournamentBracket
         title="Torneos y brackets"
         subtitle="Supervisa los torneos del club y sus encuentros por ronda."
+        readOnly={false}
       />
     );
     if (activeTab === 'ludoteca') return <ControlLudoteca />;

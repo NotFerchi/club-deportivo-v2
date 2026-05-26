@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, MapPin, Users, Search, X, Plus } from 'lucide-react';
+import { Clock, MapPin, Users, Search, X, Plus, Calendar } from 'lucide-react';
 
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -366,7 +366,7 @@ function GestionDisciplinas() {
       {/* Tarjetas */}
       {!loading && filtradas.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', background: 'white', borderRadius: '14px', border: '2px dashed #e2e8f0' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📅</div>
+          <div style={{ marginBottom: '0.75rem' }}><Calendar size={40} color="#cbd5e1" /></div>
           <p style={{ color: '#64748b', margin: 0, fontWeight: 600 }}>No hay clases para el {formatFecha(fecha)}</p>
           <button onClick={() => setShowModal(true)} style={{
             marginTop: '1rem', background: '#0f172a', color: 'white', border: 'none',
@@ -416,6 +416,13 @@ function GestionDisciplinas() {
                     <MapPin size={12} color="#94a3b8" />
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.espacio}</span>
                   </div>
+                  {s.dia_semana && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#6d28d9', background: '#ede9fe', padding: '2px 8px', borderRadius: '20px' }}>
+                        {s.dia_semana} · {['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][s.dia_semana] || '—'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div>

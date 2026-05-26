@@ -162,6 +162,7 @@ function SancionesPanel() {
       setShowCreateModal(false);
       setEditingSancion(null);
       setFormData(initialFormData);
+      setSelected(null); // ← cierra el modal de detalle para que no muestre datos viejos
       if (!editingSancion) setPage(1);
       await fetchSanciones();
     } catch (error) {
@@ -364,7 +365,7 @@ function SancionesPanel() {
                   {[
                     { Icon: User,       label: 'Socio',   value: getNombreSocio(selected) },
                     { Icon: Hash,       label: 'Número',  value: selected.numero_socio || `ID ${selected.socio_id}` },
-                    { Icon: Calendar,   label: 'Fecha',   value: formatDateTime(selected.fecha_inicio || selected.fecha) },
+                    { Icon: Calendar,   label: 'Fecha',   value: formatDate(selected.fecha_inicio || selected.fecha) },
                     { Icon: CreditCard, label: 'ID Sancion', value: `#${selected.sancion_id}` },
                   ].map(({ Icon, label, value }) => (
                     <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: '#f8fafc', borderRadius: 8, padding: '10px 12px' }}>

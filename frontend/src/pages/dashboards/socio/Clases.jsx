@@ -20,7 +20,7 @@ const AVATAR_COLORES = [
   { bg: '#f0fdf4', color: '#15803d' },
 ]
 
-function InstructorAvatar({ nombre, size = 40 }) {
+function InstructorAvatar({ nombre, foto, size = 40 }) {
   const partes = (nombre || '').trim().split(/\s+/).filter(Boolean)
   const iniciales = partes.length >= 2
     ? partes[0][0].toUpperCase() + partes[1][0].toUpperCase()
@@ -28,6 +28,20 @@ function InstructorAvatar({ nombre, size = 40 }) {
 
   const hash = (nombre || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
   const { bg, color } = AVATAR_COLORES[hash % AVATAR_COLORES.length]
+
+  if (foto) {
+    return (
+      <img
+        src={foto}
+        alt={nombre || 'Instructor'}
+        style={{
+          width: size, height: size, borderRadius: '50%',
+          objectFit: 'cover', flexShrink: 0,
+          border: `2px solid ${color}40`,
+        }}
+      />
+    )
+  }
 
   return (
     <div style={{
@@ -80,6 +94,7 @@ function transformarInscripcion(i) {
     nombre: i.disciplina,
     disciplina: i.disciplina,
     instructor: i.instructor || 'Por asignar',
+    instructor_foto: i.instructor_foto || null,
     horario: `${i.hora_inicio?.slice(0, 5)} - ${i.hora_fin?.slice(0, 5)}`,
     dias: getNombreDia(i.dia_semana),
     salon: i.espacio,
@@ -177,6 +192,7 @@ function Clases() {
           nombre: s.disciplina,
           disciplina: s.disciplina,
           instructor: s.instructor || 'Por asignar',
+          instructor_foto: s.instructor_foto || null,
           horario: `${s.hora_inicio?.slice(0, 5)} - ${s.hora_fin?.slice(0, 5)}`,
           dias: getNombreDia(s.dia_semana),
           dia_semana: s.dia_semana,
@@ -394,7 +410,7 @@ function Clases() {
                   <h3 className="clase-nombre">{clase.nombre}</h3>
                   <p className="clase-descripcion">{clase.descripcion}</p>
                   <div className="clase-instructor">
-                    <InstructorAvatar nombre={clase.instructor} size={38} />
+                    <InstructorAvatar nombre={clase.instructor} foto={clase.instructor_foto} size={38} />
                     <span>{clase.instructor || 'Por asignar'}</span>
                   </div>
                   <div className="clase-detalles">
@@ -470,7 +486,7 @@ function Clases() {
                 <span className="ficha-disciplina">{claseSeleccionada.disciplina}</span>
 
                 <div className="ficha-instructor">
-                  <InstructorAvatar nombre={claseSeleccionada.instructor} size={52} />
+                  <InstructorAvatar nombre={claseSeleccionada.instructor} foto={claseSeleccionada.instructor_foto} size={52} />
                   <div>
                     <strong>{claseSeleccionada.instructor}</strong>
                     <span>Instructor</span>

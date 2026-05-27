@@ -5,18 +5,19 @@ const instructoresController = {
     getInstructores: async (req, res) => {
         try {
             const query = `
-                        SELECT 
+                        SELECT
                             i.instructor_id,
                             -- TRIM quita espacios, NULLIF convierte string vacío en NULL
                             COALESCE(
-                                NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 
+                                NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''),
                                 NULLIF(TRIM(i.especialidad), ''),
                                 'Instructor sin nombre'
                             ) as nombre,
                             i.especialidad,
                             i.activo,
                             u.username as email,
-                            u.telefono
+                            u.telefono,
+                            u.foto_perfil
                         FROM instructores i
                         -- Cambiamos a INNER JOIN si solo quieres mostrar gente con cuenta
                         -- O dejamos LEFT JOIN pero filtramos en el WHERE
@@ -36,17 +37,18 @@ const instructoresController = {
         const { id } = req.params;
         try {
             const query = `
-                        SELECT 
+                        SELECT
                             i.instructor_id,
                             COALESCE(
-                                NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 
+                                NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''),
                                 NULLIF(TRIM(i.especialidad), ''),
                                 'Información pendiente'
                             ) as nombre,
                             i.especialidad,
                             i.activo,
                             u.username as email,
-                            u.telefono
+                            u.telefono,
+                            u.foto_perfil
                         FROM instructores i
                         LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
                         WHERE i.instructor_id = $1

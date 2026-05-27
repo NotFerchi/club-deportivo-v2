@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, ClipboardList, Calendar,
-  Puzzle, Dumbbell, ShieldAlert, Trophy, LogOut, Menu, X, MapPin
+  Puzzle, Dumbbell, ShieldAlert, Trophy, LogOut, Menu, X, MapPin, Camera
 } from 'lucide-react';
 import '../../../css/Dashboard.css';
 import TournamentBracket from '../../components/TournamentBracket';
@@ -48,6 +48,9 @@ function DashboardCoordinador() {
   const [disciplinaTab, setDisciplinaTab] = useState('disciplinas');
   const [userName, setUserName] = useState('');
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [fotoPerfil, setFotoPerfil] = useState(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const fotoInputRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -57,10 +60,34 @@ function DashboardCoordinador() {
       navigate('/login'); return;
     }
     setUserName(usuario.nombres || 'Coordinador');
+    setFotoPerfil(usuario.foto_perfil || null);
     document.title = 'Coordinación Deportiva | Club Social';
   }, [navigate]);
 
   const handleLogout = () => { localStorage.clear(); navigate('/'); };
+
+  const handleFotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert('La imagen debe ser menor a 5MB'); return; }
+    setSubiendoFoto(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('foto', file);
+      const res = await fetch('http://localhost:3000/api/usuarios/me/foto', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Error al subir foto'); return; }
+      setFotoPerfil(data.foto_perfil);
+      const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+      localStorage.setItem('usuario', JSON.stringify({ ...usuario, foto_perfil: data.foto_perfil }));
+    } catch { alert('Error de conexión'); }
+    finally { setSubiendoFoto(false); e.target.value = ''; }
+  };
 
   const cambiarTab = (tab) => {
     setActiveTab(tab);
@@ -130,8 +157,43 @@ function DashboardCoordinador() {
             </button>
           ))}
         </nav>
-        <div style={{ marginTop: 'auto', padding: '1rem' }}>
-          <div style={{ padding: '0.5rem 1rem', fontSize: '12px', color: '#94a3b8' }}>{userName}</div>
+        <div style={{ marginTop: 'auto', padding: '1rem', borderTop: '1px solid #1e293b' }}>
+          {/* Perfil */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', marginBottom: '0.5rem' }}>
+            <div
+              onClick={() => fotoInputRef.current?.click()}
+              title="Cambiar foto de perfil"
+              style={{
+                position: 'relative', width: 40, height: 40, borderRadius: '50%',
+                flexShrink: 0, cursor: 'pointer', overflow: 'hidden',
+                border: '2px solid #334155', transition: 'border-color 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = '#06b6d4'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = '#334155'}
+            >
+              {fotoPerfil
+                ? <img src={fotoPerfil} alt="Foto perfil" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                : <div style={{ width: '100%', height: '100%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: 13 }}>{iniciales(userName)}</div>
+              }
+              <div style={{
+                position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', opacity: 0, transition: 'opacity 0.2s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                onMouseLeave={e => e.currentTarget.style.opacity = 0}
+              >
+                {subiendoFoto
+                  ? <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'inst-spin 0.7s linear infinite', display: 'block' }} />
+                  : <Camera size={13} />
+                }
+              </div>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName}</div>
+              <div style={{ fontSize: 10, color: '#64748b' }}>Coordinador</div>
+            </div>
+          </div>
           <button onClick={handleLogout} className="nav-link" style={{ color: '#ef4444' }}>
             <LogOut className="nav-icon" /> Cerrar Sesión
           </button>
@@ -162,11 +224,22 @@ function DashboardCoordinador() {
         }} className="coord-header-mobile">
           <span style={{ fontWeight: 800, fontSize: '15px', color: '#1e293b' }}>Club Social y Deportivo</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%', background: '#3b82f6',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontWeight: 700, fontSize: '11px'
-            }}>{iniciales(userName)}</div>
+            <div
+              onClick={() => fotoInputRef.current?.click()}
+              title="Cambiar foto de perfil"
+              style={{
+                width: 32, height: 32, borderRadius: '50%', background: '#3b82f6',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontWeight: 700, fontSize: '11px',
+                cursor: 'pointer', overflow: 'hidden', flexShrink: 0,
+                border: '2px solid #93c5fd',
+              }}
+            >
+              {fotoPerfil
+                ? <img src={fotoPerfil} alt="Foto perfil" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                : iniciales(userName)
+              }
+            </div>
             <button onClick={() => setMenuAbierto(!menuAbierto)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
               {menuAbierto ? <X size={22} /> : <Menu size={22} />}
             </button>
@@ -234,6 +307,10 @@ function DashboardCoordinador() {
           {renderContenido()}
         </main>
       </div>
+
+      {/* Input oculto foto */}
+      <input ref={fotoInputRef} type="file" accept="image/*"
+        style={{ display: 'none' }} onChange={handleFotoChange} />
     </div>
   );
 }

@@ -12,9 +12,17 @@ import {
 import { LoadingState, ErrorState } from '../../../components/admin/AdminUI';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const GRID_START = 7;   // 07:00
-const GRID_END   = 21;  // 21:00
+// Horario: Mar–Sáb 06:00–22:00 | Dom 07:00–19:00 | Lun Cerrado
+const GRID_START = 6;   // 06:00  (primera columna visible)
+const GRID_END   = 22;  // 22:00  (última columna = 21:00–22:00)
 const HOURS = Array.from({ length: GRID_END - GRID_START }, (_, i) => GRID_START + i);
+
+// getDiaSemana: Dom=1, Lun=2, Mar=3 … Sáb=7
+function getScheduleForDay(diaSemana) {
+  if (diaSemana === 2) return { cerrado: true,  apertura: null, cierre: null  };
+  if (diaSemana === 1) return { cerrado: false, apertura: 7,    cierre: 19    };
+  return                      { cerrado: false, apertura: 6,    cierre: 22    };
+}
 
 const ESTADO_META = {
   confirmada:    { label: 'Confirmada',    color: '#1e3a5f', bg: '#1e3a5f', text: '#fff'    },
@@ -28,7 +36,7 @@ const ESTADO_META = {
 const INACTIVE_ESTADOS = ['cancelada', 'no-show', 'sancionada'];
 
 const DURACION_MIN = 60;
-const RESERVA_CONFIG = { sameDayOnly: true, durationMinutes: DURACION_MIN, maxPerSocio: 1 };
+const RESERVA_CONFIG = { sameDayOnly: true, durationMinutes: DURACION_MIN, maxPerSocio: 2 };
 
 const initialForm = {
   espacio_id: '', socio_id: '', fecha: todayISO(),
@@ -293,6 +301,9 @@ export default function Reservas({ readOnly = false }) {
     return map;
   }, [sesiones, selectedDate]);
 
+  // Horario del día seleccionado
+  const scheduleHoy = useMemo(() => getScheduleForDay(getDiaSemana(selectedDate)), [selectedDate]);
+
   // Navegación de fecha
   const changeDate = (delta) => {
     const d = new Date(`${selectedDate}T00:00:00`);
@@ -366,12 +377,27 @@ export default function Reservas({ readOnly = false }) {
     return timesOverlap(form.hora_inicio, form.hora_fin, r.hora_inicio, r.hora_fin);
   });
 
-  const hasSocioConflict = () => reservas.some(r => {
-    if (r.reserva_id === editingReserva?.reserva_id) return false;
-    if (String(r.socio_id) !== form.socio_id) return false;
-    if (toDateInputValue(r.fecha) !== form.fecha) return false;
-    return normalizeEstadoReserva(r.estado) !== 'cancelada';
-  });
+  const hasSocioConflict = () => {
+    const activas = reservas.filter(r => {
+      if (r.reserva_id === editingReserva?.reserva_id) return false;
+      if (String(r.socio_id) !== form.socio_id) return false;
+      if (toDateInputValue(r.fecha) !== form.fecha) return false;
+      return normalizeEstadoReserva(r.estado) !== 'cancelada';
+    });
+    return activas.length >= RESERVA_CONFIG.maxPerSocio; // máx. 2 reservas por día
+  };
+
+  // Verifica solapamiento de horario para el mismo socio (sin importar el espacio)
+  const hasSocioTimeConflict = () => {
+    if (!form.socio_id || !form.fecha || !form.hora_inicio || !form.hora_fin) return false;
+    return reservas.some(r => {
+      if (r.reserva_id === editingReserva?.reserva_id) return false;
+      if (String(r.socio_id) !== form.socio_id) return false;
+      if (toDateInputValue(r.fecha) !== form.fecha) return false;
+      if (normalizeEstadoReserva(r.estado) === 'cancelada') return false;
+      return timesOverlap(form.hora_inicio, form.hora_fin, r.hora_inicio, r.hora_fin);
+    });
+  };
 
   const hasSessionConflict = () => {
     const esp = espacios.find(e => String(e.espacio_id) === form.espacio_id);
@@ -402,7 +428,10 @@ export default function Reservas({ readOnly = false }) {
     const activa = !INACTIVE_ESTADOS.includes(form.estado);
     if (activa) {
       if (sancionados.has(form.socio_id)) errors.socio_id = 'El socio tiene sanción activa';
-      if (form.socio_id && hasSocioConflict()) errors.socio_id = 'El socio ya tiene reserva activa para ese día';
+      if (!errors.socio_id && hasSocioTimeConflict())
+        errors.socio_id = 'El socio ya tiene una reserva activa en ese horario';
+      if (!errors.socio_id && form.socio_id && hasSocioConflict())
+        errors.socio_id = `El socio ya tiene ${RESERVA_CONFIG.maxPerSocio} reservas activas para ese día`;
       if (form.espacio_id && form.fecha && form.hora_inicio && hasConflict())
         errors.hora_inicio = 'El espacio ya está reservado en ese horario';
       if (form.espacio_id && form.fecha && form.hora_inicio && hasSessionConflict())
@@ -508,7 +537,13 @@ export default function Reservas({ readOnly = false }) {
           <button className="btn-icon-nav" onClick={() => changeDate(-1)}><ChevronLeft size={18} /></button>
           <div className="reservas-date-label">
             <strong>Rejilla de Reservas &mdash; {selectedDate}</strong>
-            <span>Vista de todas las canchas y espacios disponibles</span>
+            <span>
+              {scheduleHoy.cerrado
+                ? '🚫 Lunes — Club Cerrado'
+                : scheduleHoy.apertura === 7
+                  ? '🕐 Domingo: 7:00 – 19:00'
+                  : '🕐 Mar–Sáb: 6:00 – 22:00 · Dom: 7:00 – 19:00 · Lun Cerrado'}
+            </span>
           </div>
           <button className="btn-icon-nav" onClick={() => changeDate(1)}><ChevronRight size={18} /></button>
         </div>
@@ -518,6 +553,18 @@ export default function Reservas({ readOnly = false }) {
         <button className="btn-icon" onClick={fetchData} title="Actualizar"><RefreshCw size={16} /></button>
       </div>
 
+      {/* Banner Lunes cerrado */}
+      {scheduleHoy.cerrado && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          padding: '0.875rem 1.25rem', borderRadius: '10px', marginBottom: '1rem',
+          background: '#f1f5f9', color: '#475569', fontWeight: 600, fontSize: '0.9rem',
+          border: '1px solid #e2e8f0'
+        }}>
+          🚫 <span><strong>Lunes — Club Cerrado.</strong> No se pueden crear reservas este día.</span>
+        </div>
+      )}
+
       {/* Rejilla */}
       <div className="reservas-grid-wrapper">
         <div className="reservas-grid" onClick={() => setActiveTooltip(null)}>
@@ -525,7 +572,9 @@ export default function Reservas({ readOnly = false }) {
           <div className="grid-header">
             <div className="grid-space-col">Espacio</div>
             {HOURS.map(h => (
-              <div key={h} className="grid-hour-label">
+              <div key={h} className="grid-hour-label"
+                style={scheduleHoy.cerrado || h < scheduleHoy.apertura || h >= scheduleHoy.cierre
+                  ? { opacity: 0.35 } : {}}>
                 {String(h).padStart(2, '0')}:00
               </div>
             ))}
@@ -565,14 +614,23 @@ export default function Reservas({ readOnly = false }) {
                 const isSesionStart = sesion && parseHHMM(toTimeInputValue(sesion.hora_inicio)) === hora;
 
                 const enMantenimiento = espacio.estado === 'Mantenimiento';
+                const fueraDeHorario  = scheduleHoy.cerrado
+                  || h < scheduleHoy.apertura
+                  || h >= scheduleHoy.cierre;
+
                 return (
                   <div
                     key={h}
                     className={`grid-cell ${enMantenimiento ? 'mantenimiento' : (reserva ? 'has-reserva' : 'disponible')}`}
-                    style={enMantenimiento ? { background: '#fff7ed', cursor: 'not-allowed' } : (sesion && !reserva ? { background: '#f0fdfa' } : {})}
+                    style={
+                      enMantenimiento   ? { background: '#fff7ed', cursor: 'not-allowed' }
+                      : fueraDeHorario  ? { background: '#f8fafc', cursor: 'not-allowed', opacity: 0.45 }
+                      : sesion && !reserva ? { background: '#f0fdfa' }
+                      : {}
+                    }
                     onClick={e => {
                       e.stopPropagation();
-                      if (enMantenimiento) return;
+                      if (enMantenimiento || fueraDeHorario) return;
                       if (reserva) {
                         setActiveTooltip(isTooltipActive ? null : reserva.reserva_id);
                       } else if (sesion) {

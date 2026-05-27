@@ -104,9 +104,18 @@ function Ludoteca() {
 
   const formatHora = (ts) => {
     if (!ts) return ''
-    const d = new Date(ts)
-    if (isNaN(d.getTime())) return ts
-    return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' })
+    // La hora ya viene como string México (TO_CHAR sin Z), extraer HH:MM directo
+    // para evitar que new Date() aplique conversión de zona horaria (UTC ≠ México)
+    const match = String(ts).match(/T(\d{2}):(\d{2})/)
+    if (match) {
+      const h = parseInt(match[1], 10)
+      const m = match[2]
+      const suffix = h >= 12 ? 'p. m.' : 'a. m.'
+      const h12   = h === 0 ? 12 : h > 12 ? h - 12 : h
+      return `${h12}:${m} ${suffix}`
+    }
+    // Fallback: si viene solo "HH:MM"
+    return String(ts).slice(0, 5)
   }
 
   const formatFechaCorta = (ts) => {
@@ -205,9 +214,6 @@ function Ludoteca() {
           <p className="rs-subtitle">Cuida de tus hijos mientras disfrutas del club</p>
         </div>
         <div className="rs-status-tags">
-          <button className="btn-qr-flotante" onClick={() => setShowModalQR(true)}>
-            <QrCode size={18} /> Mi QR
-          </button>
         </div>
       </section>
 
@@ -322,8 +328,10 @@ function Ludoteca() {
                         <div style={{
                           width: 44, height: 44, borderRadius: '50%',
                           background: 'linear-gradient(135deg, #0f172a, #2563eb)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px'
-                        }}>👶</div>
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                          <Baby size={22} color="white" />
+                        </div>
                         <div>
                           <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>{r.nombre_hijo}</div>
                           <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
@@ -423,11 +431,13 @@ function Ludoteca() {
           ) : (
             <div className="historial-list">
               {historial.map(r => {
-                const fechaEntrada = new Date(r.hora_entrada)
-                const _mxFmt = isNaN(fechaEntrada) ? null
-                  : new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', timeZone: 'America/Mexico_City' }).formatToParts(fechaEntrada)
-                const _dia = _mxFmt ? (_mxFmt.find(p => p.type === 'day')?.value ?? '—') : '—'
-                const _mes = _mxFmt ? (_mxFmt.find(p => p.type === 'month')?.value ?? '') : ''
+                // Extraer fecha directamente del string "YYYY-MM-DDTHH:MM:SS" (ya es hora México)
+                const fechaMatch = r.hora_entrada ? String(r.hora_entrada).match(/^(\d{4})-(\d{2})-(\d{2})/) : null
+                const _dia = fechaMatch ? fechaMatch[3] : '—'
+                const _mes = fechaMatch
+                  ? new Date(Number(fechaMatch[1]), Number(fechaMatch[2]) - 1, 1)
+                      .toLocaleString('es-MX', { month: 'short' })
+                  : ''
                 return (
                   <div key={r.registro_id} className="historial-item">
                     <div className="historial-fecha">
@@ -475,9 +485,6 @@ function Ludoteca() {
               <li>Superar las 2 horas genera una sanción automática</li>
             </ol>
           </div>
-          <button className="btn-reservar-qr" onClick={() => setShowModalQR(true)}>
-            <QrCode size={22} /> Mostrar Mi QR
-          </button>
         </div>
       )}
 
@@ -508,7 +515,7 @@ function Ludoteca() {
                           fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.35rem'
                         }}
                       >
-                        👶 {h.nombre}
+                        <Baby size={14} /> {h.nombre}
                       </button>
                     ))}
                   </div>

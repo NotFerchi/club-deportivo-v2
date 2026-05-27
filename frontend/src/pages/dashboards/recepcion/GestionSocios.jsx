@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Edit2, Trash2, X, Search, UserPlus, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Download, Edit2, QrCode, RotateCcw, Search, SlidersHorizontal, Trash2, UserPlus, X } from 'lucide-react';
 
 const initialFormData = {
   nombres: '',
@@ -53,6 +53,8 @@ function GestionSocios() {
   const [formErrors, setFormErrors] = useState({});
   const [filters, setFilters] = useState(initialFilters);
   const [showFilters, setShowFilters] = useState(false);
+  const [qrModal, setQrModal] = useState(null);          // { socio, qr_image }
+  const [generandoQrId, setGenerandoQrId] = useState(null);
 
   const validarEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const validarCurp = (curp) => /^[A-Z]{4}\d{6}[HM][A-Z]{5}[0-9A-Z]{2}$/.test(curp);
@@ -275,6 +277,30 @@ function GestionSocios() {
     else alert('Error al reactivar socio');
   };
 
+  const handleGenerarQr = async (socio) => {
+    setGenerandoQrId(socio.socio_id);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:3000/api/qr/generar-socio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ socio_id: socio.socio_id }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Error al generar QR'); return; }
+      setQrModal({ socio, qr_image: data.qr_image });
+    } catch { alert('Error de conexión al generar QR'); }
+    finally { setGenerandoQrId(null); }
+  };
+
+  const handleDescargarQr = (qr_image, socio) => {
+    const nombre = `${socio.nombres || ''} ${socio.apellido_paterno || ''}`.trim().replace(/\s+/g, '-').toLowerCase();
+    const a = document.createElement('a');
+    a.href = qr_image;
+    a.download = `qr-socio-${nombre || socio.socio_id}.png`;
+    a.click();
+  };
+
   const handleEdit = (socio) => {
     setEditingSocio(socio);
     setFormData({
@@ -476,7 +502,21 @@ function GestionSocios() {
                       {socio.activo ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
-                  <td style={{ display: 'flex', gap: '0.4rem' }}>
+                  <td style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {socio.activo && (
+                      <button
+                        onClick={() => handleGenerarQr(socio)}
+                        className="btn-icon"
+                        style={{ color: '#0891b2' }}
+                        title="Generar / Regenerar QR"
+                        disabled={generandoQrId === socio.socio_id}
+                      >
+                        {generandoQrId === socio.socio_id
+                          ? <span style={{ width: 13, height: 13, border: '2px solid #94a3b8', borderTopColor: '#0891b2', borderRadius: '50%', animation: 'inst-spin 0.7s linear infinite', display: 'inline-block' }} />
+                          : <QrCode size={16} />
+                        }
+                      </button>
+                    )}
                     <button onClick={() => handleEdit(socio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar">
                       <Edit2 size={16} />
                     </button>
@@ -507,6 +547,41 @@ function GestionSocios() {
           </tbody>
         </table>
       </div>
+
+      {/* ── MODAL QR ── */}
+      {qrModal && (
+        <div className="modal-overlay" onClick={() => setQrModal(null)}>
+          <div className="modal-content" style={{ maxWidth: 360, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h3 style={{ margin: 0 }}>Código QR del Socio</h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: '#64748b' }}>
+                  {qrModal.socio.nombres} {qrModal.socio.apellido_paterno}
+                  {qrModal.socio.numero_socio ? ` · #${qrModal.socio.numero_socio}` : ''}
+                </p>
+              </div>
+              <button onClick={() => setQrModal(null)} className="close-modal"><X size={20} /></button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
+              <div style={{ background: '#f8faff', border: '2px solid #e2e8f0', borderRadius: 16, padding: '1rem', display: 'inline-flex' }}>
+                <img src={qrModal.qr_image} alt="QR Socio" style={{ width: 200, height: 200, display: 'block' }} />
+              </div>
+              <p style={{ margin: 0, fontSize: 12, color: '#64748b', maxWidth: 260, lineHeight: 1.5 }}>
+                Escanea este código en los lectores del club para registrar visitas y asistencias.
+              </p>
+            </div>
+            <div className="modal-footer" style={{ justifyContent: 'center', gap: '0.75rem' }}>
+              <button className="btn-outline" onClick={() => setQrModal(null)}>Cerrar</button>
+              <button
+                className="btn-primary"
+                onClick={() => handleDescargarQr(qrModal.qr_image, qrModal.socio)}
+              >
+                <Download size={15} /> Descargar QR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="modal-overlay">

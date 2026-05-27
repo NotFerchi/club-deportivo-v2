@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../components/SocioLayout'
-import { CheckCircle, AlertTriangle, Trophy, Clock, Baby, CalendarDays, ShieldAlert } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Trophy, Clock, Baby, CalendarDays, ShieldAlert, Camera, Loader2 } from 'lucide-react'
 import { apiRequest } from '../../services/api'
 
 function todayISO() {
@@ -37,8 +37,9 @@ export default function DashboardSocio() {
     ]).then(([resReservas, resSanciones, resTorneos, resLudoteca, resAforo]) => {
       if (resReservas.status === 'fulfilled') {
         const todas = Array.isArray(resReservas.value) ? resReservas.value : []
+        // String(r.fecha).slice(0,10) normaliza tanto 'YYYY-MM-DD' como 'YYYY-MM-DDTHH:mm:ssZ'
         setReservasHoy(todas.filter(r =>
-          r.fecha === hoy &&
+          String(r.fecha).slice(0, 10) === hoy &&
           Number(r.socio_id) === Number(socioId) &&
           r.estado !== 'cancelada'
         ))
@@ -139,9 +140,14 @@ export default function DashboardSocio() {
             <div style={{
               position: 'absolute', inset: 0, borderRadius: '50%',
               background: 'rgba(0,0,0,0.5)', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              fontSize: '10px', color: 'white', fontWeight: 700
-            }}>⏳</div>
+              alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Loader2
+                size={20}
+                color="white"
+                style={{ animation: 'spin 0.8s linear infinite' }}
+              />
+            </div>
           )}
 
           {/* Botón cámara */}
@@ -152,9 +158,11 @@ export default function DashboardSocio() {
               width: 20, height: 20, borderRadius: '50%',
               background: '#2563eb', border: '2px solid white',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', fontSize: '10px'
+              cursor: 'pointer'
             }}
-          >📷</div>
+          >
+            <Camera size={11} color="white" />
+          </div>
 
           <input
             id="input-foto-perfil"
@@ -335,7 +343,9 @@ export default function DashboardSocio() {
                       background: Number(r.minutos_transcurridos) >= 110 ? '#fee2e2' : '#dcfce7',
                       color:      Number(r.minutos_transcurridos) >= 110 ? '#991b1b' : '#166534'
                     }}>
-                      {Number(r.minutos_transcurridos) >= 110 ? '⚠ Casi 2h' : 'Activo'}
+                      {Number(r.minutos_transcurridos) >= 110
+                        ? <><AlertTriangle size={11} style={{ verticalAlign: 'middle', marginRight: 3 }} />Casi 2h</>
+                        : 'Activo'}
                     </span>
                   </div>
                 ))

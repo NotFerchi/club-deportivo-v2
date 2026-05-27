@@ -39,7 +39,9 @@ import GestionUsuarios from './admin/GestionUsuarios';
 import ConfiguracionEspacios from './admin/ConfiguracionEspacios';
 import AuditoriaLogs from './admin/AuditoriaLogs';
 import ReportesDescargas from './admin/ReportesDescargas';
-import TournamentBracket from '../../components/TournamentBracket';
+import GestionTorneos from './admin/GestionTorneos';
+import GestionInstructores from './coordinador/GestionInstructores';
+import GestionDisciplinas from './coordinador/GestionDisciplinas';
 
 const OCCUPANCY_VIEW_OPTIONS = [
   { value: 'semana', label: 'Semana', days: 7 },
@@ -54,6 +56,7 @@ const NAV_ITEMS = [
   { id: 'reservas', label: 'Reservas', icon: Calendar },
   { id: 'ludoteca', label: 'Ludoteca', icon: Puzzle },
   { id: 'disciplinas', label: 'Disciplinas', icon: Dumbbell },
+  { id: 'sesiones', label: 'Clases e Instructores', icon: Dumbbell },
   { id: 'torneos', label: 'Torneos', icon: Trophy },
   { id: 'sanciones', label: 'Sanciones', icon: ShieldAlert }
 ];
@@ -147,6 +150,7 @@ function SociosCompositionChart({ accionistas, rentistas, total }) {
 function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sesionesSubTab, setSesionesSubTab] = useState('sesiones');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
   const [fotoPerfil, setFotoPerfil] = useState(null);
@@ -411,6 +415,7 @@ function Dashboard() {
     { id: 'reservas',    label: 'Reservas',      icon: Calendar },
     { id: 'ludoteca',    label: 'Ludoteca',      icon: Puzzle },
     { id: 'disciplinas', label: 'Disciplinas',   icon: Dumbbell },
+    { id: 'sesiones',    label: 'Clases',        icon: Dumbbell },
     { id: 'torneos',     label: 'Torneos',       icon: Trophy },
     { id: 'sanciones',   label: 'Sanciones',     icon: ShieldAlert },
     { id: 'reportes',    label: 'Reportes',      icon: FileText },
@@ -799,14 +804,28 @@ function Dashboard() {
         {activeTab === 'recepcion' && <RecepcionVisitas />}
         {activeTab === 'reservas' && <Reservas />}
         {activeTab === 'disciplinas' && <Disciplinas />}
-        {activeTab === 'torneos' && (
-          <TournamentBracket
-            title="Torneos y Brackets"
-            subtitle="Consulta el estado de los torneos y sus cruces por ronda."
-          />
+        {activeTab === 'sesiones' && (
+          <div>
+            <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', borderRadius: '8px', padding: '3px', marginBottom: '1.25rem', width: 'fit-content' }}>
+              {['sesiones', 'instructores'].map(t => (
+                <button key={t} onClick={() => setSesionesSubTab(t)} style={{
+                  padding: '0.4rem 1rem', border: 'none', cursor: 'pointer',
+                  fontWeight: 600, fontSize: '13px', borderRadius: '6px',
+                  background: sesionesSubTab === t ? 'white' : 'transparent',
+                  color: sesionesSubTab === t ? '#1e293b' : '#64748b',
+                  boxShadow: sesionesSubTab === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.2s'
+                }}>
+                  {t === 'sesiones' ? 'Sesiones / Clases' : 'Instructores'}
+                </button>
+              ))}
+            </div>
+            {sesionesSubTab === 'sesiones' ? <GestionDisciplinas /> : <GestionInstructores />}
+          </div>
         )}
+        {activeTab === 'torneos' && <GestionTorneos readOnly={!['admin', 'gerente', 'coordinador'].includes(userRole)} />}
         {activeTab === 'ludoteca' && <Ludoteca />}
-        {activeTab === 'sanciones' && <Sanciones />}
+        {activeTab === 'sanciones' && <Sanciones readOnly={isManager} />}
         {activeTab === 'reportes' && <ReportesDescargas />}
         {activeTab === 'usuarios' && <GestionUsuarios />}
         {activeTab === 'espacios' && <ConfiguracionEspacios />}

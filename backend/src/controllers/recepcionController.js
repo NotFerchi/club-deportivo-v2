@@ -3,13 +3,11 @@ const { logAudit } = require('../utils/auditLogger');
 const QRCode = require('qrcode');
 const { generarHmacSha256 } = require('../utils/qrCrypto');
 const { resolveReservaEstado } = require('../utils/adminRules');
-const { getMexicoDateISO, getMexicoTimeISO } = require('../utils/mexicoDate');
 const LUDOTECA_TIME_ZONE = 'America/Mexico_City';
 const CLUB_CLOSE_TIME = process.env.CLUB_HORA_CIERRE || '22:00';
 const VISITA_QR_TTL_MS = 24 * 60 * 60 * 1000;
 
-// Usa México City — no toISOString() que devuelve fecha UTC
-const getToday = () => getMexicoDateISO();
+const getToday = () => new Date().toISOString().split('T')[0];
 
 const isMissingPasesTable = (error) =>
     error?.code === '42P01' && String(error.message || '').includes('pases');
@@ -831,14 +829,16 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
             const qr = await generarQrPase(client, paseId);
 
             await client.query('COMMIT');
-            await logAudit(req, {
+
+            // logAudit fuera del bloque transaccional — no debe abortar la respuesta
+            logAudit(req, {
                 accion: 'crear_visita',
                 tabla_afectada: 'pases',
                 registro_id: paseId,
                 detalles: `Pase ${tipoPaseNormalizado} registrado`
-            });
+            }).catch(err => console.error('logAudit crear_visita:', err));
 
-            res.status(201).json({
+            return res.status(201).json({
                 ok: true,
                 id: paseId,
                 pase_id: paseId,
@@ -1248,6 +1248,31 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
             res.status(500).json({ error: 'Error al registrar asistencia' });
         } finally {
             client.release();
+        }
+    },
+
+    enviarQrVisita: async (req, res) => {
+        const paseId = req.params.id;
+        const { correo, qr_image, nombre, expira_en } = req.body;
+
+        if (!correo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+            return res.status(400).json({ error: 'Correo electrónico inválido' });
+        }
+        if (!qr_image) {
+            return res.status(400).json({ error: 'Imagen QR requerida' });
+        }
+
+        try {
+            await sendQrVisita({
+                to: correo,
+                nombre: nombre || 'Visitante',
+                qrBase64: qr_image,
+                expiraEn: expira_en || null
+            });
+            res.json({ ok: true, message: `QR enviado a ${correo}` });
+        } catch (error) {
+            console.error('Error al enviar QR por correo:', error);
+            res.status(503).json({ error: error.message || 'Error al enviar el correo' });
         }
     }
 };

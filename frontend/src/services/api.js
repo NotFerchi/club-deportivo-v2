@@ -173,6 +173,8 @@ export const adminApi = {
       method: 'PATCH',
       body: JSON.stringify({ estado, motivo, fecha_fin })
     }),
+  getMantenimientoHistorial: (id) =>
+    apiRequest(`/espacios/${id}/mantenimiento`),
   saveSancion: (payload, id) =>
     apiRequest(id ? `/sanciones/${id}` : '/sanciones', {
       method: id ? 'PUT' : 'POST',
@@ -198,6 +200,42 @@ export const adminApi = {
   sincronizarNoShows: () =>
     apiRequest('/sanciones/no-shows/sincronizar', { method: 'POST' }),
   logAudit: (payload) =>
-    apiRequest('/logs', { method: 'POST', body: JSON.stringify(payload) })
+    apiRequest('/logs', { method: 'POST', body: JSON.stringify(payload) }),
+
+  getTorneos: (params = {}) => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v) search.set(k, v); });
+    const q = search.toString();
+    return apiRequest(`/torneos${q ? `?${q}` : ''}`);
+  },
+  saveTorneo: (payload, id) =>
+    apiRequest(id ? `/torneos/${id}` : '/torneos', {
+      method: id ? 'PUT' : 'POST',
+      body: JSON.stringify(payload)
+    }),
+  getCategoriasTorneo: () => apiRequest('/torneos/categorias'),
+  getTorneoParticipantes: (torneoId) =>
+    apiRequest(`/torneos/${torneoId}/participantes`),
+  inscribirParticipante: (torneoId, payload) =>
+    apiRequest(`/torneos/${torneoId}/inscribir`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+  desinscribirParticipante: (torneoId, participanteId) =>
+    apiRequest(`/torneos/${torneoId}/participantes/${participanteId}`, { method: 'DELETE' }),
+  cerrarInscripcionesTorneo: (torneoId) =>
+    apiRequest(`/torneos/${torneoId}/cerrar-inscripciones`, { method: 'PATCH' }),
+  finalizarTorneo: (torneoId) =>
+    apiRequest(`/torneos/${torneoId}/finalizar`, { method: 'PATCH' }),
+  cancelarTorneo: (torneoId) =>
+    apiRequest(`/torneos/${torneoId}/cancelar`, { method: 'PATCH' }),
+  getTorneoReporte: (torneoId) =>
+    apiRequest(`/torneos/${torneoId}/reporte`),
+  confirmarBracketTorneo: (torneoId) =>
+    apiRequest(`/torneos/${torneoId}/confirmar-bracket`, { method: 'PATCH' }),
+  registrarResultadoEncuentro: (encuentroId, payload) =>
+    apiRequest(`/encuentros/${encuentroId}/resultado`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  enviarQrVisita: (visitaId, payload) =>
+    apiRequest(`/recepcion/visitas/${visitaId}/enviar-qr`, { method: 'POST', body: JSON.stringify(payload) })
 };
 

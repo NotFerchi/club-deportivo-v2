@@ -36,7 +36,7 @@ const ESTADO_META = {
 const INACTIVE_ESTADOS = ['cancelada', 'no-show', 'sancionada'];
 
 const DURACION_MIN = 60;
-const RESERVA_CONFIG = { sameDayOnly: true, durationMinutes: DURACION_MIN, maxPerSocio: 2 };
+const RESERVA_CONFIG = { sameDayOnly: true, durationMinutes: DURACION_MIN, maxPerSocio: 1 };
 
 const initialForm = {
   espacio_id: '', socio_id: '', fecha: todayISO(),
@@ -418,8 +418,6 @@ export default function Reservas({ readOnly = false }) {
     if (!form.fecha) errors.fecha = 'Selecciona una fecha';
     if (!form.hora_inicio) errors.hora_inicio = 'Selecciona la hora de inicio';
     if (!form.hora_fin) errors.hora_fin = 'Hora fin requerida';
-    if (form.fecha && RESERVA_CONFIG.sameDayOnly && form.fecha !== todayISO())
-      errors.fecha = 'Solo se permiten reservas para hoy';
     if (form.hora_inicio && form.hora_fin) {
       const dur = minutesBetween(form.hora_inicio, form.hora_fin);
       const duracionEsperada = form.duracion || DURACION_MIN;

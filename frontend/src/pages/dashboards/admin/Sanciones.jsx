@@ -32,7 +32,7 @@ function gravedadClass(gravedad) {
   return 'badge-info';
 }
 
-function ReporteSanciones() {
+function ReporteSanciones({ readOnly = false }) {
   const [sanciones, setSanciones] = useState([]);
   const [socios, setSocios] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -239,12 +239,16 @@ function ReporteSanciones() {
         actions={(
           <>
             <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar socio, motivo u origen" />
-            <button className="btn-outline" onClick={syncNoShows}>
-              <RefreshCw size={16} /> Sincronizar no-shows
-            </button>
-            <button className="btn-primary" onClick={openCreateModal}>
-              <Plus size={16} /> Nueva Sanción
-            </button>
+            {!readOnly && (
+              <button className="btn-outline" onClick={syncNoShows}>
+                <RefreshCw size={16} /> Sincronizar no-shows
+              </button>
+            )}
+            {!readOnly && (
+              <button className="btn-primary" onClick={openCreateModal}>
+                <Plus size={16} /> Nueva Sanción
+              </button>
+            )}
           </>
         )}
       />
@@ -312,17 +316,22 @@ function ReporteSanciones() {
                   <td>{sancion.fecha_fin ? formatDate(sancion.fecha_fin) : 'Indefinida'}</td>
                   <td><span className={activa ? 'badge-warning' : 'badge-success'}>{activa ? 'Activa' : 'Resuelta'}</span></td>
                   <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <button onClick={() => handleEdit(sancion)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar sanción">
-                      <Edit2 size={16} />
-                    </button>
-                    {activa && (
+                    {!readOnly && (
+                      <button onClick={() => handleEdit(sancion)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar sanción">
+                        <Edit2 size={16} />
+                      </button>
+                    )}
+                    {!readOnly && activa && (
                       <button onClick={() => handleLevantarSancion(sancion.sancion_id)} className="btn-icon" style={{ color: '#10b981' }} title="Levantar sanción">
                         <CheckCircle size={16} />
                       </button>
                     )}
-                    <button onClick={() => handleDeleteSancion(sancion.sancion_id)} className="btn-icon" style={{ color: '#ef4444' }} title="Eliminar permanentemente">
-                      <Trash2 size={16} />
-                    </button>
+                    {!readOnly && (
+                      <button onClick={() => handleDeleteSancion(sancion.sancion_id)} className="btn-icon" style={{ color: '#ef4444' }} title="Eliminar permanentemente">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                    {readOnly && <span style={{ fontSize: 12, color: '#94a3b8' }}>Solo lectura</span>}
                   </td>
                 </tr>
               );

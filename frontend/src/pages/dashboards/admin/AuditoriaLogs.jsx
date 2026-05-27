@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Edit2, Eye, FilePlus, FileText, Filter, LogIn, LogOut, RefreshCw, RotateCcw, Table, Trash2, Wifi } from 'lucide-react';
 import { apiRequest, unwrapList } from '../../../services/api';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
-import { formatDateTime, normalizeText } from '../../../utils/adminData';
+import { formatLocalDateTime, normalizeText } from '../../../utils/adminData';
 
 function AccionIcon({ accion }) {
   const action = normalizeText(accion);
@@ -148,7 +148,7 @@ function AuditoriaLogs() {
           <tbody>
             {filteredLogs.map(log => (
               <tr key={log.log_id}>
-                <td>{formatDateTime(log.fecha_local || log.fecha)}</td>
+                <td>{formatLocalDateTime(log.fecha_local || log.fecha)}</td>
                 <td>
                   <strong>{log.usuario_nombre || 'Sistema'}</strong>
                   <br />

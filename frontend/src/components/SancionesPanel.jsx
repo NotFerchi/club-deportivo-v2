@@ -3,8 +3,12 @@ import { AlertTriangle, Calendar, CheckCircle, Clock, CreditCard, Edit2, Hash, L
 import { adminApi, apiRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatDate, formatDateTime, normalizeText } from '../utils/adminData';
+import FilterBar from './shared/FilterBar';
 
 const PAGE_SIZE = 20;
+// Roles que pueden crear y editar sanciones
+const WRITE_ROLES = ['admin', 'coordinador'];
+// Roles que pueden marcar una sanción como resuelta
 const RESOLVER_ROLES = ['admin', 'coordinador'];
 const ORIGENES_BASE = ['Administracion', 'Ludoteca', 'Instalaciones', 'No-show reserva', 'No-show clase', 'Conducta', 'Reglamento'];
 const initialFormData = {
@@ -27,22 +31,27 @@ function estadoLabel(sancion) {
   return isActiva(sancion) ? 'Activo' : 'Inactivo';
 }
 
+const FILTER_INITIAL = {
+  socio: '',
+  gravedad: '',
+  estado: '',
+  origen: '',
+  fecha_desde: '',
+  fecha_hasta: ''
+};
+
 function useSancionesFilters() {
-  const [filters, setFilters] = useState({
-    origen: '',
-    estado: '',
-    socio: ''
-  });
+  const [filters, setFilters] = useState(FILTER_INITIAL);
 
   const updateFilter = (key, value) => {
     setFilters((current) => ({ ...current, [key]: value }));
   };
 
-  const clearFilters = () => {
-    setFilters({ origen: '', estado: '', socio: '' });
-  };
+  const setAllFilters = (newFilters) => setFilters(newFilters);
 
-  return { filters, updateFilter, clearFilters };
+  const clearFilters = () => setFilters(FILTER_INITIAL);
+
+  return { filters, updateFilter, setAllFilters, clearFilters };
 }
 
 // ── Buscador de socios con búsqueda en servidor ───────────────────────────────
@@ -167,8 +176,9 @@ function SancionesPanel() {
   const [editingSancion, setEditingSancion] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
-  const { filters, updateFilter, clearFilters } = useSancionesFilters();
+  const { filters, setAllFilters } = useSancionesFilters();
 
+  const canWrite = WRITE_ROLES.includes(rol);
   const canResolve = RESOLVER_ROLES.includes(rol);
 
   const fetchSanciones = async () => {
@@ -177,9 +187,12 @@ function SancionesPanel() {
       const payload = await adminApi.getSancionesPage({
         page,
         limit: PAGE_SIZE,
-        origen: filters.origen,
+        socio: filters.socio,
+        gravedad: filters.gravedad,
         estado: filters.estado,
-        socio: filters.socio
+        origen: filters.origen,
+        fecha_desde: filters.fecha_desde,
+        fecha_hasta: filters.fecha_hasta
       });
       setSanciones(Array.isArray(payload?.data) ? payload.data : []);
       setPagination(payload?.pagination || { page, limit: PAGE_SIZE, total: 0, total_pages: 1 });
@@ -193,11 +206,11 @@ function SancionesPanel() {
 
   useEffect(() => {
     fetchSanciones();
-  }, [page, filters.origen, filters.estado, filters.socio]);
+  }, [page, filters.socio, filters.gravedad, filters.estado, filters.origen, filters.fecha_desde, filters.fecha_hasta]);
 
   useEffect(() => {
     setPage(1);
-  }, [filters.origen, filters.estado, filters.socio]);
+  }, [filters.socio, filters.gravedad, filters.estado, filters.origen, filters.fecha_desde, filters.fecha_hasta]);
 
   const origenes = useMemo(() => {
     const values = new Set(ORIGENES_BASE);
@@ -273,7 +286,6 @@ function SancionesPanel() {
     }
   };
 
-  const hasFilters = filters.origen || filters.estado || filters.socio;
   const stats = useMemo(() => {
     const activas = sanciones.filter(isActiva).length;
     return {
@@ -292,12 +304,12 @@ function SancionesPanel() {
           <p>Consulta sanciones, revisa historial por socio y da seguimiento a resoluciones.</p>
         </div>
         <div className="sanciones-header-actions">
-          {!canResolve && (
+          {!canWrite && (
             <span className="sanciones-permission-note">
               <Lock size={14} /> Solo consulta
             </span>
           )}
-          {canResolve && (
+          {canWrite && (
             <button className="btn-primary" type="button" onClick={() => setShowCreateModal(true)}>
               <Plus size={15} /> Nueva sancion
             </button>
@@ -323,40 +335,37 @@ function SancionesPanel() {
         </div>
       </div>
 
-      <div className="admin-filter-row">
-        <div className="search-wrapper">
-          <Search className="search-icon" />
-          <input
-            className="search-input"
-            value={filters.socio}
-            onChange={(event) => updateFilter('socio', event.target.value)}
-            placeholder="Buscar por socio o numero"
-          />
-        </div>
-
-        <label className="admin-filter">
-          <span>Origen</span>
-          <select value={filters.origen} onChange={(event) => updateFilter('origen', event.target.value)}>
-            <option value="">Todos</option>
-            {origenes.map((origen) => <option key={origen} value={origen}>{origen}</option>)}
-          </select>
-        </label>
-
-        <label className="admin-filter">
-          <span>Estado</span>
-          <select value={filters.estado} onChange={(event) => updateFilter('estado', event.target.value)}>
-            <option value="">Todos</option>
-            <option value="Activo">Activo</option>
-            <option value="Inactivo">Inactivo</option>
-          </select>
-        </label>
-
-        {hasFilters && (
-          <button className="btn-outline" type="button" onClick={clearFilters}>
-            Limpiar filtros
-          </button>
-        )}
-      </div>
+      <FilterBar
+        values={filters}
+        onFilterChange={setAllFilters}
+        searchKey="socio"
+        searchPlaceholder="Buscar por socio o número"
+        showDateRange
+        filters={[
+          {
+            label: 'Gravedad',
+            key: 'gravedad',
+            options: [
+              { value: 'Leve', label: 'Leve' },
+              { value: 'Moderada', label: 'Moderada' },
+              { value: 'Grave', label: 'Grave' }
+            ]
+          },
+          {
+            label: 'Estado',
+            key: 'estado',
+            options: [
+              { value: 'Activo', label: 'Activa' },
+              { value: 'Inactivo', label: 'Resuelta / Inactiva' }
+            ]
+          },
+          {
+            label: 'Origen',
+            key: 'origen',
+            options: origenes.map(o => ({ value: o, label: o }))
+          }
+        ]}
+      />
 
       {loading ? (
         <p className="empty-message">Cargando sanciones...</p>
@@ -502,17 +511,17 @@ function SancionesPanel() {
                   </div>
                 </div>
 
-                {isActiva(selected) && !canResolve && (
+                {isActiva(selected) && !canWrite && (
                   <div className="sanciones-readonly-alert" style={{ marginTop: '0.75rem' }}>
                     <Lock size={16} />
-                    Coordinacion y recepcion pueden visualizar sanciones, pero la resolucion solo corresponde al administrador.
+                    Tu rol permite visualizar sanciones. La creación y resolución corresponde a coordinación o administración.
                   </div>
                 )}
               </div>
 
               <div className="modal-footer">
                 <button className="btn-outline" type="button" onClick={() => setSelected(null)}>Cerrar</button>
-                {canResolve && activa && (
+                {canWrite && activa && (
                   <button className="btn-outline" type="button" onClick={() => { setSelected(null); handleOpenEdit(selected); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Edit2 size={15} /> Editar
                   </button>
@@ -528,7 +537,7 @@ function SancionesPanel() {
         );
       })()}
 
-      {showCreateModal && canResolve && (
+      {showCreateModal && canWrite && (
         <div className="modal-overlay">
           <div className="modal-content sanciones-create-modal">
             <div className="modal-header">

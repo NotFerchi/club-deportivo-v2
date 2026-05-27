@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const { logAudit } = require('../utils/auditLogger');
+const { getTableColumns } = require('../utils/adminRules');
 
 const ESTADOS_VALIDOS = ['Activo', 'Inactivo', 'Mantenimiento'];
 
@@ -28,6 +29,51 @@ async function upsertDisciplinas(client, espacioId, disciplinaIds) {
   } catch (err) {
     if (err?.code !== '42P01') throw err;
   }
+}
+
+function firstExistingColumn(columns, candidates) {
+  return candidates.find(column => columns.has(column));
+}
+
+async function closeOpenMaintenance(client, espacioId, columns) {
+  if (!columns.has('espacio_id') || !columns.has('fecha_fin')) return;
+
+  await client.query(
+    `UPDATE mantenimiento_espacios SET fecha_fin = NOW()
+     WHERE espacio_id = $1 AND fecha_fin IS NULL`,
+    [espacioId]
+  );
+}
+
+async function insertMaintenance(client, espacioId, motivo, usuarioId, columns) {
+  if (!columns.has('espacio_id')) return;
+
+  const insertColumns = ['espacio_id'];
+  const valueExpressions = ['$1'];
+  const values = [espacioId];
+
+  if (columns.has('fecha_inicio')) {
+    insertColumns.push('fecha_inicio');
+    valueExpressions.push('NOW()');
+  }
+
+  if (columns.has('motivo')) {
+    values.push(motivo || 'Sin motivo especificado');
+    insertColumns.push('motivo');
+    valueExpressions.push(`$${values.length}`);
+  }
+
+  if (columns.has('usuario_id')) {
+    values.push(usuarioId || null);
+    insertColumns.push('usuario_id');
+    valueExpressions.push(`$${values.length}`);
+  }
+
+  await client.query(
+    `INSERT INTO mantenimiento_espacios (${insertColumns.join(', ')})
+     VALUES (${valueExpressions.join(', ')})`,
+    values
+  );
 }
 
 const espaciosController = {
@@ -192,25 +238,14 @@ const espaciosController = {
 
       // Registrar en historial de mantenimiento
       if (estadoFinal === 'Mantenimiento') {
-        // Cerrar registro previo si existe
-        await client.query(
-          `UPDATE mantenimiento_espacios SET fecha_fin = NOW()
-           WHERE espacio_id = $1 AND fecha_fin IS NULL`,
-          [id]
-        );
-        // Abrir nuevo registro
-        await client.query(
-          `INSERT INTO mantenimiento_espacios (espacio_id, fecha_inicio, motivo, usuario_id)
-           VALUES ($1, NOW(), $2, $3)`,
-          [id, motivo || 'Sin motivo especificado', req.user?.usuario_id || null]
-        );
+        const mantenimientoColumns = await getTableColumns('mantenimiento_espacios');
+        // Cerrar registro previo si existe y abrir uno nuevo con el esquema disponible.
+        await closeOpenMaintenance(client, id, mantenimientoColumns);
+        await insertMaintenance(client, id, motivo, req.user?.usuario_id, mantenimientoColumns);
       } else if (estadoAnterior === 'Mantenimiento') {
+        const mantenimientoColumns = await getTableColumns('mantenimiento_espacios');
         // Cerrar registro de mantenimiento al reactivar
-        await client.query(
-          `UPDATE mantenimiento_espacios SET fecha_fin = NOW()
-           WHERE espacio_id = $1 AND fecha_fin IS NULL`,
-          [id]
-        );
+        await closeOpenMaintenance(client, id, mantenimientoColumns);
       }
 
       await client.query('COMMIT');
@@ -227,6 +262,53 @@ const espaciosController = {
       res.status(500).json({ error: 'Error al cambiar estado del espacio' });
     } finally {
       client.release();
+    }
+  },
+
+  getMantenimientoHistorial: async (req, res) => {
+    const { id } = req.params;
+    try {
+      const mantenimientoColumns = await getTableColumns('mantenimiento_espacios');
+      if (!mantenimientoColumns.has('espacio_id')) {
+        return res.json([]);
+      }
+
+      const idColumn = firstExistingColumn(mantenimientoColumns, ['mant_id', 'mantenimiento_id']);
+      const orderColumn = firstExistingColumn(mantenimientoColumns, ['fecha_inicio', 'created_at', 'fecha_fin', 'mant_id', 'mantenimiento_id']);
+      const orderExpr = orderColumn ? `m.${orderColumn} DESC NULLS LAST` : '1';
+      const userColumns = mantenimientoColumns.has('usuario_id')
+        ? await getTableColumns('usuarios')
+        : new Set();
+      const canJoinUsuarios = mantenimientoColumns.has('usuario_id') && userColumns.has('usuario_id');
+      const userNameColumns = ['nombres', 'apellido_paterno', 'apellido_materno']
+        .filter(column => userColumns.has(column));
+      const usuarioNombreExpr = userNameColumns.length > 0
+        ? `NULLIF(TRIM(CONCAT_WS(' ', ${userNameColumns.map(column => `u.${column}`).join(', ')})), '')`
+        : userColumns.has('username') ? 'u.username' : 'NULL::text';
+
+      const result = await pool.query(
+        `SELECT
+           ${idColumn ? `m.${idColumn}` : `ROW_NUMBER() OVER (ORDER BY ${orderExpr})`} AS mant_id,
+           ${mantenimientoColumns.has('motivo') ? 'm.motivo' : 'NULL::text AS motivo'},
+           ${mantenimientoColumns.has('fecha_inicio') ? 'm.fecha_inicio' : mantenimientoColumns.has('created_at') ? 'm.created_at AS fecha_inicio' : 'NULL::timestamp AS fecha_inicio'},
+           ${mantenimientoColumns.has('fecha_fin') ? 'm.fecha_fin' : 'NULL::timestamp AS fecha_fin'},
+           ${canJoinUsuarios ? `${usuarioNombreExpr} AS usuario_nombre` : 'NULL::text AS usuario_nombre'}
+         FROM mantenimiento_espacios m
+         ${canJoinUsuarios ? 'LEFT JOIN usuarios u ON u.usuario_id = m.usuario_id' : ''}
+         WHERE m.espacio_id = $1
+         ORDER BY ${orderExpr}
+         LIMIT 50`,
+        [id]
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Error en getMantenimientoHistorial:', error);
+      if (error?.code === '42P01') return res.json([]);
+      res.status(500).json({
+        error: 'Error al obtener historial de mantenimiento',
+        pg_code: error?.code,
+        detail: error?.message
+      });
     }
   },
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Edit2, MapPin, Plus, RotateCcw, Trash2, Wrench, X } from 'lucide-react';
+import { CheckCircle, Clock, Edit2, History, MapPin, Plus, RotateCcw, Trash2, Wrench, X } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
 import { EmptyState, FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { isActiveValue, normalizeText } from '../../../utils/adminData';
@@ -91,7 +91,9 @@ function ConfiguracionEspacios({ readOnly = false }) {
   const [filterEstado, setFilterEstado] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showMantModal, setShowMantModal] = useState(null); // espacio seleccionado
+  const [showMantModal, setShowMantModal] = useState(null);
+  const [historialModal, setHistorialModal] = useState(null); // { espacio, registros, error? }
+  const [historialLoading, setHistorialLoading] = useState(false);
   const [editingEspacio, setEditingEspacio] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -246,6 +248,20 @@ function ConfiguracionEspacios({ readOnly = false }) {
     }
   };
 
+  const handleVerHistorial = async (espacio) => {
+    setHistorialLoading(true);
+    setHistorialModal({ espacio, registros: [], error: null });
+    try {
+      const data = await adminApi.getMantenimientoHistorial(espacio.espacio_id);
+      setHistorialModal({ espacio, registros: Array.isArray(data) ? data : [], error: null });
+    } catch (err) {
+      const detail = err.data?.pg_code ? ` [${err.data.pg_code}: ${err.data.detail}]` : '';
+      setHistorialModal({ espacio, registros: [], error: (err.message || 'Error al cargar historial') + detail });
+    } finally {
+      setHistorialLoading(false);
+    }
+  };
+
   const handlePermanentDelete = async (id) => {
     if (!confirm('¿Eliminar definitivamente este espacio? Esta acción no se puede deshacer.')) return;
     try {
@@ -363,6 +379,9 @@ function ConfiguracionEspacios({ readOnly = false }) {
 
                 {!readOnly && (
                   <div className="espacio-footer">
+                    <button onClick={() => handleVerHistorial(espacio)} className="btn-icon" style={{ color: '#6366f1' }} title="Ver historial de mantenimiento">
+                      <History size={16} />
+                    </button>
                     <button onClick={() => handleEdit(espacio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar espacio">
                       <Edit2 size={16} />
                     </button>
@@ -496,6 +515,68 @@ function ConfiguracionEspacios({ readOnly = false }) {
           onClose={() => setShowMantModal(null)}
           onConfirm={handleConfirmarMantenimiento}
         />
+      )}
+
+      {/* Modal historial de mantenimiento */}
+      {historialModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 560 }}>
+            <div className="modal-header">
+              <div>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <History size={18} style={{ color: '#6366f1' }} />
+                  Historial de Mantenimiento
+                </h3>
+                <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{historialModal.espacio.nombre}</p>
+              </div>
+              <button onClick={() => setHistorialModal(null)} className="close-modal"><X size={22} /></button>
+            </div>
+            <div className="modal-body">
+              {historialLoading ? (
+                <p style={{ textAlign: 'center', color: '#64748b', padding: '2rem 0' }}>Cargando historial...</p>
+              ) : historialModal.error ? (
+                <p style={{ textAlign: 'center', color: '#ef4444', padding: '2rem 0' }}>
+                  Error: {historialModal.error}
+                </p>
+              ) : historialModal.registros.length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#64748b', padding: '2rem 0' }}>
+                  Este espacio no tiene registros de mantenimiento.
+                </p>
+              ) : (
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                        <th>Motivo</th>
+                        <th>Registrado por</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historialModal.registros.map(r => (
+                        <tr key={r.mant_id}>
+                          <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                            <Clock size={11} style={{ marginRight: 4, color: '#f97316' }} />
+                            {r.fecha_inicio ? new Date(r.fecha_inicio).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                          </td>
+                          <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                            {r.fecha_fin ? new Date(r.fecha_fin).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'short', timeStyle: 'short' }) : <span style={{ color: '#f97316', fontWeight: 600 }}>En curso</span>}
+                          </td>
+                          <td style={{ fontSize: 12 }}>{r.motivo || '—'}</td>
+                          <td style={{ fontSize: 12, color: '#64748b' }}>{r.usuario_nombre?.trim() || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setHistorialModal(null)} className="btn-outline">Cerrar</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

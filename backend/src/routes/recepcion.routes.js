@@ -27,6 +27,7 @@ router.get('/visitas', recepcionController.listarVisitas);
 router.post('/visitas/cerrar-vencidas', checkRole(staffRoles), recepcionController.cerrarVisitasVencidas);
 router.post('/visitas', checkRole(staffRoles), recepcionController.crearVisita);
 router.put('/visitas/:id/salida', checkRole(staffRoles), recepcionController.registrarSalidaVisita);
+router.post('/visitas/:id/enviar-qr', checkRole(staffRoles), recepcionController.enviarQrVisita);
 router.get('/socios-lista', recepcionController.listaSociosParaVisitas);
 
 // Ludoteca

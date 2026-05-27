@@ -107,6 +107,21 @@ export const formatDateTime = (value) => {
   return date.toLocaleString('es-MX', { timeZone: MX_TZ });
 };
 
+// Para timestamps ya convertidos a hora local por el servidor (sin sufijo Z/timezone).
+// Formatea el string directamente sin aplicar ninguna conversión de zona horaria.
+export const formatLocalDateTime = (value) => {
+  if (!value) return '-';
+  const str = String(value);
+  // "2024-01-15T10:30:00" → "15/1/2024, 10:30 a. m."
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return str;
+  const [, y, mo, d, h, mi] = match;
+  const hn = parseInt(h, 10);
+  const suffix = hn >= 12 ? 'p. m.' : 'a. m.';
+  const h12 = hn === 0 ? 12 : hn > 12 ? hn - 12 : hn;
+  return `${parseInt(d, 10)}/${parseInt(mo, 10)}/${y}, ${h12}:${mi} ${suffix}`;
+};
+
 export const normalizeGravedad = (value) => {
   const normalized = normalizeText(value);
   if (normalized === 'grave') return 'Grave';

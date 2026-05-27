@@ -34,8 +34,9 @@ function buildEstadoFilter(value, values) {
     return `LOWER(s.estado::text) = $${values.length}`;
 }
 
-function pushOptionalFilters(query, values) {
+function pushOptionalFilters(query, values, columnExprs = {}) {
     const filters = [];
+    const { gravedadExpr = 's.gravedad', fechaInicioExpr = 's.fecha_inicio' } = columnExprs;
 
     if (query.origen) {
         values.push(String(query.origen).trim());
@@ -62,6 +63,21 @@ function pushOptionalFilters(query, values) {
             TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) ILIKE $${values.length}
             OR soc.numero_socio::text ILIKE $${values.length}
         )`);
+    }
+
+    if (query.gravedad) {
+        values.push(String(query.gravedad).trim());
+        filters.push(`${gravedadExpr} ILIKE $${values.length}`);
+    }
+
+    if (query.fecha_desde) {
+        values.push(String(query.fecha_desde).trim());
+        filters.push(`${fechaInicioExpr} >= $${values.length}::date`);
+    }
+
+    if (query.fecha_hasta) {
+        values.push(String(query.fecha_hasta).trim());
+        filters.push(`${fechaInicioExpr} <= $${values.length}::date`);
     }
 
     return filters;
@@ -222,7 +238,7 @@ const sancionesController = {
             const { gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr } = await getSancionColumnInfo();
             const { page, limit, offset } = normalizePagination(req.query);
             const values = [];
-            const filters = pushOptionalFilters(req.query, values);
+            const filters = pushOptionalFilters(req.query, values, { gravedadExpr, fechaInicioExpr });
             const whereSql = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
             const selectSql = getSancionesSelect({ gravedadExpr, fechaInicioExpr, fechaFinExpr, fechaResolucionExpr });
 
@@ -431,6 +447,9 @@ const sancionesController = {
         const { id } = req.params;
         const { socio_id, motivo, origen, gravedad, fecha_inicio, fecha_fin, estado } = req.body;
 
+        // Solo admin y coordinador pueden cambiar el estado (resolver/reactivar)
+        const puedeResolverEstado = ['admin', 'coordinador'].includes(req.user?.rol);
+
         try {
             const columns = await getTableColumns('sanciones');
             const assignments = [];
@@ -443,7 +462,7 @@ const sancionesController = {
             if (socio_id) pushAssignment('socio_id', socio_id);
             if (motivo !== undefined) pushAssignment('motivo', motivo);
             if (origen !== undefined) pushAssignment('origen', origen);
-            if (estado !== undefined) pushAssignment('estado', estado);
+            if (estado !== undefined && puedeResolverEstado) pushAssignment('estado', estado);
             if (columns.has('gravedad') && gravedad !== undefined) pushAssignment('gravedad', normalizeGravedad(gravedad));
             if (columns.has('fecha_inicio') && fecha_inicio !== undefined) pushAssignment('fecha_inicio', fecha_inicio);
             else if (columns.has('fecha') && fecha_inicio !== undefined) pushAssignment('fecha', fecha_inicio);

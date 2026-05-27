@@ -4,7 +4,7 @@ const sancionesController = require('../controllers/sancionesController');
 const { verifyToken, checkRole } = require('../middleware/auth.middleware');
 
 const adminRoles = ['admin', 'gerente'];
-const staffRoles = ['admin', 'gerente', 'recepcion', 'coordinador'];
+const staffRoles = ['admin', 'gerente', 'recepcion', 'coordinador', 'instructor'];
 const writeRoles = ['admin', 'gerente', 'coordinador'];
 const resolverRoles = ['admin', 'coordinador'];
 

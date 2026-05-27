@@ -154,7 +154,7 @@ function MatchCard({ encuentro, onResultadoGuardado, readOnly }) {
 
   const showScore   = finalizado && (encuentro.marcador_1 != null || encuentro.marcador_2 != null);
   const puedeEditar = finalizado && !readOnly;
-  const puedeGuardar = (programado || (finalizado && editando)) && ambosListos;
+  const puedeGuardar = !readOnly && (programado || (finalizado && editando)) && ambosListos;
 
   const guardar = async (esEdicion = false) => {
     setError(null);
@@ -211,7 +211,7 @@ function MatchCard({ encuentro, onResultadoGuardado, readOnly }) {
         <MatchParticipant participante={participante1} winner={isWinner(encuentro, participante1)} />
 
         <div className="tb-versus-row">
-          {(programado && ambosListos) || editando ? (
+          {!readOnly && ((programado && ambosListos) || editando) ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <input type="number" min="0" value={marcador1}
                 onChange={e => setMarcador1(e.target.value)} disabled={cargando}

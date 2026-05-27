@@ -482,9 +482,20 @@ function SeccionHistorial() {
                         </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>{formatFechaHora(r.hora_entrada_local || r.hora_entrada)}</div>
-                      <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px', background: finalizado ? '#dcfce7' : '#dbeafe', color: finalizado ? '#15803d' : '#1d4ed8' }}>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                      <div style={{ width: '85px', textAlign: 'center', flexShrink: 0 }}>
+                        <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          ↪ {formatHora(r.hora_entrada_local || r.hora_entrada)}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>Entrada</div>
+                      </div>
+                      <div style={{ width: '85px', textAlign: 'center', flexShrink: 0 }}>
+                        <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          {(r.hora_salida || r.hora_salida_local) ? `↩ ${formatHora(r.hora_salida_local || r.hora_salida)}` : '—'}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>Salida</div>
+                      </div>
+                      <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: finalizado ? '#dcfce7' : '#dbeafe', color: finalizado ? '#15803d' : '#1d4ed8', flexShrink: 0 }}>
                         {finalizado ? 'Finalizado' : 'Activo'}
                       </span>
                     </div>

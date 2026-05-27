@@ -3,7 +3,7 @@ const router = express.Router();
 const reservasController = require('../controllers/reservasController');
 const { verifyToken, checkRole } = require('../middleware/auth.middleware');
 
-const writeRoles    = ['admin', 'gerente', 'recepcion', 'coordinador'];
+const writeRoles = ['admin', 'gerente', 'recepcion', 'coordinador', 'instructor'];
 const socioRoles    = [...writeRoles, 'socio'];   // socio puede crear y cancelar SUS reservas
 
 router.get('/', verifyToken, reservasController.getReservas);

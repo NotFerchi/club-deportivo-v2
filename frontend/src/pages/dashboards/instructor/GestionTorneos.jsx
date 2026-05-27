@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, ChevronDown, ChevronUp, Calendar, Users, Medal, Loader2, Lock, Save, CheckCircle } from 'lucide-react';
+import { Trophy, ChevronDown, ChevronUp, Calendar, Users, Medal, Loader2, Save } from 'lucide-react';
 
 const RONDAS = { 1: 'Cuartos de Final', 2: 'Semifinales', 3: 'Final' };
 
@@ -360,55 +360,6 @@ function TorneoCard({ torneo, index, onTorneoActualizado }) {
       {/* Cuerpo expandido */}
       {expandido && (
         <div style={{ padding: '1.25rem' }}>
-
-          {/* ── Botones de gestión del torneo ── */}
-          {(torneo.estado_bd === 'Abierto' || torneo.estado_bd === 'Inscripciones_cerradas') && (
-            <div style={{
-              background: '#f8fafc', border: '1px solid #e2e8f0',
-              borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem'
-            }}>
-              <p style={{ margin: '0 0 0.75rem', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
-                ⚙️ Gestión del torneo
-              </p>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                {torneo.estado_bd === 'Abierto' && (
-                  <button onClick={e => { e.stopPropagation(); cerrarInscripciones(); }}
-                    disabled={accionCargando}
-                    style={{
-                      background: accionCargando ? '#94a3b8' : 'linear-gradient(135deg, #f59e0b, #d97706)',
-                      color: 'white', border: 'none', borderRadius: '8px',
-                      padding: '7px 16px', fontSize: '12px', fontWeight: 700,
-                      cursor: accionCargando ? 'not-allowed' : 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '6px'
-                    }}>
-                    {accionCargando ? <><Loader2 size={13} className="icon-spin" /> Cerrando...</> : <><Lock size={13} /> Cerrar inscripciones</>}
-                  </button>
-                )}
-                {torneo.estado_bd === 'Inscripciones_cerradas' && (
-                  <button onClick={e => { e.stopPropagation(); confirmarBracket(); }}
-                    disabled={accionCargando}
-                    style={{
-                      background: accionCargando ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)',
-                      color: 'white', border: 'none', borderRadius: '8px',
-                      padding: '7px 16px', fontSize: '12px', fontWeight: 700,
-                      cursor: accionCargando ? 'not-allowed' : 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '6px'
-                    }}>
-                    {accionCargando ? <><Loader2 size={13} className="icon-spin" /> Confirmando...</> : <><CheckCircle size={13} /> Confirmar bracket</>}
-                  </button>
-                )}
-              </div>
-              {mensajeAccion && (
-                <p style={{
-                  margin: '0.75rem 0 0', fontSize: '12px', fontWeight: 600,
-                  color: mensajeAccion.tipo === 'ok' ? '#15803d' : '#dc2626'
-                }}>
-                  {mensajeAccion.texto}
-                </p>
-              )}
-            </div>
-          )}
-
           {/* Info progreso */}
           {total > 0 && (
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>

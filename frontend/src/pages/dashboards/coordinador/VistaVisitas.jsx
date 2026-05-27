@@ -24,9 +24,9 @@ function VistaVisitas() {
     fetchVisitas();
   }, []);
 
-  const activas    = visitas.filter(v => v.vigente);
+  const activas     = visitas.filter(v => v.vigente);
   const finalizadas = visitas.filter(v => !v.vigente);
-  const mostrar    = filtro === 'activas' ? activas : finalizadas;
+  const mostrar     = filtro === 'activas' ? activas : finalizadas;
 
   const formatHora = (ts) => {
     if (!ts) return '—';
@@ -37,12 +37,13 @@ function VistaVisitas() {
     if (!entrada || !salida) return null;
     const mins = Math.round((new Date(salida) - new Date(entrada)) / 60000);
     if (mins < 60) return `${mins} min`;
-    return `${Math.floor(mins/60)}h ${mins%60}m`;
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   };
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-      <Loader2 size={36} className="icon-spin" style={{ marginBottom: '0.5rem', color: '#94a3b8' }} />
+      <Loader2 size={36} style={{ marginBottom: '0.5rem', color: '#94a3b8', animation: 'spin 1s linear infinite' }} />
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       <div>Cargando visitas...</div>
     </div>
   );
@@ -52,9 +53,9 @@ function VistaVisitas() {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
         {[
-          { label: 'En instalaciones', valor: activas.length, color: '#10b981', icono: <UserCheck size={18} color="#10b981" />, key: 'activas' },
-          { label: 'Finalizadas hoy', valor: finalizadas.length, color: '#64748b', icono: <Users size={18} color="#64748b" />, key: 'finalizadas' },
-          { label: 'Total del día', valor: visitas.length, color: '#3b82f6', icono: <LogIn size={18} color="#3b82f6" />, key: null },
+          { label: 'En instalaciones', valor: activas.length,    color: '#10b981', icono: <UserCheck size={18} />, key: 'activas' },
+          { label: 'Finalizadas hoy',  valor: finalizadas.length, color: '#64748b', icono: <Users size={18} />,    key: 'finalizadas' },
+          { label: 'Total del día',    valor: visitas.length,     color: '#3b82f6', icono: <LogIn size={18} />,    key: null },
         ].map((k, i) => (
           <div key={i} onClick={() => k.key && setFiltro(k.key)} style={{
             background: filtro === k.key ? k.color : 'white',
@@ -95,13 +96,14 @@ function VistaVisitas() {
               borderLeft: `4px solid ${v.vigente ? '#10b981' : '#94a3b8'}`,
               padding: '1rem 1.25rem',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem'
+              display: 'grid', gridTemplateColumns: '1fr 300px 140px', alignItems: 'center', gap: '1rem'
             }}>
+
               {/* Info visitante */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                 <div style={{
                   width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
-                  background: v.vigente ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #94a3b8, #64748b)',
+                  background: v.vigente ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#94a3b8,#64748b)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'white', fontWeight: 800, fontSize: '14px'
                 }}>
@@ -119,28 +121,24 @@ function VistaVisitas() {
 
               {/* Horarios */}
               <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#475569', fontWeight: 600 }}>
+                <div style={{ width: '90px', textAlign: 'center', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '12px', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     <LogIn size={13} color="#10b981" /> {formatHora(v.hora_entrada)}
                   </div>
                   <div style={{ fontSize: '10px', color: '#94a3b8' }}>Entrada</div>
                 </div>
-                {v.hora_salida && (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#475569', fontWeight: 600 }}>
-                      <LogOut size={13} color="#64748b" /> {formatHora(v.hora_salida)}
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Salida</div>
+                <div style={{ width: '90px', textAlign: 'center', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '12px', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    <LogOut size={13} color="#64748b" /> {v.hora_salida ? formatHora(v.hora_salida) : '—'}
                   </div>
-                )}
-                {duracion(v.hora_entrada, v.hora_salida) && (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '12px', color: '#475569', fontWeight: 600 }}>
-                      <Clock size={13} color="#f59e0b" /> {duracion(v.hora_entrada, v.hora_salida)}
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Duración</div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8' }}>Salida</div>
+                </div>
+                <div style={{ width: '90px', textAlign: 'center', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '12px', color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    <Clock size={13} color="#f59e0b" /> {duracion(v.hora_entrada, v.hora_salida) || '—'}
                   </div>
-                )}
+                  <div style={{ fontSize: '10px', color: '#94a3b8' }}>Duración</div>
+                </div>
               </div>
 
               {/* Estado */}

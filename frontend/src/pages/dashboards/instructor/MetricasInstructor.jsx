@@ -29,8 +29,10 @@ function BarraVertical({ valor, maxValor, color, label, sublabel }) {
         }}>
           {pct >= 15 && (
             <div style={{
-              position: 'absolute', top: '-18px', left: '50%', transform: 'translateX(-50%)',
-              fontSize: '9px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap'
+              position: 'absolute', top: '-20px', left: '50%', transform: 'translateX(-50%)',
+              fontSize: '9px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap',
+              background: 'white', padding: '1px 4px', borderRadius: '4px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
             }}>{pct}%</div>
           )}
         </div>

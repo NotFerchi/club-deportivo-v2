@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, Users, ChevronDown, ChevronUp, Check, X, MapPin, Calendar } from 'lucide-react';
+import { Clock, Users, ChevronDown, ChevronUp, Check, X, MapPin, Calendar, Loader2, CalendarX, ClipboardList, Search, UserPlus, UserMinus, CheckCircle, AlertCircle } from 'lucide-react';
+import { useRef } from 'react';
 
 function formatHora(h) {
   if (!h) return '';
@@ -33,14 +34,222 @@ const COLORES_DISCIPLINA = {
   'Aerobics':   '#c2410c',
 };
 
+const GRAD_DISCIPLINA = {
+  'Natación':   'linear-gradient(135deg,#0369a1,#0ea5e9)',
+  'Tenis':      'linear-gradient(135deg,#15803d,#22c55e)',
+  'Pádel':      'linear-gradient(135deg,#b45309,#f59e0b)',
+  'Yoga':       'linear-gradient(135deg,#6d28d9,#8b5cf6)',
+  'Pilates':    'linear-gradient(135deg,#9d174d,#ec4899)',
+  'Spinning':   'linear-gradient(135deg,#b91c1c,#ef4444)',
+  'Zumba':      'linear-gradient(135deg,#854d0e,#eab308)',
+  'Baile':      'linear-gradient(135deg,#166534,#4ade80)',
+  'Aerobics':   'linear-gradient(135deg,#c2410c,#f97316)',
+};
+
 function getColorDisciplina(nombre) {
   return COLORES_DISCIPLINA[nombre] || '#475569';
 }
+function getGradDisciplina(nombre) {
+  return GRAD_DISCIPLINA[nombre] || 'linear-gradient(135deg,#475569,#94a3b8)';
+}
 
-function AlumnoRow({ alumno, fecha, sesionId, onEstadoChange }) {
-  const [estado, setEstado] = useState(
-    alumno.asistio === true ? 'presente' : alumno.asistio === false ? 'ausente' : null
+// ── Modal Agregar ─────────────────────────────────────────────────────────────
+function ModalAgregarSocio({ sesion, fecha, onClose, onAgregado }) {
+  const [tab, setTab]               = useState('socio');
+  const [query, setQuery]           = useState('');
+  const [resultados, setResultados] = useState([]);
+  const [visitas, setVisitas]       = useState([]);
+  const [buscando, setBuscando]     = useState(false);
+  const [cargando, setCargando]     = useState(false);
+  const [error, setError]           = useState(null);
+  const timerRef                    = useRef(null);
+
+  useEffect(() => {
+    if (tab !== 'visita') return;
+    const fetchVisitas = async () => {
+      setBuscando(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`http://localhost:3000/api/recepcion/visitas?fecha=${fecha}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setVisitas(Array.isArray(data) ? data.filter(v => v.vigente) : []);
+      } catch { setVisitas([]); }
+      finally { setBuscando(false); }
+    };
+    fetchVisitas();
+  }, [tab, fecha]);
+
+  const buscar = async (termino) => {
+    if (!termino || termino.length < 2) { setResultados([]); return; }
+    setBuscando(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:3000/api/recepcion/socios?q=${encodeURIComponent(termino)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setResultados(Array.isArray(data) ? data.slice(0, 8) : []);
+    } catch { setResultados([]); }
+    finally { setBuscando(false); }
+  };
+
+  const handleChange = (e) => {
+    const val = e.target.value;
+    setQuery(val);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => buscar(val), 300);
+  };
+
+  const handleAgregar = async (socio_id, visita_id = null) => {
+    setError(null);
+    setCargando(true);
+    try {
+      const token = localStorage.getItem('token');
+      const body = visita_id
+        ? { sesion_id: sesion.sesion_id, visita_id, fecha }
+        : { sesion_id: sesion.sesion_id, socio_id, fecha };
+      const res = await fetch('http://localhost:3000/api/instructor/clases/inscribir', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Error al registrar'); return; }
+      onAgregado();
+      onClose();
+    } catch { setError('Error de conexión'); }
+    finally { setCargando(false); }
+  };
+
+  const tabStyle = (t) => ({
+    flex: 1, padding: '8px', border: 'none', cursor: 'pointer',
+    fontWeight: 700, fontSize: '12px', borderRadius: '7px',
+    background: tab === t ? 'white' : 'transparent',
+    color: tab === t ? '#1e293b' : '#64748b',
+    boxShadow: tab === t ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+    transition: 'all 0.2s'
+  });
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: 'white', borderRadius: '20px', padding: '1.5rem', width: '100%', maxWidth: '440px', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
+
+        {/* Header modal */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>Agregar al pase de lista</h3>
+            <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>{sesion.disciplina} · {formatHora(sesion.hora_inicio)}</p>
+          </div>
+          <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', borderRadius: '10px', padding: '7px', cursor: 'pointer' }}>
+            <X size={18} color="#64748b" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '10px', padding: '3px', marginBottom: '0.75rem' }}>
+          <button style={tabStyle('socio')}  onClick={() => { setTab('socio');  setError(null); }}>Socios</button>
+          <button style={tabStyle('visita')} onClick={() => { setTab('visita'); setError(null); }}>Visitas del día</button>
+        </div>
+
+        {/* Buscador socios */}
+        {tab === 'socio' && (
+          <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+            <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <input type="text" value={query} onChange={handleChange} autoFocus
+              placeholder="Buscar socio por nombre o número..."
+              style={{ width: '100%', padding: '9px 10px 9px 32px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', transition: 'border 0.2s' }}
+              onFocus={e => e.target.style.borderColor = '#3b82f6'}
+              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+            />
+            {buscando && <Loader2 size={13} color="#94a3b8" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', animation: 'spin 1s linear infinite' }} />}
+            <style>{`@keyframes spin{from{transform:translateY(-50%) rotate(0deg)}to{transform:translateY(-50%) rotate(360deg)}}`}</style>
+          </div>
+        )}
+
+        {error && (
+          <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '10px', fontSize: '12px', color: '#dc2626', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <AlertCircle size={13} /> {error}
+          </div>
+        )}
+
+        <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+          {tab === 'socio' && (
+            <>
+              {resultados.length === 0 && query.length >= 2 && !buscando && (
+                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '13px', padding: '1.5rem 0' }}>Sin resultados para "{query}"</p>
+              )}
+              {resultados.length === 0 && query.length < 2 && (
+                <p style={{ textAlign: 'center', color: '#cbd5e1', fontSize: '12px', padding: '1.5rem 0' }}>Escribe al menos 2 caracteres para buscar</p>
+              )}
+              {resultados.map(s => (
+                <div key={s.socio_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0.5rem', borderBottom: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#3b82f6,#1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                      {iniciales(s.nombre_completo)}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>{s.nombre_completo}</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8' }}>{s.numero_socio}</div>
+                    </div>
+                  </div>
+                  <button onClick={() => handleAgregar(s.socio_id)} disabled={cargando}
+                    style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg,#2563eb,#3b82f6)', color: 'white', border: 'none', borderRadius: '8px', padding: '5px 14px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer' }}>
+                    {cargando ? '...' : '+ Agregar'}
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+
+          {tab === 'visita' && (
+            <>
+              {buscando && (
+                <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <Loader2 size={16} style={{ animation: 'spin2 1s linear infinite' }} />
+                  <style>{`@keyframes spin2{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+                  Cargando visitas...
+                </div>
+              )}
+              {!buscando && visitas.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8' }}>
+                  <Users size={28} color="#e2e8f0" style={{ marginBottom: '0.5rem' }} />
+                  <p style={{ fontSize: '13px', margin: 0 }}>No hay visitas activas hoy</p>
+                </div>
+              )}
+              {visitas.map(v => (
+                <div key={v.visita_id || v.pase_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0.5rem', borderBottom: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#f59e0b,#d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                      {iniciales(v.nombre_completo || v.nombre_visitante)}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>{v.nombre_completo || v.nombre_visitante}</div>
+                      <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600 }}>Visita del día</div>
+                    </div>
+                  </div>
+                  <button onClick={() => handleAgregar(null, v.visita_id || v.pase_id)} disabled={cargando}
+                    style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg,#f59e0b,#d97706)', color: 'white', border: 'none', borderRadius: '8px', padding: '5px 14px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer' }}>
+                    {cargando ? '...' : '+ Agregar'}
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+        <button onClick={onClose} style={{ marginTop: '1rem', width: '100%', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+          Cancelar
+        </button>
+      </div>
+    </div>
   );
+}
+
+// ── Fila de alumno ────────────────────────────────────────────────────────────
+function AlumnoRow({ alumno, fecha, sesionId, onEstadoChange }) {
+  const [estado, setEstado]   = useState(alumno.asistio === true ? 'presente' : alumno.asistio === false ? 'ausente' : null);
   const [cargando, setCargando] = useState(false);
 
   const registrar = async (presente) => {
@@ -52,74 +261,64 @@ function AlumnoRow({ alumno, fecha, sesionId, onEstadoChange }) {
       const token = localStorage.getItem('token');
       await fetch('http://localhost:3000/api/instructor/asistencia', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ sesionId, socioId: alumno.socio_id, fecha, presente: estadoFinal === 'presente' })
       });
       setEstado(estadoFinal);
       onEstadoChange && onEstadoChange(alumno.socio_id, estadoFinal);
-    } catch (err) {
-      console.error('Error registrando asistencia:', err);
-    } finally {
-      setCargando(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setCargando(false); }
   };
 
   const esVisita = alumno.tipo === 'Visita';
-  const bgRow = estado === 'presente' ? '#f0fdf4' : estado === 'ausente' ? '#fff5f5' : 'white';
+  const bgRow    = estado === 'presente' ? '#f0fdf4' : estado === 'ausente' ? '#fef2f2' : 'white';
+  const gradAvatar = esVisita
+    ? 'linear-gradient(135deg,#f59e0b,#d97706)'
+    : estado === 'presente'
+      ? 'linear-gradient(135deg,#10b981,#059669)'
+      : estado === 'ausente'
+        ? 'linear-gradient(135deg,#ef4444,#b91c1c)'
+        : 'linear-gradient(135deg,#3b82f6,#1d4ed8)';
 
   return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '0.7rem 1.25rem', borderBottom: '1px solid #f1f5f9',
-      background: bgRow, transition: 'background 0.2s'
-    }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 1.25rem', borderBottom: '1px solid #f1f5f9', background: bgRow, transition: 'background 0.2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-          background: esVisita
-            ? 'linear-gradient(135deg, #f59e0b, #d97706)'
-            : estado === 'presente'
-              ? 'linear-gradient(135deg, #10b981, #059669)'
-              : estado === 'ausente'
-                ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
-                : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'white', fontWeight: 700, fontSize: '11px',
-          transition: 'background 0.3s'
-        }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: gradAvatar, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '11px', transition: 'background 0.3s' }}>
           {iniciales(alumno.nombre_socio)}
         </div>
         <div>
-          <div style={{ fontWeight: 600, fontSize: '13px', color: '#1e293b' }}>{alumno.nombre_socio}</div>
-          <div style={{ fontSize: '11px', color: '#94a3b8' }}>{esVisita ? 'Visita' : 'Socio'}</div>
+          <div style={{ fontWeight: 700, fontSize: '13px', color: '#1e293b' }}>{alumno.nombre_socio}</div>
+          <div style={{ fontSize: '11px', color: esVisita ? '#f59e0b' : '#94a3b8', fontWeight: esVisita ? 700 : 400 }}>{esVisita ? 'Visita' : 'Socio'}</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
         {estado && (
-          <span style={{
-            fontSize: '10px', fontWeight: 700, marginRight: '4px',
-            color: estado === 'presente' ? '#15803d' : '#b91c1c'
-          }}>
+          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: estado === 'presente' ? '#dcfce7' : '#fee2e2', color: estado === 'presente' ? '#15803d' : '#dc2626' }}>
             {estado === 'presente' ? '✓ Presente' : '✗ No-Show'}
           </span>
         )}
-        <button onClick={() => registrar(true)} disabled={cargando} style={{
-          width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer',
-          background: estado === 'presente' ? '#10b981' : '#e2e8f0',
-          color: estado === 'presente' ? 'white' : '#64748b',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s',
-          boxShadow: estado === 'presente' ? '0 2px 8px rgba(16,185,129,0.4)' : 'none'
-        }}>
+        {/* Quitar */}
+        <button onClick={async () => {
+          if (!window.confirm(`¿Quitar a ${alumno.nombre_socio} de esta clase?`)) return;
+          try {
+            const token = localStorage.getItem('token');
+            await fetch(`http://localhost:3000/api/reservas/${alumno.reserva_id}/cancelar`, {
+              method: 'PUT',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ motivo: 'Cancelado por instructor' })
+            });
+            onEstadoChange && onEstadoChange(alumno.socio_id, 'quitado');
+          } catch (err) { console.error(err); }
+        }} title="Quitar de la clase" style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <UserMinus size={13} />
+        </button>
+        {/* Presente */}
+        <button onClick={() => registrar(true)} disabled={cargando} style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', background: estado === 'presente' ? '#10b981' : '#e2e8f0', color: estado === 'presente' ? 'white' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', boxShadow: estado === 'presente' ? '0 2px 8px rgba(16,185,129,0.4)' : 'none' }}>
           <Check size={13} strokeWidth={3} />
         </button>
-        <button onClick={() => registrar(false)} disabled={cargando} style={{
-          width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer',
-          background: estado === 'ausente' ? '#ef4444' : '#e2e8f0',
-          color: estado === 'ausente' ? 'white' : '#64748b',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s',
-          boxShadow: estado === 'ausente' ? '0 2px 8px rgba(239,68,68,0.4)' : 'none'
-        }}>
+        {/* Ausente */}
+        <button onClick={() => registrar(false)} disabled={cargando} style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', background: estado === 'ausente' ? '#ef4444' : '#e2e8f0', color: estado === 'ausente' ? 'white' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', boxShadow: estado === 'ausente' ? '0 2px 8px rgba(239,68,68,0.4)' : 'none' }}>
           <X size={13} strokeWidth={3} />
         </button>
       </div>
@@ -127,36 +326,32 @@ function AlumnoRow({ alumno, fecha, sesionId, onEstadoChange }) {
   );
 }
 
+// ── Card de clase ─────────────────────────────────────────────────────────────
 function ClaseCard({ clase, fecha }) {
-  const [expandida, setExpandida] = useState(false);
-  const [alumnos, setAlumnos] = useState([]);
+  const [expandida, setExpandida]       = useState(false);
+  const [alumnos, setAlumnos]           = useState([]);
   const [loadingAlumnos, setLoadingAlumnos] = useState(false);
-  const [yaCargo, setYaCargo] = useState(false);
-  const [estados, setEstados] = useState({});
+  const [yaCargo, setYaCargo]           = useState(false);
+  const [estados, setEstados]           = useState({});
+  const [showAgregar, setShowAgregar]   = useState(false);
 
   const cargarAlumnos = async () => {
     if (yaCargo) return;
     setLoadingAlumnos(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(
-        `http://localhost:3000/api/instructor/clases/${clase.sesion_id}/alumnos?fecha=${fecha}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await fetch(`http://localhost:3000/api/instructor/clases/${clase.sesion_id}/alumnos?fecha=${fecha}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (!res.ok) throw new Error('Error');
       const data = await res.json();
       setAlumnos(data);
       const estadosIniciales = {};
-      data.forEach(a => {
-        estadosIniciales[a.socio_id] = a.asistio === true ? 'presente' : a.asistio === false ? 'ausente' : null;
-      });
+      data.forEach(a => { estadosIniciales[a.socio_id] = a.asistio === true ? 'presente' : a.asistio === false ? 'ausente' : null; });
       setEstados(estadosIniciales);
       setYaCargo(true);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingAlumnos(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoadingAlumnos(false); }
   };
 
   const handleToggle = () => {
@@ -165,95 +360,94 @@ function ClaseCard({ clase, fecha }) {
     if (nuevo) cargarAlumnos();
   };
 
-  const handleEstadoChange = (socioId, nuevoEstado) => {
-    setEstados(prev => ({ ...prev, [socioId]: nuevoEstado }));
-  };
-
-  const presentes     = Object.values(estados).filter(e => e === 'presente').length;
-  const ausentes      = Object.values(estados).filter(e => e === 'ausente').length;
-  const sinRegistrar  = Object.values(estados).filter(e => e === null).length;
-  const cupoActual    = parseInt(clase.cupo_actual) || 0;
-  const cupoMax       = parseInt(clase.cupo_maximo) || 1;
-  const pct           = Math.min(100, Math.round((cupoActual / cupoMax) * 100));
-  const colorDisc     = getColorDisciplina(clase.disciplina);
+  const presentes    = Object.values(estados).filter(e => e === 'presente').length;
+  const ausentes     = Object.values(estados).filter(e => e === 'ausente').length;
+  const sinRegistrar = Object.values(estados).filter(e => e === null).length;
+  const cupoActual   = parseInt(clase.cupo_actual) || 0;
+  const cupoMax      = parseInt(clase.cupo_maximo) || 1;
+  const pct          = Math.min(100, Math.round((cupoActual / cupoMax) * 100));
+  const colorDisc    = getColorDisciplina(clase.disciplina);
+  const gradDisc     = getGradDisciplina(clase.disciplina);
+  const esHoy        = fecha === new Date().toISOString().slice(0, 10);
 
   return (
-    <div style={{
-      background: 'white', borderRadius: '16px',
-      border: '1px solid #e2e8f0',
-      borderLeft: `4px solid ${colorDisc}`,
-      overflow: 'hidden', marginBottom: '0.85rem',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-      transition: 'box-shadow 0.2s'
-    }}>
-      {/* Header clickeable */}
-      <div onClick={handleToggle} style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '1rem 1.25rem', cursor: 'pointer',
-        background: expandida ? '#f8fafc' : 'white', transition: 'background 0.2s'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-          <div style={{
-            width: 42, height: 42, borderRadius: '12px',
-            background: `${colorDisc}15`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-          }}>
-            <Clock size={18} color={colorDisc} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '15px', color: '#1e293b' }}>{clase.disciplina}</div>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '3px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                <Clock size={11} color="#94a3b8" /> {formatHora(clase.hora_inicio)} – {formatHora(clase.hora_fin)}
-              </span>
-              <span style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                <MapPin size={11} color="#94a3b8" /> {clase.espacio}
-              </span>
-            </div>
-          </div>
-        </div>
+    <div style={{ background: 'white', borderRadius: '18px', border: '1.5px solid #e2e8f0', overflow: 'hidden', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', transition: 'box-shadow 0.2s' }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'}
+    >
+      {/* Header con gradiente */}
+      <div onClick={handleToggle} style={{ background: gradDisc, padding: '1rem 1.25rem', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+        {/* Decoración */}
+        <div style={{ position: 'absolute', top: -15, right: -15, width: 70, height: 70, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+        <div style={{ position: 'absolute', bottom: -10, right: 40, width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {/* Mini barra cupo */}
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Users size={13} color="#94a3b8" /> {cupoActual}/{cupoMax}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: 42, height: 42, borderRadius: '12px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Clock size={20} color="white" />
             </div>
-            <div style={{ width: 60, background: '#e2e8f0', borderRadius: '4px', height: '4px', marginTop: '4px', overflow: 'hidden' }}>
-              <div style={{
-                width: `${pct}%`, height: '100%', borderRadius: '4px',
-                background: pct >= 100 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#10b981'
-              }} />
+            <div>
+              <div style={{ fontWeight: 900, fontSize: '15px', color: 'white', letterSpacing: '-0.3px' }}>{clase.disciplina}</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', marginTop: '2px', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {formatHora(clase.hora_inicio)} – {formatHora(clase.hora_fin)}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><MapPin size={10} /> {clase.espacio}</span>
+              </div>
             </div>
           </div>
-          {expandida ? <ChevronUp size={16} color="#94a3b8" /> : <ChevronDown size={16} color="#94a3b8" />}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: 'white' }}>{cupoActual}/{cupoMax}</div>
+              <div style={{ width: 50, background: 'rgba(255,255,255,0.2)', borderRadius: '4px', height: '4px', marginTop: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${pct}%`, height: '100%', background: 'white', borderRadius: '4px', opacity: 0.9 }} />
+              </div>
+            </div>
+            {expandida ? <ChevronUp size={16} color="rgba(255,255,255,0.8)" /> : <ChevronDown size={16} color="rgba(255,255,255,0.8)" />}
+          </div>
         </div>
       </div>
 
       {/* Pase de lista */}
       {expandida && (
         <div style={{ borderTop: '1px solid #f1f5f9' }}>
-          <div style={{ padding: '0.6rem 1.25rem', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: '#94a3b8', textTransform: 'uppercase' }}>
+
+          {/* Barra de acciones */}
+          <div style={{ padding: '0.6rem 1.25rem', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', color: '#94a3b8', textTransform: 'uppercase' }}>
               Pase de Lista Digital
             </span>
-            {alumnos.length > 0 && (
-              <div style={{ display: 'flex', gap: '0.75rem', fontSize: '11px' }}>
-                <span style={{ color: '#10b981', fontWeight: 700 }}>✓ {presentes}</span>
-                <span style={{ color: '#ef4444', fontWeight: 700 }}>✗ {ausentes}</span>
-                <span style={{ color: '#94a3b8' }}>— {sinRegistrar}</span>
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {alumnos.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.5rem', fontSize: '11px' }}>
+                  <span style={{ background: '#dcfce7', color: '#15803d', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>✓ {presentes}</span>
+                  <span style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>✗ {ausentes}</span>
+                  {sinRegistrar > 0 && <span style={{ background: '#f1f5f9', color: '#94a3b8', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>— {sinRegistrar}</span>}
+                </div>
+              )}
+              {esHoy && (
+                <button onClick={() => setShowAgregar(true)} style={{ background: 'linear-gradient(135deg,#2563eb,#3b82f6)', color: 'white', border: 'none', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 2px 6px rgba(37,99,235,0.3)' }}>
+                  <UserPlus size={12} /> Agregar
+                </button>
+              )}
+            </div>
           </div>
 
+          {/* Lista */}
           {loadingAlumnos ? (
-            <div style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+            <div style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '13px' }}>
+              <Loader2 size={16} style={{ animation: 'spin3 1s linear infinite' }} />
+              <style>{`@keyframes spin3{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
               Cargando alumnos...
             </div>
           ) : alumnos.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📋</div>
-              <p style={{ color: '#94a3b8', margin: 0, fontSize: '13px' }}>No hay alumnos registrados para esta clase hoy.</p>
+            <div style={{ padding: '2.5rem', textAlign: 'center' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
+                <ClipboardList size={22} color="#94a3b8" />
+              </div>
+              <p style={{ color: '#64748b', margin: 0, fontWeight: 600, fontSize: '13px' }}>Sin alumnos inscritos</p>
+              <p style={{ color: '#94a3b8', fontSize: '12px', margin: '4px 0 0' }}>
+                {esHoy ? 'Usa el botón Agregar para inscribir alumnos' : 'No hay registros para esta fecha'}
+              </p>
             </div>
           ) : (
             alumnos.map((alumno) => (
@@ -262,40 +456,55 @@ function ClaseCard({ clase, fecha }) {
                 alumno={alumno}
                 fecha={fecha}
                 sesionId={clase.sesion_id}
-                onEstadoChange={handleEstadoChange}
+                onEstadoChange={(socioId, estado) => {
+                  if (estado === 'quitado') {
+                    setAlumnos(prev => prev.filter(a => a.socio_id !== socioId));
+                    setEstados(prev => { const n = { ...prev }; delete n[socioId]; return n; });
+                  } else {
+                    setEstados(prev => ({ ...prev, [socioId]: estado }));
+                  }
+                }}
               />
             ))
           )}
 
+          {/* Footer resumen */}
           {alumnos.length > 0 && (
-            <div style={{
-              padding: '0.75rem 1.25rem', display: 'flex', gap: '1.5rem',
-              background: '#f8fafc', borderTop: '1px solid #f1f5f9',
-              alignItems: 'center', flexWrap: 'wrap'
-            }}>
-              <div style={{ display: 'flex', gap: '3px' }}>
+            <div style={{ padding: '0.75rem 1.25rem', display: 'flex', gap: '0.5rem', background: '#f8fafc', borderTop: '1px solid #f1f5f9', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '3px', marginRight: '0.5rem' }}>
                 {alumnos.map((a, i) => (
-                  <div key={i} style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: estados[a.socio_id] === 'presente' ? '#10b981' : estados[a.socio_id] === 'ausente' ? '#ef4444' : '#e2e8f0'
-                  }} />
+                  <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: estados[a.socio_id] === 'presente' ? '#10b981' : estados[a.socio_id] === 'ausente' ? '#ef4444' : '#e2e8f0' }} />
                 ))}
               </div>
-              <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 700 }}>✓ {presentes} Presentes</span>
-              <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700 }}>✗ {ausentes} No-Shows</span>
-              <span style={{ fontSize: '12px', color: '#94a3b8' }}>{sinRegistrar} Sin registrar</span>
+              <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 700 }}>✓ {presentes} presentes</span>
+              <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 700 }}>✗ {ausentes} no-shows</span>
+              {sinRegistrar > 0 && <span style={{ fontSize: '11px', color: '#94a3b8' }}>{sinRegistrar} sin registrar</span>}
             </div>
           )}
         </div>
+      )}
+
+      {showAgregar && (
+        <ModalAgregarSocio
+          sesion={clase} fecha={fecha}
+          onClose={() => setShowAgregar(false)}
+          onAgregado={() => { setYaCargo(false); cargarAlumnos(); }}
+        />
       )}
     </div>
   );
 }
 
+// ── Componente principal ──────────────────────────────────────────────────────
 function AgendaDia() {
   const [clases, setClases] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [fecha, setFecha] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
+  const [fecha, setFecha] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+
+  const esHoy = fecha === new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     const fetchClases = async () => {
@@ -308,60 +517,74 @@ function AgendaDia() {
         if (!res.ok) throw new Error('Error');
         const data = await res.json();
         setClases(data);
-      } catch (err) {
-        console.error('Error:', err);
-      } finally {
-        setLoading(false);
-      }
+      } catch (err) { console.error('Error:', err); }
+      finally { setLoading(false); }
     };
     fetchClases();
   }, [fecha]);
 
+  const totalInscritos = clases.reduce((acc, c) => acc + (parseInt(c.cupo_actual) || 0), 0);
+
   return (
-    <div className="chart-box">
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-        <div>
-          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#1e293b' }}>Agenda del Día</h4>
-          <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#94a3b8', textTransform: 'capitalize' }}>
-            <Calendar size={11} style={{ marginRight: '4px' }} />
-            {formatFecha(fecha)}
-          </p>
+    <div>
+      {/* ── Header hero ── */}
+      <div style={{ background: 'linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%)', borderRadius: '18px', padding: '1.25rem 1.75rem', marginBottom: '1.25rem', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 4px 20px rgba(37,99,235,0.3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Calendar size={22} color="white" />
+          </div>
+          <div>
+            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Agenda del Día</h4>
+            <p style={{ margin: '3px 0 0', opacity: 0.7, fontSize: '12px', textTransform: 'capitalize' }}>{formatFecha(fecha)}</p>
+          </div>
         </div>
-        <input
-          type="date" value={fecha} onChange={(e) => setFecha(e.target.value)}
-          style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', color: '#334155', cursor: 'pointer', outline: 'none' }}
-        />
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          {!loading && (
+            <>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{clases.length}</div>
+                <div style={{ fontSize: '10px', opacity: 0.7 }}>Clases</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{totalInscritos}</div>
+                <div style={{ fontSize: '10px', opacity: 0.7 }}>Inscritos</div>
+              </div>
+            </>
+          )}
+          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+            style={{ padding: '7px 12px', borderRadius: '10px', border: '1.5px solid rgba(255,255,255,0.3)', fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', cursor: 'pointer', outline: 'none', backdropFilter: 'blur(4px)' }}
+          />
+        </div>
       </div>
 
-      <div style={{ height: '1px', background: '#f1f5f9', margin: '1rem 0' }} />
-
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-          <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⏳</div>
-          Cargando agenda...
+      {/* Contenido */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+          <Loader2 size={28} color="#cbd5e1" style={{ animation: 'spin4 1s linear infinite' }} />
+          <style>{`@keyframes spin4{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+          <span style={{ fontSize: '13px' }}>Cargando agenda...</span>
         </div>
-      )}
-
-      {!loading && clases.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '2.5rem', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📅</div>
-          <p style={{ color: '#64748b', margin: 0, fontWeight: 600 }}>No hay clases programadas para este día</p>
-          <p style={{ color: '#94a3b8', fontSize: '12px', margin: '4px 0 0' }}>Prueba seleccionando otro día</p>
-        </div>
-      )}
-
-      {!loading && clases.length > 0 && (
-        <>
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px' }}>
-              {clases.length} clase{clases.length !== 1 ? 's' : ''} hoy
-            </span>
-            <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px' }}>
-              {clases.reduce((acc, c) => acc + (parseInt(c.cupo_actual) || 0), 0)} alumnos inscritos
-            </span>
+      ) : clases.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '3.5rem 2rem', background: '#f8fafc', borderRadius: '16px', border: '2px dashed #e2e8f0' }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
+            <CalendarX size={26} color="#94a3b8" />
           </div>
-          {clases.map((clase) => (
+          <p style={{ color: '#475569', margin: 0, fontWeight: 700, fontSize: '14px' }}>Sin clases para este día</p>
+          <p style={{ color: '#94a3b8', fontSize: '12px', margin: '4px 0 0' }}>Prueba seleccionando otra fecha</p>
+        </div>
+      ) : (
+        <>
+          {esHoy && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '11px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px' }}>
+                {clases.length} clase{clases.length !== 1 ? 's' : ''} programadas
+              </span>
+              <span style={{ background: '#dbeafe', color: '#1d4ed8', fontSize: '11px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CheckCircle size={11} /> {totalInscritos} alumnos inscritos
+              </span>
+            </div>
+          )}
+          {clases.map(clase => (
             <ClaseCard key={clase.sesion_id} clase={clase} fecha={fecha} />
           ))}
         </>

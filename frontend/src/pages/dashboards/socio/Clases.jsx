@@ -1,376 +1,266 @@
 import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../../components/SocioLayout'
-import { 
-  Calendar, Clock, User, Users, Search, Filter, 
-  AlertCircle, CheckCircle, XCircle, ChevronDown,
+import {
+  Calendar, Clock, User, Search, Filter,
+  AlertCircle, CheckCircle, XCircle,
   MapPin, Zap, Info, BookOpen, Timer
 } from 'lucide-react'
+import { apiRequest } from '../../../services/api'
 import '../../../../css/socio/Clases.css'
 
-// Constante para mapeo de días
-const DIAS_SEMANA = [
-  { valor: 1, nombre: 'Lunes' },
-  { valor: 2, nombre: 'Martes' },
-  { valor: 3, nombre: 'Miércoles' },
-  { valor: 4, nombre: 'Jueves' },
-  { valor: 5, nombre: 'Viernes' },
-  { valor: 6, nombre: 'Sábado' },
-  { valor: 7, nombre: 'Domingo' }
+// ── Avatar de instructor con iniciales ──────────────────────────────────────
+const AVATAR_COLORES = [
+  { bg: '#dbeafe', color: '#1e40af' },
+  { bg: '#dcfce7', color: '#166534' },
+  { bg: '#ede9fe', color: '#5b21b6' },
+  { bg: '#fce7f3', color: '#9d174d' },
+  { bg: '#fef3c7', color: '#92400e' },
+  { bg: '#e0f2fe', color: '#0369a1' },
+  { bg: '#ffedd5', color: '#c2410c' },
+  { bg: '#f0fdf4', color: '#15803d' },
 ]
 
-function Clases() {
-  // Obtener datos del usuario desde localStorage
-  const token = localStorage.getItem('token'); // O donde guardes el JWT
-  const usuarioSesion = localStorage.getItem('usuario')
-  const usuario = usuarioSesion ? JSON.parse(usuarioSesion) : null
-  const userName = usuario?.nombre || "Socio"
-  const socioId = usuario?.socio_id
+function InstructorAvatar({ nombre, size = 40 }) {
+  const partes = (nombre || '').trim().split(/\s+/).filter(Boolean)
+  const iniciales = partes.length >= 2
+    ? partes[0][0].toUpperCase() + partes[1][0].toUpperCase()
+    : partes[0]?.[0]?.toUpperCase() || '?'
 
-  // ==================== ESTADOS ====================
-  const [vista, setVista] = useState('catalogo') // 'mis-clases' | 'catalogo'
-  const [misClases, setMisClases] = useState([])
-  const [catalogoClases, setCatalogoClases] = useState([])
-  const [loading, setLoading] = useState(true)
-  
-  // Listas para filtros (cargadas desde BD)
-  const [disciplinas, setDisciplinas] = useState([])
+  const hash = (nombre || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
+  const { bg, color } = AVATAR_COLORES[hash % AVATAR_COLORES.length]
+
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: bg, color: color,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontWeight: 800, fontSize: Math.round(size * 0.38), letterSpacing: '-0.5px',
+      flexShrink: 0, border: `2px solid ${color}40`,
+    }}>
+      {iniciales}
+    </div>
+  )
+}
+
+// ── Constante para mapeo de días ────────────────────────────────────────────
+// sesiones_programadas.dia_semana: Lun=1, Mar=2, Mié=3, Jue=4, Vie=5, Sáb=6, Dom=7
+const DIAS_SEMANA = [
+  { valor: 1, nombre: 'Lunes'      },
+  { valor: 2, nombre: 'Martes'     },
+  { valor: 3, nombre: 'Miércoles'  },
+  { valor: 4, nombre: 'Jueves'     },
+  { valor: 5, nombre: 'Viernes'    },
+  { valor: 6, nombre: 'Sábado'     },
+  { valor: 7, nombre: 'Domingo'    },
+]
+
+// ── Helpers puros (fuera del componente para evitar stale-closures) ─────────
+function getNombreDia(diaSemana) {
+  const dia = DIAS_SEMANA.find(d => d.valor === Number(diaSemana))
+  return dia ? dia.nombre : 'Por definir'
+}
+
+function calcularDuracion(horaInicio, horaFin) {
+  if (!horaInicio || !horaFin) return '60 min'
+  try {
+    const [h1, m1] = horaInicio.split(':').map(Number)
+    const [h2, m2] = horaFin.split(':').map(Number)
+    const minutos = (h2 * 60 + m2) - (h1 * 60 + m1)
+    if (minutos >= 60) return `${Math.floor(minutos / 60)}h ${minutos % 60 > 0 ? minutos % 60 + 'min' : ''}`
+    return `${minutos} min`
+  } catch {
+    return '60 min'
+  }
+}
+
+function transformarInscripcion(i) {
+  return {
+    id: i.inscripcion_id,
+    sesion_id: i.sesion_id,
+    nombre: i.disciplina,
+    disciplina: i.disciplina,
+    instructor: i.instructor || 'Por asignar',
+    horario: `${i.hora_inicio?.slice(0, 5)} - ${i.hora_fin?.slice(0, 5)}`,
+    dias: getNombreDia(i.dia_semana),
+    salon: i.espacio,
+    estatus: 'confirmado',
+    materiales: 'Ropa deportiva, toalla, agua',
+    intensidad: 'Media',
+    duracion: calcularDuracion(i.hora_inicio, i.hora_fin)
+  }
+}
+
+// ── Componente principal ─────────────────────────────────────────────────────
+function Clases() {
+  // Datos del usuario desde localStorage
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
+  const userName = usuario?.nombres || usuario?.nombre || 'Socio'
+  const socioId  = usuario?.socio_id   // ← siempre socio_id, nunca usuario_id
+
+  // ── Estados ──────────────────────────────────────────────────────────────
+  const [vista,             setVista]             = useState('catalogo')
+  const [misClases,         setMisClases]         = useState([])
+  const [misInscripcionIds, setMisInscripcionIds] = useState(new Set())  // Set<number> sesion_ids
+  const [catalogoClases,    setCatalogoClases]    = useState([])
+  const [loading,           setLoading]           = useState(true)
+  const [saving,            setSaving]            = useState(false)
+
+  // Listas para filtros
+  const [disciplinas,  setDisciplinas]  = useState([])
   const [instructores, setInstructores] = useState([])
-  
-  // Filtros del catálogo (arrays para multi-selección)
-  const [filtros, setFiltros] = useState({
-    disciplinas: [],
-    dias: [],
-    instructores: []
-  })
-  
-  // Modal de inscripción
-  const [claseSeleccionada, setClaseSeleccionada] = useState(null)
-  const [showModalInscripcion, setShowModalInscripcion] = useState(false)
+
+  // Filtros del catálogo
+  const [filtros,    setFiltros]    = useState({ disciplinas: [], dias: [], instructores: [] })
+  const [filtrosTmp, setFiltrosTmp] = useState({ disciplinas: [], dias: [], instructores: [] })
+  const [showFiltros, setShowFiltros] = useState(false)
+
+  // Modales
+  const [claseSeleccionada,     setClaseSeleccionada]     = useState(null)
+  const [showModalInscripcion,  setShowModalInscripcion]  = useState(false)
   const [showModalConfirmacion, setShowModalConfirmacion] = useState(false)
-  
-  // Modal de baja
-  const [claseABaja, setClaseABaja] = useState(null)
+  const [feedbackModal,         setFeedbackModal]         = useState(null)  // { tipo, msg }
+  const [claseABaja,    setClaseABaja]    = useState(null)
   const [showModalBaja, setShowModalBaja] = useState(false)
 
-  // Panel de filtros
-  const [showFiltros, setShowFiltros] = useState(false)
-  const [filtrosTmp, setFiltrosTmp] = useState({ disciplinas: [], dias: [], instructores: [] })
+  // ── Función compartida: carga las inscripciones del socio ────────────────
+  // Actualiza misClases Y misInscripcionIds. Llamada en mount y tras cada acción.
+  async function fetchInscripciones() {
+    if (!socioId) { setMisClases([]); setMisInscripcionIds(new Set()); return }
+    try {
+      const data = await apiRequest(`/inscripciones/mis-inscripciones?socioId=${socioId}`)
+      const lista = Array.isArray(data) ? data : []
+      setMisInscripcionIds(new Set(lista.map(i => Number(i.sesion_id))))
+      setMisClases(lista.map(transformarInscripcion))
+    } catch (err) {
+      console.error('Error cargando inscripciones:', err)
+      setMisClases([])
+      setMisInscripcionIds(new Set())
+    }
+  }
 
-  // ==================== API BASE URL ====================
-  const API_BASE = 'http://localhost:3000/api'
+  // ── Efectos ───────────────────────────────────────────────────────────────
 
-  // ==================== EFECTOS ====================
-  
-// Cargar listas para filtros (disciplinas e instructores)
+  // Cargar listas para filtros (disciplinas e instructores)
   useEffect(() => {
-    const fetchListas = async () => {
-      // 1. Recuperamos el token
-      const token = localStorage.getItem('token');
-      
-      // Creamos un objeto de configuración para no repetir código
-      const requestOptions = {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // <--- AQUÍ está la llave
-        }
-      };
-
+    async function fetchListas() {
       try {
-        // Cargar disciplinas con token
-        const discRes = await fetch(`${API_BASE}/disciplinas`, requestOptions);
-        if (discRes.ok) {
-          const discData = await discRes.json();
-          // Nos aseguramos de que sea un array antes de setearlo
-          setDisciplinas(Array.isArray(discData) ? discData : []);
-        }
-
-        // Cargar instructores con token
-        const instRes = await fetch(`${API_BASE}/instructores`, requestOptions);
-        if (instRes.ok) {
-          const instData = await instRes.json();
-          setInstructores(Array.isArray(instData) ? instData : []);
-        }
-        
-      } catch (error) {
-        console.error('Error cargando listas:', error);
-        // Si truena, dejamos arreglos vacíos para que el .map no explote
-        setDisciplinas([]);
-        setInstructores([]);
+        const [discData, instData] = await Promise.all([
+          apiRequest('/disciplinas'),
+          apiRequest('/instructores')
+        ])
+        setDisciplinas(Array.isArray(discData) ? discData : [])
+        setInstructores(Array.isArray(instData) ? instData : [])
+      } catch {
+        setDisciplinas([])
+        setInstructores([])
       }
     }
-    fetchListas();
+    fetchListas()
   }, [])
 
-  // Cargar clases inscritas del socio (Mis Clases)
+  // Carga inicial de inscripciones (para "Mis Clases" y para el estado del catálogo)
   useEffect(() => {
-    const fetchMisClases = async () => {
-      if (vista !== 'mis-clases') return
-      
-      setLoading(true)
-      try {
-        // Obtener socioId del usuario en localStorage
-        const usuarioSesion = localStorage.getItem('usuario')
-        const usuarioData = usuarioSesion ? JSON.parse(usuarioSesion) : null
-        const socioId = usuarioData?.id || usuarioData?.socio_id
-        
-        if (!socioId) {
-          console.warn('No se encontró ID del socio')
-          setMisClases([])
-          setLoading(false)
-          return
-        }
-        
-        const response = await fetch(`${API_BASE}/inscripciones/mis-inscripciones?socioId=${socioId}`)
-        const data = await response.json()
-        
-        // Transformar datos al formato de la UI
-        const misClasesTransformadas = data.map(inscripcion => ({
-          id: inscripcion.inscripcion_id,
-          sesion_id: inscripcion.sesion_id,
-          nombre: inscripcion.disciplina,
-          disciplina: inscripcion.disciplina,
-          instructor: inscripcion.instructor || 'Por asignar',
-          instructorFoto: `https://i.pravatar.cc/150?img=1`,
-          horario: `${inscripcion.hora_inicio?.slice(0, 5)} - ${inscripcion.hora_fin?.slice(0, 5)}`,
-          dias: getNombreDia(inscripcion.dia_semana),
-          salon: inscripcion.espacio,
-          estatus: 'confirmado',
-          materiales: 'Ropa deportiva, toalla, agua',
-          intensidad: 'Media',
-          duracion: calcularDuracion(inscripcion.hora_inicio, inscripcion.hora_fin)
-        }))
-        
-        setMisClases(misClasesTransformadas)
-      } catch (error) {
-        console.error('Error cargando mis clases:', error)
-        setMisClases([])
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    fetchMisClases()
-  }, [vista])
+    setLoading(true)
+    fetchInscripciones().finally(() => setLoading(false))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Cargar catálogo de clases desde la API (sin filtros — el filtrado es en cliente)
+  // Cargar catálogo de clases
   useEffect(() => {
-    const fetchCatalogo = async () => {
-      setLoading(true)
+    if (vista !== 'catalogo') return
+    async function fetchCatalogo() {
       try {
-        const response = await fetch(`${API_BASE}/sesiones`)
-        const data = await response.json()
-        
-        // Transformar datos de la BD al formato de la UI
-        const clasesTransformadas = data.map(sesion => ({
-          id: sesion.sesion_id,
-          sesion_id: sesion.sesion_id,
-          nombre: sesion.disciplina, // Título: Nombre de la disciplina
-          disciplina: sesion.disciplina,
-          instructor: sesion.instructor || 'Por asignar',
-          instructorFoto: `https://i.pravatar.cc/150?img=${(sesion.instructor_id % 10) + 1}`,
-          horario: `${sesion.hora_inicio?.slice(0, 5)} - ${sesion.hora_fin?.slice(0, 5)}`,
-          dias: getNombreDia(sesion.dia_semana),
-          dia_semana: sesion.dia_semana,
-          salon: sesion.espacio, // Ubicación: Nombre del espacio
+        const data = await apiRequest('/sesiones')
+        const lista = Array.isArray(data) ? data : []
+        setCatalogoClases(lista.map(s => ({
+          id: s.sesion_id,
+          sesion_id: s.sesion_id,
+          nombre: s.disciplina,
+          disciplina: s.disciplina,
+          instructor: s.instructor || 'Por asignar',
+          horario: `${s.hora_inicio?.slice(0, 5)} - ${s.hora_fin?.slice(0, 5)}`,
+          dias: getNombreDia(s.dia_semana),
+          dia_semana: s.dia_semana,
+          salon: s.espacio,
           cupos: {
-              total: sesion.cupo_maximo || 20,
-              // CAMBIO: Usar 'inscritos_actuales' que es el nombre que pusimos en el SQL
-              disponibles: (sesion.cupo_maximo || 20) - (parseInt(sesion.inscritos_actuales) || 0)
+            total: s.cupo_maximo || 20,
+            disponibles: (s.cupo_maximo || 20) - (parseInt(s.inscritos_actuales) || 0)
           },
-          duracion: calcularDuracion(sesion.hora_inicio, sesion.hora_fin),
+          duracion: calcularDuracion(s.hora_inicio, s.hora_fin),
           intensidad: 'Media',
-          descripcion: `Clase de ${sesion.disciplina} impartida por ${sesion.instructor || 'instructor por asignar'}`,
+          descripcion: `Clase de ${s.disciplina} impartida por ${s.instructor || 'instructor por asignar'}`,
           materiales: 'Ropa deportiva, toalla, agua',
-          instructor_id: sesion.instructor_id,
-          espacio_id: sesion.espacio_id,
-          disciplina_id: sesion.disciplina_id
-        }))
-        
-        setCatalogoClases(clasesTransformadas)
-      } catch (error) {
-        console.error('Error cargando catálogo:', error)
-        // Fallback: datos vacíos
+          instructor_id: s.instructor_id,
+          espacio_id: s.espacio_id,
+          disciplina_id: s.disciplina_id
+        })))
+      } catch (err) {
+        console.error('Error cargando catálogo:', err)
         setCatalogoClases([])
-      } finally {
-        setLoading(false)
       }
     }
-    
-    if (vista === 'catalogo') {
-      fetchCatalogo()
-    }
+    fetchCatalogo()
   }, [vista])
 
-  // ==================== HELPERS ====================
-  const getNombreDia = (diaSemana) => {
-    const dia = DIAS_SEMANA.find(d => d.valor === diaSemana)
-    return dia ? dia.nombre : 'Por definir'
-  }
-
-  const calcularDuracion = (horaInicio, horaFin) => {
-    if (!horaInicio || !horaFin) return '60 min'
-    try {
-      const [h1, m1] = horaInicio.split(':').map(Number)
-      const [h2, m2] = horaFin.split(':').map(Number)
-      const minutos = (h2 * 60 + m2) - (h1 * 60 + m1)
-      if (minutos >= 60) {
-        return `${Math.floor(minutos / 60)}h ${minutos % 60 > 0 ? minutos % 60 + 'min' : ''}`
-      }
-      return `${minutos} min`
-    } catch {
-      return '60 min'
-    }
-  }
-
-  // ==================== HANDLERS ====================
-  const handleLimpiarFiltros = () => {
-    setFiltros({ disciplinas: [], dias: [], instructores: [] })
-  }
-
+  // ── Helpers de UI ─────────────────────────────────────────────────────────
   const activeFilterCount = filtros.disciplinas.length + filtros.dias.length + filtros.instructores.length
-  const tmpFilterCount = filtrosTmp.disciplinas.length + filtrosTmp.dias.length + filtrosTmp.instructores.length
+  const tmpFilterCount    = filtrosTmp.disciplinas.length + filtrosTmp.dias.length + filtrosTmp.instructores.length
 
+  function getEstatusBadge(estatus) {
+    if (estatus === 'confirmado') return <span className="badge-confirmado"><CheckCircle size={14} /> Confirmado</span>
+    if (estatus === 'pendiente')  return <span className="badge-pendiente"><AlertCircle size={14} /> Pendiente</span>
+    if (estatus === 'cambio')     return <span className="badge-cambio"><AlertCircle size={14} /> Cambio</span>
+    return null
+  }
+
+  function getCupoIndicator(cupos) {
+    if (!cupos) return <span className="badge-disponible">Consultar</span>
+    const { total, disponibles } = cupos
+    const pct = total > 0 ? disponibles / total : 0
+    if (disponibles === 0)   return <span className="badge-lleno"><XCircle size={14} /> Lleno</span>
+    if (pct <= 0.15)         return <span className="badge-casi-lleno"><AlertCircle size={14} /> Casi lleno ({disponibles})</span>
+    return <span className="badge-disponible">{disponibles} de {total}</span>
+  }
+
+  // ── Handlers de filtros ───────────────────────────────────────────────────
   const handleOpenFiltros = () => {
-    setFiltrosTmp({
-      disciplinas: [...filtros.disciplinas],
-      dias: [...filtros.dias],
-      instructores: [...filtros.instructores]
-    })
+    setFiltrosTmp({ disciplinas: [...filtros.disciplinas], dias: [...filtros.dias], instructores: [...filtros.instructores] })
     setShowFiltros(true)
   }
+  const handleAplicarFiltros = () => { setFiltros({ ...filtrosTmp }); setShowFiltros(false) }
+  const handleLimpiarFiltros = () => setFiltros({ disciplinas: [], dias: [], instructores: [] })
+  const handleLimpiarTmp     = () => setFiltrosTmp({ disciplinas: [], dias: [], instructores: [] })
+  const toggleChip = (campo, valor) => setFiltrosTmp(prev => {
+    const lista = prev[campo]
+    return { ...prev, [campo]: lista.includes(valor) ? lista.filter(x => x !== valor) : [...lista, valor] }
+  })
 
-  const handleAplicarFiltros = () => {
-    setFiltros({ ...filtrosTmp })
-    setShowFiltros(false)
-  }
-
-  const handleLimpiarTmp = () => {
-    setFiltrosTmp({ disciplinas: [], dias: [], instructores: [] })
-  }
-
-  const toggleChip = (campo, valor) => {
-    setFiltrosTmp(prev => {
-      const lista = prev[campo]
-      return {
-        ...prev,
-        [campo]: lista.includes(valor) ? lista.filter(x => x !== valor) : [...lista, valor]
-      }
-    })
-  }
-
+  // ── Handlers de inscripción ───────────────────────────────────────────────
   const handleInscribirse = (clase) => {
     setClaseSeleccionada(clase)
+    setFeedbackModal(null)
     setShowModalInscripcion(true)
-  }
-
-  // Función para inscribir al socio en una clase
-  const handleInscripcion = async (sesionId) => {
-    // Obtener socioId del usuario en localStorage
-    const usuarioSesion = localStorage.getItem('usuario')
-    const usuarioData = usuarioSesion ? JSON.parse(usuarioSesion) : null
-    const socioId = usuarioData?.id;
-    
-    if (!socioId) {
-    console.error("No se encontró el ID del usuario. ¿Iniciaste sesión?");
-    return { success: false, message: "Error de sesión: ID no encontrado" };
-}
-    console.log("Inscribiendo al socio real:", socioId);
-    try {
-      const response = await fetch(`${API_BASE}/inscripciones/inscribir`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          sesionId: sesionId,
-          socioId: socioId
-        })
-      })
-      
-      const data = await response.json()
-      
-      if (response.status === 201) {
-        // Éxito: actualizar el contador de inscritos en el estado
-          setCatalogoClases(prev => prev.map(clase => 
-            clase.sesion_id === sesionId 
-              ? { 
-                  ...clase, 
-                  // Sumamos 1 al contador de inscritos actuales
-                  inscritos_actuales: parseInt(clase.inscritos_actuales) + 1 
-                } 
-              : clase
-          ))
-        return { success: true, message: data.message }
-      } else {
-        // Error: clase llena o ya inscrito
-        return { success: false, message: data.error }
-      }
-    } catch (error) {
-      console.error('Error en inscripción:', error)
-      return { success: false, message: 'Error de conexión' }
-    }
   }
 
   const handleConfirmarInscripcion = async () => {
     if (!claseSeleccionada) return
-    
-    // Mostrar estado de carga
-    const btnConfirm = document.querySelector('.modal-btn.confirm')
-    if (btnConfirm) {
-      btnConfirm.disabled = true
-      btnConfirm.textContent = 'Inscribiendo...'
+    if (!socioId) {
+      setFeedbackModal({ tipo: 'error', msg: 'Error de sesión: ID de socio no encontrado. Vuelve a iniciar sesión.' })
+      return
     }
-    
-    const result = await handleInscripcion(claseSeleccionada.sesion_id)
-    
-    if (result.success) {
+    setSaving(true)
+    setFeedbackModal(null)
+    try {
+      await apiRequest('/inscripciones/inscribir', {
+        method: 'POST',
+        body: JSON.stringify({ sesionId: claseSeleccionada.sesion_id, socioId })
+      })
       setShowModalInscripcion(false)
       setShowModalConfirmacion(true)
-      // Recargar mis clases después de una inscripción exitosa
-      setTimeout(() => {
-        const fetchMisClases = async () => {
-          try {
-            const usuarioSesion = localStorage.getItem('usuario')
-            const usuarioData = usuarioSesion ? JSON.parse(usuarioSesion) : null
-            const socioId = usuarioData?.id || usuarioData?.socio_id
-            
-            if (socioId) {
-              const response = await fetch(`${API_BASE}/inscripciones/mis-inscripciones?socioId=${socioId}`)
-              const data = await response.json()
-              
-              const misClasesTransformadas = data.map(inscripcion => ({
-                id: inscripcion.inscripcion_id,
-                sesion_id: inscripcion.sesion_id,
-                nombre: inscripcion.disciplina,
-                disciplina: inscripcion.disciplina,
-                instructor: inscripcion.instructor || 'Por asignar',
-                instructorFoto: `https://i.pravatar.cc/150?img=1`,
-                horario: `${inscripcion.hora_inicio?.slice(0, 5)} - ${inscripcion.hora_fin?.slice(0, 5)}`,
-                dias: getNombreDia(inscripcion.dia_semana),
-                salon: inscripcion.espacio,
-                estatus: 'confirmado',
-                materiales: 'Ropa deportiva, toalla, agua',
-                intensidad: 'Media',
-                duracion: calcularDuracion(inscripcion.hora_inicio, inscripcion.hora_fin)
-              }))
-              
-              setMisClases(misClasesTransformadas)
-            }
-          } catch (error) {
-            console.error('Error recargando mis clases:', error)
-          }
-        }
-        fetchMisClases()
-      }, 500)
-    } else {
-      alert(result.message)
-    }
-    
-    // Restaurar botón
-    if (btnConfirm) {
-      btnConfirm.disabled = false
-      btnConfirm.textContent = 'Confirmar Inscripción'
+      await fetchInscripciones()  // Actualiza misClases y misInscripcionIds
+    } catch (err) {
+      setFeedbackModal({ tipo: 'error', msg: err.message || 'Error al procesar la inscripción' })
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -380,82 +270,32 @@ function Clases() {
   }
 
   const handleConfirmarBaja = async () => {
+    if (!socioId || !claseABaja) return
     try {
-      // Obtener socioId del usuario en localStorage
-      const usuarioSesion = localStorage.getItem('usuario')
-      const usuarioData = usuarioSesion ? JSON.parse(usuarioSesion) : null
-      const socioId = usuarioData?.id || usuarioData?.socio_id
-      
-      if (!socioId) {
-        alert('Error de sesión')
-        return
-      }
-      
-      const response = await fetch(`${API_BASE}/inscripciones/cancelar`, {
+      await apiRequest('/inscripciones/cancelar', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          sesionId: claseABaja.sesion_id,
-          socioId: socioId
-        })
+        body: JSON.stringify({ sesionId: claseABaja.sesion_id, socioId })
       })
-      
-      const data = await response.json()
-      
-      if (response.ok) {
-        // Eliminar la clase de la lista local
-        setMisClases(prev => prev.filter(c => c.id !== claseABaja.id))
-        setShowModalBaja(false)
-      } else {
-        alert(data.error || 'Error al cancelar')
-      }
-    } catch (error) {
-      console.error('Error en baja:', error)
-      alert('Error de conexión')
+      setShowModalBaja(false)
+      await fetchInscripciones()  // Actualiza misClases y misInscripcionIds
+    } catch (err) {
+      alert(err.message || 'Error al cancelar')
     }
   }
 
-  const getEstatusBadge = (estatus) => {
-    switch (estatus) {
-      case 'confirmado':
-        return <span className="badge-confirmado"><CheckCircle size={14} /> Confirmado</span>
-      case 'pendiente':
-        return <span className="badge-pendiente"><AlertCircle size={14} /> Pendiente</span>
-      case 'cambio':
-        return <span className="badge-cambio"><AlertCircle size={14} /> Cambio</span>
-      default:
-        return null
-    }
-  }
-
-  const getCupoIndicator = (cupos) => {
-    if (!cupos) {
-      return <span className="badge-disponible">Consultar</span>
-    }
-    const { total, disponibles } = cupos
-    const porcentaje = total > 0 ? disponibles / total : 0
-    if (disponibles === 0) {
-      return <span className="badge-lleno"><XCircle size={14} /> Lleno</span>
-    } else if (porcentaje <= 0.15) {
-      return <span className="badge-casi-lleno"><AlertCircle size={14} /> Casi lleno ({disponibles})</span>
-    } else {
-      return <span className="badge-disponible">{disponibles} de {total}</span>
-    }
-  }
-
-  const catalogoFiltrado = catalogoClases.filter(clase => {
-    if (filtros.disciplinas.length > 0 && !filtros.disciplinas.includes(clase.disciplina)) return false
-    if (filtros.dias.length > 0 && !filtros.dias.includes(String(clase.dia_semana))) return false
-    if (filtros.instructores.length > 0 && !filtros.instructores.includes(clase.instructor)) return false
+  // ── Filtrado del catálogo ──────────────────────────────────────────────────
+  const catalogoFiltrado = catalogoClases.filter(c => {
+    if (filtros.disciplinas.length > 0 && !filtros.disciplinas.includes(c.disciplina)) return false
+    if (filtros.dias.length > 0        && !filtros.dias.includes(String(c.dia_semana))) return false
+    if (filtros.instructores.length > 0 && !filtros.instructores.includes(c.instructor)) return false
     return true
   })
 
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <SocioLayout activeTab="clases" title="Club Social | Mis Clases">
-      
-      {/* ==================== HEADER DE VISTA ==================== */}
+
+      {/* HEADER */}
       <section className="rs-welcome-card">
         <div className="rs-welcome-info">
           <h2 className="rs-title-serif">Clases y Actividades</h2>
@@ -466,15 +306,15 @@ function Clases() {
         </div>
       </section>
 
-      {/* ==================== TABS DE NAVEGACIÓN ==================== */}
+      {/* TABS */}
       <div className="clases-tabs-container">
-        <button 
+        <button
           className={`clases-tab-btn ${vista === 'mis-clases' ? 'active' : ''}`}
           onClick={() => setVista('mis-clases')}
         >
           <BookOpen size={18} /> Mis Clases ({misClases.length})
         </button>
-        <button 
+        <button
           className={`clases-tab-btn ${vista === 'catalogo' ? 'active' : ''}`}
           onClick={() => setVista('catalogo')}
         >
@@ -482,7 +322,7 @@ function Clases() {
         </button>
       </div>
 
-      {/* ==================== VISTA: MIS CLASES ==================== */}
+      {/* ===== MIS CLASES ===== */}
       {vista === 'mis-clases' && (
         <div className="mis-clases-view">
           {loading ? (
@@ -492,9 +332,7 @@ function Clases() {
               <Calendar size={48} />
               <h3>No tienes clases inscritas</h3>
               <p>Explora el catálogo para encontrar clases que te interesen</p>
-              <button className="btn-primary" onClick={() => setVista('catalogo')}>
-                Ver Catálogo
-              </button>
+              <button className="btn-primary" onClick={() => setVista('catalogo')}>Ver Catálogo</button>
             </div>
           ) : (
             <div className="mis-clases-grid">
@@ -504,37 +342,18 @@ function Clases() {
                     <span className="clase-disciplina">{clase.disciplina}</span>
                     {getEstatusBadge(clase.estatus)}
                   </div>
-                  
                   <h3 className="mi-clase-nombre">{clase.nombre}</h3>
-                  
                   <div className="mi-clase-info">
-                    <div className="info-row">
-                      <User size={16} />
-                      <span>{clase.instructor}</span>
-                    </div>
-                    <div className="info-row">
-                      <Clock size={16} />
-                      <span>{clase.horario} - {clase.dias}</span>
-                    </div>
-                    <div className="info-row">
-                      <MapPin size={16} />
-                      <span>{clase.salon}</span>
-                    </div>
-                    <div className="info-row">
-                      <Timer size={16} />
-                      <span>{clase.duracion} - Intensidad {clase.intensidad}</span>
-                    </div>
+                    <div className="info-row"><User size={16} /><span>{clase.instructor}</span></div>
+                    <div className="info-row"><Clock size={16} /><span>{clase.horario} · {clase.dias}</span></div>
+                    <div className="info-row"><MapPin size={16} /><span>{clase.salon}</span></div>
+                    <div className="info-row"><Timer size={16} /><span>{clase.duracion} · Intensidad {clase.intensidad}</span></div>
                   </div>
-
                   <div className="mi-clase-materiales">
                     <Info size={14} />
                     <span>Materiales: {clase.materiales}</span>
                   </div>
-
-                  <button 
-                    className="btn-baja-clase"
-                    onClick={() => handleCancelarInscripcion(clase)}
-                  >
+                  <button className="btn-baja-clase" onClick={() => handleCancelarInscripcion(clase)}>
                     Cancelar Inscripción
                   </button>
                 </div>
@@ -544,10 +363,10 @@ function Clases() {
         </div>
       )}
 
-      {/* ==================== VISTA: CATÁLOGO ==================== */}
+      {/* ===== CATÁLOGO ===== */}
       {vista === 'catalogo' && (
         <div className="catalogo-view">
-          {/* Botón de filtros */}
+          {/* Botón filtros */}
           <div className="filtros-btn-row">
             <button
               className={`btn-filtros ${activeFilterCount > 0 ? 'active' : ''}`}
@@ -558,62 +377,58 @@ function Clases() {
               {activeFilterCount > 0 && <span className="filtros-badge">{activeFilterCount}</span>}
             </button>
             {activeFilterCount > 0 && (
-              <button className="btn-limpiar-filtros" onClick={handleLimpiarFiltros}>
-                Limpiar
-              </button>
+              <button className="btn-limpiar-filtros" onClick={handleLimpiarFiltros}>Limpiar</button>
             )}
           </div>
 
           {/* Grid de clases */}
           <div className="catalogo-grid">
-            {catalogoFiltrado.map(clase => (
-              <div key={clase.id} className="clase-card">
-                <div className="clase-card-header">
-                  <span className="clase-nivel">{clase.dias}</span>
-                  {getCupoIndicator(clase.cupos)}
-                </div>
-                
-                <h3 className="clase-nombre">{clase.nombre}</h3>
-                <p className="clase-descripcion">{clase.descripcion}</p>
-                
-                <div className="clase-instructor">
-                  <img src={clase.instructorFoto} alt={clase.instructor} className="instructor-foto" />
-                  <span>{clase.instructor || "Por asignar"}</span>
-                </div>
-                
-                <div className="clase-detalles">
-                  <div className="detalle-item">
-                    <Clock size={14} />
-                    <span>{clase.horario}</span>
+            {catalogoFiltrado.map(clase => {
+              const yaInscrito = misInscripcionIds.has(Number(clase.sesion_id))
+              return (
+                <div key={clase.id} className="clase-card">
+                  <div className="clase-card-header">
+                    <span className="clase-nivel">{clase.dias}</span>
+                    {getCupoIndicator(clase.cupos)}
                   </div>
-                  <div className="detalle-item">
-                    <Calendar size={14} />
-                    <span>{clase.dias}</span>
+                  <h3 className="clase-nombre">{clase.nombre}</h3>
+                  <p className="clase-descripcion">{clase.descripcion}</p>
+                  <div className="clase-instructor">
+                    <InstructorAvatar nombre={clase.instructor} size={38} />
+                    <span>{clase.instructor || 'Por asignar'}</span>
                   </div>
-                  <div className="detalle-item">
-                    <MapPin size={14} />
-                    <span>{clase.salon}</span>
+                  <div className="clase-detalles">
+                    <div className="detalle-item"><Clock size={14} /><span>{clase.horario}</span></div>
+                    <div className="detalle-item"><Calendar size={14} /><span>{clase.dias}</span></div>
+                    <div className="detalle-item"><MapPin size={14} /><span>{clase.salon}</span></div>
+                    <div className="detalle-item"><Timer size={14} /><span>{clase.duracion}</span></div>
                   </div>
-                  <div className="detalle-item">
-                    <Timer size={14} />
-                    <span>{clase.duracion}</span>
+                  <div className="clase-materiales">
+                    <Info size={14} />
+                    <span>{clase.materiales}</span>
                   </div>
-                </div>
 
-                <div className="clase-materiales">
-                  <Info size={14} />
-                  <span>{clase.materiales}</span>
+                  {/* Botón según estado */}
+                  {yaInscrito ? (
+                    <button
+                      className="btn-inscribirse"
+                      disabled
+                      style={{ background: '#dcfce7', color: '#166534', border: '2px solid #86efac', cursor: 'default', opacity: 1 }}
+                    >
+                      <CheckCircle size={16} /> Ya inscrito
+                    </button>
+                  ) : clase.cupos?.disponibles === 0 ? (
+                    <button className="btn-inscribirse disabled" disabled>
+                      Clase Llena
+                    </button>
+                  ) : (
+                    <button className="btn-inscribirse" onClick={() => handleInscribirse(clase)}>
+                      <Zap size={16} /> Inscribirme
+                    </button>
+                  )}
                 </div>
-
-                <button 
-                  className={`btn-inscribirse ${clase.cupos?.disponibles === 0 ? 'disabled' : ''}`}
-                  onClick={() => handleInscribirse(clase)}
-                  disabled={clase.cupos?.disponibles === 0}
-                >
-                  {clase.cupos?.disponibles === 0 ? 'Clase Llena' : <><Zap size={16} /> Inscribirme</>}
-                </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {catalogoFiltrado.length === 0 && (
@@ -626,7 +441,7 @@ function Clases() {
         </div>
       )}
 
-      {/* ==================== MODAL: FICHA TÉCNICA ==================== */}
+      {/* ===== MODAL: INSCRIPCIÓN ===== */}
       {showModalInscripcion && claseSeleccionada && (
         <div className="rs-modal-overlay">
           <div className="rs-modal modal-ficha">
@@ -634,14 +449,28 @@ function Clases() {
               <h3>Confirmar Inscripción</h3>
               <button className="close-btn" onClick={() => setShowModalInscripcion(false)}>&times;</button>
             </header>
-            
+
             <div className="modal-body">
+              {/* Feedback inline (reemplaza alert) */}
+              {feedbackModal && (
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
+                  padding: '0.75rem 1rem', borderRadius: '10px', marginBottom: '1rem',
+                  background: feedbackModal.tipo === 'error' ? '#fee2e2' : '#dcfce7',
+                  color:      feedbackModal.tipo === 'error' ? '#991b1b' : '#166534',
+                  fontWeight: 600, fontSize: '0.85rem'
+                }}>
+                  <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                  {feedbackModal.msg}
+                </div>
+              )}
+
               <div className="ficha-clase">
                 <h2>{claseSeleccionada.nombre}</h2>
                 <span className="ficha-disciplina">{claseSeleccionada.disciplina}</span>
-                
+
                 <div className="ficha-instructor">
-                  <img src={claseSeleccionada.instructorFoto} alt={claseSeleccionada.instructor} />
+                  <InstructorAvatar nombre={claseSeleccionada.instructor} size={52} />
                   <div>
                     <strong>{claseSeleccionada.instructor}</strong>
                     <span>Instructor</span>
@@ -651,31 +480,19 @@ function Clases() {
                 <div className="ficha-detalles">
                   <div className="ficha-detalle">
                     <Clock size={18} />
-                    <div>
-                      <strong>Horario</strong>
-                      <span>{claseSeleccionada.horario} - {claseSeleccionada.dias}</span>
-                    </div>
+                    <div><strong>Horario</strong><span>{claseSeleccionada.horario} · {claseSeleccionada.dias}</span></div>
                   </div>
                   <div className="ficha-detalle">
                     <MapPin size={18} />
-                    <div>
-                      <strong>Ubicación</strong>
-                      <span>{claseSeleccionada.salon}</span>
-                    </div>
+                    <div><strong>Ubicación</strong><span>{claseSeleccionada.salon}</span></div>
                   </div>
                   <div className="ficha-detalle">
                     <Timer size={18} />
-                    <div>
-                      <strong>Duración</strong>
-                      <span>{claseSeleccionada.duracion}</span>
-                    </div>
+                    <div><strong>Duración</strong><span>{claseSeleccionada.duracion}</span></div>
                   </div>
                   <div className="ficha-detalle">
                     <Zap size={18} />
-                    <div>
-                      <strong>Intensidad</strong>
-                      <span>{claseSeleccionada.intensidad}</span>
-                    </div>
+                    <div><strong>Intensidad</strong><span>{claseSeleccionada.intensidad}</span></div>
                   </div>
                 </div>
 
@@ -692,8 +509,12 @@ function Clases() {
             </div>
 
             <footer className="modal-footer">
-              <button className="modal-btn confirm" onClick={handleConfirmarInscripcion}>
-                Confirmar Inscripción
+              <button
+                className="modal-btn confirm"
+                onClick={handleConfirmarInscripcion}
+                disabled={saving}
+              >
+                {saving ? 'Inscribiendo...' : 'Confirmar Inscripción'}
               </button>
               <button className="modal-btn cancel" onClick={() => setShowModalInscripcion(false)}>
                 Cancelar
@@ -703,7 +524,7 @@ function Clases() {
         </div>
       )}
 
-      {/* ==================== MODAL: CONFIRMACIÓN ==================== */}
+      {/* ===== MODAL: CONFIRMACIÓN EXITOSA ===== */}
       {showModalConfirmacion && (
         <div className="rs-modal-overlay">
           <div className="rs-modal modal-small">
@@ -727,7 +548,7 @@ function Clases() {
         </div>
       )}
 
-      {/* ==================== MODAL: BAJA ==================== */}
+      {/* ===== MODAL: BAJA ===== */}
       {showModalBaja && claseABaja && (
         <div className="rs-modal-overlay">
           <div className="rs-modal modal-small">
@@ -752,16 +573,14 @@ function Clases() {
         </div>
       )}
 
-      {/* ==================== PANEL: FILTROS ==================== */}
+      {/* ===== PANEL: FILTROS ===== */}
       {showFiltros && (
         <div className="filtros-overlay" onClick={() => setShowFiltros(false)}>
           <div className="filtros-panel" onClick={e => e.stopPropagation()}>
-
             <div className="filtros-panel-header">
               <h3>Filtros</h3>
               <button className="filtros-reset" onClick={handleLimpiarTmp}>Limpiar</button>
             </div>
-
             <div className="filtros-panel-body">
               <div className="filtro-section">
                 <span className="filtro-section-label">Disciplina</span>
@@ -777,7 +596,6 @@ function Clases() {
                   ))}
                 </div>
               </div>
-
               <div className="filtro-section">
                 <span className="filtro-section-label">Día de la semana</span>
                 <div className="filtro-chips">
@@ -792,7 +610,6 @@ function Clases() {
                   ))}
                 </div>
               </div>
-
               <div className="filtro-section">
                 <span className="filtro-section-label">Instructor</span>
                 <div className="filtro-chips">
@@ -808,13 +625,11 @@ function Clases() {
                 </div>
               </div>
             </div>
-
             <div className="filtros-panel-footer">
               <button className="btn-aplicar-filtros" onClick={handleAplicarFiltros}>
                 Aplicar filtros{tmpFilterCount > 0 ? ` (${tmpFilterCount})` : ''}
               </button>
             </div>
-
           </div>
         </div>
       )}

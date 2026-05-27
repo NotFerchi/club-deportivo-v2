@@ -50,7 +50,7 @@ async function syncReservasNoShow(client = pool) {
     `UPDATE reservaciones r
      SET estado = $1,
          no_show = TRUE
-     WHERE LOWER(r.estado::text) IN ('confirmada', 'confirmado', 'pendiente')
+     WHERE LOWER(r.estado::text) IN ('confirmada', 'confirmado')
        AND (
          r.fecha_reserva < $2::date
          OR (r.fecha_reserva = $2::date AND r.hora_fin < $3::time)

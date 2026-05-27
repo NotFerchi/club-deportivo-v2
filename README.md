@@ -25,3 +25,10 @@ COMANDOS QUE DEBES CORRER PARA REACT Y NUEVO BCRYPT
 - Instalacion manual:
   - `cd backend`
   - `npm install pdfkit`
+
+### CORREO
+- Para esta parte se debe de crear un correo y la llave del correo
+# Correo (Gmail) — necesario para enviar QR por email
+# GMAIL_USER=tucorreo@gmail.com
+# GMAIL_APP_PASSWORD=tu_app_password_de_gmail
+- Esto va en el .env del backend 

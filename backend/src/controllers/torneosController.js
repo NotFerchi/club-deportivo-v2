@@ -69,8 +69,6 @@ const torneosController = {
           t.fecha_inicio,
           t.fecha_fin,
           t.estado,
-          t.categoria_id,
-          ct.nombre AS nombre_categoria,
           COUNT(pt.participante_id)::int AS total_participantes,
           (COUNT(pt.participante_id) >= 4) AS se_realiza
         FROM torneos t
@@ -90,7 +88,7 @@ const torneosController = {
   },
 
   createTorneo: async (req, res) => {
-    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id } = req.body;
+    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado } = req.body;
 
     if (typeof nombre !== 'string' || nombre.trim() === '') {
       return res.status(400).json({ error: 'El nombre es requerido' });
@@ -105,8 +103,6 @@ const torneosController = {
       return res.status(400).json({ error: 'disciplina_id debe ser un entero valido' });
     }
 
-    const categoriaId = tieneValor(categoria_id) ? esEnteroValido(categoria_id) : null;
-
     try {
       const disciplina = await pool.query(
         'SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1',
@@ -117,14 +113,9 @@ const torneosController = {
         return res.status(400).json({ error: ERROR_DISCIPLINA_NO_EXISTE });
       }
 
-      if (categoriaId !== null) {
-        const cat = await pool.query('SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1', [categoriaId]);
-        if (cat.rowCount === 0) return res.status(400).json({ error: ERROR_CATEGORIA_NO_EXISTE });
-      }
-
       const result = await pool.query(
-        `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING torneo_id`,
         [
           disciplinaId,
@@ -132,7 +123,6 @@ const torneosController = {
           normalizarFechaOpcional(fecha_inicio),
           normalizarFechaOpcional(fecha_fin),
           estado || 'Abierto',
-          categoriaId,
         ]
       );
 
@@ -150,7 +140,7 @@ const torneosController = {
 
   updateTorneo: async (req, res) => {
     const torneoId = esEnteroValido(req.params.torneo_id);
-    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id } = req.body;
+    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado } = req.body;
 
     if (torneoId === null) {
       return res.status(400).json({ error: 'torneo_id debe ser un entero valido' });
@@ -169,20 +159,14 @@ const torneosController = {
     const categoriaId = tieneValor(categoria_id) ? esEnteroValido(categoria_id) : null;
 
     try {
-      if (categoriaId !== null) {
-        const cat = await pool.query('SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1', [categoriaId]);
-        if (cat.rowCount === 0) return res.status(400).json({ error: ERROR_CATEGORIA_NO_EXISTE });
-      }
-
       const result = await pool.query(
         `UPDATE torneos
          SET disciplina_id = $1,
              nombre = $2,
              fecha_inicio = $3,
              fecha_fin = $4,
-             estado = COALESCE($5, estado),
-             categoria_id = $6
-         WHERE torneo_id = $7
+             estado = COALESCE($5, estado)
+         WHERE torneo_id = $6
          RETURNING torneo_id`,
         [
           disciplinaId,
@@ -190,7 +174,6 @@ const torneosController = {
           normalizarFechaOpcional(fecha_inicio),
           normalizarFechaOpcional(fecha_fin),
           estado || null,
-          categoriaId,
           torneoId
         ]
       );
@@ -866,6 +849,33 @@ const torneosController = {
     client.release();
   }
 },
+
+  cancelarTorneo: async (req, res) => {
+    const torneoId = esEnteroValido(req.params.torneo_id);
+    if (torneoId === null) {
+      return res.status(400).json({ error: 'torneo_id debe ser un entero válido' });
+    }
+
+    try {
+      const result = await pool.query(
+        `UPDATE torneos SET estado = 'Cancelado'
+         WHERE torneo_id = $1 AND estado NOT IN ('Cancelado', 'Finalizado')
+         RETURNING torneo_id`,
+        [torneoId]
+      );
+
+      if (result.rowCount === 0) {
+        const exists = await pool.query('SELECT estado FROM torneos WHERE torneo_id = $1', [torneoId]);
+        if (exists.rowCount === 0) return res.status(404).json({ error: 'Torneo no encontrado' });
+        return res.status(409).json({ error: `El torneo ya está ${exists.rows[0].estado.toLowerCase()}` });
+      }
+
+      res.json({ ok: true, message: 'Torneo cancelado correctamente' });
+    } catch (error) {
+      console.error('Error al cancelar torneo:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
 
 };
 

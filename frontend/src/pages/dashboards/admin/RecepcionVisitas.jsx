@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, CheckCircle, Clock, DoorOpen, Download, Eye, LogOut, Mail, Printer, RefreshCw, UserPlus, Users, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, DoorOpen, Download, Eye, Loader2, LogOut, Mail, Printer, RefreshCw, UserPlus, Users, X } from 'lucide-react';
 import { adminApi } from '../../../services/api';
 import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput, StatCard } from '../../../components/admin/AdminUI';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
@@ -36,7 +36,8 @@ function RecepcionVisitas() {
   const [limitesPases, setLimitesPases] = useState({});
   const [loadError, setLoadError] = useState('');
   const [closingVisits, setClosingVisits] = useState(false);
-  const [qrModal, setQrModal] = useState({ open: false, qrImage: null, nombre: '', expiraEn: null, correo: '' });
+  const [qrModal, setQrModal] = useState({ open: false, qrImage: null, nombre: '', expiraEn: null, correo: '', visitaId: null });
+  const [emailSending, setEmailSending] = useState(false);
   const [viewingVisita, setViewingVisita] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const qrPrintRef = useRef(null);
@@ -145,7 +146,8 @@ function RecepcionVisitas() {
           qrImage: respuesta.qr_image,
           nombre: nombreCompleto,
           expiraEn: respuesta.expira_en,
-          correo: formData.correo.trim() || ''
+          correo: formData.correo.trim() || '',
+          visitaId: respuesta.id || null
         });
       } else {
         showToast('Visita registrada correctamente');
@@ -158,15 +160,34 @@ function RecepcionVisitas() {
   };
 
   const handlePrintQr = () => {
-    const win = window.open('', '_blank', 'width=400,height=500');
+    const ahora = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
+    const expiraTexto = qrModal.expiraEn
+      ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })
+      : '24 horas';
+    const win = window.open('', '_blank', 'width=420,height=600');
     win.document.write(`
-      <html><head><title>QR Visita</title>
-      <style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;}
-      img{width:260px;height:260px;} p{margin:6px 0;font-size:14px;color:#1e3a5f;}</style></head>
+      <html><head><title>QR Visita — ${qrModal.nombre}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: sans-serif; background: #fff; }
+        .card { display: flex; flex-direction: column; align-items: center; padding: 28px 24px;
+                border: 2px solid #1e3a5f; border-radius: 12px; max-width: 340px; margin: 20px auto; }
+        .club { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #64748b;
+                text-transform: uppercase; margin-bottom: 6px; }
+        .name { font-size: 18px; font-weight: 800; color: #1e3a5f; margin-bottom: 4px; text-align: center; }
+        .meta { font-size: 12px; color: #64748b; margin-bottom: 16px; }
+        img { width: 220px; height: 220px; border: 3px solid #1e3a5f; border-radius: 8px; }
+        .expira { font-size: 12px; color: #374151; margin-top: 12px; }
+        .bold { font-weight: 700; }
+        @media print {
+          body { margin: 0; }
+          .card { border: 2px solid #000; page-break-inside: avoid; }
+        }
+      </style></head>
       <body>
         <p style="font-weight:700;font-size:16px;">${qrModal.nombre}</p>
         <img src="${qrModal.qrImage}" alt="QR" />
-        <p>Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '24 horas'}</p>
+        <p>Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}</p>
         <script>window.onload=()=>{ window.print(); window.close(); }</script>
       </body></html>
     `);
@@ -177,7 +198,7 @@ function RecepcionVisitas() {
     const asunto = encodeURIComponent(`QR de acceso - ${qrModal.nombre}`);
     const cuerpo = encodeURIComponent(
       `Hola ${qrModal.nombre},\n\nTu código QR de acceso ha sido generado.\n` +
-      `Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '24 horas'}\n\n` +
+      `Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}\n\n` +
       `Presenta este correo en recepción para que escaneen tu QR.\n\nClub Deportivo`
     );
     const to = qrModal.correo ? encodeURIComponent(qrModal.correo) : '';
@@ -403,8 +424,15 @@ function RecepcionVisitas() {
                 <button onClick={handleDownloadQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Download size={15} /> Descargar
                 </button>
-                <button onClick={handleEmailQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }} title={qrModal.correo ? `Enviar a ${qrModal.correo}` : 'Abrir cliente de correo'}>
-                  <Mail size={15} /> Enviar por correo
+                <button
+                  onClick={handleEmailQr}
+                  className="btn-secondary"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  disabled={!qrModal.correo || emailSending}
+                  title={qrModal.correo ? `Enviar a ${qrModal.correo}` : 'El visitante no tiene correo registrado'}
+                >
+                  {emailSending ? <Loader2 size={15} className="icon-spin" /> : <Mail size={15} />}
+                  {emailSending ? 'Enviando...' : 'Enviar por correo'}
                 </button>
               </div>
             </div>

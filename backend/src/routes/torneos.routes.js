@@ -19,6 +19,5 @@ router.post('/:torneo_id/inscribir-me', verifyToken, torneosController.inscribir
 router.patch('/:torneo_id/cerrar-inscripciones', verifyToken, checkRole(staffRoles), torneosController.cerrarInscripciones);
 router.patch('/:torneo_id/confirmar-bracket', verifyToken, checkRole(staffRoles), torneosController.confirmarBracket);
 router.patch('/:torneo_id/finalizar', verifyToken, checkRole(staffRoles), torneosController.finalizarTorneo);
-router.delete('/:torneo_id/participantes/:participante_id', verifyToken, checkRole(staffRoles), torneosController.desinscribirParticipante);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  LayoutDashboard, Users, Calendar, Baby, ClipboardCheck, LogOut, UserPlus, ShieldAlert
+import {
+  LayoutDashboard, Users, Calendar, Baby, LogOut, UserPlus, ShieldAlert
 } from 'lucide-react';
 import '../../../css/recepcion.css';  // Asegúrate de que esta ruta sea correcta
 
@@ -10,7 +10,6 @@ import DashboardResumen from './recepcion/DashboardResumen';
 import GestionSocios from './recepcion/GestionSocios';
 import CentralReservas from './recepcion/CentralReservas';
 import ControlLudoteca from './recepcion/ControlLudoteca';
-import PaseLista from './recepcion/PaseLista';
 import GestionVisitas from './recepcion/GestionVisitas';
 import Sanciones from '../../components/SancionesPanel';
 import { getAuthToken } from '../../services/api';
@@ -66,9 +65,6 @@ function DashboardRecepcion() {
           <button onClick={() => setActiveTab('ludoteca')} className={getNavClass('ludoteca')}>
             <Baby className="nav-icon" /> Ludoteca
           </button>
-          <button onClick={() => setActiveTab('checkin')} className={getNavClass('checkin')}>
-            <ClipboardCheck className="nav-icon" /> Pase de Lista
-          </button>
           <button onClick={() => setActiveTab('sanciones')} className={getNavClass('sanciones')}>
             <ShieldAlert className="nav-icon" /> Sanciones
           </button>
@@ -94,7 +90,6 @@ function DashboardRecepcion() {
         {activeTab === 'socios' && <GestionSocios />}
         {activeTab === 'reservas' && <CentralReservas />}
         {activeTab === 'ludoteca' && <ControlLudoteca />}
-        {activeTab === 'checkin' && <PaseLista />}
         {activeTab === 'sanciones' && <Sanciones />}
       </main>
     </div>

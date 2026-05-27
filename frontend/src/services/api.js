@@ -119,6 +119,7 @@ export const adminApi = {
   getHistorialVisitas: async (dias = 7) =>
     unwrapList(await apiRequest(`/recepcion/visitas/historial?dias=${dias}`), ['data']),
   getSociosVisitas: async () => unwrapList(await apiRequest('/recepcion/socios-lista'), ['data', 'socios']),
+  getRecepcionDashboard: () => apiRequest('/recepcion/dashboard'),
   getLudotecaActivos: async () => unwrapList(await apiRequest('/ludoteca/activos'), ['data']),
   descargarReporte: (path, filename) =>
     downloadApiFile(path, { filename }),

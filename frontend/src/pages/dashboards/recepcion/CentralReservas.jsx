@@ -6,7 +6,7 @@ function CentralReservas() {
     <ReservationManager
       dailyMode
       title="Central de Reservas"
-      subtitle="Vista diaria para recepcion con el mismo flujo reutilizable de reservas."
+      subtitle="Planeación diaria de espacios con el mismo diseño operativo del administrador."
     />
   );
 }

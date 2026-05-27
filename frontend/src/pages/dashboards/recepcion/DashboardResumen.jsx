@@ -1,20 +1,18 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Baby,
   Calendar,
-  ClipboardCheck,
   DoorOpen,
   IdCard,
-  LogIn,
   RefreshCw,
   ShieldAlert,
   UserPlus,
   Users
 } from 'lucide-react';
-import { getAuthToken } from '../../../services/api';
+import { adminApi } from '../../../services/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const AUTO_REFRESH_MS = 30000;
 
 function percent(value, total) {
   if (!total) return 0;
@@ -51,31 +49,58 @@ function DashboardResumen({ onNavigate }) {
     noShowsHoy: 0
   });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [loadError, setLoadError] = useState('');
 
-  const fetchKpis = async () => {
-    setLoading(true);
+  const fetchKpis = useCallback(async ({ silent = false } = {}) => {
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE_URL}/recepcion/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) throw new Error('No se pudieron cargar las metricas');
-
-      const data = await res.json();
+      const data = await adminApi.getRecepcionDashboard();
       setKpis((current) => ({ ...current, ...data }));
       setLastUpdate(new Date());
+      setLoadError('');
     } catch (error) {
-      console.error('Error cargando KPIs:', error);
+      console.error('Error cargando KPIs de recepción:', error);
+      setLoadError(error.message || 'No se pudieron cargar las estadísticas de recepción.');
     } finally {
-      setLoading(false);
+      if (silent) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchKpis();
-  }, []);
+  }, [fetchKpis]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      fetchKpis({ silent: true });
+    }, AUTO_REFRESH_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchKpis({ silent: true });
+      }
+    };
+
+    window.addEventListener('focus', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchKpis]);
 
   const ocupacionSocios = useMemo(() => {
     const total = kpis.sociosDentro || 0;
@@ -88,27 +113,74 @@ function DashboardResumen({ onNavigate }) {
   const ludotecaPercent = percent(kpis.ninosLudoteca, kpis.capacidadLudoteca);
   const totalPersonasDentro = kpis.sociosDentro + kpis.visitasActivas + kpis.ninosLudoteca;
 
-  if (loading) return <div className="chart-box"><p className="empty-message">Cargando...</p></div>;
+  if (loading) {
+    return (
+      <div className="chart-box">
+        <p className="empty-message">Cargando estadísticas de recepción...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="reception-dashboard">
       <section className="reception-hero">
         <div>
-          <span className="reception-eyebrow">Operacion en tiempo real</span>
-          <h3>Recepcion del club</h3>
-          <p>Resumen para decidir rapido: personas dentro, visitas activas, reservas del dia y alertas que requieren atencion.</p>
+          <span className="reception-eyebrow">Operación en tiempo real</span>
+          <h3>Recepción del club</h3>
+          <p>
+            Resumen para decidir rápido: personas dentro, visitas activas, reservas del día
+            y alertas que requieren atención.
+          </p>
+          <p className="reception-panel-note" style={{ marginTop: 10 }}>
+            {lastUpdate
+              ? `Última actualización: ${lastUpdate.toLocaleTimeString('es-MX')}. Refresco automático cada ${AUTO_REFRESH_MS / 1000} segundos.`
+              : 'Esperando primera actualización.'}
+          </p>
+          {loadError && (
+            <p className="reception-error-text">{loadError}</p>
+          )}
         </div>
-        <button className="btn-outline" onClick={fetchKpis}>
-          <RefreshCw size={15} /> Actualizar
+        <button className="btn-outline" onClick={() => fetchKpis({ silent: true })} disabled={refreshing}>
+          <RefreshCw size={15} className={refreshing ? 'icon-spin' : ''} />
+          {refreshing ? 'Actualizando...' : 'Actualizar'}
         </button>
       </section>
 
       <div className="top-kpi-grid reception-kpi-grid">
-        <KpiButton icon={DoorOpen} value={totalPersonasDentro} label="Personas dentro" tone="blue" onClick={() => onNavigate?.('checkin')} />
-        <KpiButton icon={Users} value={kpis.sociosDentro} label="Socios registrados hoy" onClick={() => onNavigate?.('checkin')} />
-        <KpiButton icon={UserPlus} value={kpis.visitasActivas} label="Visitantes activos" tone="green" onClick={() => onNavigate?.('visitas')} />
-        <KpiButton icon={Baby} value={kpis.ninosLudoteca} label="Ninos en ludoteca" tone="amber" onClick={() => onNavigate?.('ludoteca')} />
-        <KpiButton icon={AlertTriangle} value={kpis.sancionesActivas} label="Sanciones activas" tone="red" onClick={() => onNavigate?.('sanciones')} />
+        <KpiButton
+          icon={DoorOpen}
+          value={totalPersonasDentro}
+          label="Personas dentro ahora"
+          tone="blue"
+          onClick={() => onNavigate?.('visitas')}
+        />
+        <KpiButton
+          icon={Users}
+          value={kpis.sociosDentro}
+          label="Socios dentro"
+          onClick={() => onNavigate?.('socios')}
+        />
+        <KpiButton
+          icon={UserPlus}
+          value={kpis.visitasActivas}
+          label="Visitantes activos"
+          tone="green"
+          onClick={() => onNavigate?.('visitas')}
+        />
+        <KpiButton
+          icon={Baby}
+          value={kpis.ninosLudoteca}
+          label="Niños en ludoteca"
+          tone="amber"
+          onClick={() => onNavigate?.('ludoteca')}
+        />
+        <KpiButton
+          icon={AlertTriangle}
+          value={kpis.sancionesActivas}
+          label="Sanciones activas"
+          tone="red"
+          onClick={() => onNavigate?.('sanciones')}
+        />
       </div>
 
       <div className="reception-dashboard-grid">
@@ -116,7 +188,7 @@ function DashboardResumen({ onNavigate }) {
           <div className="reception-panel-header">
             <div>
               <h4><Users size={18} /> Socios dentro</h4>
-              <p>Distribucion por tipo de socio con registros del dia.</p>
+              <p>Distribución por tipo de socio con registros del día.</p>
             </div>
             <strong>{kpis.sociosDentro}</strong>
           </div>
@@ -166,13 +238,13 @@ function DashboardResumen({ onNavigate }) {
           <div className="reception-panel-header">
             <div>
               <h4><IdCard size={18} /> Pases activos</h4>
-              <p>Separacion entre visitas por socio y pases de dia.</p>
+              <p>Separación entre visitas por socio y pases de un día.</p>
             </div>
             <strong>{kpis.visitasActivas}</strong>
           </div>
           <div className="reception-mini-stats">
             <button onClick={() => onNavigate?.('visitas')}><span>{kpis.visitasInvitadosActivas}</span> Visitas</button>
-            <button onClick={() => onNavigate?.('visitas')}><span>{kpis.pasesDiaActivos}</span> Pases dia</button>
+            <button onClick={() => onNavigate?.('visitas')}><span>{kpis.pasesDiaActivos}</span> Pases día</button>
           </div>
         </section>
       </div>
@@ -180,15 +252,15 @@ function DashboardResumen({ onNavigate }) {
       <section className="chart-box reception-actions-panel">
         <div className="reception-panel-header">
           <div>
-            <h4><ClipboardCheck size={18} /> Accesos rapidos</h4>
-            <p>{lastUpdate ? `Actualizado ${lastUpdate.toLocaleTimeString()}` : 'Listo para operar'}</p>
+            <h4><Calendar size={18} /> Accesos rápidos</h4>
+            <p>{lastUpdate ? `Actualizado ${lastUpdate.toLocaleTimeString('es-MX')}` : 'Listo para operar'}</p>
           </div>
         </div>
         <div className="recepcion-quick-actions">
           <button className="btn-outline" onClick={() => onNavigate?.('visitas')}><UserPlus size={16} /> Registrar visitas</button>
           <button className="btn-outline" onClick={() => onNavigate?.('reservas')}><Calendar size={16} /> Revisar reservas</button>
           <button className="btn-outline" onClick={() => onNavigate?.('ludoteca')}><Baby size={16} /> Control ludoteca</button>
-          <button className="btn-outline" onClick={() => onNavigate?.('checkin')}><LogIn size={16} /> Pase de lista</button>
+          <button className="btn-outline" onClick={() => onNavigate?.('socios')}><Users size={16} /> Ver socios</button>
           <button className="btn-outline" onClick={() => onNavigate?.('sanciones')}><ShieldAlert size={16} /> Ver sanciones</button>
         </div>
       </section>

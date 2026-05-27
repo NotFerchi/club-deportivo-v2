@@ -248,8 +248,8 @@ const recepcionController = {
             const sociosDentro = await pool.query(
                 `SELECT
                     COUNT(DISTINCT a.socio_id)::int as total,
-                    COUNT(DISTINCT a.socio_id) FILTER (WHERE LOWER(COALESCE(s.tipo, s.modalidad, '')) = 'accionista')::int as accionistas,
-                    COUNT(DISTINCT a.socio_id) FILTER (WHERE LOWER(COALESCE(s.tipo, s.modalidad, '')) <> 'accionista')::int as rentistas
+                    COUNT(DISTINCT a.socio_id) FILTER (WHERE LOWER(COALESCE(s.tipo::text, s.modalidad::text, '')) = 'accionista')::int as accionistas,
+                    COUNT(DISTINCT a.socio_id) FILTER (WHERE LOWER(COALESCE(s.tipo::text, s.modalidad::text, '')) <> 'accionista')::int as rentistas
                  FROM asistencia a
                  JOIN socios s ON a.socio_id = s.socio_id
                  WHERE a.fecha = $1

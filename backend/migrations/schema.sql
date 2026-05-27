@@ -175,6 +175,11 @@ CREATE TABLE asistencia (
 -- ==========================================
 -- 6. TORNEOS Y EQUIPOS
 -- ==========================================
+CREATE TABLE categorias_torneo (
+    categoria_id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL
+);
+
 CREATE TABLE torneos (
     torneo_id SERIAL PRIMARY KEY,
     disciplina_id INT REFERENCES disciplinas(disciplina_id),
@@ -182,12 +187,8 @@ CREATE TABLE torneos (
     fecha_inicio DATE,
     fecha_fin DATE,
     estado VARCHAR(30),
+    categoria_id INT REFERENCES categorias_torneo(categoria_id),
     CHECK (fecha_fin >= fecha_inicio)
-);
-
-CREATE TABLE categorias_torneo (
-    categoria_id SERIAL PRIMARY KEY,
-    nombre VARCHAR(50) NOT NULL
 );
 
 CREATE TABLE equipos (

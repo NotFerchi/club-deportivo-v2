@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   Bell,
   Calendar,
   CalendarDays,
+  Camera,
   ClipboardList,
   Dumbbell,
   FileText,
@@ -148,6 +149,9 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
+  const [fotoPerfil, setFotoPerfil] = useState(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const fotoInputRef = useRef(null);
   const [kpis, setKpis] = useState({
     totalSocios: 0, accionistas: 0, rentistas: 0,
     reservasHoy: 0, sancionesActivas: 0,
@@ -212,6 +216,7 @@ function Dashboard() {
 
       setUserName(usuario.nombres || 'Administrador');
       setUserRole(usuario.rol);
+      setFotoPerfil(usuario.foto_perfil || null);
       fetchDashboardData();
     } catch (error) {
       console.error('Error leyendo la sesion del dashboard:', error);
@@ -357,6 +362,29 @@ function Dashboard() {
     navigate('/');
   };
 
+  const handleFotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert('La imagen debe ser menor a 5MB'); return; }
+    setSubiendoFoto(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('foto', file);
+      const res = await fetch('http://localhost:3000/api/usuarios/me/foto', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Error al subir foto'); return; }
+      setFotoPerfil(data.foto_perfil);
+      const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+      localStorage.setItem('usuario', JSON.stringify({ ...usuario, foto_perfil: data.foto_perfil }));
+    } catch { alert('Error de conexión'); }
+    finally { setSubiendoFoto(false); e.target.value = ''; }
+  };
+
   const isManager = userRole === 'gerente';
   const dashboardTitle = isManager ? 'Panel Gerencial' : 'Dashboard Ejecutivo';
   const todayLabel = useMemo(() =>
@@ -434,7 +462,22 @@ function Dashboard() {
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <div className="sidebar-avatar">{userName.charAt(0).toUpperCase()}</div>
+            <div
+              className="sidebar-avatar"
+              onClick={() => fotoInputRef.current?.click()}
+              title="Cambiar foto de perfil"
+              style={{ cursor: 'pointer', overflow: 'hidden', position: 'relative', flexShrink: 0 }}
+            >
+              {fotoPerfil
+                ? <img src={fotoPerfil} alt="Foto perfil" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: '50%' }} />
+                : userName.charAt(0).toUpperCase()
+              }
+              {subiendoFoto && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ width: 10, height: 10, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'inst-spin 0.7s linear infinite', display: 'block' }} />
+                </div>
+              )}
+            </div>
             <div>
               <p className="sidebar-name">{userName}</p>
               <p className="sidebar-role">{isManager ? 'Gerente' : 'Admin'}</p>
@@ -458,7 +501,17 @@ function Dashboard() {
           </div>
           <div className="admin-mobile-right">
             <span className="admin-mobile-username">{userName}</span>
-            <div className="admin-mobile-avatar">{userName.charAt(0).toUpperCase()}</div>
+            <div
+              className="admin-mobile-avatar"
+              onClick={() => fotoInputRef.current?.click()}
+              title="Cambiar foto de perfil"
+              style={{ cursor: 'pointer', overflow: 'hidden' }}
+            >
+              {fotoPerfil
+                ? <img src={fotoPerfil} alt="Foto perfil" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: '50%' }} />
+                : userName.charAt(0).toUpperCase()
+              }
+            </div>
             <button onClick={handleLogout} className="admin-mobile-logout-btn" title="Cerrar sesión">
               <LogOut size={18} />
             </button>
@@ -760,6 +813,10 @@ function Dashboard() {
         {activeTab === 'logs' && userRole === 'admin' && <AuditoriaLogs />}
         </main>
       </div>
+
+      {/* Input oculto foto */}
+      <input ref={fotoInputRef} type="file" accept="image/*"
+        style={{ display: 'none' }} onChange={handleFotoChange} />
     </div>
   );
 }

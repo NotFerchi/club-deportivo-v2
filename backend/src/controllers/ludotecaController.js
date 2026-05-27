@@ -276,8 +276,8 @@ module.exports = {
            registro_id,
            nombre_hijo,
            fecha_nacimiento,
-           hora_entrada,
-           hora_salida,
+           TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada,
+           TO_CHAR(hora_salida,  'YYYY-MM-DD"T"HH24:MI:SS') AS hora_salida,
            CASE WHEN hora_salida IS NULL THEN 'activo' ELSE 'finalizado' END as estado,
            ROUND(EXTRACT(EPOCH FROM (COALESCE(hora_salida, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}') - hora_entrada)) / 60) as minutos_transcurridos
          FROM registro_ludoteca

@@ -1827,6 +1827,10 @@ body {
     margin-bottom: 0.5rem;
 }
 
+@keyframes inst-spin {
+  to { transform: rotate(360deg); }
+}
+
 .sidebar-avatar {
     width: 32px;
     height: 32px;

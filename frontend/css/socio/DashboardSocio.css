@@ -37,6 +37,16 @@ html, body {
     cursor: pointer;
     transition: all 0.2s ease;
 }
+.ds-notif-badge-btn:hover {
+    background: #e2e8f0;
+    transform: scale(1.05);
+}
+
+/* --- ANIMACIÓN TOASTS --- */
+@keyframes slideInRight {
+    from { transform: translateX(110%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
 
 /* --- TOP BAR --- */
 .ds-top-bar {

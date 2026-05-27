@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, CheckCircle, Clock, Edit2, Filter, Lock, Loader2, MapPin, Plus, RotateCcw, Save, Trophy, Users, X } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Edit2, Filter, Lock, Loader2, MapPin, Plus, RotateCcw, Save, Trash2, Trophy, Users, X } from 'lucide-react';
 import { apiRequest, unwrapList } from '../services/api';
 import '../../css/TournamentBracket.css';
 
@@ -384,12 +384,15 @@ function TournamentBracket({
   const [bracketError, setBracketError] = useState('');
   const [showTorneoModal, setShowTorneoModal] = useState(false);
   const [editingTorneo, setEditingTorneo] = useState(null);
-  const [formTorneo, setFormTorneo] = useState({ nombre: '', disciplina_id: '', fecha_inicio: '', fecha_fin: '', estado: 'Abierto' });
+  const [formTorneo, setFormTorneo] = useState({ nombre: '', disciplina_id: '', fecha_inicio: '', fecha_fin: '', estado: 'Abierto', categoria_id: '' });
   const [torneoFormErrors, setTorneoFormErrors] = useState({});
   const [savingTorneo, setSavingTorneo] = useState(false);
   const [showParticipantes, setShowParticipantes] = useState(false);
   const [participantes, setParticipantes] = useState([]);
   const [loadingParticipantes, setLoadingParticipantes] = useState(false);
+  const [categorias, setCategorias] = useState([]);
+  const [desinscribiendoId, setDesinscribiendoId] = useState(null);
+  const [torneoParticipantesActual, setTorneoParticipantesActual] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -403,6 +406,18 @@ function TournamentBracket({
     }
     loadDisciplinas();
     return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    async function loadCategorias() {
+      try {
+        const payload = await apiRequest('/torneos/categorias');
+        setCategorias(Array.isArray(payload) ? payload : []);
+      } catch {
+        setCategorias([]);
+      }
+    }
+    loadCategorias();
   }, []);
 
   const cargarTorneos = async (signal) => {
@@ -452,7 +467,7 @@ function TournamentBracket({
 
   const openCreateModal = () => {
     setEditingTorneo(null);
-    setFormTorneo({ nombre: '', disciplina_id: '', fecha_inicio: '', fecha_fin: '', estado: 'Abierto' });
+    setFormTorneo({ nombre: '', disciplina_id: '', fecha_inicio: '', fecha_fin: '', estado: 'Abierto', categoria_id: '' });
     setTorneoFormErrors({});
     setShowTorneoModal(true);
   };
@@ -464,7 +479,8 @@ function TournamentBracket({
       disciplina_id: String(torneo.disciplina_id || ''),
       fecha_inicio: torneo.fecha_inicio ? String(torneo.fecha_inicio).split('T')[0] : '',
       fecha_fin: torneo.fecha_fin ? String(torneo.fecha_fin).split('T')[0] : '',
-      estado: torneo.estado || 'Abierto'
+      estado: torneo.estado || 'Abierto',
+      categoria_id: torneo.categoria_id ? String(torneo.categoria_id) : ''
     });
     setTorneoFormErrors({});
     setShowTorneoModal(true);
@@ -492,7 +508,8 @@ function TournamentBracket({
         disciplina_id: Number(formTorneo.disciplina_id),
         fecha_inicio: formTorneo.fecha_inicio || null,
         fecha_fin: formTorneo.fecha_fin || null,
-        estado: formTorneo.estado
+        estado: formTorneo.estado,
+        categoria_id: formTorneo.categoria_id ? Number(formTorneo.categoria_id) : null
       };
       const url = editingTorneo
         ? `http://localhost:3000/api/torneos/${editingTorneo.torneo_id}`
@@ -513,8 +530,7 @@ function TournamentBracket({
     }
   };
 
-  const handleVerParticipantes = async (torneo) => {
-    setShowParticipantes(true);
+  const cargarParticipantes = async (torneo) => {
     setLoadingParticipantes(true);
     setParticipantes([]);
     try {
@@ -528,6 +544,37 @@ function TournamentBracket({
       setParticipantes([]);
     } finally {
       setLoadingParticipantes(false);
+    }
+  };
+
+  const handleVerParticipantes = async (torneo) => {
+    setTorneoParticipantesActual(torneo);
+    setShowParticipantes(true);
+    await cargarParticipantes(torneo);
+  };
+
+  const handleDesinscribir = async (participante) => {
+    if (!torneoParticipantesActual) return;
+    if (!window.confirm(`¿Desinscribir a "${participante.nombre_participante}" del torneo?`)) return;
+    setDesinscribiendoId(participante.participante_id);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(
+        `http://localhost:3000/api/torneos/${torneoParticipantesActual.torneo_id}/participantes/${participante.participante_id}`,
+        { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Error al desinscribir');
+        return;
+      }
+      // Refrescar lista y contador
+      await cargarParticipantes(torneoParticipantesActual);
+      await cargarTorneos();
+    } catch {
+      alert('Error de conexión');
+    } finally {
+      setDesinscribiendoId(null);
     }
   };
 
@@ -740,6 +787,19 @@ function TournamentBracket({
                     {torneoFormErrors.fecha_fin && <p style={{ margin: '4px 0 0', color: '#ef4444', fontSize: 12 }}>{torneoFormErrors.fecha_fin}</p>}
                   </div>
                 </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>
+                    Categoría del torneo
+                  </label>
+                  <select value={formTorneo.categoria_id} onChange={e => setFormTorneo(p => ({ ...p, categoria_id: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box' }}>
+                    <option value="">Sin categoría</option>
+                    {categorias.map(c => <option key={c.categoria_id} value={c.categoria_id}>{c.nombre}</option>)}
+                  </select>
+                  <p style={{ margin: '4px 0 0', fontSize: 11, color: '#94a3b8' }}>
+                    Define la categoría para todos los participantes de este torneo.
+                  </p>
+                </div>
                 {editingTorneo && (
                   <div>
                     <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>Estado</label>
@@ -796,6 +856,9 @@ function TournamentBracket({
                       <th style={{ textAlign: 'left', padding: '8px 4px', color: '#475569', fontWeight: 700 }}>Participante</th>
                       <th style={{ textAlign: 'left', padding: '8px 4px', color: '#475569', fontWeight: 700 }}>Tipo</th>
                       <th style={{ textAlign: 'left', padding: '8px 4px', color: '#475569', fontWeight: 700 }}>Categoría</th>
+                      {!readOnly && torneoParticipantesActual?.estado === 'Abierto' && (
+                        <th style={{ textAlign: 'center', padding: '8px 4px', color: '#475569', fontWeight: 700 }}>Acción</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -811,6 +874,25 @@ function TournamentBracket({
                           </span>
                         </td>
                         <td style={{ padding: '8px 4px', color: '#64748b', fontSize: 12 }}>{p.categoria || '-'}</td>
+                        {!readOnly && torneoParticipantesActual?.estado === 'Abierto' && (
+                          <td style={{ padding: '8px 4px', textAlign: 'center' }}>
+                            <button
+                              onClick={() => handleDesinscribir(p)}
+                              disabled={desinscribiendoId === p.participante_id}
+                              title="Desinscribir participante"
+                              style={{
+                                background: desinscribiendoId === p.participante_id ? '#f1f5f9' : '#fee2e2',
+                                border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+                                color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: 4,
+                                fontSize: 11, fontWeight: 700
+                              }}>
+                              {desinscribiendoId === p.participante_id
+                                ? <Loader2 size={12} className="icon-spin" />
+                                : <><Trash2 size={12} /> Quitar</>
+                              }
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

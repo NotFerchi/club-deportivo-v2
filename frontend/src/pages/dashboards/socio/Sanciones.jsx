@@ -31,7 +31,8 @@ function Sanciones() {
       const data = await apiRequest(`/sanciones/socio/${socioId}`)
       const lista = Array.isArray(data) ? data : []
       setSanciones(lista)
-      const activas = lista.filter(s => s.estado === 'Activa')
+      // Usar el campo booleano `activa` calculado en backend (considera estado + fecha_fin)
+      const activas = lista.filter(s => s.activa === true)
       if (activas.some(s => s.gravedad === 'Grave' || s.gravedad === 'Moderada')) {
         setEstadoCuenta('sancionado')
       } else if (activas.length > 0) {
@@ -64,8 +65,11 @@ function Sanciones() {
     return 'leve'
   }
 
-  const getNormalizedEstado = (estado) => {
-    return (estado || '').toLowerCase() === 'resuelta' ? 'cumplida' : 'activa'
+  // Usa el campo booleano `activa` del backend; fallback: compara estado para compatibilidad
+  const getNormalizedEstado = (sancion) => {
+    if (typeof sancion.activa === 'boolean') return sancion.activa ? 'activa' : 'cumplida'
+    const e = (sancion.estado || '').toLowerCase()
+    return ['resuelta', 'inactivo', 'inactiva', 'resuelto'].includes(e) ? 'cumplida' : 'activa'
   }
 
   const formatFecha = (fecha) => {
@@ -84,8 +88,8 @@ function Sanciones() {
   }
 
   const estatusColor = getEstatusColor()
-  const sancionesActivas = sanciones.filter(s => s.estado === 'Activa').length
-  const sancionesResueltas = sanciones.filter(s => s.estado !== 'Activa').length
+  const sancionesActivas = sanciones.filter(s => s.activa === true).length
+  const sancionesResueltas = sanciones.filter(s => s.activa !== true).length
 
   return (
     <SocioLayout activeTab="sanciones" title="Club Social | Estado de Cuenta">
@@ -171,7 +175,7 @@ function Sanciones() {
         ) : (
           <div className="sanciones-grid">
             {sanciones.map(sancion => {
-              const estadoNorm = getNormalizedEstado(sancion.estado)
+              const estadoNorm = getNormalizedEstado(sancion)
               return (
                 <div key={sancion.sancion_id} className="sancion-card">
                   <div className="sancion-header">
@@ -227,8 +231,8 @@ function Sanciones() {
                   <span className={`badge-gravedad ${getGravedadColor(sancionSeleccionada.gravedad)}`}>
                     {sancionSeleccionada.gravedad || 'Leve'}
                   </span>
-                  <span className={`sancion-status ${getNormalizedEstado(sancionSeleccionada.estado)}`}>
-                    {getNormalizedEstado(sancionSeleccionada.estado) === 'activa' ? ' Activa' : ' Resuelta'}
+                  <span className={`sancion-status ${getNormalizedEstado(sancionSeleccionada)}`}>
+                    {getNormalizedEstado(sancionSeleccionada) === 'activa' ? ' Activa' : ' Resuelta'}
                   </span>
                 </div>
 
@@ -259,7 +263,7 @@ function Sanciones() {
                   <p>{sancionSeleccionada.motivo}</p>
                 </div>
 
-                {getNormalizedEstado(sancionSeleccionada.estado) === 'activa' && (
+                {getNormalizedEstado(sancionSeleccionada) === 'activa' && (
                   <div className="detalle-pago">
                     <AlertIcon size={20} />
                     <div>

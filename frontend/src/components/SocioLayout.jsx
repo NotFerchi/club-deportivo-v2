@@ -35,7 +35,7 @@ function Toast({ noti, onClose }) {
       borderRadius: '12px', padding: '0.85rem 1rem',
       boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
       animation: 'slideInRight 0.3s ease',
-      maxWidth: '340px', width: '100%',
+      width: '100%',
     }}>
       <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>{bg.icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -70,8 +70,11 @@ function NotiDropdown({ notificaciones, onMarcarLeida, onMarcarTodas, onEliminar
 
   return (
     <div style={{
-      position: 'absolute', top: 'calc(100% + 10px)', right: 0,
-      width: '360px', maxHeight: '480px',
+      position: 'fixed',
+      top: '64px',
+      right: '0.5rem',
+      width: 'min(360px, calc(100vw - 1rem))',
+      maxHeight: 'calc(100vh - 80px)',
       background: 'white', borderRadius: '16px',
       boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
       border: '1px solid #e2e8f0',
@@ -257,9 +260,10 @@ function SocioLayout({ children, activeTab = 'inicio', title }) {
 
       {/* ── TOASTS ──────────────────────────────────────────── */}
       <div style={{
-        position: 'fixed', bottom: '1.5rem', right: '1.5rem',
+        position: 'fixed', bottom: '1rem', right: '0.5rem',
         zIndex: 99999, display: 'flex', flexDirection: 'column-reverse',
-        gap: '0.6rem', maxWidth: '360px', width: '100%',
+        gap: '0.6rem',
+        width: 'min(340px, calc(100vw - 1rem))',
         pointerEvents: 'none',
       }}>
         {toasts.map(t => (

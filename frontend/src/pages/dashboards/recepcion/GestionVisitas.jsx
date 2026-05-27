@@ -36,10 +36,20 @@ function getVisitanteNombre(pase) {
 }
 
 function getAnfitrionNombre(pase) {
-  return [pase?.socio_anfitrion_nombre || pase?.socio_nombre, pase?.socio_anfitrion_apellido]
+  const nombreCompleto = [
+    pase?.socio_anfitrion_nombre,
+    pase?.socio_anfitrion_apellido,
+    pase?.socio_anfitrion_apellido_materno
+  ]
     .filter(Boolean)
     .join(' ')
     .trim();
+
+  if (nombreCompleto) return nombreCompleto;
+  if (pase?.socio_nombre) return pase.socio_nombre;
+
+  const socioId = pase?.socio_anfitrion_id || pase?.socio_id;
+  return socioId ? `Socio #${socioId}` : '';
 }
 
 function isSameMxDay(value, reference = new Date()) {
@@ -235,6 +245,7 @@ function GestionVisitas() {
       const response = await adminApi.registrarVisita({
         tipo_pase: formData.tipo_pase,
         socio_id: formData.tipo_pase === 'visita' ? Number(formData.socio_id) : null,
+        socio_anfitrion_id: formData.tipo_pase === 'visita' ? Number(formData.socio_id) : null,
         nombre_completo: formData.nombre_completo.trim(),
         correo: formData.correo.trim(),
         telefono: formData.telefono.trim(),
@@ -301,30 +312,25 @@ function GestionVisitas() {
   };
 
   const handlePrintQr = () => {
-    const printableImage = qrPrintRef.current?.src || qrModal.qrImage;
-    const win = window.open('', '_blank', 'width=420,height=560');
-    if (!win) return;
+    const imgSrc = qrModal.qrImage;
+    const nombre = qrModal.nombre;
+    const expiraTexto = qrModal.expiraEn
+      ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: MX_TIMEZONE })
+      : '24 horas';
 
-    win.document.write(`
-      <html>
-        <head>
-          <title>QR Acceso</title>
-          <style>
-            body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: Arial, sans-serif; background: #fff; color: #0f172a; }
-            img { width: 260px; height: 260px; border: 2px solid #dbeafe; border-radius: 16px; padding: 10px; }
-            .title { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
-            .sub { font-size: 13px; color: #64748b; margin-top: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="title">${qrModal.nombre}</div>
-          <img src="${printableImage}" alt="QR de acceso" />
-          <div class="sub">Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: MX_TIMEZONE }) : '24 horas'}</div>
-          <script>window.onload = () => { window.print(); window.close(); };</script>
-        </body>
-      </html>
-    `);
-    win.document.close();
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'display:none;';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head><title>QR Acceso</title><style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:Arial,sans-serif;background:#fff;color:#0f172a;}img{width:260px;height:260px;border:2px solid #dbeafe;border-radius:16px;padding:10px;}h2{font-size:18px;font-weight:700;margin-bottom:12px;}p{font-size:12px;color:#64748b;margin-top:8px;}</style></head><body><h2>${nombre}</h2><img src="${imgSrc}" alt="QR de acceso"/><p>Válido hasta: ${expiraTexto}</p></body></html>`);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      document.body.removeChild(iframe);
+    }, 500);
   };
 
   const handleDownloadQr = () => {

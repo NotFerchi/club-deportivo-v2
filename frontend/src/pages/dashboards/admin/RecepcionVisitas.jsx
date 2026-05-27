@@ -5,6 +5,7 @@ import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput, Stat
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
 const initialFormData = {
+  tipo_pase: 'visita',
   nombre: '',
   apellidos: '',
   identificacion: '',
@@ -19,6 +20,20 @@ const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
 
 function getVisitanteNombre(visita) {
   return visita.nombre_completo || [visita.nombre, visita.apellidos].filter(Boolean).join(' ').trim();
+}
+
+function getAnfitrionNombre(visita) {
+  const nombreCompleto = [
+    visita?.socio_anfitrion_nombre,
+    visita?.socio_anfitrion_apellido,
+    visita?.socio_anfitrion_apellido_materno
+  ].filter(Boolean).join(' ').trim();
+
+  if (nombreCompleto) return nombreCompleto;
+  if (visita?.socio_nombre) return visita.socio_nombre;
+
+  const socioId = visita?.socio_anfitrion_id || visita?.socio_id;
+  return socioId ? `Socio #${socioId}` : '';
 }
 
 function RecepcionVisitas() {
@@ -97,8 +112,11 @@ function RecepcionVisitas() {
     if (formData.apellidos.trim().length < 2) errors.apellidos = 'Apellidos obligatorios';
     if (!/^\d{10}$/.test(formData.telefono.trim())) errors.telefono = 'Teléfono de 10 dígitos obligatorio';
     if (formData.correo.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo.trim())) errors.correo = 'Correo inválido';
+    if (formData.tipo_pase === 'visita' && !formData.socio_anfitrion_id) {
+      errors.socio_anfitrion_id = 'Selecciona el socio anfitrión';
+    }
 
-    if (formData.socio_anfitrion_id) {
+    if (formData.tipo_pase === 'visita' && formData.socio_anfitrion_id) {
       const limites = limitesPases[formData.socio_anfitrion_id];
       if (limites && limites.usados >= limites.maximo) {
         errors.socio_anfitrion_id = `El socio alcanzó su límite diario de ${limites.maximo} pases`;
@@ -118,10 +136,11 @@ function RecepcionVisitas() {
     }
 
     const nombreCompleto = `${formData.nombre.trim()} ${formData.apellidos.trim()}`.trim();
+    const esVisita = formData.tipo_pase === 'visita';
     const payload = {
-      tipo_pase: formData.socio_anfitrion_id ? 'visita' : 'dia',
-      socio_id: formData.socio_anfitrion_id || null,
-      socio_anfitrion_id: formData.socio_anfitrion_id || null,
+      tipo_pase: formData.tipo_pase,
+      socio_id: esVisita ? formData.socio_anfitrion_id : null,
+      socio_anfitrion_id: esVisita ? formData.socio_anfitrion_id : null,
       nombre_completo: nombreCompleto,
       nombre: formData.nombre.trim(),
       apellido: formData.apellidos.trim(),
@@ -160,38 +179,25 @@ function RecepcionVisitas() {
   };
 
   const handlePrintQr = () => {
-    const ahora = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
+    const imgSrc = qrModal.qrImage;
+    const nombre = qrModal.nombre;
     const expiraTexto = qrModal.expiraEn
       ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })
       : '24 horas';
-    const win = window.open('', '_blank', 'width=420,height=600');
-    win.document.write(`
-      <html><head><title>QR Visita — ${qrModal.nombre}</title>
-      <style>
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: sans-serif; background: #fff; }
-        .card { display: flex; flex-direction: column; align-items: center; padding: 28px 24px;
-                border: 2px solid #1e3a5f; border-radius: 12px; max-width: 340px; margin: 20px auto; }
-        .club { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #64748b;
-                text-transform: uppercase; margin-bottom: 6px; }
-        .name { font-size: 18px; font-weight: 800; color: #1e3a5f; margin-bottom: 4px; text-align: center; }
-        .meta { font-size: 12px; color: #64748b; margin-bottom: 16px; }
-        img { width: 220px; height: 220px; border: 3px solid #1e3a5f; border-radius: 8px; }
-        .expira { font-size: 12px; color: #374151; margin-top: 12px; }
-        .bold { font-weight: 700; }
-        @media print {
-          body { margin: 0; }
-          .card { border: 2px solid #000; page-break-inside: avoid; }
-        }
-      </style></head>
-      <body>
-        <p style="font-weight:700;font-size:16px;">${qrModal.nombre}</p>
-        <img src="${qrModal.qrImage}" alt="QR" />
-        <p>Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}</p>
-        <script>window.onload=()=>{ window.print(); window.close(); }</script>
-      </body></html>
-    `);
-    win.document.close();
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'display:none;';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head><title>QR Visita</title><style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;background:#fff;}img{width:220px;height:220px;border:3px solid #1e3a5f;border-radius:8px;}h2{font-size:18px;font-weight:800;color:#1e3a5f;margin-bottom:8px;}p{font-size:12px;color:#374151;margin-top:10px;}</style></head><body><h2>${nombre}</h2><img src="${imgSrc}" alt="QR"/><p>Válido hasta: ${expiraTexto}</p></body></html>`);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      document.body.removeChild(iframe);
+    }, 500);
   };
 
   const handleEmailQr = () => {
@@ -243,8 +249,8 @@ function RecepcionVisitas() {
       const text = normalizeText([
         getVisitanteNombre(visita),
         visita.identificacion,
-        visita.socio_anfitrion_nombre,
-        visita.socio_anfitrion_apellido,
+        getAnfitrionNombre(visita),
+        visita.numero_socio,
         visita.motivo
       ].filter(Boolean).join(' '));
       return !query || text.includes(query);
@@ -258,8 +264,8 @@ function RecepcionVisitas() {
       const text = normalizeText([
         getVisitanteNombre(registro),
         registro.identificacion,
-        registro.socio_anfitrion_nombre,
-        registro.socio_anfitrion_apellido,
+        getAnfitrionNombre(registro),
+        registro.numero_socio,
         registro.motivo
       ].filter(Boolean).join(' '));
 
@@ -341,7 +347,7 @@ function RecepcionVisitas() {
               <div className="espacio-body">
                 <div className="espacio-stat">
                   <span className="stat-label">Anfitrión</span>
-                  <span className="stat-value">{visita.socio_anfitrion_nombre || visita.socio_nombre || 'Ninguno'}</span>
+                  <span className="stat-value">{getAnfitrionNombre(visita) || 'Ninguno'}</span>
                 </div>
                 <div className="espacio-stat">
                   <span className="stat-label">Motivo</span>
@@ -381,7 +387,7 @@ function RecepcionVisitas() {
                 <tr key={registro.visita_id || registro.pase_id}>
                   <td><strong>{getVisitanteNombre(registro)}</strong></td>
                   <td>{registro.identificacion || '-'}</td>
-                  <td>{registro.socio_anfitrion_nombre || registro.socio_nombre || '-'}</td>
+                  <td>{getAnfitrionNombre(registro) || '-'}</td>
                   <td>{formatDateTime(registro.hora_entrada)}</td>
                   <td>{registro.hora_salida ? formatDateTime(registro.hora_salida) : '-'}</td>
                   <td><span className={registro.hora_salida ? 'badge-warning' : 'badge-success'}>{registro.hora_salida ? 'Finalizada' : 'Activa'}</span></td>
@@ -482,10 +488,7 @@ function RecepcionVisitas() {
                 </div>
                 <div className="form-group">
                   <label>Socio anfitrión</label>
-                  <p style={{ margin: 0 }}>
-                    {[viewingVisita.socio_anfitrion_nombre, viewingVisita.socio_anfitrion_apellido].filter(Boolean).join(' ') ||
-                     viewingVisita.socio_nombre || 'Ninguno'}
-                  </p>
+                  <p style={{ margin: 0 }}>{getAnfitrionNombre(viewingVisita) || 'Ninguno'}</p>
                 </div>
                 <div className="form-group">
                   <label>Número de socio anfitrión</label>
@@ -555,6 +558,24 @@ function RecepcionVisitas() {
                     {formErrors.telefono && <p className="field-error">{formErrors.telefono}</p>}
                   </div>
                   <div className="form-group">
+                    <label className="required">Tipo de pase</label>
+                    <select
+                      value={formData.tipo_pase}
+                      onChange={event => {
+                        const nextType = event.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          tipo_pase: nextType,
+                          socio_anfitrion_id: nextType === 'visita' ? prev.socio_anfitrion_id : ''
+                        }));
+                        setFormErrors(prev => ({ ...prev, tipo_pase: undefined, socio_anfitrion_id: undefined }));
+                      }}
+                    >
+                      <option value="visita">Visita con socio anfitrión</option>
+                      <option value="dia">Pase de día sin anfitrión</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
                     <label>Correo</label>
                     <input type="email" value={formData.correo} onChange={event => updateForm('correo', event.target.value)} style={formErrors.correo ? inputErrorStyle : {}} />
                     {formErrors.correo && <p className="field-error">{formErrors.correo}</p>}
@@ -564,9 +585,16 @@ function RecepcionVisitas() {
                     <input value={formData.identificacion} onChange={event => updateForm('identificacion', event.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label>Socio anfitrión</label>
-                    <select value={formData.socio_anfitrion_id} onChange={event => updateForm('socio_anfitrion_id', event.target.value)} style={formErrors.socio_anfitrion_id ? inputErrorStyle : {}}>
-                      <option value="">Pase de día / sin anfitrión</option>
+                    <label className={formData.tipo_pase === 'visita' ? 'required' : ''}>Socio anfitrión</label>
+                    <select
+                      value={formData.socio_anfitrion_id}
+                      onChange={event => updateForm('socio_anfitrion_id', event.target.value)}
+                      style={formErrors.socio_anfitrion_id ? inputErrorStyle : {}}
+                      disabled={formData.tipo_pase !== 'visita'}
+                    >
+                      <option value="">
+                        {formData.tipo_pase === 'visita' ? 'Selecciona un socio' : 'No requerido para pase de día'}
+                      </option>
                       {socios.map(socio => (
                         <option key={socio.socio_id} value={socio.socio_id}>
                           {socio.nombres} {socio.apellido_paterno} ({socio.tipo_socio}) - Pases {limitesPases[socio.socio_id]?.usados || 0}/{limitesPases[socio.socio_id]?.maximo || 0}

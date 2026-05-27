@@ -51,50 +51,86 @@ const pasesSelect = `
         NULL::text as identificacion,
         NULL::text as identificacion_tipo,
         s.numero_socio,
+        NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre,
         u.nombres as socio_anfitrion_nombre,
         u.apellido_paterno as socio_anfitrion_apellido,
+        u.apellido_materno as socio_anfitrion_apellido_materno,
         u.username as socio_anfitrion_email
     FROM pases p
     LEFT JOIN socios s ON p.socio_id = s.socio_id
     LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id
 `;
 
-const visitasSelect = `
+const getVisitasLegacyColumns = async () => {
+    const result = await pool.query(
+        `SELECT column_name
+         FROM information_schema.columns
+         WHERE table_schema = current_schema()
+           AND table_name = 'visitas'
+           AND column_name = ANY($1::text[])`,
+        [['socio_id', 'correo', 'telefono', 'mayor_16', 'observaciones']]
+    );
+
+    const columns = new Set(result.rows.map((row) => row.column_name));
+
+    return {
+        socioId: columns.has('socio_id'),
+        correo: columns.has('correo'),
+        telefono: columns.has('telefono'),
+        mayor16: columns.has('mayor_16'),
+        observaciones: columns.has('observaciones')
+    };
+};
+
+const buildVisitasLegacySelect = (columns = {}) => `
     SELECT
         v.visita_id,
         v.visita_id as pase_id,
-        'visita' as tipo_pase,
-        NULL::int as socio_id,
-        NULL::int as socio_anfitrion_id,
+        CASE
+            WHEN ${columns.socioId ? 'v.socio_id IS NOT NULL' : 'false'} THEN 'visita'
+            WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia'
+            ELSE 'visita'
+        END as tipo_pase,
+        ${columns.socioId ? 'v.socio_id' : 'NULL::int'} as socio_id,
+        ${columns.socioId ? 'v.socio_id' : 'NULL::int'} as socio_anfitrion_id,
         v.nombre_completo,
         split_part(v.nombre_completo, ' ', 1) as nombre,
         NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos,
-        NULL::text as correo,
-        NULL::text as telefono,
-        true as mayor_16,
+        ${columns.correo ? 'v.correo' : 'NULL::text'} as correo,
+        ${columns.telefono ? 'v.telefono' : 'NULL::text'} as telefono,
+        ${columns.mayor16 ? 'COALESCE(v.mayor_16, true)' : 'true'} as mayor_16,
         v.fecha_visita as fecha_pase,
         v.fecha_visita,
         v.hora_entrada,
         v.hora_salida,
         CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado,
         v.vigente,
-        NULL::text as observaciones,
-        NULL::text as motivo,
+        ${columns.observaciones ? 'v.observaciones' : 'NULL::text'} as observaciones,
+        ${columns.observaciones ? 'v.observaciones' : 'NULL::text'} as motivo,
         v.identificacion_tipo as identificacion,
         v.identificacion_tipo,
-        NULL::text as numero_socio,
-        NULL::text as socio_anfitrion_nombre,
-        NULL::text as socio_anfitrion_apellido,
-        NULL::text as socio_anfitrion_email
+        ${columns.socioId ? 's.numero_socio' : 'NULL::text'} as numero_socio,
+        ${columns.socioId ? "NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '')" : 'NULL::text'} as socio_nombre,
+        ${columns.socioId ? 'u.nombres' : 'NULL::text'} as socio_anfitrion_nombre,
+        ${columns.socioId ? 'u.apellido_paterno' : 'NULL::text'} as socio_anfitrion_apellido,
+        ${columns.socioId ? 'u.apellido_materno' : 'NULL::text'} as socio_anfitrion_apellido_materno,
+        ${columns.socioId ? 'u.username' : 'NULL::text'} as socio_anfitrion_email
     FROM visitas v
+    ${columns.socioId ? 'LEFT JOIN socios s ON v.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id' : ''}
 `;
+
+const getVisitasLegacySelect = async () => buildVisitasLegacySelect(await getVisitasLegacyColumns());
 
 const queryPasesWithFallback = async (pasesQuery, pasesParams, visitasQuery, visitasParams) => {
     try {
         return await pool.query(pasesQuery, pasesParams);
     } catch (error) {
         if (isMissingPasesTable(error)) {
-            return pool.query(visitasQuery, visitasParams);
+            const fallbackQuery = typeof visitasQuery === 'function'
+                ? await visitasQuery()
+                : visitasQuery;
+
+            return pool.query(fallbackQuery, visitasParams);
         }
 
         throw error;
@@ -626,7 +662,7 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                  WHERE p.estado = 'activo'
                  ORDER BY p.hora_entrada DESC`,
                 [],
-                `${visitasSelect}
+                async () => `${await getVisitasLegacySelect()}
                  WHERE v.vigente = true
                  ORDER BY v.hora_entrada DESC`,
                 []
@@ -649,7 +685,7 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                  WHERE p.fecha_pase >= CURRENT_DATE - ($1::int - 1)
                  ORDER BY p.hora_entrada DESC`,
                 [dias],
-                `${visitasSelect}
+                async () => `${await getVisitasLegacySelect()}
                  WHERE v.fecha_visita >= CURRENT_DATE - ($1::int - 1)
                  ORDER BY v.hora_entrada DESC`,
                 [dias]
@@ -673,7 +709,7 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                  WHERE p.fecha_pase = $1
                  ORDER BY p.hora_entrada DESC`,
                 [fechaConsulta],
-                `${visitasSelect}
+                async () => `${await getVisitasLegacySelect()}
                  WHERE v.fecha_visita = $1
                  ORDER BY v.hora_entrada DESC`,
                 [fechaConsulta]
@@ -767,11 +803,10 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
         ].filter(Boolean).join(' | ') || null;
 
         const client = await pool.connect();
+        let socioIdFinal = null;
 
         try {
             await client.query('BEGIN');
-
-            let socioIdFinal = null;
 
             if (tipoPaseNormalizado === 'visita') {
                 if (!socioIdEntrada && !legacyPayload) {
@@ -853,20 +888,49 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
 
             if (isMissingPasesTable(error)) {
                 try {
+                    const legacyColumns = await getVisitasLegacyColumns();
+                    const insertColumns = ['nombre_completo', 'identificacion_tipo', 'fecha_visita', 'hora_entrada', 'vigente'];
+                    const placeholders = ['$1', '$2', 'CURRENT_DATE', 'NOW()', 'true'];
+                    const values = [
+                        nombreNormalizado,
+                        identificacionNormalizada || tipoVisita || tipoPaseNormalizado
+                    ];
+
+                    if (legacyColumns.socioId) {
+                        values.push(socioIdFinal || null);
+                        insertColumns.push('socio_id');
+                        placeholders.push(`$${values.length}`);
+                    }
+
+                    if (legacyColumns.correo) {
+                        values.push(correoNormalizado || null);
+                        insertColumns.push('correo');
+                        placeholders.push(`$${values.length}`);
+                    }
+
+                    if (legacyColumns.telefono) {
+                        values.push(telefonoFinal);
+                        insertColumns.push('telefono');
+                        placeholders.push(`$${values.length}`);
+                    }
+
+                    if (legacyColumns.mayor16) {
+                        values.push(mayor16Final);
+                        insertColumns.push('mayor_16');
+                        placeholders.push(`$${values.length}`);
+                    }
+
+                    if (legacyColumns.observaciones) {
+                        values.push(observacionesFinales);
+                        insertColumns.push('observaciones');
+                        placeholders.push(`$${values.length}`);
+                    }
+
                     const legacyResult = await pool.query(
-                        `INSERT INTO visitas (
-                            nombre_completo,
-                            identificacion_tipo,
-                            fecha_visita,
-                            hora_entrada,
-                            vigente
-                        )
-                        VALUES ($1, $2, CURRENT_DATE, NOW(), true)
-                        RETURNING visita_id`,
-                        [
-                            nombreNormalizado,
-                            identificacionNormalizada || tipoVisita || tipoPaseNormalizado
-                        ]
+                        `INSERT INTO visitas (${insertColumns.join(', ')})
+                         VALUES (${placeholders.join(', ')})
+                         RETURNING visita_id`,
+                        values
                     );
 
                     const visitaId = legacyResult.rows[0].visita_id;
@@ -962,12 +1026,14 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                     s.numero_socio,
                     u.nombres,
                     u.apellido_paterno,
+                    u.apellido_materno,
                     u.username as email,
-                    s.tipo as tipo_socio
+                    s.tipo as tipo_socio,
+                    s.tipo
                 FROM socios s
                 JOIN usuarios u ON s.usuario_id = u.usuario_id
                 WHERE s.activo = true
-                ORDER BY u.nombres, u.apellido_paterno
+                ORDER BY u.apellido_paterno, u.nombres
             `);
 
             res.json(result.rows);

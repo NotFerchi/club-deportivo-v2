@@ -1,22 +1,25 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import SocioLayout from '../../../components/SocioLayout'
-import { MapPin, Clock, CheckCircle, AlertCircle, Zap, CalendarDays, RotateCcw, XCircle } from 'lucide-react'
+import {
+  MapPin, Clock, CheckCircle, AlertCircle, Zap, CalendarDays, RotateCcw, XCircle,
+  Activity, CircleDot, Waves, Target, LayoutGrid, Dumbbell, Ban
+} from 'lucide-react'
 import { apiRequest } from '../../../services/api'
 import '../../../../css/socio/Reservas.css'
 
 const DISCIPLINA_META = {
-  'Tenis':      { emoji: '🎾', color: '#1e40af', bg: '#dbeafe' },
-  'Pádel':      { emoji: '🏓', color: '#0f766e', bg: '#ccfbf1' },
-  'Fútbol':     { emoji: '⚽', color: '#15803d', bg: '#dcfce7' },
-  'Voleibol':   { emoji: '🏐', color: '#7c3aed', bg: '#ede9fe' },
-  'Natación':   { emoji: '🏊', color: '#0369a1', bg: '#e0f2fe' },
-  'Básquetbol': { emoji: '🏀', color: '#c2410c', bg: '#ffedd5' },
-  'Squash':     { emoji: '🎯', color: '#b45309', bg: '#fef3c7' },
-  'Frontón':    { emoji: '🏸', color: '#6d28d9', bg: '#ede9fe' },
-  'Multiusos':  { emoji: '🏟️', color: '#475569', bg: '#f1f5f9' },
-  'Fitness':    { emoji: '🏋️', color: '#be185d', bg: '#fce7f3' },
+  'Tenis':      { Icon: Activity,    color: '#1e40af', bg: '#dbeafe' },
+  'Pádel':      { Icon: Activity,    color: '#0f766e', bg: '#ccfbf1' },
+  'Fútbol':     { Icon: CircleDot,   color: '#15803d', bg: '#dcfce7' },
+  'Voleibol':   { Icon: CircleDot,   color: '#7c3aed', bg: '#ede9fe' },
+  'Natación':   { Icon: Waves,       color: '#0369a1', bg: '#e0f2fe' },
+  'Básquetbol': { Icon: CircleDot,   color: '#c2410c', bg: '#ffedd5' },
+  'Squash':     { Icon: Target,      color: '#b45309', bg: '#fef3c7' },
+  'Frontón':    { Icon: Activity,    color: '#6d28d9', bg: '#ede9fe' },
+  'Multiusos':  { Icon: LayoutGrid,  color: '#475569', bg: '#f1f5f9' },
+  'Fitness':    { Icon: Dumbbell,    color: '#be185d', bg: '#fce7f3' },
 }
-const META_DEFAULT = { emoji: '🏟️', color: '#475569', bg: '#f1f5f9' }
+const META_DEFAULT = { Icon: LayoutGrid, color: '#475569', bg: '#f1f5f9' }
 
 const ESPACIO_IMG = 'https://i.pinimg.com/1200x/ef/f3/ee/eff3ee2f0b1a53227187312402baf20b.jpg'
 
@@ -45,13 +48,22 @@ export default function Reservas() {
   const [selectedEspacio, setSelectedEspacio] = useState(null)
   const [slots,           setSlots]           = useState([])
   const [loadingSlots,    setLoadingSlots]    = useState(false)
+  const [cerradoHoy,      setCerradoHoy]      = useState(false)
   const [selectedSlot,    setSelectedSlot]    = useState(null)
   const [duracion,        setDuracion]        = useState(1)
   const [misReservas,     setMisReservas]     = useState([])
+  const [misInscripciones, setMisInscripciones] = useState([])   // clases inscritas hoy
   const [modal,           setModal]           = useState(false)
   const [saving,          setSaving]          = useState(false)
   const [feedback,        setFeedback]        = useState(null)
   const slotsRef = useRef(null)
+
+  // getDia: Dom=0→1, Lun=1→2, Mar=2→3 … Sáb=6→7
+  const hoyDiaSemana = new Date().getDay() + 1
+  const hoyEsLunes   = hoyDiaSemana === 2
+  const HORARIO_HOY  = hoyDiaSemana === 2 ? null
+    : hoyDiaSemana === 1 ? '7:00 am – 7:30 pm'
+    : '6:00 am – 10:30 pm'
 
   useEffect(() => {
     if (selectedEspacio && slotsRef.current) {
@@ -84,6 +96,7 @@ export default function Reservas() {
       .catch(err => console.error('[Reservas] Error cargando espacios:', err))
 
     fetchMisReservas()
+    fetchMisInscripciones()
   }, [])
 
   const fetchMisReservas = () => {
@@ -92,18 +105,37 @@ export default function Reservas() {
       .then(data => {
         const hoy = todayISO()
         const lista = Array.isArray(data) ? data : []
-        setMisReservas(lista.filter(r => r.fecha === hoy && r.socio_id === socioId && r.estado !== 'cancelada'))
+        // slice(0,10) normaliza 'YYYY-MM-DD' y 'YYYY-MM-DDTHH:mm:ssZ'
+        setMisReservas(lista.filter(r =>
+          String(r.fecha).slice(0, 10) === hoy &&
+          Number(r.socio_id) === Number(socioId) &&
+          r.estado !== 'cancelada'
+        ))
       })
       .catch(() => {})
+  }
+
+  // Carga clases inscritas del socio (para validar solapamiento al reservar)
+  const fetchMisInscripciones = () => {
+    if (!socioId) return
+    apiRequest(`/inscripciones/mis-inscripciones?socioId=${socioId}`)
+      .then(data => setMisInscripciones(Array.isArray(data) ? data : []))
+      .catch(() => setMisInscripciones([]))
   }
 
   const fetchDisponibilidad = useCallback(async (espacioId) => {
     setLoadingSlots(true)
     setSlots([])
     setSelectedSlot(null)
+    setCerradoHoy(false)
     try {
       const data = await apiRequest(`/reservas/disponibilidad?espacio_id=${espacioId}`)
-      setSlots(data.slots || [])
+      if (data.cerrado) {
+        setCerradoHoy(true)
+        setSlots([])
+      } else {
+        setSlots(data.slots || [])
+      }
     } catch {
       setSlots([])
     } finally {
@@ -159,9 +191,42 @@ export default function Reservas() {
 
   const handleConfirmar = async () => {
     if (!socioId) { setFeedback({ tipo: 'error', msg: 'Debes iniciar sesión nuevamente' }); return }
-    setSaving(true)
+
     const [h] = selectedSlot.split(':')
-    const horaFin = `${String(Number(h) + duracion).padStart(2,'0')}:00`
+    const horaInicioNum = Number(h)
+    const horaFinNum    = horaInicioNum + duracion
+    const horaFin       = `${String(horaFinNum).padStart(2,'0')}:00`
+
+    // Validar solapamiento con reservas activas del mismo día
+    const solapamiento = misReservas.some(r => {
+      const rInicio = Number(String(r.hora_inicio).slice(0, 2))
+      const rFin    = Number(String(r.hora_fin).slice(0, 2))
+      return horaInicioNum < rFin && horaFinNum > rInicio
+    })
+    if (solapamiento) {
+      setFeedback({ tipo: 'error', msg: 'Ya tienes una reserva activa en ese horario. Elige un horario diferente.' })
+      setModal(false)
+      return
+    }
+
+    // Validar solapamiento con clases inscritas en el día de hoy
+    // sesiones_programadas.dia_semana: Lun=1 … Sáb=6, Dom=7
+    // JS getDay(): Dom=0, Lun=1 … Sáb=6 → convertir: jsDay===0 ? 7 : jsDay
+    const jsDay = new Date().getDay()
+    const diaSemanaHoy = jsDay === 0 ? 7 : jsDay
+    const solapamientoClase = misInscripciones.some(i => {
+      if (Number(i.dia_semana) !== diaSemanaHoy) return false
+      const iInicio = Number(String(i.hora_inicio).slice(0, 2))
+      const iFin    = Number(String(i.hora_fin).slice(0, 2))
+      return horaInicioNum < iFin && horaFinNum > iInicio
+    })
+    if (solapamientoClase) {
+      setFeedback({ tipo: 'error', msg: 'Tienes una clase inscrita en ese horario. Cancela tu inscripción antes de reservar.' })
+      setModal(false)
+      return
+    }
+
+    setSaving(true)
     try {
       await apiRequest('/reservas', {
         method: 'POST',
@@ -178,7 +243,7 @@ export default function Reservas() {
       setSelectedEspacio(null)
       setSelectedDisc(null)
       setSlots([])
-      setFeedback({ tipo: 'exito', msg: `✅ Reserva confirmada: ${selectedEspacio.nombre} ${selectedSlot} – ${horaFin}` })
+      setFeedback({ tipo: 'exito', msg: `Reserva confirmada: ${selectedEspacio.nombre} ${selectedSlot} – ${horaFin}` })
       fetchMisReservas()
       setTimeout(() => setFeedback(null), 5000)
     } catch (err) {
@@ -215,6 +280,11 @@ export default function Reservas() {
           <p className="rs-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}>
             <CalendarDays size={14} /> Hoy, {todayLabel()} · máx. 2 horas
           </p>
+          {HORARIO_HOY && (
+            <p style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+              <Clock size={12} /> Horario de hoy: <strong>{HORARIO_HOY}</strong>
+            </p>
+          )}
         </div>
         {misReservas.length > 0 && (
           <div className="rs-status-tags">
@@ -222,6 +292,19 @@ export default function Reservas() {
           </div>
         )}
       </section>
+
+      {/* BANNER LUNES CERRADO */}
+      {hoyEsLunes && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          padding: '1rem 1.25rem', borderRadius: '12px', marginBottom: '1rem',
+          background: '#f1f5f9', color: '#475569', fontWeight: 600, fontSize: '0.9rem',
+          border: '1px solid #e2e8f0'
+        }}>
+          <Ban size={18} style={{ flexShrink: 0 }} />
+          <span>El club está <strong>cerrado los Lunes</strong>. Puedes reservar de martes a sábado (6:00–22:00) y domingos (7:00–19:00).</span>
+        </div>
+      )}
 
       {/* FEEDBACK BANNER */}
       {feedback && (
@@ -287,7 +370,7 @@ export default function Reservas() {
                 fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
                 transition: 'all 0.18s'
               }}>
-                <span style={{ fontSize: '1.1rem' }}>{m.emoji}</span>
+                <m.Icon size={16} />
                 {d.nombre}
               </button>
             )
@@ -388,6 +471,11 @@ export default function Reservas() {
           {/* SLOTS */}
           {loadingSlots ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>Cargando disponibilidad...</div>
+          ) : cerradoHoy ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '2rem', color: '#64748b', fontWeight: 600, fontSize: '0.9rem' }}>
+              <Ban size={20} style={{ flexShrink: 0 }} />
+              El club está cerrado hoy. No hay horarios disponibles.
+            </div>
           ) : (
             <div className="rs-slots-grid" style={{ gap: '0.5rem', marginBottom: '1.5rem' }}>
               {slots.map(slot => {

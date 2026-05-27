@@ -6,8 +6,41 @@ import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
 const LUDOTECA_MAX_MIN = 120;
 
-function LudotecaTimeBar({ horaEntrada }) {
-  const minutos = Math.max(0, Math.floor((Date.now() - new Date(horaEntrada)) / 60000));
+// Extrae "H:MM a. m./p. m." del string ISO local "YYYY-MM-DDTHH:MM:SS" (ya es hora México)
+function formatHoraLocal(ts) {
+  if (!ts) return '-';
+  const match = String(ts).match(/T(\d{2}):(\d{2}):?(\d{2})?/);
+  if (!match) return String(ts).slice(0, 5);
+  const h = parseInt(match[1], 10);
+  const m = match[2];
+  const sec = match[3] ? `:${match[3]}` : '';
+  const suffix = h >= 12 ? 'p. m.' : 'a. m.';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${m}${sec} ${suffix}`;
+}
+
+// Extrae "D/M/YYYY, H:MM a. m./p. m." del string ISO local
+function formatFechaHoraLocal(ts) {
+  if (!ts) return '-';
+  const s = String(ts);
+  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return s;
+  const [, y, mo, d, h, mi] = match;
+  const hn = parseInt(h, 10);
+  const suffix = hn >= 12 ? 'p. m.' : 'a. m.';
+  const h12 = hn === 0 ? 12 : hn > 12 ? hn - 12 : hn;
+  return `${parseInt(d, 10)}/${parseInt(mo, 10)}/${y}, ${h12}:${mi} ${suffix}`;
+}
+
+// minutosBase viene del backend (ya calculado con NOW() AT TIME ZONE México - hora_entrada)
+function LudotecaTimeBar({ minutosBase }) {
+  const [minExtra, setMinExtra] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setMinExtra(e => e + 1), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  const minutos = Math.max(0, (minutosBase || 0) + minExtra);
   const pct = Math.min(Math.round((minutos / LUDOTECA_MAX_MIN) * 100), 100);
   const horas = Math.floor(minutos / 60);
   const mins = minutos % 60;
@@ -220,14 +253,11 @@ function Ludoteca() {
                   <p className="espacio-sub">{getSocioNombre(registro)}</p>
                 </div>
                 <span className="badge-success">
-                  <Clock size={13} /> {new Date(registro.hora_entrada).toLocaleTimeString('es-MX', {
-                    timeZone: 'America/Mexico_City',
-                    hour: '2-digit', minute: '2-digit', second: '2-digit'
-                  })}
+                  <Clock size={13} /> {formatHoraLocal(registro.hora_entrada_local)}
                 </span>
               </div>
               <div className="espacio-body">
-                <LudotecaTimeBar horaEntrada={registro.hora_entrada} />
+                <LudotecaTimeBar minutosBase={registro.minutos_transcurridos} />
                 {registro.observaciones && <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>{registro.observaciones}</p>}
               </div>
               <div className="espacio-footer">
@@ -263,8 +293,8 @@ function Ludoteca() {
                 <tr key={registro.registro_id}>
                   <td>{registro.nombre_nino || registro.nombre_hijo} ({getEdad(registro) ?? '-'} años)</td>
                   <td>{getSocioNombre(registro)}</td>
-                  <td>{formatDateTime(registro.hora_entrada)}</td>
-                  <td>{registro.hora_salida ? formatDateTime(registro.hora_salida) : '-'}</td>
+                  <td>{formatFechaHoraLocal(registro.hora_entrada_local)}</td>
+                  <td>{registro.hora_salida_local ? formatFechaHoraLocal(registro.hora_salida_local) : '-'}</td>
                   <td><span className={registro.hora_salida ? 'badge-warning' : 'badge-success'}>{registro.hora_salida ? 'Finalizado' : 'Activo'}</span></td>
                   <td>
                     <button onClick={() => setViewingRegistro(registro)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} title="Ver detalle">
@@ -312,11 +342,11 @@ function Ludoteca() {
                 </div>
                 <div className="form-group">
                   <label>Hora de entrada</label>
-                  <p style={{ margin: 0 }}>{viewingRegistro.hora_entrada ? formatDateTime(viewingRegistro.hora_entrada) : '-'}</p>
+                  <p style={{ margin: 0 }}>{viewingRegistro.hora_entrada_local ? formatFechaHoraLocal(viewingRegistro.hora_entrada_local) : '-'}</p>
                 </div>
                 <div className="form-group">
                   <label>Hora de salida</label>
-                  <p style={{ margin: 0 }}>{viewingRegistro.hora_salida ? formatDateTime(viewingRegistro.hora_salida) : 'Aún en ludoteca'}</p>
+                  <p style={{ margin: 0 }}>{viewingRegistro.hora_salida_local ? formatFechaHoraLocal(viewingRegistro.hora_salida_local) : 'Aún en ludoteca'}</p>
                 </div>
                 <div className="form-group">
                   <label>Estado</label>
@@ -327,7 +357,7 @@ function Ludoteca() {
                 {!viewingRegistro.hora_salida && (
                   <div className="form-group">
                     <label>Tiempo en ludoteca</label>
-                    <LudotecaTimeBar horaEntrada={viewingRegistro.hora_entrada} />
+                    <LudotecaTimeBar minutosBase={viewingRegistro.minutos_transcurridos} />
                   </div>
                 )}
                 {viewingRegistro.observaciones && (

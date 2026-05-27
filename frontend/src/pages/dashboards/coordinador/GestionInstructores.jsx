@@ -347,8 +347,11 @@ function GestionInstructores() {
               onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; }}
               >
                 <div style={{ background: avatarColor, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
-                  <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '16px', border: '2px solid rgba(255,255,255,0.4)', flexShrink: 0 }}>
-                    {iniciales(inst.nombre)}
+                  <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '16px', border: '2px solid rgba(255,255,255,0.4)', flexShrink: 0, overflow: 'hidden' }}>
+                    {inst.foto_perfil
+                      ? <img src={inst.foto_perfil} alt={inst.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      : iniciales(inst.nombre)
+                    }
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: '14px', color: 'white' }}>{inst.nombre}</div>

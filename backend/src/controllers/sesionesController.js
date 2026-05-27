@@ -45,9 +45,10 @@ const sesionesController = {
                     sp.cupo_maximo,
                     d.nombre as disciplina,
                     e.nombre as espacio,
-                    (SELECT COUNT(*) FROM inscripciones_clases 
+                    (SELECT COUNT(*) FROM inscripciones_clases
                     WHERE sesion_id = sp.sesion_id AND estado = 'Confirmada') as inscritos_actuales,
-                    COALESCE(NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 'Por asignar') as instructor
+                    COALESCE(NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 'Por asignar') as instructor,
+                    u.foto_perfil as instructor_foto
                 FROM sesiones_programadas sp
                 JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id
                 JOIN espacios e ON sp.espacio_id = e.espacio_id

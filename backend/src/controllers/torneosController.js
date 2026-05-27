@@ -69,13 +69,16 @@ const torneosController = {
           t.fecha_inicio,
           t.fecha_fin,
           t.estado,
+          t.categoria_id,
+          ct.nombre AS nombre_categoria,
           COUNT(pt.participante_id)::int AS total_participantes,
           (COUNT(pt.participante_id) >= 4) AS se_realiza
         FROM torneos t
         JOIN disciplinas d ON t.disciplina_id = d.disciplina_id
+        LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id
         LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id
         ${where}
-        GROUP BY t.torneo_id, d.nombre
+        GROUP BY t.torneo_id, d.nombre, ct.nombre
         ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC
       `, valores);
 
@@ -87,7 +90,7 @@ const torneosController = {
   },
 
   createTorneo: async (req, res) => {
-    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado } = req.body;
+    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id } = req.body;
 
     if (typeof nombre !== 'string' || nombre.trim() === '') {
       return res.status(400).json({ error: 'El nombre es requerido' });
@@ -102,6 +105,8 @@ const torneosController = {
       return res.status(400).json({ error: 'disciplina_id debe ser un entero valido' });
     }
 
+    const categoriaId = tieneValor(categoria_id) ? esEnteroValido(categoria_id) : null;
+
     try {
       const disciplina = await pool.query(
         'SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1',
@@ -112,9 +117,14 @@ const torneosController = {
         return res.status(400).json({ error: ERROR_DISCIPLINA_NO_EXISTE });
       }
 
+      if (categoriaId !== null) {
+        const cat = await pool.query('SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1', [categoriaId]);
+        if (cat.rowCount === 0) return res.status(400).json({ error: ERROR_CATEGORIA_NO_EXISTE });
+      }
+
       const result = await pool.query(
-        `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING torneo_id`,
         [
           disciplinaId,
@@ -122,6 +132,7 @@ const torneosController = {
           normalizarFechaOpcional(fecha_inicio),
           normalizarFechaOpcional(fecha_fin),
           estado || 'Abierto',
+          categoriaId,
         ]
       );
 
@@ -139,7 +150,7 @@ const torneosController = {
 
   updateTorneo: async (req, res) => {
     const torneoId = esEnteroValido(req.params.torneo_id);
-    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado } = req.body;
+    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id } = req.body;
 
     if (torneoId === null) {
       return res.status(400).json({ error: 'torneo_id debe ser un entero valido' });
@@ -154,15 +165,24 @@ const torneosController = {
       return res.status(400).json({ error: 'disciplina_id debe ser un entero valido' });
     }
 
+    // categoria_id es opcional: null = sin categoría, un número = categoría específica
+    const categoriaId = tieneValor(categoria_id) ? esEnteroValido(categoria_id) : null;
+
     try {
+      if (categoriaId !== null) {
+        const cat = await pool.query('SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1', [categoriaId]);
+        if (cat.rowCount === 0) return res.status(400).json({ error: ERROR_CATEGORIA_NO_EXISTE });
+      }
+
       const result = await pool.query(
         `UPDATE torneos
          SET disciplina_id = $1,
              nombre = $2,
              fecha_inicio = $3,
              fecha_fin = $4,
-             estado = COALESCE($5, estado)
-         WHERE torneo_id = $6
+             estado = COALESCE($5, estado),
+             categoria_id = $6
+         WHERE torneo_id = $7
          RETURNING torneo_id`,
         [
           disciplinaId,
@@ -170,6 +190,7 @@ const torneosController = {
           normalizarFechaOpcional(fecha_inicio),
           normalizarFechaOpcional(fecha_fin),
           estado || null,
+          categoriaId,
           torneoId
         ]
       );
@@ -565,6 +586,106 @@ const torneosController = {
     } catch (error) {
       console.error('Error al obtener categorías:', error);
       res.status(500).json({ error: 'Error al obtener categorías' });
+    }
+  },
+
+  // Auto-inscripción del socio autenticado (sin requerir rol staff)
+  // La categoría la decide el administrador al crear el torneo (torneo.categoria_id)
+  inscribirSocioPropio: async (req, res) => {
+    const torneoId = esEnteroValido(req.params.torneo_id);
+    if (torneoId === null) {
+      return res.status(400).json({ error: 'torneo_id debe ser un entero valido' });
+    }
+
+    try {
+      // Obtener socio_id a partir del usuario autenticado (no se confía en el body)
+      const socioResult = await pool.query(
+        'SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE',
+        [req.user.usuario_id]
+      );
+      if (socioResult.rowCount === 0) {
+        return res.status(400).json({ error: ERROR_SOCIO_NO_VALIDO });
+      }
+      const socioId = socioResult.rows[0].socio_id;
+
+      // El torneo debe existir y estar abierto; se obtiene su categoria_id
+      const torneo = await pool.query(
+        'SELECT torneo_id, estado, categoria_id FROM torneos WHERE torneo_id = $1',
+        [torneoId]
+      );
+      if (torneo.rowCount === 0) {
+        return res.status(404).json({ error: 'Torneo no encontrado' });
+      }
+      if (torneo.rows[0].estado !== 'Abierto') {
+        return res.status(409).json({ error: 'El torneo no está abierto para inscripciones' });
+      }
+
+      // Usar la categoría del torneo; si no tiene, devolver error indicativo
+      const categoriaId = torneo.rows[0].categoria_id;
+      if (!categoriaId) {
+        return res.status(400).json({ error: 'Este torneo no tiene categoría asignada. Contacta al administrador.' });
+      }
+
+      // Verificar que no esté ya inscrito
+      const existente = await pool.query(
+        'SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND socio_id = $2 LIMIT 1',
+        [torneoId, socioId]
+      );
+      if (existente.rowCount > 0) {
+        return res.status(409).json({ error: ERROR_PARTICIPANTE_DUPLICADO });
+      }
+
+      const result = await pool.query(
+        `INSERT INTO participantes_torneo (torneo_id, socio_id, categoria_id)
+         VALUES ($1, $2, $3)
+         RETURNING participante_id`,
+        [torneoId, socioId, categoriaId]
+      );
+
+      res.status(201).json({ participante_id: result.rows[0].participante_id });
+    } catch (error) {
+      console.error('Error al inscribir socio en torneo:', error);
+      if (error.code === '23505') return res.status(409).json({ error: ERROR_PARTICIPANTE_DUPLICADO });
+      if (error.code === '23503') return res.status(400).json({ error: 'Referencia no encontrada' });
+      res.status(500).json({ error: 'Error al inscribirse en el torneo' });
+    }
+  },
+
+  // Desinscribir a un participante (solo staff: admin, gerente, coordinador)
+  desinscribirParticipante: async (req, res) => {
+    const torneoId = esEnteroValido(req.params.torneo_id);
+    const participanteId = esEnteroValido(req.params.participante_id);
+
+    if (torneoId === null || participanteId === null) {
+      return res.status(400).json({ error: 'IDs inválidos' });
+    }
+
+    try {
+      // Solo se puede desinscribir si el torneo aún está abierto
+      const torneo = await pool.query(
+        'SELECT estado FROM torneos WHERE torneo_id = $1',
+        [torneoId]
+      );
+      if (torneo.rowCount === 0) {
+        return res.status(404).json({ error: 'Torneo no encontrado' });
+      }
+      if (torneo.rows[0].estado !== 'Abierto') {
+        return res.status(409).json({ error: 'No se puede desinscribir participantes una vez cerradas las inscripciones' });
+      }
+
+      const result = await pool.query(
+        'DELETE FROM participantes_torneo WHERE participante_id = $1 AND torneo_id = $2 RETURNING participante_id',
+        [participanteId, torneoId]
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Participante no encontrado en este torneo' });
+      }
+
+      res.json({ ok: true, message: 'Participante desinscrito correctamente' });
+    } catch (error) {
+      console.error('Error al desinscribir participante:', error);
+      res.status(500).json({ error: 'Error al desinscribir participante' });
     }
   },
 

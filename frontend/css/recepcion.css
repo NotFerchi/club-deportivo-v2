@@ -1,3 +1,7 @@
+@keyframes inst-spin {
+  to { transform: rotate(360deg); }
+}
+
 :root {
     --sidebar-bg: #0f172a;
     --bg-main: #f1f5f9;

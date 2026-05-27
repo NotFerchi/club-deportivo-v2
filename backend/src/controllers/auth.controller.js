@@ -11,7 +11,9 @@ exports.login = async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT u.usuario_id, u.username, u.password_hash, u.activo, r.nombre AS rol
+            `SELECT u.usuario_id, u.username, u.password_hash, u.activo,
+                    u.nombres, u.apellido_paterno, u.foto_perfil,
+                    r.nombre AS rol
              FROM usuarios u
              JOIN roles r ON u.rol_id = r.rol_id
              WHERE u.username = $1`,
@@ -71,7 +73,15 @@ exports.login = async (req, res) => {
 
         res.json({
             token,
-            usuario: { id: usuarioBD.usuario_id, email: usuarioBD.username, rol: usuarioBD.rol, ...extraData }
+            usuario: {
+                id: usuarioBD.usuario_id,
+                email: usuarioBD.username,
+                rol: usuarioBD.rol,
+                nombres: usuarioBD.nombres,
+                apellido_paterno: usuarioBD.apellido_paterno,
+                foto_perfil: usuarioBD.foto_perfil || null,
+                ...extraData
+            }
         });
 
     } catch (error) {

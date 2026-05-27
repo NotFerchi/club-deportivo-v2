@@ -26,19 +26,16 @@ function Torneos() {
   const [vista, setVista] = useState('proximos')
   const [torneos, setTorneos] = useState([])
   const [misTorneos, setMisTorneos] = useState([])
-  const [categorias, setCategorias] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingInscripcion, setLoadingInscripcion] = useState(false)
   const [filtros, setFiltros] = useState({ disciplina: '' })
   const [showModalInscripcion, setShowModalInscripcion] = useState(false)
   const [torneoSeleccionado, setTorneoSeleccionado] = useState(null)
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('')
   const [inscritosIds, setInscritosIds] = useState(new Set())
   const [feedback, setFeedback] = useState(null)
 
   useEffect(() => {
     fetchTorneos()
-    fetchCategorias()
     if (socioId) fetchMisParticipaciones()
   }, [socioId])
 
@@ -51,15 +48,6 @@ function Torneos() {
       setTorneos([])
     } finally {
       setLoading(false)
-    }
-  }
-
-  const fetchCategorias = async () => {
-    try {
-      const data = await apiRequest('/torneos/categorias')
-      setCategorias(Array.isArray(data) ? data : [])
-    } catch {
-      setCategorias([])
     }
   }
 
@@ -80,16 +68,11 @@ function Torneos() {
 
   const handleInscribirse = (torneo) => {
     setTorneoSeleccionado(torneo)
-    setCategoriaSeleccionada(categorias.length > 0 ? String(categorias[0].categoria_id) : '')
     setFeedback(null)
     setShowModalInscripcion(true)
   }
 
   const handleConfirmarInscripcion = async () => {
-    if (!categoriaSeleccionada) {
-      setFeedback({ tipo: 'error', mensaje: 'Selecciona una categoría' })
-      return
-    }
     if (!socioId) {
       setFeedback({ tipo: 'error', mensaje: 'No se encontró tu perfil de socio' })
       return
@@ -97,12 +80,9 @@ function Torneos() {
     setLoadingInscripcion(true)
     setFeedback(null)
     try {
-      await apiRequest(`/torneos/${torneoSeleccionado.torneo_id}/inscribir`, {
+      await apiRequest(`/torneos/${torneoSeleccionado.torneo_id}/inscribir-me`, {
         method: 'POST',
-        body: JSON.stringify({
-          socio_id: socioId,
-          categoria_id: Number(categoriaSeleccionada)
-        })
+        body: JSON.stringify({})
       })
       setInscritosIds(prev => new Set([...prev, torneoSeleccionado.torneo_id]))
       await fetchMisParticipaciones()
@@ -263,6 +243,12 @@ function Torneos() {
                             <span>Fin: {formatFecha(torneo.fecha_fin)}</span>
                           </div>
                         )}
+                        {torneo.nombre_categoria && (
+                          <div className="info-item">
+                            <Medal size={14} />
+                            <span>Categoría: {torneo.nombre_categoria}</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="torneo-footer">
@@ -374,30 +360,29 @@ function Torneos() {
                   )}
                 </div>
 
-                {categorias.length > 0 ? (
-                  <div style={{ margin: '1.5rem 0', textAlign: 'left' }}>
-                    <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#0f172a' }}>
-                      Selecciona tu categoría
-                    </label>
-                    <select
-                      value={categoriaSeleccionada}
-                      onChange={e => setCategoriaSeleccionada(e.target.value)}
-                      style={{
-                        width: '100%', padding: '0.75rem 1rem',
-                        border: '1px solid #e2e8f0', borderRadius: '10px',
-                        fontSize: '1rem', color: '#0f172a', background: 'white'
-                      }}
-                    >
-                      {categorias.map(c => (
-                        <option key={c.categoria_id} value={c.categoria_id}>{c.nombre}</option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="ficha-requisitos" style={{ marginTop: '1.5rem' }}>
-                    <p>No hay categorías disponibles en este momento.</p>
-                  </div>
-                )}
+                <div style={{ margin: '1.5rem 0', textAlign: 'left' }}>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#0f172a', fontSize: '0.875rem' }}>
+                    Categoría del torneo
+                  </label>
+                  {torneoSeleccionado.nombre_categoria ? (
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                      padding: '0.5rem 1rem', borderRadius: '20px',
+                      background: '#dbeafe', color: '#1d4ed8',
+                      fontWeight: 700, fontSize: '0.95rem'
+                    }}>
+                      <Medal size={15} /> {torneoSeleccionado.nombre_categoria}
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: '0.5rem 1rem', borderRadius: '10px',
+                      background: '#fef3c7', color: '#b45309',
+                      fontWeight: 600, fontSize: '0.85rem'
+                    }}>
+                      ⚠ Sin categoría asignada. Contacta al administrador.
+                    </div>
+                  )}
+                </div>
 
                 {feedback?.tipo === 'error' && showModalInscripcion && (
                   <div style={{
@@ -413,7 +398,7 @@ function Torneos() {
               <button
                 className="modal-btn confirm"
                 onClick={handleConfirmarInscripcion}
-                disabled={loadingInscripcion || categorias.length === 0}
+                disabled={loadingInscripcion || !torneoSeleccionado?.nombre_categoria}
               >
                 {loadingInscripcion ? 'Procesando...' : 'Confirmar Inscripción'}
               </button>

@@ -40,6 +40,7 @@ const pasesSelect = `
         p.correo,
         p.telefono,
         p.mayor_16,
+        p.identificacion,
         p.fecha_pase,
         p.fecha_pase as fecha_visita,
         p.hora_entrada,
@@ -214,7 +215,7 @@ const generarQrPase = async (client, paseId) => {
             expira_en: expiraEnIso
         };
     } catch (error) {
-        if (error?.code !== '42P01') throw error;
+        console.warn('No se pudo persistir QR de pase:', error.message);
         return {
             qr_id: null,
             qr_image: qrImage,
@@ -250,7 +251,7 @@ const generarQrVisitaLegacy = async (visitaId) => {
             expira_en: expiraEnIso
         };
     } catch (error) {
-        if (error?.code !== '42P01') throw error;
+        console.warn('No se pudo persistir QR de visita legacy:', error.message);
         return {
             qr_id: null,
             qr_image: qrImage,
@@ -797,10 +798,11 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
             normalizeDigits(identificacionNormalizada).slice(0, 20) ||
             '0000000000';
 
-        const observacionesFinales = [
+        const observacionesLegacy = [
             identificacionNormalizada ? `Identificacion: ${identificacionNormalizada}` : '',
             observacionesNormalizadas
         ].filter(Boolean).join(' | ') || null;
+        const observacionesFinales = observacionesNormalizadas || null;
 
         const client = await pool.connect();
         let socioIdFinal = null;
@@ -839,6 +841,7 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                     tipo_pase,
                     socio_id,
                     nombre_completo,
+                    identificacion,
                     correo,
                     telefono,
                     mayor_16,
@@ -848,12 +851,13 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                     creado_por,
                     observaciones
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE, NOW(), 'activo', $7, $8)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, NOW(), 'activo', $8, $9)
                 RETURNING pase_id
             `, [
                 tipoPaseNormalizado,
                 socioIdFinal,
                 nombreNormalizado,
+                identificacionNormalizada || null,
                 correoNormalizado || null,
                 telefonoFinal,
                 mayor16Final,
@@ -921,7 +925,7 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
                     }
 
                     if (legacyColumns.observaciones) {
-                        values.push(observacionesFinales);
+                        values.push(observacionesLegacy);
                         insertColumns.push('observaciones');
                         placeholders.push(`$${values.length}`);
                     }

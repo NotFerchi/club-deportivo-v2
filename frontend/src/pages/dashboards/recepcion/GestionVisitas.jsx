@@ -24,6 +24,7 @@ const initialFormData = {
   tipo_pase: 'visita',
   socio_id: '',
   nombre_completo: '',
+  identificacion: '',
   correo: '',
   telefono: '',
   mayor_16: true,
@@ -247,6 +248,7 @@ function GestionVisitas() {
         socio_id: formData.tipo_pase === 'visita' ? Number(formData.socio_id) : null,
         socio_anfitrion_id: formData.tipo_pase === 'visita' ? Number(formData.socio_id) : null,
         nombre_completo: formData.nombre_completo.trim(),
+        identificacion: formData.identificacion.trim(),
         correo: formData.correo.trim(),
         telefono: formData.telefono.trim(),
         mayor_16: formData.mayor_16,
@@ -579,6 +581,10 @@ function GestionVisitas() {
                   <p style={{ margin: 0 }}>{viewingPase.correo || '-'}</p>
                 </div>
                 <div className="form-group">
+                  <label>Identificación</label>
+                  <p style={{ margin: 0 }}>{viewingPase.identificacion || '-'}</p>
+                </div>
+                <div className="form-group">
                   <label>Mayor de 16 años</label>
                   <p style={{ margin: 0 }}>{viewingPase.mayor_16 === false ? 'No' : 'Sí'}</p>
                 </div>
@@ -761,6 +767,16 @@ function GestionVisitas() {
                       value={formData.nombre_completo}
                       onChange={(event) => setFormData((prev) => ({ ...prev, nombre_completo: event.target.value }))}
                       required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Identificación</label>
+                    <input
+                      type="text"
+                      value={formData.identificacion}
+                      onChange={(event) => setFormData((prev) => ({ ...prev, identificacion: event.target.value }))}
+                      placeholder="INE, pasaporte, licencia, etc."
                     />
                   </div>
 

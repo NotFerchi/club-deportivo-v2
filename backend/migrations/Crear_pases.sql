@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS pases (
   tipo_pase VARCHAR(20) NOT NULL CHECK (tipo_pase IN ('visita', 'dia')),
   socio_id INT NULL,
   nombre_completo VARCHAR(150) NOT NULL,
+  identificacion VARCHAR(100),
   correo VARCHAR(150),
   telefono VARCHAR(20) NOT NULL,
   mayor_16 BOOLEAN NOT NULL,

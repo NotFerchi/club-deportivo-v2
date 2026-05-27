@@ -1,0 +1,2 @@
+ALTER TABLE pases
+  ADD COLUMN IF NOT EXISTS identificacion VARCHAR(100);

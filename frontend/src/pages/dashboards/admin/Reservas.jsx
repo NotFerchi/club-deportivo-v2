@@ -18,10 +18,10 @@ const GRID_START = 6;   // 06:00  (primera columna visible)
 const GRID_END   = 22;  // 22:00  (última columna = 21:00–22:00)
 const HOURS = Array.from({ length: GRID_END - GRID_START }, (_, i) => GRID_START + i);
 
-// getDiaSemana: Dom=1, Lun=2, Mar=3 … Sáb=7
+// getDiaSemana: Lun=1, Mar=2 … Sáb=6, Dom=7
 function getScheduleForDay(diaSemana) {
-  if (diaSemana === 2) return { cerrado: true,  apertura: null, cierre: null  };
-  if (diaSemana === 1) return { cerrado: false, apertura: 7,    cierre: 19    };
+  if (diaSemana === 1) return { cerrado: true,  apertura: null, cierre: null  };
+  if (diaSemana === 7) return { cerrado: false, apertura: 7,    cierre: 19    };
   return                      { cerrado: false, apertura: 6,    cierre: 22    };
 }
 
@@ -52,7 +52,8 @@ function parseHHMM(t) {
 function getDiaSemana(fecha) {
   const [y, mo, d] = String(fecha || '').split('-').map(Number);
   if (!y) return null;
-  return new Date(y, mo - 1, d).getDay() + 1;
+  const js = new Date(y, mo - 1, d).getDay();
+  return js === 0 ? 7 : js;
 }
 
 // ─── Modal de formulario ──────────────────────────────────────────────────────
@@ -228,9 +229,9 @@ export default function Reservas({ readOnly = false }) {
   const [editingReserva, setEditingReserva] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [formErrors, setFormErrors] = useState({});
-  //const [toast, setToast] = useState('');
   const [activeTooltip, setActiveTooltip] = useState(null); // reserva_id
   const [activeSesionKey, setActiveSesionKey] = useState(null); // `${espacio_id}-${sesion_id}-${hora}`
+  const [successToast, setSuccessToast] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -258,8 +259,8 @@ export default function Reservas({ readOnly = false }) {
   useEffect(() => { fetchData(); }, []);
 
   const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
+    setSuccessToast(msg);
+    setTimeout(() => setSuccessToast(''), 3000);
   };
 
   // Reservas del día seleccionado y espacio filtrado
@@ -516,10 +517,10 @@ export default function Reservas({ readOnly = false }) {
   return (
     <div className="reservas-root">
       {/* Toast */}
-      {toast && (
+      {successToast && (
         <div className="success-toast">
           <CheckCircle size={18} />
-          <span>{toast}</span>
+          <span>{successToast}</span>
         </div>
       )}
 

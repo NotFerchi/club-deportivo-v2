@@ -29,7 +29,7 @@ function todayISO() {
 }
 
 function todayLabel() {
-  return new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+  return new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Mexico_City' })
 }
 
 function slotLabel(hora) {
@@ -58,11 +58,12 @@ export default function Reservas() {
   const [feedback,        setFeedback]        = useState(null)
   const slotsRef = useRef(null)
 
-  // getDia: Dom=0→1, Lun=1→2, Mar=2→3 … Sáb=6→7
-  const hoyDiaSemana = new Date().getDay() + 1
-  const hoyEsLunes   = hoyDiaSemana === 2
-  const HORARIO_HOY  = hoyDiaSemana === 2 ? null
-    : hoyDiaSemana === 1 ? '7:00 am – 7:30 pm'
+  // getDia: Lun=1, Mar=2 … Sáb=6, Dom=7
+  const _jsDay = new Date().getDay()
+  const hoyDiaSemana = _jsDay === 0 ? 7 : _jsDay
+  const hoyEsLunes   = hoyDiaSemana === 1
+  const HORARIO_HOY  = hoyDiaSemana === 1 ? null
+    : hoyDiaSemana === 7 ? '7:00 am – 7:30 pm'
     : '6:00 am – 10:30 pm'
 
   useEffect(() => {

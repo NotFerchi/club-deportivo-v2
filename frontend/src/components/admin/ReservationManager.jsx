@@ -42,7 +42,8 @@ function getSocioName(socio) {
 function getDiaSemana(fecha) {
   const [year, month, day] = String(fecha || '').split('-').map(Number);
   if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day).getDay() + 1;
+  const js = new Date(year, month - 1, day).getDay();
+  return js === 0 ? 7 : js;
 }
 
 function EstadoIcon({ estado }) {

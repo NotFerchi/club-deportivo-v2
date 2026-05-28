@@ -201,9 +201,16 @@ const generarQrPase = async (client, paseId) => {
     const qrImage = await QRCode.toDataURL(codigoQr);
 
     try {
+        // SAVEPOINT protects the outer transaction if the INSERT fails
+        // (e.g. table missing, unique constraint on re-generation)
+        await client.query('SAVEPOINT before_qr_pase');
         const qrResult = await client.query(
             `INSERT INTO codigos_qr_pases (pase_id, codigo_qr, expira_en, activo)
              VALUES ($1, $2, $3, TRUE)
+             ON CONFLICT (pase_id) DO UPDATE
+               SET codigo_qr = EXCLUDED.codigo_qr,
+                   expira_en = EXCLUDED.expira_en,
+                   activo    = TRUE
              RETURNING qr_id`,
             [paseId, qrImage, expiraEn]
         );
@@ -215,6 +222,7 @@ const generarQrPase = async (client, paseId) => {
             expira_en: expiraEnIso
         };
     } catch (error) {
+        await client.query('ROLLBACK TO SAVEPOINT before_qr_pase').catch(() => null);
         console.warn('No se pudo persistir QR de pase:', error.message);
         return {
             qr_id: null,
@@ -241,6 +249,10 @@ const generarQrVisitaLegacy = async (visitaId) => {
         const qrResult = await pool.query(
             `INSERT INTO codigos_qr_visitas (visita_id, codigo_qr, expira_en, activo)
              VALUES ($1, $2, $3, TRUE)
+             ON CONFLICT (visita_id) DO UPDATE
+               SET codigo_qr = EXCLUDED.codigo_qr,
+                   expira_en = EXCLUDED.expira_en,
+                   activo    = TRUE
              RETURNING qr_id`,
             [visitaId, qrImage, expiraEn]
         );
@@ -1114,50 +1126,65 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
 
     obtenerQrPase: async (req, res) => {
         const { id } = req.params;
+
+        // ── Intento 1: tabla pases (nueva) ─────────────────────────────────
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
 
             let paseIdFinal = null;
-            let paseActivo = false;
+            let paseActivo  = false;
 
             try {
                 const r = await client.query(
-                    `SELECT pase_id, estado FROM pases WHERE pase_id = $1`,
-                    [id]
+                    `SELECT pase_id, estado FROM pases WHERE pase_id = $1`, [id]
                 );
                 if (r.rows.length > 0) {
                     paseIdFinal = r.rows[0].pase_id;
-                    paseActivo = r.rows[0].estado === 'activo';
+                    paseActivo  = r.rows[0].estado === 'activo';
                 }
             } catch (e) {
                 if (!isMissingPasesTable(e)) throw e;
             }
 
-            if (!paseIdFinal) {
-                await client.query('ROLLBACK');
-                return res.status(404).json({ error: 'Pase no encontrado' });
+            if (paseIdFinal) {
+                if (!paseActivo) {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({ error: 'El pase ya no está activo' });
+                }
+                const qr = await generarQrPase(client, paseIdFinal);
+                await client.query('COMMIT');
+                return res.json({ ok: true, qr_image: qr.qr_image, expira_en: qr.expira_en });
             }
 
-            if (!paseActivo) {
-                await client.query('ROLLBACK');
-                return res.status(400).json({ error: 'El pase ya no está activo' });
-            }
-
-            const qr = await generarQrPase(client, paseIdFinal);
-            await client.query('COMMIT');
-
-            return res.json({
-                ok: true,
-                qr_image: qr.qr_image,
-                expira_en: qr.expira_en
-            });
+            await rollbackQuietly(client);
         } catch (error) {
             await rollbackQuietly(client);
-            console.error('obtenerQrPase:', error);
+            console.error('obtenerQrPase (pases):', error);
             return res.status(500).json({ error: 'Error al generar QR' });
         } finally {
             client.release();
+        }
+
+        // ── Intento 2: tabla visitas (legacy) ──────────────────────────────
+        try {
+            const rv = await pool.query(
+                `SELECT visita_id, vigente FROM visitas WHERE visita_id = $1`, [id]
+            );
+
+            if (rv.rows.length === 0) {
+                return res.status(404).json({ error: 'Pase no encontrado' });
+            }
+
+            if (rv.rows[0].vigente === false) {
+                return res.status(400).json({ error: 'El pase ya no está activo' });
+            }
+
+            const qr = await generarQrVisitaLegacy(id);
+            return res.json({ ok: true, qr_image: qr.qr_image, expira_en: qr.expira_en });
+        } catch (error) {
+            console.error('obtenerQrPase (visitas):', error);
+            return res.status(404).json({ error: 'Pase no encontrado' });
         }
     },
 
@@ -1276,7 +1303,8 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
         }
 
         try {
-            const diaSemana = new Date(year, month - 1, day).getDay() + 1;
+            const _js = new Date(year, month - 1, day).getDay();
+            const diaSemana = _js === 0 ? 7 : _js;
 
             const result = await pool.query(`
                 SELECT

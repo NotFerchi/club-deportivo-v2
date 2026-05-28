@@ -98,7 +98,7 @@ export default function DashboardSocio() {
   ) ? 'sancionado' : sancionesActivas.length > 0 ? 'advertencia' : 'activo'
 
   const fechaLabel = new Date().toLocaleDateString('es-MX', {
-    weekday: 'long', day: 'numeric', month: 'long'
+    weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Mexico_City'
   })
 
   const kpis = [

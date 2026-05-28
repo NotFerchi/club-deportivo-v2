@@ -37,13 +37,27 @@ const errorHandler        = require('./src/middleware/errorHandler');
 
 const app = express();
 
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-  : ['http://localhost:3001', 'http://localhost:5173'];
+const allowedOrigins = [
+  // Orígenes desde variable de entorno (Render)
+  ...( process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim().replace(/\/$/, ''))
+    : []
+  ),
+  // Desarrollo local
+  'http://localhost:3001',
+  'http://localhost:5173',
+  // Frontend en Vercel (hardcoded como respaldo)
+  'https://club-snowy.vercel.app',
+];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    // Peticiones sin origin (Postman, curl, etc.)
+    if (!origin) return callback(null, true);
+    // Normalizar: quitar slash final por si acaso
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
+    console.error(`CORS bloqueado: ${origin}`);
     callback(new Error(`Origen no permitido por CORS: ${origin}`));
   },
   credentials: true

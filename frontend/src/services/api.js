@@ -185,6 +185,10 @@ export const adminApi = {
     apiRequest('/recepcion/visitas', { method: 'POST', body: JSON.stringify(payload) }),
   registrarSalidaVisita: (id) =>
     apiRequest(`/recepcion/visitas/${id}/salida`, { method: 'PUT' }),
+  actualizarVisita: (id, payload) =>
+    apiRequest(`/recepcion/visitas/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  obtenerQrVisita: (id) =>
+    apiRequest(`/recepcion/visitas/${id}/qr`),
   cerrarVisitasVencidas: () =>
     apiRequest('/recepcion/visitas/cerrar-vencidas', { method: 'POST' }),
   cancelarReserva: (id) =>

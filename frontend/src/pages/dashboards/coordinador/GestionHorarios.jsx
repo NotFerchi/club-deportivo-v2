@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Edit2, Trash2, X, Search, Plus } from 'lucide-react';
+import { useNotification } from '../../../context/NotificationContext';
 
 function GestionHorarios() {
+  const { toast, showConfirm } = useNotification();
   const [sesiones, setSesiones] = useState([]);
   const [filteredSesiones, setFilteredSesiones] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,10 +131,10 @@ function GestionHorarios() {
         setShowModal(false);
         setEditingSesion(null);
         setFormData({ disciplina_id: '', espacio_id: '', instructor_id: '', dia_semana: '', hora_inicio: '', hora_fin: '', cupo_maximo: '' });
-        alert(editingSesion ? 'Sesión actualizada' : 'Sesión creada');
+        toast(editingSesion ? 'Sesión actualizada' : 'Sesión creada', 'success');
       } else {
         const error = await res.json();
-        alert(error.error || 'Error al guardar');
+        toast(error.error || 'Error al guardar', 'error');
       }
     } catch (error) {
       console.error('Error:', error);
@@ -140,7 +142,7 @@ function GestionHorarios() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Eliminar esta sesión?')) return;
+    if (!await showConfirm('¿Eliminar esta sesión?', { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       const token = localStorage.getItem('token');
       await fetch(`http://localhost:3000/api/sesiones/${id}`, {

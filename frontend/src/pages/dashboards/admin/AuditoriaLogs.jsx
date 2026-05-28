@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Edit2, Eye, FilePlus, FileText, Filter, LogIn, LogOut, RefreshCw, RotateCcw, Table, Trash2, Wifi } from 'lucide-react';
 import { apiRequest, unwrapList } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { formatLocalDateTime, normalizeText } from '../../../utils/adminData';
 
@@ -40,6 +41,7 @@ function formatIP(ip) {
 }
 
 function AuditoriaLogs() {
+  const { toast } = useNotification();
   const [logs, setLogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTabla, setFilterTabla] = useState('');
@@ -55,7 +57,7 @@ function AuditoriaLogs() {
       setError(null);
     } catch (fetchError) {
       if (fetchError.status === 401) {
-        alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        toast('Sesión expirada. Por favor, inicia sesión nuevamente.', 'error');
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
         window.location.href = '/login';

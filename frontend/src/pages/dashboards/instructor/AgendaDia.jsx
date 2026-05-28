@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, Users, ChevronDown, ChevronUp, Check, X, MapPin, Calendar, Loader2, CalendarX, ClipboardList, Search, UserPlus, UserMinus, CheckCircle, AlertCircle } from 'lucide-react';
 import { useRef } from 'react';
+import { useNotification } from '../../../context/NotificationContext';
 
 function formatHora(h) {
   if (!h) return '';
@@ -249,6 +250,7 @@ function ModalAgregarSocio({ sesion, fecha, onClose, onAgregado }) {
 
 // ── Fila de alumno ────────────────────────────────────────────────────────────
 function AlumnoRow({ alumno, fecha, sesionId, onEstadoChange }) {
+  const { showConfirm } = useNotification();
   const [estado, setEstado]   = useState(alumno.asistio === true ? 'presente' : alumno.asistio === false ? 'ausente' : null);
   const [cargando, setCargando] = useState(false);
 
@@ -300,7 +302,7 @@ function AlumnoRow({ alumno, fecha, sesionId, onEstadoChange }) {
         )}
         {/* Quitar */}
         <button onClick={async () => {
-          if (!window.confirm(`¿Quitar a ${alumno.nombre_socio} de esta clase?`)) return;
+          if (!await showConfirm(`¿Quitar a ${alumno.nombre_socio} de esta clase?`)) return;
           try {
             const token = localStorage.getItem('token');
             await fetch(`http://localhost:3000/api/reservas/${alumno.reserva_id}/cancelar`, {

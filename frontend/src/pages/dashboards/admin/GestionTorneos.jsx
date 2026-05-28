@@ -4,6 +4,7 @@ import {
   RefreshCw, Shield, Trash2, Trophy, UserPlus, Users, X
 } from 'lucide-react';
 import { adminApi } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { formatDate, normalizeText } from '../../../utils/adminData';
 
@@ -130,6 +131,7 @@ function TorneoModal({ editing, form, disciplinas, categorias, onChange, onSubmi
 }
 
 function InscribirModal({ torneo, socios, categorias, onClose, onSubmit }) {
+  const { toast: toastInscribir } = useNotification();
   const [form, setForm] = useState(initialInscForm);
 
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -138,14 +140,14 @@ function InscribirModal({ torneo, socios, categorias, onClose, onSubmit }) {
     e.preventDefault();
     const payload = { categoria_id: form.categoria_id || undefined };
     if (form.tipo === 'socio') {
-      if (!form.socio_id) { alert('Selecciona un socio'); return; }
+      if (!form.socio_id) { toastInscribir('Selecciona un socio', 'warning'); return; }
       payload.socio_id = form.socio_id;
     } else {
       const nombre = form.nombre_externo.trim();
-      if (!nombre) { alert('Ingresa el nombre del equipo o participante externo'); return; }
+      if (!nombre) { toastInscribir('Ingresa el nombre del equipo o participante externo', 'warning'); return; }
       payload.nombre_externo = nombre;
     }
-    if (!payload.categoria_id) { alert('Selecciona una categoría'); return; }
+    if (!payload.categoria_id) { toastInscribir('Selecciona una categoría', 'warning'); return; }
     onSubmit(payload);
   };
 
@@ -233,6 +235,7 @@ function InscribirModal({ torneo, socios, categorias, onClose, onSubmit }) {
 }
 
 function ParticipantesPanel({ torneo, categorias, socios, onClose, onCerrarInscripciones }) {
+  const { toast, showConfirm } = useNotification();
   const [participantes, setParticipantes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInscribir, setShowInscribir] = useState(false);
@@ -244,7 +247,7 @@ function ParticipantesPanel({ torneo, categorias, socios, onClose, onCerrarInscr
       const list = Array.isArray(data) ? data : (data?.participantes || data?.data || []);
       setParticipantes(list);
     } catch (e) {
-      alert(e.message || 'Error al cargar participantes');
+      toast(e.message || 'Error al cargar participantes', 'error');
     } finally {
       setLoading(false);
     }
@@ -258,17 +261,17 @@ function ParticipantesPanel({ torneo, categorias, socios, onClose, onCerrarInscr
       setShowInscribir(false);
       fetchParticipantes();
     } catch (e) {
-      alert(e.message || 'Error al inscribir participante');
+      toast(e.message || 'Error al inscribir participante', 'error');
     }
   };
 
   const handleDesinscribir = async (participanteId) => {
-    if (!confirm('¿Quitar este participante del torneo?')) return;
+    if (!await showConfirm('¿Quitar este participante del torneo?')) return;
     try {
       await adminApi.desinscribirParticipante(torneo.torneo_id, participanteId);
       fetchParticipantes();
     } catch (e) {
-      alert(e.message || 'Error al desinscribir participante');
+      toast(e.message || 'Error al desinscribir participante', 'error');
     }
   };
 
@@ -372,13 +375,14 @@ function rondaLabel(n, totalRondas) {
 }
 
 function ResultadosTorneo({ torneo, onClose }) {
+  const { toast: toastResultados } = useNotification();
   const [reporte, setReporte] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     adminApi.getTorneoReporte(torneo.torneo_id)
       .then(data => setReporte(data))
-      .catch(e => alert(e.message || 'Error al cargar reporte'))
+      .catch(e => toastResultados(e.message || 'Error al cargar reporte', 'error'))
       .finally(() => setLoading(false));
   }, [torneo.torneo_id]);
 
@@ -524,6 +528,7 @@ function ResultadosTorneo({ torneo, onClose }) {
 }
 
 export default function GestionTorneos({ readOnly = false }) {
+  const { toast: toastGestion, showConfirm: showConfirmGestion } = useNotification();
   const [torneos, setTorneos] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -552,7 +557,7 @@ export default function GestionTorneos({ readOnly = false }) {
       setCategorias(Array.isArray(c) ? c : (c?.categorias || []));
       setSocios(Array.isArray(s) ? s.filter(x => x.activo !== false && x.activo !== 'false') : []);
     } catch (e) {
-      alert(e.message || 'Error al cargar torneos');
+      toastGestion(e.message || 'Error al cargar torneos', 'error');
     } finally {
       setLoading(false);
     }
@@ -608,28 +613,28 @@ export default function GestionTorneos({ readOnly = false }) {
       setShowModal(false);
       fetchAll();
     } catch (e) {
-      alert(e.message || 'Error al guardar torneo');
+      toastGestion(e.message || 'Error al guardar torneo', 'error');
     }
   };
 
   const handleCancelTorneo = async (torneo) => {
-    if (!confirm(`¿Cancelar el torneo "${torneo.nombre}"? Esta acción cambia su estado a Cancelado.`)) return;
+    if (!await showConfirmGestion(`¿Cancelar el torneo "${torneo.nombre}"? Esta acción cambia su estado a Cancelado.`, { danger: true, confirmLabel: 'Cancelar torneo' })) return;
     try {
       await adminApi.cancelarTorneo(torneo.torneo_id);
       fetchAll();
     } catch (e) {
-      alert(e.message || 'Error al cancelar torneo');
+      toastGestion(e.message || 'Error al cancelar torneo', 'error');
     }
   };
 
   const handleCerrarInscripciones = async (torneo) => {
-    if (!confirm(`¿Cerrar inscripciones y generar el bracket para "${torneo.nombre}"?`)) return;
+    if (!await showConfirmGestion(`¿Cerrar inscripciones y generar el bracket para "${torneo.nombre}"?`)) return;
     try {
       await adminApi.cerrarInscripcionesTorneo(torneo.torneo_id);
       setViewParticipantes(null);
       fetchAll();
     } catch (e) {
-      alert(e.message || 'Error al cerrar inscripciones');
+      toastGestion(e.message || 'Error al cerrar inscripciones', 'error');
     }
   };
 

@@ -15,6 +15,7 @@ import {
   X
 } from 'lucide-react';
 import { adminApi } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
@@ -76,6 +77,7 @@ function formatHour(value) {
 }
 
 function GestionVisitas() {
+  const { toast } = useNotification();
   const [visitasActivas, setVisitasActivas] = useState([]);
   const [historial, setHistorial] = useState([]);
   const [socios, setSocios] = useState([]);
@@ -222,22 +224,22 @@ function GestionVisitas() {
     event.preventDefault();
 
     if (!formData.nombre_completo.trim()) {
-      window.alert('El nombre completo es obligatorio.');
+      toast('El nombre completo es obligatorio.', 'warning');
       return;
     }
 
     if (!formData.telefono.trim()) {
-      window.alert('El teléfono es obligatorio.');
+      toast('El teléfono es obligatorio.', 'warning');
       return;
     }
 
     if (!formData.mayor_16 && !formData.confirmacion_tutor) {
-      window.alert('Para menores de 16 años debes confirmar que ingresará con un tutor.');
+      toast('Para menores de 16 años debes confirmar que ingresará con un tutor.', 'warning');
       return;
     }
 
     if (formData.tipo_pase === 'visita' && !formData.socio_id) {
-      window.alert('Debes seleccionar un socio activo para una visita.');
+      toast('Debes seleccionar un socio activo para una visita.', 'warning');
       return;
     }
 
@@ -273,7 +275,7 @@ function GestionVisitas() {
         showToast('Pase registrado correctamente');
       }
     } catch (error) {
-      window.alert(`Error: ${error.message || 'No se pudo registrar el pase.'}`);
+      toast(error.message || 'No se pudo registrar el pase.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -289,7 +291,7 @@ function GestionVisitas() {
       showToast('Salida registrada correctamente');
       await fetchData();
     } catch (error) {
-      window.alert(`Error: ${error.message || 'No se pudo registrar la salida.'}`);
+      toast(error.message || 'No se pudo registrar la salida.', 'error');
     } finally {
       setSavingExit(null);
     }
@@ -307,7 +309,7 @@ function GestionVisitas() {
       );
       await fetchData();
     } catch (error) {
-      window.alert(`Error: ${error.message || 'No se pudieron cerrar las vencidas.'}`);
+      toast(error.message || 'No se pudieron cerrar las vencidas.', 'error');
     } finally {
       setClosingVisits(false);
     }

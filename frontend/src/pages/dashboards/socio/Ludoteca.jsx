@@ -6,6 +6,7 @@ import {
   Info, AlertCircle as AlertIcon, LogOut, Timer
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
+import { useNotification } from '../../../context/NotificationContext'
 import '../../../../css/socio/Ludoteca.css'
 
 const LIMITE_MINUTOS = 120
@@ -13,6 +14,7 @@ const ALERTA_MINUTOS = 90
 const CRITICO_MINUTOS = 110
 
 function Ludoteca() {
+  const { toast } = useNotification()
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
   const numeroSocio = usuario?.numero_socio || usuario?.socio_id || '—'
 
@@ -180,10 +182,10 @@ function Ludoteca() {
       const res = await apiRequest(`/ludoteca/socio/salida/${registroId}`, { method: 'PATCH' })
       await fetchData()
       if (res.sancion_generada) {
-        alert('Se generó una sanción por exceder el límite de 2 horas. Revisa tu estado de cuenta.')
+        toast('Se generó una sanción por exceder el límite de 2 horas. Revisa tu estado de cuenta.', 'warning')
       }
     } catch (err) {
-      alert(err.message || 'Error al registrar salida')
+      toast(err.message || 'Error al registrar salida', 'error')
     } finally {
       setSalidaLoading(prev => ({ ...prev, [registroId]: false }))
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../components/SocioLayout'
 import { CheckCircle, AlertTriangle, Trophy, Clock, Baby, CalendarDays, ShieldAlert, Camera, Loader2 } from 'lucide-react'
 import { apiRequest } from '../../services/api'
+import { useNotification } from '../../context/NotificationContext'
 
 function todayISO() {
   const d = new Date()
@@ -9,6 +10,7 @@ function todayISO() {
 }
 
 export default function DashboardSocio() {
+  const { toast } = useNotification()
   const usuario   = JSON.parse(localStorage.getItem('usuario') || '{}')
   const socioId   = usuario?.socio_id
   const fullName  = [usuario?.nombres, usuario?.apellido_paterno].filter(Boolean).join(' ') || usuario?.email?.split('@')[0] || 'Socio'
@@ -63,7 +65,7 @@ export default function DashboardSocio() {
   const handleFotoChange = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) { alert('La imagen debe ser menor a 5MB'); return }
+    if (file.size > 5 * 1024 * 1024) { toast('La imagen debe ser menor a 5MB', 'warning'); return }
 
     setSubiendoFoto(true)
     try {
@@ -76,11 +78,11 @@ export default function DashboardSocio() {
         body: formData
       })
       const data = await res.json()
-      if (!res.ok) { alert(data.error || 'Error al subir foto'); return }
+      if (!res.ok) { toast(data.error || 'Error al subir foto', 'error'); return }
       setFotoPerfil(data.foto_perfil)
       const usuarioActualizado = { ...usuario, foto_perfil: data.foto_perfil }
       localStorage.setItem('usuario', JSON.stringify(usuarioActualizado))
-    } catch { alert('Error de conexión') }
+    } catch { toast('Error de conexión', 'error') }
     finally { setSubiendoFoto(false) }
   }
 

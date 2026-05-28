@@ -4,6 +4,7 @@ import {
   Clock, Edit2, Plus, RefreshCw, Trash2, Users, X, XCircle
 } from 'lucide-react';
 import { adminApi } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import {
   addMinutesToTime, getFullName, getSocioNumero,
   minutesBetween, normalizeEstadoReserva, normalizeText,
@@ -189,6 +190,7 @@ function ReservaTooltip({ reserva, onEdit, onCancel, onDelete, readOnly }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function Reservas({ readOnly = false }) {
+  const {toast, showConfirm } = useNotification();
   const [reservas, setReservas] = useState([]);
   const [espacios, setEspacios] = useState([]);
   const [socios, setSocios] = useState([]);
@@ -202,7 +204,7 @@ export default function Reservas({ readOnly = false }) {
   const [editingReserva, setEditingReserva] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [formErrors, setFormErrors] = useState({});
-  const [toast, setToast] = useState('');
+  //const [toast, setToast] = useState('');
   const [activeTooltip, setActiveTooltip] = useState(null); // reserva_id
 
   const fetchData = async () => {
@@ -449,31 +451,31 @@ export default function Reservas({ readOnly = false }) {
       resetForm();
       showToast(editingReserva ? 'Reserva actualizada' : 'Reserva creada exitosamente');
     } catch (err) {
-      alert(err.message || 'Error al guardar reserva');
+      toast(err.message || 'Error al guardar reserva', 'error');
     }
   };
 
   const handleCancel = async (id) => {
-    if (!confirm('¿Cancelar esta reserva?')) return;
+    if (!await showConfirm('¿Cancelar esta reserva?')) return;
     try {
       await adminApi.cancelarReserva(id);
       await fetchData();
       setActiveTooltip(null);
       showToast('Reserva cancelada');
     } catch (err) {
-      alert(err.message || 'Error');
+      toast(err.message || 'Error al cancelar reserva', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Eliminar esta reserva permanentemente?')) return;
+    if (!await showConfirm('¿Eliminar esta reserva permanentemente?', { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       await adminApi.deleteReserva(id);
       await fetchData();
       setActiveTooltip(null);
       showToast('Reserva eliminada');
     } catch (err) {
-      alert(err.message || 'Error');
+      toast(err.message || 'Error al eliminar reserva', 'error');
     }
   };
 

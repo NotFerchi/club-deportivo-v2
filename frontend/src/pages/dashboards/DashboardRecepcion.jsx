@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Calendar, Baby, LogOut, UserPlus, ShieldAlert
 } from 'lucide-react';
+import { useNotification } from '../../context/NotificationContext';
 import '../../../css/recepcion.css';  // Asegúrate de que esta ruta sea correcta
 
 // Importar componentes de las pestañas
@@ -15,6 +16,7 @@ import Sanciones from '../../components/SancionesPanel';
 import { getAuthToken } from '../../services/api';
 
 function DashboardRecepcion() {
+  const { toast } = useNotification();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userName, setUserName] = useState('');
@@ -48,7 +50,7 @@ function DashboardRecepcion() {
   const handleFotoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { alert('La imagen debe ser menor a 5MB'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast('La imagen debe ser menor a 5MB', 'warning'); return; }
     setSubiendoFoto(true);
     try {
       const token = localStorage.getItem('token');
@@ -60,11 +62,11 @@ function DashboardRecepcion() {
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Error al subir foto'); return; }
+      if (!res.ok) { toast(data.error || 'Error al subir foto', 'error'); return; }
       setFotoPerfil(data.foto_perfil);
       const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
       localStorage.setItem('usuario', JSON.stringify({ ...usuario, foto_perfil: data.foto_perfil }));
-    } catch { alert('Error de conexión'); }
+    } catch { toast('Error de conexión', 'error'); }
     finally { setSubiendoFoto(false); e.target.value = ''; }
   };
 

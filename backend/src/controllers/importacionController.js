@@ -254,11 +254,12 @@ const importarSocios = async (req, res) => {
           // ACTUALIZAR — buscar usuario por email
           const accionId = accionRes.rows[0].accion_id;
           const usuarioRes = await client.query(
-            "SELECT u.usuario_id FROM usuarios u JOIN socios s ON s.usuario_id = u.usuario_id WHERE u.username = $1 OR (u.nombres ILIKE $2 AND s.accion_id = $3) LIMIT 1",
-            [username, `%${nombres}%`, accionId]
+            "SELECT u.usuario_id FROM usuarios u JOIN socios s ON s.usuario_id = u.usuario_id WHERE u.username = $1 AND s.accion_id = $2 LIMIT 1",
+            [username, accionId]
           );
 
           if (usuarioRes.rowCount > 0) {
+            // Usuario ya existe → actualizar datos
             const usuarioId = usuarioRes.rows[0].usuario_id;
             await client.query(
               `UPDATE usuarios SET nombres=$1, apellido_paterno=$2, apellido_materno=$3,
@@ -267,13 +268,44 @@ const importarSocios = async (req, res) => {
               [nombres, apellido_paterno, apellido_materno, genero, fechaNac, telefono, domicilio, usuarioId]
             );
             await client.query(
-              `UPDATE socios SET tipo=$1, modalidad=$2, es_titular=$3, tel_emergencia=$4
-               WHERE usuario_id=$5`,
-              [tipo, modalidad, esTitular, telEmerg, usuarioId]
+              `UPDATE socios SET tipo=$1, modalidad=$2, es_titular=$3, tel_emergencia=$4, parentesco=$5
+               WHERE usuario_id=$6`,
+              [tipo, modalidad, esTitular, telEmerg, parentesco, usuarioId]
             );
             actualizados++;
           } else {
-            errores.push({ fila: numFila, motivo: `Acción ${codigoAccion} existe pero no se encontró el usuario` });
+            // Acción existe pero este miembro es nuevo → crear usuario y socio
+            const anio = new Date().getFullYear();
+            const passwordTemporal = `Club${codigoAccion}${anio}`;
+            const passwordHash = await bcrypt.hash(passwordTemporal, 10);
+
+            const nuevoUsuario = await client.query(
+              `INSERT INTO usuarios (username, password_hash, rol_id,
+                nombres, apellido_paterno, apellido_materno, genero, fecha_nacimiento,
+                telefono, direccion, curp)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NULL)
+               RETURNING usuario_id`,
+              [username, passwordHash, rolSocioId,
+               nombres, apellido_paterno, apellido_materno, genero, fechaNac,
+               telefono, domicilio]
+            );
+            const nuevoUsuarioId = nuevoUsuario.rows[0].usuario_id;
+
+            const countRes = await client.query(
+              `SELECT COUNT(*) FROM socios s
+               WHERE s.accion_id = $1 AND s.es_titular = FALSE`,
+              [accionId]
+            );
+            const idx = Number(countRes.rows[0].count) + 1;
+            const numeroSocio = esTitular ? `SOC-${codigoAccion}-T` : `SOC-${codigoAccion}-M${idx}`;
+
+            await client.query(
+              `INSERT INTO socios (usuario_id, accion_id, tipo, modalidad,
+                es_titular, numero_socio, tel_emergencia, parentesco, activo)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,TRUE)`,
+              [nuevoUsuarioId, accionId, tipo, modalidad, esTitular, numeroSocio, telEmerg, parentesco]
+            );
+            nuevos++;
           }
         } else {
           // CREAR nuevo
@@ -317,9 +349,9 @@ const importarSocios = async (req, res) => {
           // vii. INSERT socio
           await client.query(
             `INSERT INTO socios (usuario_id, accion_id, tipo, modalidad,
-              es_titular, numero_socio, tel_emergencia, activo)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,TRUE)`,
-            [usuarioId, accionId, tipo, modalidad, esTitular, numeroSocio, telEmerg]
+              es_titular, numero_socio, tel_emergencia, parentesco, activo)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,TRUE)`,
+            [usuarioId, accionId, tipo, modalidad, esTitular, numeroSocio, telEmerg, parentesco]
           );
           nuevos++;
         }

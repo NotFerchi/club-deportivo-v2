@@ -7,6 +7,7 @@ import { adminApi } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { formatDate, normalizeText } from '../../../utils/adminData';
+import TournamentBracket from '../../../components/TournamentBracket';
 
 const ESTADO_COLORS = {
   Abierto:               { bg: '#dcfce7', color: '#15803d' },
@@ -643,163 +644,10 @@ export default function GestionTorneos({ readOnly = false }) {
   const estadosUnicos = [...new Set(torneos.map(t => t.estado).filter(Boolean))];
 
   return (
-    <div className="chart-box">
-      <ModuleHeader
-        icon={Trophy}
-        title="Gestión de Torneos"
-        subtitle={`${filtered.length} torneo${filtered.length !== 1 ? 's' : ''}`}
-        actions={(
-          <>
-            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar torneo..." />
-            <FilterSelect label="Estado" value={filterEstado} onChange={setFilterEstado}>
-              <option value="">Todos los estados</option>
-              {estadosUnicos.map(e => (
-                <option key={e} value={e}>{ESTADO_LABELS[e] || e}</option>
-              ))}
-            </FilterSelect>
-            <FilterSelect label="Disciplina" value={filterDisciplina} onChange={setFilterDisciplina}>
-              <option value="">Todas</option>
-              {disciplinas.map(d => (
-                <option key={d.disciplina_id} value={d.disciplina_id}>{d.nombre}</option>
-              ))}
-            </FilterSelect>
-            <button onClick={fetchAll} className="btn-secondary" title="Refrescar">
-              <RefreshCw size={16} />
-            </button>
-            {!readOnly && (
-              <button className="btn-primary" onClick={openCreate}>
-                <Plus size={16} /> Nuevo torneo
-              </button>
-            )}
-          </>
-        )}
-      />
-
-      <div className="table-wrapper">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Torneo</th>
-              <th>Disciplina</th>
-              <th>Categoría</th>
-              <th>Modalidad</th>
-              <th>Fechas</th>
-              <th>Participantes</th>
-              <th>Estado</th>
-              {!readOnly && <th>Acciones</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(t => (
-              <tr key={t.torneo_id}>
-                <td>
-                  <button
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, fontWeight: 700, color: '#1e3a5f', display: 'flex', alignItems: 'center', gap: 5 }}
-                    onClick={() => setViewParticipantes(t)}
-                    title="Ver participantes"
-                  >
-                    <ChevronRight size={14} />
-                    {t.nombre}
-                  </button>
-                </td>
-                <td>{t.nombre_disciplina}</td>
-                <td>{t.nombre_categoria || '—'}</td>
-                <td>
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
-                    background: t.tipo_torneo === 'Equipos' ? '#fef3c7' : '#eff6ff',
-                    color: t.tipo_torneo === 'Equipos' ? '#92400e' : '#1d4ed8'
-                  }}>{t.tipo_torneo || 'Individual'}</span>
-                </td>
-                <td style={{ fontSize: 12, color: '#64748b' }}>
-                  {t.fecha_inicio ? formatDate(t.fecha_inicio) : '—'}
-                  {t.fecha_fin && t.fecha_inicio ? ' → ' : ''}
-                  {t.fecha_fin ? formatDate(t.fecha_fin) : ''}
-                </td>
-                <td>
-                  <button
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
-                    onClick={() => setViewParticipantes(t)}
-                  >
-                    <Users size={13} /> {t.total_participantes}
-                  </button>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <EstadoBadge estado={t.estado} />
-                    {(t.estado === 'Finalizado' || t.estado === 'En_curso') && (
-                      <button
-                        className="btn-outline btn-compact"
-                        onClick={() => setViewResultados(t)}
-                        title="Ver resultados y bracket"
-                        style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11 }}
-                      >
-                        <Trophy size={12} /> Resultados
-                      </button>
-                    )}
-                  </div>
-                </td>
-                {!readOnly && (
-                  <td>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="btn-outline btn-compact" onClick={() => openEdit(t)} title="Editar">
-                        <Edit2 size={13} />
-                      </button>
-                      {t.estado !== 'Cancelado' && t.estado !== 'Finalizado' && (
-                        <button
-                          className="btn-outline btn-compact"
-                          onClick={() => handleCancelTorneo(t)}
-                          title="Cancelar torneo"
-                          style={{ color: '#dc2626', borderColor: '#fca5a5' }}
-                        >
-                          <X size={13} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={readOnly ? 6 : 7} style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                  <Trophy size={40} style={{ opacity: 0.3, marginBottom: '0.75rem', display: 'block', margin: '0 auto 0.75rem' }} />
-                  <p>No se encontraron torneos.</p>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {showModal && !readOnly && (
-        <TorneoModal
-          editing={editingTorneo}
-          form={torneoForm}
-          disciplinas={disciplinas}
-          categorias={categorias}
-          onChange={handleFormChange}
-          onSubmit={handleSubmit}
-          onClose={() => setShowModal(false)}
-        />
-      )}
-
-      {viewParticipantes && (
-        <ParticipantesPanel
-          torneo={viewParticipantes}
-          categorias={categorias}
-          socios={socios}
-          onClose={() => setViewParticipantes(null)}
-          onCerrarInscripciones={() => handleCerrarInscripciones(viewParticipantes)}
-        />
-      )}
-
-      {viewResultados && (
-        <ResultadosTorneo
-          torneo={viewResultados}
-          onClose={() => setViewResultados(null)}
-        />
-      )}
-    </div>
+    <TournamentBracket
+      title="Gestión de Torneos"
+      subtitle="Administra torneos, participantes, brackets y resultados del club."
+      readOnly={readOnly}
+    />
   );
 }

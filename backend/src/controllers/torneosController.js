@@ -65,10 +65,14 @@ const torneosController = {
         SELECT
           t.torneo_id,
           t.nombre,
+          t.disciplina_id,
           d.nombre AS nombre_disciplina,
           t.fecha_inicio,
           t.fecha_fin,
           t.estado,
+          t.tipo_torneo,
+          t.categoria_id,
+          ct.nombre AS nombre_categoria,
           COUNT(pt.participante_id)::int AS total_participantes,
           (COUNT(pt.participante_id) >= 4) AS se_realiza
         FROM torneos t
@@ -76,7 +80,7 @@ const torneosController = {
         LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id
         LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id
         ${where}
-        GROUP BY t.torneo_id, d.nombre, ct.nombre
+        GROUP BY t.torneo_id, t.disciplina_id, d.nombre, t.tipo_torneo, t.categoria_id, ct.nombre
         ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC
       `, valores);
 
@@ -88,7 +92,7 @@ const torneosController = {
   },
 
   createTorneo: async (req, res) => {
-    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado } = req.body;
+    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo } = req.body;
 
     if (typeof nombre !== 'string' || nombre.trim() === '') {
       return res.status(400).json({ error: 'El nombre es requerido' });
@@ -113,9 +117,11 @@ const torneosController = {
         return res.status(400).json({ error: ERROR_DISCIPLINA_NO_EXISTE });
       }
 
+      const categoriaId = tieneValor(categoria_id) ? esEnteroValido(categoria_id) : null;
+
       const result = await pool.query(
-        `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING torneo_id`,
         [
           disciplinaId,
@@ -123,6 +129,8 @@ const torneosController = {
           normalizarFechaOpcional(fecha_inicio),
           normalizarFechaOpcional(fecha_fin),
           estado || 'Abierto',
+          categoriaId,
+          tipo_torneo || 'Individual',
         ]
       );
 
@@ -140,7 +148,7 @@ const torneosController = {
 
   updateTorneo: async (req, res) => {
     const torneoId = esEnteroValido(req.params.torneo_id);
-    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado } = req.body;
+    const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo } = req.body;
 
     if (torneoId === null) {
       return res.status(400).json({ error: 'torneo_id debe ser un entero valido' });
@@ -155,18 +163,19 @@ const torneosController = {
       return res.status(400).json({ error: 'disciplina_id debe ser un entero valido' });
     }
 
-    // categoria_id es opcional: null = sin categoría, un número = categoría específica
     const categoriaId = tieneValor(categoria_id) ? esEnteroValido(categoria_id) : null;
 
     try {
       const result = await pool.query(
         `UPDATE torneos
          SET disciplina_id = $1,
-             nombre = $2,
-             fecha_inicio = $3,
-             fecha_fin = $4,
-             estado = COALESCE($5, estado)
-         WHERE torneo_id = $6
+             nombre        = $2,
+             fecha_inicio  = $3,
+             fecha_fin     = $4,
+             estado        = COALESCE($5, estado),
+             categoria_id  = $6,
+             tipo_torneo   = COALESCE($7, tipo_torneo)
+         WHERE torneo_id = $8
          RETURNING torneo_id`,
         [
           disciplinaId,
@@ -174,6 +183,8 @@ const torneosController = {
           normalizarFechaOpcional(fecha_inicio),
           normalizarFechaOpcional(fecha_fin),
           estado || null,
+          categoriaId,
+          tipo_torneo || null,
           torneoId
         ]
       );

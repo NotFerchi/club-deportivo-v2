@@ -16,6 +16,7 @@ router.post('/clases/inscribir', instructorController.inscribirSocioClase);
 router.get('/mis-clases', instructorController.getMisClases);
 router.get('/metricas', instructorController.getMetricas);
 router.get('/clases-general', instructorController.getClasesGeneral);
+router.get('/sesiones/:sesionId/inscritos', instructorController.getInscritosPorSesion);
 
 // Torneos
 router.get('/torneos', instructorController.getTorneos);

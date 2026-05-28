@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Calendar, CheckCircle, Clock, Edit2, Filter, Lock, Loader2, MapPin, Plus, RotateCcw, Save, Trash2, Trophy, Users, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Calendar, CheckCircle, Clock, Edit2, Filter, Lock, Loader2, MapPin, Plus, RotateCcw, Save, Trash2, Trophy, UserPlus, Users, X } from 'lucide-react';
 import { apiRequest, unwrapList } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import '../../css/TournamentBracket.css';
@@ -292,9 +292,9 @@ function AccionesTorneo({ torneo, onActualizar, readOnly }) {
   };
 
   const estadoReal = torneo.estado;
-  if (readOnly && !['Abierto', 'Inscripciones_cerradas', 'En_curso'].includes(estadoReal)) return null;
+  if (readOnly) return null;
 
-  const mostrarBotones = !readOnly && ['Abierto', 'Inscripciones_cerradas', 'En_curso'].includes(estadoReal);
+  const mostrarBotones = !readOnly && !['Cancelado', 'Finalizado'].includes(estadoReal);
   if (!mostrarBotones) return null;
 
   return (
@@ -319,6 +319,10 @@ function AccionesTorneo({ torneo, onActualizar, readOnly }) {
             {cargando ? <><Loader2 size={13} className="icon-spin" /> Finalizando...</> : <><Trophy size={13} /> Finalizar torneo</>}
           </button>
         )}
+        <button onClick={() => { if (window.confirm('¿Cancelar el torneo? Esta acción no se puede deshacer.')) llamar('cancelar'); }}
+          disabled={cargando} style={{ background: 'white', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <X size={13} /> Cancelar torneo
+        </button>
       </div>
       {mensaje && (
         <p style={{ margin: '0.75rem 0 0', fontSize: '12px', fontWeight: 600, color: mensaje.tipo === 'ok' ? '#15803d' : '#dc2626' }}>
@@ -365,6 +369,506 @@ function DetalleTorneo({ torneo }) {
   );
 }
 
+// ─── InscribirModal ───────────────────────────────────────────────────────────
+function InscribirModal({ torneo, socios, categorias, onClose, onInscribir }) {
+  const esEquipos = torneo?.tipo_torneo === 'Equipos';
+  const [tipo, setTipo] = useState(esEquipos ? 'externo' : 'socio');
+  const [socioId, setSocioId] = useState('');
+  const [nombreExterno, setNombreExterno] = useState('');
+  const [categoriaId, setCategoriaId] = useState('');
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    const payload = {};
+    if (categoriaId) payload.categoria_id = Number(categoriaId);
+    if (esEquipos || tipo === 'externo') {
+      if (!nombreExterno.trim()) { setError(esEquipos ? 'Ingresa el nombre del equipo' : 'Ingresa el nombre'); return; }
+      payload.nombre_externo = nombreExterno.trim();
+    } else {
+      if (!socioId) { setError('Selecciona un socio'); return; }
+      payload.socio_id = Number(socioId);
+    }
+    setCargando(true);
+    try {
+      await apiRequest(`/torneos/${torneo.torneo_id}/inscribir`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      onInscribir();
+    } catch (err) {
+      setError(err.message || 'Error al inscribir');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0' }}>
+          <div>
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1rem', color: '#0f172a' }}>Inscribir participante</h3>
+            <p style={{ margin: '3px 0 0', fontSize: 11, color: '#64748b' }}>{torneo.nombre} · <strong>{torneo.tipo_torneo || 'Individual'}</strong></p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {error && <p style={{ margin: 0, color: '#dc2626', fontWeight: 600, fontSize: 12 }}>⚠ {error}</p>}
+            {!esEquipos && (
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 6, color: '#374151' }}>Tipo de participante</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[{ v: 'socio', l: 'Socio del club' }, { v: 'externo', l: 'Externo' }].map(opt => (
+                    <button key={opt.v} type="button" onClick={() => setTipo(opt.v)} style={{
+                      flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 12,
+                      border: `2px solid ${tipo === opt.v ? '#3b82f6' : '#e2e8f0'}`,
+                      background: tipo === opt.v ? '#eff6ff' : 'white',
+                      color: tipo === opt.v ? '#1d4ed8' : '#475569',
+                      fontWeight: tipo === opt.v ? 700 : 400, cursor: 'pointer'
+                    }}>{opt.l}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(esEquipos || tipo === 'externo') ? (
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>
+                  {esEquipos ? 'Nombre del equipo' : 'Nombre del participante'} <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input value={nombreExterno} onChange={e => setNombreExterno(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, boxSizing: 'border-box' }}
+                  placeholder={esEquipos ? 'Ej. Águilas FC' : 'Ej. Juan Pérez'} />
+              </div>
+            ) : (
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>
+                  Socio <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <select value={socioId} onChange={e => setSocioId(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, boxSizing: 'border-box' }}>
+                  <option value="">Seleccionar socio</option>
+                  {socios.map(s => (
+                    <option key={s.socio_id} value={s.socio_id}>
+                      {[s.nombres, s.apellido_paterno, s.apellido_materno].filter(Boolean).join(' ')}
+                      {s.numero_socio ? ` — ${s.numero_socio}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {categorias.length > 0 && (
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>Categoría</label>
+                <select value={categoriaId} onChange={e => setCategoriaId(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, boxSizing: 'border-box' }}>
+                  <option value="">Sin categoría</option>
+                  {categorias.map(c => <option key={c.categoria_id} value={c.categoria_id}>{c.nombre}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0' }}>
+            <button type="button" onClick={onClose} disabled={cargando}
+              style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 18px', fontWeight: 600, fontSize: 13, cursor: 'pointer', color: '#374151' }}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={cargando}
+              style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg,#2563eb,#3b82f6)', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 700, fontSize: 13, cursor: cargando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+              {cargando ? <><Loader2 size={13} /> Inscribiendo...</> : <><UserPlus size={13} /> Inscribir</>}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── MatchEditPanel ───────────────────────────────────────────────────────────
+function MatchEditPanel({ encuentro, onClose, onSaved, readOnly, espacios = [] }) {
+  const est  = normalizeEstado(encuentro.estado);
+  const done = est === 'finalizado';
+  const p1   = encuentro.participante_1 || {};
+  const p2   = encuentro.participante_2 || {};
+  const w1   = isWinner(encuentro, p1);
+  const w2   = isWinner(encuentro, p2);
+
+  const [editMode, setEditMode] = useState(false);
+  const [m1,       setM1]       = useState(String(encuentro.marcador_1 ?? ''));
+  const [m2,       setM2]       = useState(String(encuentro.marcador_2 ?? ''));
+  const [cancha,   setCancha]   = useState(encuentro.cancha_asignada || '');
+  const [cargando, setCargando] = useState(false);
+  const [error,    setError]    = useState('');
+
+  useEffect(() => {
+    setM1(String(encuentro.marcador_1 ?? ''));
+    setM2(String(encuentro.marcador_2 ?? ''));
+    setCancha(encuentro.cancha_asignada || '');
+    setEditMode(false);
+    setError('');
+  }, [encuentro.encuentro_id, encuentro.estado, encuentro.marcador_1, encuentro.marcador_2, encuentro.cancha_asignada]);
+
+  const showInputs    = !readOnly && (est === 'programado' || editMode);
+  const ambosListos   = getParticipantName(p1) !== 'Por definir' && getParticipantName(p2) !== 'Por definir';
+  const canSaveResult = showInputs && ambosListos;
+  const canchaChanged = cancha.trim() !== (encuentro.cancha_asignada || '').trim();
+
+  const guardarResultado = async () => {
+    setError('');
+    const n1 = parseInt(m1, 10);
+    const n2 = parseInt(m2, 10);
+    if (!Number.isFinite(n1) || !Number.isFinite(n2) || n1 < 0 || n2 < 0) {
+      setError('Marcadores inválidos (enteros ≥ 0)'); return;
+    }
+    if (n1 === n2) { setError('No se permiten empates'); return; }
+    setCargando(true);
+    try {
+      const token = localStorage.getItem('token');
+      const body = { marcador_1: n1, marcador_2: n2 };
+      if (editMode) body.allowEdit = true;
+      if (cancha.trim()) body.cancha_asignada = cancha.trim();
+      const res = await fetch(`http://localhost:3000/api/encuentros/${encuentro.encuentro_id}/resultado`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Error al guardar'); return; }
+      setEditMode(false);
+      if (onSaved) onSaved();
+    } catch { setError('Error de conexión'); }
+    finally { setCargando(false); }
+  };
+
+  const guardarCancha = async () => {
+    if (!cancha.trim()) return;
+    setCargando(true); setError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:3000/api/encuentros/${encuentro.encuentro_id}/cancha`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancha_asignada: cancha.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Error'); return; }
+      if (onSaved) onSaved();
+    } catch { setError('Error de conexión'); }
+    finally { setCargando(false); }
+  };
+
+  const inputSt = { width: 52, textAlign: 'center', fontSize: 15, fontWeight: 800, padding: '6px 4px', borderRadius: 8, border: '2px solid #3b82f6', outline: 'none' };
+
+  return (
+    <div style={{ marginTop: '0.85rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '1rem 1.1rem' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontWeight: 700, fontSize: 13, color: '#1e293b' }}>Encuentro #{encuentro.encuentro_id}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+            background: done ? '#dcfce7' : est === 'programado' ? '#dbeafe' : '#f1f5f9',
+            color: done ? '#15803d' : est === 'programado' ? '#1d4ed8' : '#64748b' }}>
+            {done ? 'Finalizado' : est === 'programado' ? 'Programado' : 'Pendiente'}
+          </span>
+          {encuentro.hora_programada && (
+            <span style={{ fontSize: 10, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <Clock size={11} />{formatTime(encuentro.hora_programada)}
+            </span>
+          )}
+        </div>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 2 }}>
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* Participants + score */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
+        <span style={{ flex: '1 1 90px', fontWeight: w1 ? 800 : 600, color: w1 ? '#15803d' : '#1e293b', fontSize: 13 }}>
+          {w1 && '🏆 '}{getParticipantName(p1)}
+        </span>
+        {showInputs ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="number" min="0" value={m1} onChange={e => setM1(e.target.value)} disabled={cargando} style={inputSt} placeholder="0" />
+            <span style={{ fontWeight: 800, color: '#94a3b8', fontSize: 13 }}>—</span>
+            <input type="number" min="0" value={m2} onChange={e => setM2(e.target.value)} disabled={cargando} style={inputSt} placeholder="0" />
+          </div>
+        ) : (
+          <div style={{ fontWeight: 800, fontSize: 15, color: '#1e293b', background: done ? '#f0fdf4' : '#f1f5f9', padding: '5px 16px', borderRadius: 8, border: `1px solid ${done ? '#bbf7d0' : '#e2e8f0'}` }}>
+            {done ? `${encuentro.marcador_1 ?? '-'} — ${encuentro.marcador_2 ?? '-'}` : 'VS'}
+          </div>
+        )}
+        <span style={{ flex: '1 1 90px', textAlign: 'right', fontWeight: w2 ? 800 : 600, color: w2 ? '#15803d' : '#1e293b', fontSize: 13 }}>
+          {getParticipantName(p2)}{w2 && ' 🏆'}
+        </span>
+      </div>
+
+      {/* Cancha */}
+      {!readOnly ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.75rem' }}>
+          <MapPin size={14} color="#64748b" style={{ flexShrink: 0 }} />
+          {espacios.length > 0 ? (
+            <select value={cancha} onChange={e => setCancha(e.target.value)}
+              style={{ flex: 1, padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, outline: 'none', background: 'white' }}>
+              <option value="">Sin asignar</option>
+              {espacios.map(e => (
+                <option key={e.espacio_id} value={e.nombre}>{e.nombre}</option>
+              ))}
+            </select>
+          ) : (
+            <input value={cancha} onChange={e => setCancha(e.target.value)}
+              placeholder="Asignar espacio"
+              style={{ flex: 1, padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, outline: 'none', background: 'white' }} />
+          )}
+        </div>
+      ) : encuentro.cancha_asignada ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '0.5rem', fontSize: 12, color: '#64748b' }}>
+          <MapPin size={13} /> {encuentro.cancha_asignada}
+        </div>
+      ) : null}
+
+      {error && <p style={{ color: '#dc2626', fontSize: 11, fontWeight: 600, margin: '0 0 8px' }}>⚠ {error}</p>}
+
+      {/* Buttons */}
+      {!readOnly && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {done && !editMode && (
+            <button onClick={() => { setEditMode(true); setM1(String(encuentro.marcador_1 ?? '')); setM2(String(encuentro.marcador_2 ?? '')); }}
+              style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fbbf24', borderRadius: 8, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Edit2 size={11} /> Editar resultado
+            </button>
+          )}
+          {editMode && (
+            <button onClick={() => setEditMode(false)}
+              style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 8, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              Cancelar
+            </button>
+          )}
+          {canSaveResult && (
+            <button onClick={guardarResultado} disabled={cargando}
+              style={{ background: cargando ? '#94a3b8' : editMode ? 'linear-gradient(135deg,#d97706,#f59e0b)' : 'linear-gradient(135deg,#2563eb,#3b82f6)', color: 'white', border: 'none', borderRadius: 8, padding: '5px 14px', fontSize: 11, fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              {cargando ? <><Loader2 size={11} /> Guardando...</> : <><Save size={11} /> {editMode ? 'Actualizar resultado' : 'Guardar resultado'}</>}
+            </button>
+          )}
+          {canchaChanged && cancha.trim() && !showInputs && (
+            <button onClick={guardarCancha} disabled={cargando}
+              style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', borderRadius: 8, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <MapPin size={11} /> Guardar cancha
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Visual SVG Bracket ──────────────────────────────────────────────────────
+const BV = { W: 148, PH: 26, SH: 18, CGAP: 48, LH: 24, PAD: 12, VG: 22 };
+BV.MH = BV.PH * 2 + BV.SH;
+BV.UH = BV.MH + BV.VG;
+BV.CS = BV.W + BV.CGAP;
+
+function BracketVisual({ bracket, onMatchClick, selectedId }) {
+  const rounds = bracket.slice().sort((a, b) => Number(a.ronda) - Number(b.ronda));
+  if (!rounds.length) return null;
+  const n1 = rounds[0].encuentros.length;
+  if (!n1) return null;
+
+  const { W, PH, SH, CGAP, LH, PAD, VG, MH, UH, CS } = BV;
+  const numR = rounds.length;
+  const WW = 140;
+  const svgW = PAD + numR * CS + WW + PAD;
+  const svgH = LH + PAD + n1 * UH + PAD;
+
+  const cy = (ri, ei) => {
+    const sp = UH * Math.pow(2, ri);
+    return LH + PAD + sp * ei + sp / 2;
+  };
+
+  const lastRound = rounds[numR - 1];
+  const finalMatch = lastRound?.encuentros?.[0];
+  let champion = null;
+  if (finalMatch && normalizeEstado(finalMatch.estado) === 'finalizado') {
+    if (finalMatch.ganador_nombre) {
+      champion = finalMatch.ganador_nombre;
+    } else {
+      const p = isWinner(finalMatch, finalMatch.participante_1)
+        ? finalMatch.participante_1
+        : isWinner(finalMatch, finalMatch.participante_2)
+        ? finalMatch.participante_2
+        : null;
+      if (p) champion = getParticipantName(p);
+    }
+  }
+
+  const trunc = (s, max = 15) => {
+    const t = String(s || 'Por definir');
+    return t.length > max ? t.slice(0, max - 1) + '…' : t;
+  };
+
+  return (
+    <div style={{ overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch', padding: '4px 0' }}>
+      <svg width={svgW} height={svgH} style={{ display: 'block', fontFamily: 'system-ui,sans-serif' }}>
+        <defs>
+          {rounds.map((r, ri) =>
+            (r.encuentros || []).map((_, ei) => {
+              const x = PAD + ri * CS;
+              const y = cy(ri, ei) - MH / 2;
+              return (
+                <clipPath key={`clip-${ri}-${ei}`} id={`bc-${ri}-${ei}`}>
+                  <rect x={x} y={y} width={W} height={MH} rx={7} />
+                </clipPath>
+              );
+            })
+          )}
+          <linearGradient id="champGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#fde68a" />
+            <stop offset="100%" stopColor="#f59e0b" />
+          </linearGradient>
+        </defs>
+
+        {/* Round labels */}
+        {rounds.map((r, ri) => (
+          <text key={`lbl-${ri}`}
+            x={PAD + ri * CS + W / 2} y={LH - 5}
+            textAnchor="middle" fontSize={9} fontWeight={700} fill="#475569">
+            {ri === numR - 1 ? 'FINAL' : `RONDA ${r.ronda}`}
+          </text>
+        ))}
+
+        {/* Connector lines */}
+        {rounds.slice(0, -1).map((r, ri) =>
+          (r.encuentros || []).map((_, ei) => {
+            const nei = Math.floor(ei / 2);
+            const x1 = PAD + ri * CS + W;
+            const y1 = cy(ri, ei);
+            const x2 = PAD + (ri + 1) * CS;
+            const y2 = cy(ri + 1, nei);
+            const mx = (x1 + x2) / 2;
+            return (
+              <path key={`ln-${ri}-${ei}`} d={`M${x1} ${y1}H${mx}V${y2}H${x2}`}
+                fill="none" stroke="#cbd5e1" strokeWidth={1.5} />
+            );
+          })
+        )}
+
+        {/* Winner arrow */}
+        {(() => {
+          const x1 = PAD + (numR - 1) * CS + W;
+          const y1 = cy(numR - 1, 0);
+          const x2 = PAD + numR * CS + 8;
+          return <line x1={x1} y1={y1} x2={x2} y2={y1}
+            stroke={champion ? '#f59e0b' : '#e2e8f0'} strokeWidth={2}
+            strokeDasharray={champion ? '' : '4 3'} />;
+        })()}
+
+        {/* Match boxes */}
+        {rounds.map((r, ri) =>
+          (r.encuentros || []).map((enc, ei) => {
+            const bx = PAD + ri * CS;
+            const by = cy(ri, ei) - MH / 2;
+            const p1 = enc.participante_1 || {};
+            const p2 = enc.participante_2 || {};
+            const est = normalizeEstado(enc.estado);
+            const done = est === 'finalizado';
+            const w1 = done && isWinner(enc, p1);
+            const w2 = done && isWinner(enc, p2);
+            const p1n = trunc(getParticipantName(p1));
+            const p2n = trunc(getParticipantName(p2));
+
+            const isSelected = enc.encuentro_id === selectedId;
+            return (
+              <g key={`m-${r.ronda}-${ei}`}
+                onClick={() => onMatchClick && onMatchClick(enc)}
+                style={{ cursor: onMatchClick ? 'pointer' : 'default' }}>
+                {/* Selection glow */}
+                {isSelected && (
+                  <rect x={bx - 3} y={by - 3} width={W + 6} height={MH + 6} rx={10}
+                    fill="#eff6ff" stroke="#2563eb" strokeWidth={1.5} opacity={0.6} />
+                )}
+                {/* Border box */}
+                <rect x={bx} y={by} width={W} height={MH} rx={7}
+                  fill="white"
+                  stroke={isSelected ? '#2563eb' : done ? '#10b981' : est === 'programado' ? '#3b82f6' : '#e2e8f0'}
+                  strokeWidth={isSelected ? 2.5 : done ? 1.5 : 1} />
+                {/* Clipped backgrounds */}
+                <g clipPath={`url(#bc-${ri}-${ei})`}>
+                  <rect x={bx} y={by} width={W} height={PH} fill={w1 ? '#dcfce7' : '#f8fafc'} />
+                  <rect x={bx} y={by + PH} width={W} height={SH} fill={done ? '#f0fdf4' : '#f8fafc'} />
+                  <rect x={bx} y={by + PH + SH} width={W} height={PH} fill={w2 ? '#dcfce7' : 'white'} />
+                  <line x1={bx} y1={by + PH} x2={bx + W} y2={by + PH} stroke="#e2e8f0" strokeWidth={0.8} />
+                  <line x1={bx} y1={by + PH + SH} x2={bx + W} y2={by + PH + SH} stroke="#e2e8f0" strokeWidth={0.8} />
+                </g>
+                {/* P1 name */}
+                <text x={bx + 7} y={by + PH / 2 + 4} fontSize={10}
+                  fill={w1 ? '#15803d' : p1n === 'Por definir' ? '#94a3b8' : '#1e293b'}
+                  fontWeight={w1 ? 700 : 500}>
+                  {p1n}
+                </text>
+                {done && enc.marcador_1 != null && (
+                  <text x={bx + W - 6} y={by + PH / 2 + 4} textAnchor="end"
+                    fontSize={10} fontWeight={800} fill={w1 ? '#15803d' : '#64748b'}>
+                    {enc.marcador_1}
+                  </text>
+                )}
+                {/* Center label */}
+                <text x={bx + W / 2} y={by + PH + SH / 2 + 4} textAnchor="middle"
+                  fontSize={8} fontWeight={700} fill={done ? '#16a34a' : '#94a3b8'}>
+                  {done
+                    ? `${enc.marcador_1 ?? '-'} — ${enc.marcador_2 ?? '-'}`
+                    : est === 'programado' ? 'vs' : '···'}
+                </text>
+                {/* P2 name */}
+                <text x={bx + 7} y={by + PH + SH + PH / 2 + 4} fontSize={10}
+                  fill={w2 ? '#15803d' : p2n === 'Por definir' ? '#94a3b8' : '#1e293b'}
+                  fontWeight={w2 ? 700 : 500}>
+                  {p2n}
+                </text>
+                {done && enc.marcador_2 != null && (
+                  <text x={bx + W - 6} y={by + PH + SH + PH / 2 + 4} textAnchor="end"
+                    fontSize={10} fontWeight={800} fill={w2 ? '#15803d' : '#64748b'}>
+                    {enc.marcador_2}
+                  </text>
+                )}
+              </g>
+            );
+          })
+        )}
+
+        {/* Champion box */}
+        {(() => {
+          const bw = WW - 18;
+          const bh = 46;
+          const cx_ = PAD + numR * CS + 8;
+          const cy_ = cy(numR - 1, 0);
+          return (
+            <g>
+              <rect x={cx_} y={cy_ - bh / 2} width={bw} height={bh} rx={9}
+                fill={champion ? 'url(#champGrad)' : '#f8fafc'}
+                stroke={champion ? '#f59e0b' : '#e2e8f0'}
+                strokeWidth={champion ? 2 : 1.5}
+                strokeDasharray={champion ? '' : '5 3'} />
+              <text x={cx_ + bw / 2} y={cy_ - 6} textAnchor="middle"
+                fontSize={8} fontWeight={800} fill={champion ? '#92400e' : '#94a3b8'}>
+                {champion ? 'CAMPEON' : 'POR DEFINIR'}
+              </text>
+              <text x={cx_ + bw / 2} y={cy_ + 11} textAnchor="middle"
+                fontSize={11} fontWeight={800} fill={champion ? '#78350f' : '#94a3b8'}>
+                {champion ? trunc(champion, 13) : '?'}
+              </text>
+            </g>
+          );
+        })()}
+      </svg>
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function TournamentBracket({
   title = 'Torneos y brackets',
   subtitle = 'Consulta los torneos activos y sus encuentros por ronda.',
@@ -387,7 +891,10 @@ function TournamentBracket({
   const [bracketError, setBracketError] = useState('');
   const [showTorneoModal, setShowTorneoModal] = useState(false);
   const [editingTorneo, setEditingTorneo] = useState(null);
-  const [formTorneo, setFormTorneo] = useState({ nombre: '', disciplina_id: '', fecha_inicio: '', fecha_fin: '', estado: 'Abierto', categoria_id: '' });
+  const [formTorneo, setFormTorneo] = useState({ nombre: '', disciplina_id: '', fecha_inicio: '', fecha_fin: '', estado: 'Abierto', categoria_id: '', tipo_torneo: 'Individual' });
+  const [socios, setSocios] = useState([]);
+  const [espacios, setEspacios] = useState([]);
+  const [showInscribirModal, setShowInscribirModal] = useState(false);
   const [torneoFormErrors, setTorneoFormErrors] = useState({});
   const [savingTorneo, setSavingTorneo] = useState(false);
   const [showParticipantes, setShowParticipantes] = useState(false);
@@ -396,6 +903,7 @@ function TournamentBracket({
   const [categorias, setCategorias] = useState([]);
   const [desinscribiendoId, setDesinscribiendoId] = useState(null);
   const [torneoParticipantesActual, setTorneoParticipantesActual] = useState(null);
+  const [selectedEncuentroId, setSelectedEncuentroId] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -421,6 +929,33 @@ function TournamentBracket({
       }
     }
     loadCategorias();
+  }, []);
+
+  useEffect(() => {
+    if (readOnly) return;
+    async function loadSocios() {
+      try {
+        const payload = await apiRequest('/socios');
+        const list = unwrapList(payload, ['data', 'socios']);
+        setSocios(list.filter(s => s.activo !== false && s.activo !== 'false'));
+      } catch {
+        setSocios([]);
+      }
+    }
+    loadSocios();
+  }, [readOnly]);
+
+  useEffect(() => {
+    async function loadEspacios() {
+      try {
+        const payload = await apiRequest('/espacios/todos');
+        const list = unwrapList(payload, ['data', 'espacios']);
+        setEspacios(list.filter(e => e.estado === 'Activo'));
+      } catch {
+        setEspacios([]);
+      }
+    }
+    loadEspacios();
   }, []);
 
   const cargarTorneos = async (signal) => {
@@ -470,7 +1005,7 @@ function TournamentBracket({
 
   const openCreateModal = () => {
     setEditingTorneo(null);
-    setFormTorneo({ nombre: '', disciplina_id: '', fecha_inicio: '', fecha_fin: '', estado: 'Abierto', categoria_id: '' });
+    setFormTorneo({ nombre: '', disciplina_id: '', fecha_inicio: '', fecha_fin: '', estado: 'Abierto', categoria_id: '', tipo_torneo: 'Individual' });
     setTorneoFormErrors({});
     setShowTorneoModal(true);
   };
@@ -483,7 +1018,8 @@ function TournamentBracket({
       fecha_inicio: torneo.fecha_inicio ? String(torneo.fecha_inicio).split('T')[0] : '',
       fecha_fin: torneo.fecha_fin ? String(torneo.fecha_fin).split('T')[0] : '',
       estado: torneo.estado || 'Abierto',
-      categoria_id: torneo.categoria_id ? String(torneo.categoria_id) : ''
+      categoria_id: torneo.categoria_id ? String(torneo.categoria_id) : '',
+      tipo_torneo: torneo.tipo_torneo || 'Individual'
     });
     setTorneoFormErrors({});
     setShowTorneoModal(true);
@@ -512,7 +1048,8 @@ function TournamentBracket({
         fecha_inicio: formTorneo.fecha_inicio || null,
         fecha_fin: formTorneo.fecha_fin || null,
         estado: formTorneo.estado,
-        categoria_id: formTorneo.categoria_id ? Number(formTorneo.categoria_id) : null
+        categoria_id: formTorneo.categoria_id ? Number(formTorneo.categoria_id) : null,
+        tipo_torneo: formTorneo.tipo_torneo || 'Individual'
       };
       const url = editingTorneo
         ? `http://localhost:3000/api/torneos/${editingTorneo.torneo_id}`
@@ -597,6 +1134,15 @@ function TournamentBracket({
   };
 
   const hasBracket = bracket.some(r => Array.isArray(r.encuentros) && r.encuentros.length > 0);
+
+  const selectedEncuentro = useMemo(() => {
+    if (!selectedEncuentroId) return null;
+    for (const ronda of bracket) {
+      const found = (ronda.encuentros || []).find(e => e.encuentro_id === selectedEncuentroId);
+      if (found) return found;
+    }
+    return null;
+  }, [bracket, selectedEncuentroId]);
 
   return (
     <section className="tb-shell">
@@ -713,32 +1259,45 @@ function TournamentBracket({
 
               {/* Bracket */}
               <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
+                {hasBracket && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: '#475569' }}>
+                      Bracket del torneo
+                      {!readOnly && <span style={{ fontWeight: 400, color: '#94a3b8', marginLeft: 6 }}>— haz clic en un encuentro para editarlo</span>}
+                    </span>
+                    {selectedEncuentroId && (
+                      <button onClick={() => setSelectedEncuentroId(null)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 3, fontSize: 11 }}>
+                        <X size={12} /> Cerrar
+                      </button>
+                    )}
+                  </div>
+                )}
                 {loadingBracket && <div className="tb-loading">Cargando bracket...</div>}
                 {bracketError && <div className="tb-error">{bracketError}</div>}
                 {!loadingBracket && !bracketError && !hasBracket && (
                   <EmptyState title="Sin bracket" message="Cierra las inscripciones para generar el bracket." />
                 )}
                 {!loadingBracket && !bracketError && hasBracket && (
-                  <div className="tb-rounds">
-                    {bracket.slice().sort((a, b) => Number(a.ronda) - Number(b.ronda)).map(ronda => (
-                      <section key={ronda.ronda} className="tb-round-column">
-                        <header className="tb-round-title">
-                          <span>Ronda</span>
-                          <strong>{ronda.ronda}</strong>
-                        </header>
-                        <div className="tb-round-matches">
-                          {(ronda.encuentros || []).map(encuentro => (
-                            <MatchCard
-                              key={encuentro.encuentro_id}
-                              encuentro={encuentro}
-                              onResultadoGuardado={() => setSelectedTorneo(prev => ({ ...prev }))}
-                              readOnly={readOnly}
-                            />
-                          ))}
-                        </div>
-                      </section>
-                    ))}
-                  </div>
+                  <>
+                    <BracketVisual
+                      bracket={bracket}
+                      onMatchClick={enc => setSelectedEncuentroId(
+                        enc.encuentro_id === selectedEncuentroId ? null : enc.encuentro_id
+                      )}
+                      selectedId={selectedEncuentroId}
+                    />
+                    {selectedEncuentro && (
+                      <MatchEditPanel
+                        key={selectedEncuentro.encuentro_id}
+                        encuentro={selectedEncuentro}
+                        onClose={() => setSelectedEncuentroId(null)}
+                        onSaved={() => setSelectedTorneo(prev => ({ ...prev }))}
+                        readOnly={readOnly}
+                        espacios={espacios}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             </>
@@ -787,6 +1346,20 @@ function TournamentBracket({
                     <input type="date" value={formTorneo.fecha_fin} onChange={e => setFormTorneo(p => ({ ...p, fecha_fin: e.target.value }))}
                       style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${torneoFormErrors.fecha_fin ? '#ef4444' : '#cbd5e1'}`, fontSize: 14, boxSizing: 'border-box' }} />
                     {torneoFormErrors.fecha_fin && <p style={{ margin: '4px 0 0', color: '#ef4444', fontSize: 12 }}>{torneoFormErrors.fecha_fin}</p>}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 6, color: '#374151' }}>Modalidad</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[{ v: 'Individual', l: 'Individual' }, { v: 'Equipos', l: 'Equipos' }].map(opt => (
+                      <button key={opt.v} type="button" onClick={() => setFormTorneo(p => ({ ...p, tipo_torneo: opt.v }))} style={{
+                        flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 12,
+                        border: `2px solid ${formTorneo.tipo_torneo === opt.v ? '#3b82f6' : '#e2e8f0'}`,
+                        background: formTorneo.tipo_torneo === opt.v ? '#eff6ff' : 'white',
+                        color: formTorneo.tipo_torneo === opt.v ? '#1d4ed8' : '#475569',
+                        fontWeight: formTorneo.tipo_torneo === opt.v ? 700 : 400, cursor: 'pointer'
+                      }}>{opt.l}</button>
+                    ))}
                   </div>
                 </div>
                 <div>
@@ -901,7 +1474,15 @@ function TournamentBracket({
                 </table>
               )}
             </div>
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                {!readOnly && torneoParticipantesActual?.estado === 'Abierto' && (
+                  <button onClick={() => setShowInscribirModal(true)}
+                    style={{ background: 'linear-gradient(135deg,#2563eb,#3b82f6)', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <UserPlus size={14} /> Inscribir
+                  </button>
+                )}
+              </div>
               <button onClick={() => setShowParticipantes(false)}
                 style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 20px', fontWeight: 600, fontSize: 13, cursor: 'pointer', color: '#374151' }}>
                 Cerrar
@@ -909,6 +1490,21 @@ function TournamentBracket({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal inscribir participante */}
+      {showInscribirModal && torneoParticipantesActual && (
+        <InscribirModal
+          torneo={torneoParticipantesActual}
+          socios={socios}
+          categorias={categorias}
+          onClose={() => setShowInscribirModal(false)}
+          onInscribir={async () => {
+            setShowInscribirModal(false);
+            await cargarParticipantes(torneoParticipantesActual);
+            await cargarTorneos();
+          }}
+        />
       )}
     </section>
   );

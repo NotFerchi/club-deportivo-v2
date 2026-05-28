@@ -188,6 +188,30 @@ function ReservaTooltip({ reserva, onEdit, onCancel, onDelete, readOnly }) {
   );
 }
 
+// ─── Tooltip de sesión ───────────────────────────────────────────────────────
+function SesionTooltip({ sesion }) {
+  return (
+    <div className="reserva-tooltip">
+      <p className="tooltip-espacio">{sesion.espacio || 'Espacio'}</p>
+      <p className="tooltip-socio" style={{ color: '#0d9488' }}>
+        {sesion.disciplina || 'Sesión programada'}
+      </p>
+      <p className="tooltip-horario">
+        <Clock size={12} /> {toTimeInputValue(sesion.hora_inicio)} — {toTimeInputValue(sesion.hora_fin)}
+      </p>
+      <p style={{ fontSize: 11, color: '#475569', margin: '2px 0 6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Users size={11} /> {sesion.instructor || 'Por asignar'}
+      </p>
+      <span style={{
+        display: 'inline-block', padding: '2px 8px', borderRadius: 4,
+        background: '#f0fdfa', color: '#0d9488', fontSize: 11, fontWeight: 600
+      }}>
+        {sesion.inscritos_actuales ?? 0}/{sesion.cupo_maximo ?? '?'} inscritos
+      </span>
+    </div>
+  );
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function Reservas({ readOnly = false }) {
   const {toast, showConfirm } = useNotification();
@@ -206,6 +230,7 @@ export default function Reservas({ readOnly = false }) {
   const [formErrors, setFormErrors] = useState({});
   //const [toast, setToast] = useState('');
   const [activeTooltip, setActiveTooltip] = useState(null); // reserva_id
+  const [activeSesionKey, setActiveSesionKey] = useState(null); // `${espacio_id}-${sesion_id}-${hora}`
 
   const fetchData = async () => {
     setLoading(true);
@@ -369,6 +394,7 @@ export default function Reservas({ readOnly = false }) {
     setFormErrors({});
     setShowModal(true);
     setActiveTooltip(null);
+    setActiveSesionKey(null);
   };
 
   const hasConflict = () => reservas.some(r => {
@@ -461,6 +487,7 @@ export default function Reservas({ readOnly = false }) {
       await adminApi.cancelarReserva(id);
       await fetchData();
       setActiveTooltip(null);
+      setActiveSesionKey(null);
       showToast('Reserva cancelada');
     } catch (err) {
       toast(err.message || 'Error al cancelar reserva', 'error');
@@ -567,7 +594,7 @@ export default function Reservas({ readOnly = false }) {
 
       {/* Rejilla */}
       <div className="reservas-grid-wrapper">
-        <div className="reservas-grid" onClick={() => setActiveTooltip(null)}>
+        <div className="reservas-grid" onClick={() => { setActiveTooltip(null); setActiveSesionKey(null); }}>
           {/* Encabezado de horas */}
           <div className="grid-header">
             <div className="grid-space-col">Espacio</div>
@@ -632,10 +659,14 @@ export default function Reservas({ readOnly = false }) {
                       e.stopPropagation();
                       if (enMantenimiento || fueraDeHorario) return;
                       if (reserva) {
+                        setActiveSesionKey(null);
                         setActiveTooltip(isTooltipActive ? null : reserva.reserva_id);
                       } else if (sesion) {
                         setActiveTooltip(null);
+                        const key = `${espacio.espacio_id}-${sesion.sesion_id}-${hora}`;
+                        setActiveSesionKey(activeSesionKey === key ? null : key);
                       } else if (!readOnly) {
+                        setActiveSesionKey(null);
                         openCreate(espacio.espacio_id, `${String(hora).padStart(2, '0')}:00`);
                       }
                     }}
@@ -660,17 +691,20 @@ export default function Reservas({ readOnly = false }) {
                       </div>
                     )}
 
-                    {!enMantenimiento && isSesionStart && sesion && (
+                    {!enMantenimiento && sesion && (
                       <div
                         className="grid-block"
-                        style={{ background: '#0d9488', cursor: 'default', gap: 3 }}
-                        title={`Sesión: ${sesion.disciplina || 'Clase'} — ${toTimeInputValue(sesion.hora_inicio)} a ${toTimeInputValue(sesion.hora_fin)} | Instructor: ${sesion.instructor || 'N/A'} | ${sesion.inscritos_actuales ?? 0}/${sesion.cupo_maximo ?? '?'} inscritos`}
+                        style={{ background: '#0d9488', cursor: 'pointer', gap: 3 }}
                       >
                         <Users size={10} color="#fff" style={{ flexShrink: 0 }} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 9 }}>
                           {sesion.disciplina || 'Sesión'}
                         </span>
                       </div>
+                    )}
+
+                    {!enMantenimiento && sesion && activeSesionKey === `${espacio.espacio_id}-${sesion.sesion_id}-${hora}` && (
+                      <SesionTooltip sesion={sesion} />
                     )}
 
                     {!enMantenimiento && isTooltipActive && isStart && (

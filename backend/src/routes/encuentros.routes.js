@@ -13,4 +13,11 @@ router.patch(
   encuentrosController.registrarResultado
 );
 
+router.patch(
+  '/:encuentro_id/cancha',
+  verifyToken,
+  checkRole(['admin', 'gerente', 'coordinador']),
+  encuentrosController.asignarCancha
+);
+
 module.exports = router;

@@ -28,6 +28,9 @@ const encuentrosController = {
     }
 
     const allowEdit = req.body.allowEdit === true;
+    const cancha = req.body.cancha_asignada !== undefined
+      ? (String(req.body.cancha_asignada).trim() || null)
+      : undefined;
 
     const client = await pool.connect();
     try {
@@ -74,10 +77,11 @@ const encuentrosController = {
          SET marcador_1 = $1,
              marcador_2 = $2,
              ganador_id = $3,
-             estado     = 'finalizado'
+             estado     = 'finalizado',
+             cancha_asignada = COALESCE($5, cancha_asignada)
          WHERE encuentro_id = $4
-         RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado`,
-        [marcador1, marcador2, ganadorId, encuentroId]
+         RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada`,
+        [marcador1, marcador2, ganadorId, encuentroId, cancha ?? null]
       );
 
       const siguienteRonda = enc.ronda + 1;
@@ -176,6 +180,29 @@ const encuentrosController = {
       return res.status(500).json({ ok: false, error: 'Error interno del servidor' });
     } finally {
       client.release();
+    }
+  },
+
+  asignarCancha: async (req, res) => {
+    const encuentroId = Number(req.params.encuentro_id);
+    if (!Number.isInteger(encuentroId) || encuentroId <= 0) {
+      return res.status(400).json({ ok: false, error: 'encuentro_id inválido' });
+    }
+    const cancha = String(req.body.cancha_asignada || '').trim();
+    if (!cancha) {
+      return res.status(400).json({ ok: false, error: 'cancha_asignada es requerida' });
+    }
+    try {
+      const { rows, rowCount } = await pool.query(
+        `UPDATE encuentros_torneo SET cancha_asignada = $1 WHERE encuentro_id = $2
+         RETURNING encuentro_id, cancha_asignada`,
+        [cancha, encuentroId]
+      );
+      if (rowCount === 0) return res.status(404).json({ ok: false, error: 'Encuentro no encontrado' });
+      return res.json({ ok: true, message: 'Cancha asignada correctamente', encuentro: rows[0] });
+    } catch (err) {
+      console.error('Error al asignar cancha:', err);
+      return res.status(500).json({ ok: false, error: 'Error interno del servidor' });
     }
   },
 

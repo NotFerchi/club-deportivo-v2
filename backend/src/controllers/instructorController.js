@@ -275,8 +275,11 @@ const instructorController = {
 
         try {
             const query = `
-                SELECT 
+                SELECT
                     sp.sesion_id,
+                    sp.espacio_id,
+                    sp.disciplina_id,
+                    sp.instructor_id,
                     d.nombre as disciplina,
                     e.nombre as espacio,
                     sp.hora_inicio,
@@ -284,25 +287,96 @@ const instructorController = {
                     sp.cupo_maximo,
                     sp.dia_semana,
                     COALESCE(u.nombres || ' ' || COALESCE(u.apellido_paterno, ''), 'Sin instructor') as instructor,
-                    COUNT(r.reserva_id) as cupo_actual
+                    COALESCE((
+                        SELECT COUNT(*) FROM (
+                            SELECT 'socio-' || ic.socio_id AS inscrito_key
+                            FROM inscripciones_clases ic
+                            WHERE ic.sesion_id = sp.sesion_id
+                              AND ic.estado = 'Confirmada'
+                            UNION
+                            SELECT 'socio-' || r.socio_id AS inscrito_key
+                            FROM reservaciones r
+                            WHERE r.sesion_id = sp.sesion_id
+                              AND r.fecha_reserva = $2::date
+                              AND LOWER(r.estado::text) NOT IN ('cancelada', 'cancelado')
+                              AND r.socio_id IS NOT NULL
+                        ) inscritos
+                    ), 0) as cupo_actual
                 FROM sesiones_programadas sp
                 JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id
                 JOIN espacios e ON sp.espacio_id = e.espacio_id
                 LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id
                 LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
-                LEFT JOIN reservaciones r ON r.sesion_id = sp.sesion_id 
-                    AND r.fecha_reserva = $1
-                    AND r.estado = 'Confirmada'
-                WHERE sp.dia_semana = $2
-                GROUP BY sp.sesion_id, d.nombre, e.nombre, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, sp.dia_semana, u.nombres, u.apellido_paterno
+                WHERE sp.dia_semana = $1
+                GROUP BY sp.sesion_id, sp.espacio_id, sp.disciplina_id, sp.instructor_id,
+                         d.nombre, e.nombre, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo,
+                         sp.dia_semana, u.nombres, u.apellido_paterno
                 ORDER BY sp.hora_inicio
             `;
 
-            const result = await pool.query(query, [fechaConsulta, diaSemana]);
+            const result = await pool.query(query, [diaSemana, fechaConsulta]);
             res.json(result.rows);
         } catch (error) {
             console.error('Error en getClasesGeneral:', error);
             res.status(500).json({ error: 'Error al obtener clases', detalle: error.message });
+        }
+    },
+
+    getInscritosPorSesion: async (req, res) => {
+        const { sesionId } = req.params;
+        const fecha = req.query.fecha || null;
+        try {
+            const result = await pool.query(`
+                WITH inscritos AS (
+                    SELECT
+                        ic.inscripcion_id::text AS inscripcion_id,
+                        ic.socio_id,
+                        'Socio' AS tipo,
+                        ic.fecha_inscripcion
+                    FROM inscripciones_clases ic
+                    WHERE ic.sesion_id = $1
+                      AND ic.estado = 'Confirmada'
+
+                    UNION ALL
+
+                    SELECT
+                        ('reserva-' || MIN(r.reserva_id))::text AS inscripcion_id,
+                        r.socio_id,
+                        'Socio' AS tipo,
+                        MIN(r.fecha_creacion) AS fecha_inscripcion
+                    FROM reservaciones r
+                    WHERE r.sesion_id = $1
+                      AND ($2::date IS NULL OR r.fecha_reserva = $2::date)
+                      AND LOWER(r.estado::text) NOT IN ('cancelada', 'cancelado')
+                      AND r.socio_id IS NOT NULL
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM inscripciones_clases ic
+                          WHERE ic.sesion_id = r.sesion_id
+                            AND ic.socio_id = r.socio_id
+                            AND ic.estado = 'Confirmada'
+                      )
+                    GROUP BY r.socio_id
+                )
+                SELECT
+                    inscritos.inscripcion_id,
+                    inscritos.socio_id,
+                    COALESCE(
+                        NULLIF(TRIM(CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, ''))), ''),
+                        'Sin nombre'
+                    ) AS nombre_socio,
+                    COALESCE(s.numero_socio, '') AS numero_socio,
+                    inscritos.tipo,
+                    inscritos.fecha_inscripcion
+                FROM inscritos
+                LEFT JOIN socios s ON s.socio_id = inscritos.socio_id
+                LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id
+                ORDER BY nombre_socio
+            `, [sesionId, fecha]);
+            res.json(result.rows);
+        } catch (error) {
+            console.error('Error en getInscritosPorSesion:', error);
+            res.status(500).json({ error: 'Error al obtener inscritos' });
         }
     },
 

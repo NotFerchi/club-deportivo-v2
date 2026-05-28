@@ -1,8 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Clock, Users, ChevronDown, ChevronUp, Check, X, MapPin, Calendar, Loader2, CalendarX, ClipboardList, Search, UserPlus, UserMinus, CheckCircle, AlertCircle } from 'lucide-react';
-import { useRef } from 'react';
 import { useNotification } from '../../../context/NotificationContext';
-
+import React, { useEffect, useRef, useState } from 'react';
+import { Clock, Users, ChevronDown, ChevronUp, Check, X, MapPin, Calendar, Loader2, CalendarX, ClipboardList, Search, UserPlus, UserMinus, QrCode, CheckCircle, AlertCircle } from 'lucide-react';
 function formatHora(h) {
   if (!h) return '';
   const [hh, mm] = h.split(':');
@@ -52,6 +50,106 @@ function getColorDisciplina(nombre) {
 }
 function getGradDisciplina(nombre) {
   return GRAD_DISCIPLINA[nombre] || 'linear-gradient(135deg,#475569,#94a3b8)';
+}
+
+// ── Modal QR ──────────────────────────────────────────────────────────────────
+function ModalQR({ sesion, onClose, onRegistrado }) {
+  const [resultado, setResultado] = useState(null);
+  const [error, setError]         = useState(null);
+  const [cargando, setCargando]   = useState(false);
+  const scannerRef                = useRef(null);
+
+  useEffect(() => {
+    let scanner;
+    import('html5-qrcode').then(({ Html5QrcodeScanner }) => {
+      scanner = new Html5QrcodeScanner('qr-reader', {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        rememberLastUsedCamera: true,
+      }, false);
+
+      scanner.render(async (decodedText) => {
+        if (cargando || resultado) return;
+        scanner.clear();
+        setCargando(true);
+        setError(null);
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`http://localhost:3000/api/sesiones/${sesion.sesion_id}/asistencia-qr`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo_qr: decodedText, fecha: sesion.fecha })
+          });
+          const data = await res.json();
+          if (!res.ok) { setError(data.error || 'Error al registrar'); return; }
+          setResultado(data);
+          onRegistrado && onRegistrado();
+        } catch { setError('Error de conexión'); }
+        finally { setCargando(false); }
+      }, () => { /* ignorar errores de escaneo continuos */ });
+
+      scannerRef.current = scanner;
+    });
+
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(() => {});
+      }
+    };
+  }, []);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: 'white', borderRadius: '20px', padding: '1.5rem', width: '100%', maxWidth: '420px', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>Escanear QR</h3>
+            <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>{sesion.disciplina} · {formatHora(sesion.hora_inicio)}</p>
+          </div>
+          <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', borderRadius: '10px', padding: '7px', cursor: 'pointer' }}>
+            <X size={18} color="#64748b" />
+          </button>
+        </div>
+
+        {resultado ? (
+          <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
+              <CheckCircle size={28} color="#16a34a" />
+            </div>
+            <p style={{ fontWeight: 800, fontSize: '15px', color: '#0f172a', margin: 0 }}>{resultado.nombre}</p>
+            <p style={{ fontSize: '12px', color: '#15803d', margin: '4px 0 1rem', fontWeight: 600 }}>
+              {resultado.inscrito_ahora
+                ? '✅ Inscrito y asistencia registrada'
+                : '✅ Asistencia registrada correctamente'}
+            </p>
+            <button onClick={onClose} style={{ background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '10px', padding: '10px 24px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+              Cerrar
+            </button>
+          </div>
+        ) : (
+          <>
+            {cargando ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <Loader2 size={32} color="#2563eb" style={{ animation: 'spin 1s linear infinite' }} />
+                <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+                <p style={{ color: '#64748b', marginTop: '0.75rem', fontSize: '13px' }}>Registrando asistencia...</p>
+              </div>
+            ) : (
+              <div id="qr-reader" style={{ width: '100%' }} />
+            )}
+            {error && (
+              <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '12px', color: '#dc2626', fontWeight: 600, margin: '0.75rem 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AlertCircle size={13} /> {error}
+              </div>
+            )}
+            <button onClick={onClose} style={{ marginTop: '0.75rem', width: '100%', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+              Cancelar
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── Modal Agregar ─────────────────────────────────────────────────────────────
@@ -335,10 +433,11 @@ function ClaseCard({ clase, fecha }) {
   const [loadingAlumnos, setLoadingAlumnos] = useState(false);
   const [yaCargo, setYaCargo]           = useState(false);
   const [estados, setEstados]           = useState({});
-  const [showAgregar, setShowAgregar]   = useState(false);
+  const [showAgregar, setShowAgregar] = useState(false);
+  const [showQR, setShowQR]           = useState(false);
 
-  const cargarAlumnos = async () => {
-    if (yaCargo) return;
+  const cargarAlumnos = async (force = false) => {
+    if (!force && yaCargo) return;
     setLoadingAlumnos(true);
     try {
       const token = localStorage.getItem('token');
@@ -370,7 +469,9 @@ function ClaseCard({ clase, fecha }) {
   const pct          = Math.min(100, Math.round((cupoActual / cupoMax) * 100));
   const colorDisc    = getColorDisciplina(clase.disciplina);
   const gradDisc     = getGradDisciplina(clase.disciplina);
-  const esHoy        = fecha === new Date().toISOString().slice(0, 10);
+  const _hoy = new Date();
+  const _hoyLocal = `${_hoy.getFullYear()}-${String(_hoy.getMonth()+1).padStart(2,'0')}-${String(_hoy.getDate()).padStart(2,'0')}`;
+  const esHoy        = fecha === _hoyLocal;
 
   return (
     <div style={{ background: 'white', borderRadius: '18px', border: '1.5px solid #e2e8f0', overflow: 'hidden', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', transition: 'box-shadow 0.2s' }}
@@ -427,9 +528,14 @@ function ClaseCard({ clase, fecha }) {
                 </div>
               )}
               {esHoy && (
-                <button onClick={() => setShowAgregar(true)} style={{ background: 'linear-gradient(135deg,#2563eb,#3b82f6)', color: 'white', border: 'none', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 2px 6px rgba(37,99,235,0.3)' }}>
-                  <UserPlus size={12} /> Agregar
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => setShowQR(true)} style={{ background: 'linear-gradient(135deg,#6d28d9,#8b5cf6)', color: 'white', border: 'none', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <QrCode size={12} /> QR
+                  </button>
+                  <button onClick={() => setShowAgregar(true)} style={{ background: 'linear-gradient(135deg,#2563eb,#3b82f6)', color: 'white', border: 'none', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 2px 6px rgba(37,99,235,0.3)' }}>
+                    <UserPlus size={12} /> Agregar
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -486,11 +592,19 @@ function ClaseCard({ clase, fecha }) {
         </div>
       )}
 
+      {showQR && (
+        <ModalQR
+          sesion={{ ...clase, fecha }}
+          onClose={() => setShowQR(false)}
+          onRegistrado={() => { setYaCargo(false); cargarAlumnos(true); }}
+        />
+      )}
+
       {showAgregar && (
         <ModalAgregarSocio
           sesion={clase} fecha={fecha}
           onClose={() => setShowAgregar(false)}
-          onAgregado={() => { setYaCargo(false); cargarAlumnos(); }}
+          onAgregado={() => { setYaCargo(false); cargarAlumnos(true); }}
         />
       )}
     </div>
@@ -506,7 +620,8 @@ function AgendaDia() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 
-  const esHoy = fecha === new Date().toISOString().slice(0, 10);
+  const _hoyD = new Date();
+  const esHoy = fecha === `${_hoyD.getFullYear()}-${String(_hoyD.getMonth()+1).padStart(2,'0')}-${String(_hoyD.getDate()).padStart(2,'0')}`;
 
   useEffect(() => {
     const fetchClases = async () => {

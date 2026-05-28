@@ -8,7 +8,7 @@ import '../../../css/recepcion.css';  // Asegúrate de que esta ruta sea correct
 
 // Importar componentes de las pestañas
 import DashboardResumen from './recepcion/DashboardResumen';
-import GestionSocios from './recepcion/GestionSocios';
+import GestionSocios from './admin/GestionSocios';
 import CentralReservas from './recepcion/CentralReservas';
 import ControlLudoteca from './recepcion/ControlLudoteca';
 import GestionVisitas from './recepcion/GestionVisitas';

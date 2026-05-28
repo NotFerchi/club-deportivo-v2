@@ -199,81 +199,160 @@ function formatNumber(value, digits = 2) {
   return Number(value || 0).toFixed(digits);
 }
 
+// ─── PDF helpers ──────────────────────────────────────────────────────────────
+const PDF_C = {
+  navy:    '#1E3A5F',
+  blue:    '#3B82F6',
+  rowEven: '#F1F5F9',
+  rowOdd:  '#FFFFFF',
+  secBg:   '#EFF6FF',
+  body:    '#1E293B',
+  muted:   '#64748B',
+  kvKey:   '#475569',
+  kvEven:  '#F8FAFC',
+};
+const HDR_H  = 24;
+const ROW_H  = 18;
+const SECT_H = 26;
+const PAD    = 5;
+
 function ensurePdfSpace(doc, requiredHeight = 48) {
   if (doc.y + requiredHeight <= doc.page.height - doc.page.margins.bottom) return;
   doc.addPage();
 }
 
+// Draw a filled rectangle without affecting doc.y
+function fillRect(doc, x, y, w, h, color) {
+  doc.rect(x, y, w, h).fill(color);
+}
+
+// Write text at absolute position.
+// Key: set doc.y = targetY - 1 BEFORE calling doc.text so PDFKit
+// never thinks we are "going backwards" (which would trigger a new page).
+function absText(doc, str, x, targetY, w, opts) {
+  doc.y = targetY - 0.1;            // just above target — prevents new-page logic
+  doc.text(String(str ?? '-'), x, targetY, {
+    width: w,
+    lineBreak: false,
+    ellipsis: true,
+    ...opts,
+  });
+}
+
 function writePdfTitle(doc, title, subtitleLines = []) {
-  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const L       = doc.page.margins.left;
+  const W       = doc.page.width - L - doc.page.margins.right;
+  const bannerH = 50 + subtitleLines.length * 15;
+  const startY  = doc.y;
 
-  doc.rect(doc.page.margins.left - 10, doc.y - 8, pageWidth + 20, subtitleLines.length > 0 ? 64 : 48)
-    .fill('#1E3A5F');
+  fillRect(doc, L - 10, startY, W + 20, bannerH, PDF_C.navy);
+  fillRect(doc, L - 10, startY + bannerH - 3, W + 20, 3, PDF_C.blue);
 
-  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(18).text(title, doc.page.margins.left, doc.y - 6, { width: pageWidth });
-  doc.moveDown(0.35);
-  doc.font('Helvetica').fontSize(10).fillColor('#BFDBFE');
-  subtitleLines.forEach((line) => doc.text(line, { width: pageWidth }));
-  doc.moveDown(1.2);
-  doc.fillColor('#1E293B');
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(17);
+  absText(doc, title, L, startY + 11, W);
+
+  doc.fillColor('#BFDBFE').font('Helvetica').fontSize(9);
+  subtitleLines.forEach((line, i) => {
+    absText(doc, line, L, startY + 34 + i * 15, W);
+  });
+
+  doc.y = startY + bannerH + 14;
+  doc.fillColor(PDF_C.body);
 }
 
 function writePdfSection(doc, title) {
-  ensurePdfSpace(doc, 40);
-  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  doc.rect(doc.x, doc.y, pageWidth, 22).fill('#EFF6FF');
-  doc.fillColor('#1E3A5F').font('Helvetica-Bold').fontSize(11)
-    .text(title, doc.x + 8, doc.y - 16, { width: pageWidth });
-  doc.moveDown(0.8);
-  doc.fillColor('#1E293B').font('Helvetica').fontSize(10);
+  ensurePdfSpace(doc, SECT_H + ROW_H + 4);
+  const L  = doc.page.margins.left;
+  const W  = doc.page.width - L - doc.page.margins.right;
+  const sY = doc.y;
+
+  fillRect(doc, L, sY, W, SECT_H, PDF_C.secBg);
+  fillRect(doc, L, sY, 4, SECT_H, PDF_C.navy);
+
+  doc.fillColor(PDF_C.navy).font('Helvetica-Bold').fontSize(10.5);
+  absText(doc, title, L + 12, sY + 8, W - 16);
+
+  doc.y = sY + SECT_H + 6;
+  doc.fillColor(PDF_C.body).font('Helvetica').fontSize(9.5);
 }
 
 function writePdfBulletList(doc, rows) {
+  const L = doc.page.margins.left;
+  const W = doc.page.width - L - doc.page.margins.right;
   rows.forEach((row) => {
-    ensurePdfSpace(doc, 20);
-    doc.fillColor('#475569').text(`• ${row}`, { indent: 8 });
+    ensurePdfSpace(doc, 16);
+    const bY = doc.y;
+    doc.fillColor(PDF_C.muted).font('Helvetica').fontSize(9.5);
+    absText(doc, `•  ${row}`, L + 8, bY, W - 8);
+    doc.y = bY + 14;
   });
-  doc.moveDown(0.7);
+  doc.y += 6;
 }
 
 function writePdfKeyValueRows(doc, rows) {
-  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const L    = doc.page.margins.left;
+  const W    = doc.page.width - L - doc.page.margins.right;
+  const keyW = W * 0.46;
+  const valX = L + keyW + 8;
+  const valW = W - keyW - 8;
+
   rows.forEach(([key, value], idx) => {
-    ensurePdfSpace(doc, 20);
-    const bg = idx % 2 === 0 ? '#F8FAFC' : '#FFFFFF';
-    doc.rect(doc.x, doc.y, pageWidth, 18).fill(bg);
-    doc.fillColor('#64748B').font('Helvetica-Bold').fontSize(9)
-      .text(`${key}:`, doc.x + 6, doc.y - 13, { width: pageWidth * 0.4, continued: false });
-    doc.fillColor('#1E293B').font('Helvetica').fontSize(10)
-      .text(String(value), doc.x + pageWidth * 0.4 + 6, doc.y - 13, { width: pageWidth * 0.55 });
+    ensurePdfSpace(doc, ROW_H);
+    const rY = doc.y;
+    fillRect(doc, L, rY, W, ROW_H, idx % 2 === 0 ? PDF_C.kvEven : PDF_C.rowOdd);
+
+    doc.fillColor(PDF_C.kvKey).font('Helvetica-Bold').fontSize(8.5);
+    absText(doc, `${key}:`, L + PAD, rY + 5, keyW - PAD);
+
+    doc.fillColor(PDF_C.body).font('Helvetica').fontSize(9);
+    absText(doc, value, valX, rY + 5, valW);
+
+    doc.y = rY + ROW_H;
   });
-  doc.moveDown(0.7);
+  fillRect(doc, doc.page.margins.left, doc.y, doc.page.width - doc.page.margins.left - doc.page.margins.right, 2, PDF_C.blue);
+  doc.y += 12;
 }
 
-function writePdfTable(doc, headers, rows) {
-  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const colWidth = pageWidth / headers.length;
+function writePdfTable(doc, headers, rows, colRatios = null) {
+  const L = doc.page.margins.left;
+  const W = doc.page.width - L - doc.page.margins.right;
 
-  ensurePdfSpace(doc, 24);
-  doc.rect(doc.x, doc.y, pageWidth, 20).fill('#1E3A5F');
-  headers.forEach((h, i) => {
-    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9)
-      .text(h, doc.page.margins.left + i * colWidth + 4, doc.y - 15, { width: colWidth - 8 });
-  });
-  doc.moveDown(0.5);
+  // Column widths
+  let colWidths;
+  if (colRatios && colRatios.length === headers.length) {
+    const tot = colRatios.reduce((a, b) => a + b, 0);
+    colWidths = colRatios.map((r) => (r / tot) * W);
+  } else {
+    colWidths = headers.map(() => W / headers.length);
+  }
+  const colX = [];
+  let cx = L;
+  colWidths.forEach((w) => { colX.push(cx); cx += w; });
 
+  // ── Header ──
+  ensurePdfSpace(doc, HDR_H + ROW_H + 4);
+  const hY = doc.y;
+  fillRect(doc, L, hY, W, HDR_H, PDF_C.navy);
+  fillRect(doc, L, hY + HDR_H - 2, W, 2, PDF_C.blue);
+
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8.5);
+  headers.forEach((h, i) => absText(doc, h, colX[i] + PAD, hY + 8, colWidths[i] - PAD * 2));
+  doc.y = hY + HDR_H;
+
+  // ── Data rows ──
   rows.forEach((row, rowIdx) => {
-    ensurePdfSpace(doc, 18);
-    const bg = rowIdx % 2 === 0 ? '#F1F5F9' : '#FFFFFF';
-    doc.rect(doc.x, doc.y, pageWidth, 16).fill(bg);
-    row.forEach((cell, i) => {
-      doc.fillColor('#1E293B').font('Helvetica').fontSize(9)
-        .text(String(cell ?? '-'), doc.page.margins.left + i * colWidth + 4, doc.y - 12, { width: colWidth - 8 });
-    });
-    doc.moveDown(0.25);
+    ensurePdfSpace(doc, ROW_H + 2);
+    const rY = doc.y;
+    fillRect(doc, L, rY, W, ROW_H, rowIdx % 2 === 0 ? PDF_C.rowEven : PDF_C.rowOdd);
+    fillRect(doc, L, rY + ROW_H - 0.5, W, 0.5, '#E2E8F0');
+
+    doc.fillColor(PDF_C.body).font('Helvetica').fontSize(8.5);
+    row.forEach((cell, i) => absText(doc, cell, colX[i] + PAD, rY + 5, colWidths[i] - PAD * 2));
+    doc.y = rY + ROW_H;
   });
 
-  doc.moveDown(0.5);
+  fillRect(doc, L, doc.y, W, 2, PDF_C.blue);
+  doc.y += 14;
 }
 
 async function getDemographicRows() {
@@ -1318,25 +1397,29 @@ async function buildDemographicPdf(res) {
     data.ageDistribution.map((row) => {
       const porcentaje = totalSocios === 0 ? 0 : (row.total / totalSocios) * 100;
       return [row.rango, row.total, row.hombres, row.mujeres, `${formatNumber(porcentaje)}%`];
-    })
+    }),
+    [2.2, 1, 1, 1, 1.3]
   );
 
   writePdfSection(doc, '2. Distribucion por Tipo de Membresia');
   writePdfTable(doc,
     ['Tipo', 'Modalidad', 'Total', 'Titulares', 'Miembros'],
-    data.memberships.map((row) => [row.tipo, row.modalidad, row.total, row.titulares, row.miembros])
+    data.memberships.map((row) => [row.tipo, row.modalidad, row.total, row.titulares, row.miembros]),
+    [1.5, 1.5, 1, 1, 1]
   );
 
   writePdfSection(doc, '3. Familias mas grandes');
   writePdfTable(doc,
     ['#', 'Num. Accion', 'Titular', 'Miembros'],
-    data.families.map((row, index) => [index + 1, row.numero_accion, row.nombre_titular, row.total_miembros])
+    data.families.map((row, index) => [index + 1, row.numero_accion, row.nombre_titular, row.total_miembros]),
+    [0.5, 1.5, 3.5, 1]
   );
 
   writePdfSection(doc, '4. Socios Nuevos por Mes');
   writePdfTable(doc,
     ['Año-Mes', 'Nuevos en el Mes', 'Total Acumulado'],
-    data.nuevosPorMes.map((row) => [row.anio_mes, row.nuevos_en_mes, row.total_acumulado])
+    data.nuevosPorMes.map((row) => [row.anio_mes, row.nuevos_en_mes, row.total_acumulado]),
+    [1.5, 2, 2]
   );
 
   finalizePdf(doc);
@@ -1357,25 +1440,29 @@ async function buildOccupationPdf(res, desde, hasta) {
     data.summaryRows.map((row) => {
       const ocupacion = row.total_reservas === 0 ? 0 : (row.confirmadas / row.total_reservas) * 100;
       return [row.espacio, row.total_reservas, row.confirmadas, row.canceladas, row.no_show, `${formatNumber(ocupacion)}%`];
-    })
+    }),
+    [3, 1, 1.2, 1.2, 1, 1.2]
   );
 
   writePdfSection(doc, '2. Participacion por Disciplina');
   writePdfTable(doc,
     ['Disciplina', 'Sesiones', 'Asistentes', 'Promedio'],
-    data.disciplineRows.map((row) => [row.disciplina, row.total_sesiones, row.total_asistentes, formatNumber(row.promedio)])
+    data.disciplineRows.map((row) => [row.disciplina, row.total_sesiones, row.total_asistentes, formatNumber(row.promedio)]),
+    [3, 1.2, 1.2, 1]
   );
 
   writePdfSection(doc, '3. Ranking de Instructores');
   writePdfTable(doc,
     ['#', 'Instructor', 'Disciplina', 'Sesiones', 'Asistentes'],
-    data.instructorRows.map((row, index) => [index + 1, row.instructor, row.disciplina, row.total_sesiones, row.total_asistentes])
+    data.instructorRows.map((row, index) => [index + 1, row.instructor, row.disciplina, row.total_sesiones, row.total_asistentes]),
+    [0.5, 3, 2, 1, 1]
   );
 
   writePdfSection(doc, '4. Horas con baja actividad');
   writePdfTable(doc,
     ['Espacio', 'Dia', 'Hora Inicio', 'Hora Fin'],
-    data.lowActivityRows.map((row) => [row.espacio, row.dia_semana, row.hora_inicio, row.hora_fin])
+    data.lowActivityRows.map((row) => [row.espacio, row.dia_semana, row.hora_inicio, row.hora_fin]),
+    [3, 1.5, 1.2, 1.2]
   );
 
   finalizePdf(doc);
@@ -1405,25 +1492,29 @@ async function buildAttendancePdf(res, desde, hasta) {
   writePdfSection(doc, '2. Dias mas frecuentados');
   writePdfTable(doc,
     ['Dia de la Semana', 'Total Entradas', 'Socios', 'Visitas', 'Promedio/Dia'],
-    data.weekdayRows.map((row) => [row.dia_semana, row.total_entradas, row.entradas_socios, row.entradas_visitas, formatNumber(row.promedio_diario)])
+    data.weekdayRows.map((row) => [row.dia_semana, row.total_entradas, row.entradas_socios, row.entradas_visitas, formatNumber(row.promedio_diario)]),
+    [2, 1.5, 1.2, 1.2, 1.5]
   );
 
   writePdfSection(doc, '3. Top fechas');
   writePdfTable(doc,
     ['#', 'Fecha', 'Dia', 'Total', 'Socios', 'Visitas'],
-    data.topDatesRows.map((row, index) => [index + 1, row.fecha, row.dia_semana, row.total_entradas, row.entradas_socios, row.entradas_visitas])
+    data.topDatesRows.map((row, index) => [index + 1, row.fecha, row.dia_semana, row.total_entradas, row.entradas_socios, row.entradas_visitas]),
+    [0.5, 1.5, 1.5, 1, 1, 1]
   );
 
   writePdfSection(doc, '4. Horarios pico');
   writePdfTable(doc,
     ['#', 'Hora', 'Total', 'Socios', 'Visitas'],
-    data.hourlyRows.slice(0, 10).map((row, index) => [index + 1, row.hora, row.total_entradas, row.entradas_socios, row.entradas_visitas])
+    data.hourlyRows.slice(0, 10).map((row, index) => [index + 1, row.hora, row.total_entradas, row.entradas_socios, row.entradas_visitas]),
+    [0.5, 1.5, 1.2, 1.2, 1.2]
   );
 
   writePdfSection(doc, '5. Socios frecuentes');
   writePdfTable(doc,
     ['#', 'Nombre del Socio', 'Entradas'],
-    data.topMembersRows.map((row, index) => [index + 1, row.nombre_socio, row.total_entradas])
+    data.topMembersRows.map((row, index) => [index + 1, row.nombre_socio, row.total_entradas]),
+    [0.5, 4, 1]
   );
 
   finalizePdf(doc);
@@ -1452,13 +1543,15 @@ async function buildSanctionsPdf(res, desde, hasta) {
   writePdfSection(doc, '2. Sanciones por Mes');
   writePdfTable(doc,
     ['Año-Mes', 'Total', 'Ludoteca', 'Instalaciones', 'Resueltas'],
-    data.byMonthRows.map((row) => [row.anio_mes, row.total, row.de_ludoteca, row.de_instalaciones, row.resueltas_en_mes])
+    data.byMonthRows.map((row) => [row.anio_mes, row.total, row.de_ludoteca, row.de_instalaciones, row.resueltas_en_mes]),
+    [1.5, 1, 1.2, 1.5, 1.2]
   );
 
   writePdfSection(doc, '3. Socios con mas sanciones Top 20');
   writePdfTable(doc,
     ['#', 'Num. Socio', 'Nombre', 'Histórico', 'Activas', 'Última'],
-    data.topRows.map((row, index) => [index + 1, row.numero_socio || '-', row.nombre_completo, row.total_historico, row.activas, formatDateValue(row.ultima_sancion)])
+    data.topRows.map((row, index) => [index + 1, row.numero_socio || '-', row.nombre_completo, row.total_historico, row.activas, formatDateValue(row.ultima_sancion)]),
+    [0.5, 1.2, 3, 1, 0.8, 1.5]
   );
 
   writePdfSection(doc, '4. Detalle de sanciones');
@@ -1606,4 +1699,3 @@ const reportesController = {
 };
 
 module.exports = reportesController;
-

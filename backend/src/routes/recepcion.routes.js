@@ -27,6 +27,8 @@ router.get('/visitas', recepcionController.listarVisitas);
 router.post('/visitas/cerrar-vencidas', checkRole(staffRoles), recepcionController.cerrarVisitasVencidas);
 router.post('/visitas', checkRole(staffRoles), recepcionController.crearVisita);
 router.put('/visitas/:id/salida', checkRole(staffRoles), recepcionController.registrarSalidaVisita);
+router.put('/visitas/:id', checkRole(['admin', 'gerente']), recepcionController.actualizarVisita);
+router.get('/visitas/:id/qr', checkRole(staffRoles), recepcionController.obtenerQrPase);
 router.post('/visitas/:id/enviar-qr', checkRole(staffRoles), recepcionController.enviarQrVisita);
 router.get('/socios-lista', recepcionController.listaSociosParaVisitas);
 

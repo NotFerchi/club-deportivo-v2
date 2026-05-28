@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CalendarDays, CheckCircle, Clock, Edit2, Plus, Trash2, X, XCircle } from 'lucide-react';
 import { adminApi } from '../../services/api';
+import { useNotification } from '../../context/NotificationContext';
 import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput, StatCard } from './AdminUI';
 import {
   addMinutesToTime,
@@ -170,6 +171,7 @@ export default function ReservationManager({
   dailyMode = false,
   readOnly = false
 }) {
+  const { toast, showConfirm } = useNotification();
   const [reservas, setReservas] = useState([]);
   const [espacios, setEspacios] = useState([]);
   const [socios, setSocios] = useState([]);
@@ -385,29 +387,29 @@ export default function ReservationManager({
       resetForm();
       showToast(editingReserva ? 'Reserva actualizada correctamente' : 'Reserva creada correctamente');
     } catch (error) {
-      alert(error.message || 'Error al guardar reserva');
+      toast(error.message || 'Error al guardar reserva', 'error');
     }
   };
 
   const cancelarReserva = async (id) => {
-    if (!confirm('Cancelar esta reserva? Esta accion no se puede deshacer.')) return;
+    if (!await showConfirm('¿Cancelar esta reserva? Esta accion no se puede deshacer.')) return;
     try {
       await adminApi.cancelarReserva(id);
       await fetchData();
       showToast('Reserva cancelada correctamente');
     } catch (error) {
-      alert(error.message || 'Error al cancelar reserva');
+      toast(error.message || 'Error al cancelar reserva', 'error');
     }
   };
 
   const deleteReserva = async (id) => {
-    if (!confirm('Eliminar esta reserva permanentemente? Esta accion no se puede deshacer.')) return;
+    if (!await showConfirm('¿Eliminar esta reserva permanentemente? Esta accion no se puede deshacer.', { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       await adminApi.deleteReserva(id);
       await fetchData();
       showToast('Reserva eliminada permanentemente');
     } catch (error) {
-      alert(error.message || 'Error al eliminar reserva');
+      toast(error.message || 'Error al eliminar reserva', 'error');
     }
   };
 

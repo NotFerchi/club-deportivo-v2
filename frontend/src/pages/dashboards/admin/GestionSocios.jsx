@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle, Download, Edit2, Eye, QrCode, RotateCcw, Trash2, Upload, UserPlus, Users, X } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { getFullName, getSocioNumero, getSocioTipo, isActiveValue, normalizeText, toDateInputValue } from '../../../utils/adminData';
 
@@ -88,7 +89,7 @@ function GestionSocios({ readOnly = false }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterEstado, setFilterEstado] = useState('activos');
-  const [sortBy, setSortBy] = useState('nombre-asc');
+  const [sortBy, setSortBy] = useState('familia');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingSocio, setEditingSocio] = useState(null);
@@ -99,19 +100,21 @@ function GestionSocios({ readOnly = false }) {
   const [qrModal, setQrModal] = useState(null);       // { socio, qr_image }
   const [generandoQrId, setGenerandoQrId] = useState(null);
   const fileInputRef = useRef(null);
+  const [importResult, setImportResult] = useState(null);
+  const { toast, showConfirm } = useNotification();
 
   const fetchSocios = async () => {
     try {
       setSocios(await adminApi.getSocios());
     } catch (error) {
       if (error.status === 401) {
-        alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        toast('Sesión expirada. Por favor, inicia sesión nuevamente.', 'error');
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
         window.location.href = '/login';
         return;
       }
-      alert(`Error al cargar socios: ${error.message}`);
+      toast(`Error al cargar socios: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -143,6 +146,22 @@ function GestionSocios({ readOnly = false }) {
     return [...filtered].sort((a, b) => {
       if (sortBy === 'numero-asc') return String(getSocioNumero(a)).localeCompare(String(getSocioNumero(b)), 'es', { numeric: true });
       if (sortBy === 'nombre-desc') return getFullName(b).localeCompare(getFullName(a), 'es');
+      if (sortBy === 'familia') {
+        const aAccion = a.accion_id;
+        const bAccion = b.accion_id;
+        // Sin acción familiar al final
+        if (aAccion != null && bAccion == null) return -1;
+        if (aAccion == null && bAccion != null) return 1;
+        // Ambos con acción: agrupar por accion_id, titular primero
+        if (aAccion != null && bAccion != null) {
+          if (aAccion !== bAccion) return aAccion - bAccion;
+          if (a.es_titular && !b.es_titular) return -1;
+          if (!a.es_titular && b.es_titular) return 1;
+          return getFullName(a).localeCompare(getFullName(b), 'es');
+        }
+        // Ambos sin acción: alfabético
+        return getFullName(a).localeCompare(getFullName(b), 'es');
+      }
       return getFullName(a).localeCompare(getFullName(b), 'es');
     });
   }, [socios, searchTerm, filterTipo, filterEstado, sortBy]);
@@ -250,31 +269,31 @@ function GestionSocios({ readOnly = false }) {
       await fetchSocios();
       setShowModal(false);
       resetForm();
-      alert(editingSocio ? 'Socio actualizado correctamente' : 'Socio creado correctamente');
+      toast(editingSocio ? 'Socio actualizado correctamente' : 'Socio creado correctamente', 'success');
     } catch (error) {
-      alert(error.message || 'Error al guardar socio');
+      toast(error.message || 'Error al guardar socio', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Inactivar este socio?')) return;
+    if (!await showConfirm('¿Inactivar este socio?')) return;
     try {
       await apiRequest(`/socios/${id}`, { method: 'DELETE' });
       await fetchSocios();
-      alert('Socio inactivado correctamente');
+      toast('Socio inactivado correctamente', 'success');
     } catch (error) {
-      alert(error.message || 'Error al inactivar socio');
+      toast(error.message || 'Error al inactivar socio', 'error');
     }
   };
 
   const handlePermanentDelete = async (id) => {
-    if (!confirm('¿Eliminar permanentemente este socio? Esta acción no se puede deshacer.')) return;
+    if (!await showConfirm('¿Eliminar permanentemente este socio? Esta acción no se puede deshacer.', { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       await apiRequest(`/socios/${id}/permanente`, { method: 'DELETE' });
       await fetchSocios();
-      alert('Socio eliminado permanentemente');
+      toast('Socio eliminado permanentemente', 'success');
     } catch (error) {
-      alert(error.message || 'Error al eliminar socio');
+      toast(error.message || 'Error al eliminar socio', 'error');
     }
   };
 
@@ -288,9 +307,9 @@ function GestionSocios({ readOnly = false }) {
         body: JSON.stringify({ socio_id: socio.socio_id }),
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Error al generar QR'); return; }
+      if (!res.ok) { toast(data.error || 'Error al generar QR', 'error'); return; }
       setQrModal({ socio, qr_image: data.qr_image });
-    } catch { alert('Error de conexión al generar QR'); }
+    } catch { toast('Error de conexión al generar QR', 'error'); }
     finally { setGenerandoQrId(null); }
   };
 
@@ -305,9 +324,9 @@ function GestionSocios({ readOnly = false }) {
     try {
       await apiRequest(`/socios/${socio.socio_id}/reactivar`, { method: 'PUT' });
       await fetchSocios();
-      alert('Socio reactivado correctamente');
+      toast('Socio reactivado correctamente', 'success');
     } catch (error) {
-      alert(error.message || 'Error al reactivar socio');
+      toast(error.message || 'Error al reactivar socio', 'error');
     }
   };
 
@@ -339,12 +358,8 @@ function GestionSocios({ readOnly = false }) {
     try {
       const result = await adminApi.importarSocios(file);
       await fetchSocios();
-      const errores = Array.isArray(result?.errores) ? result.errores : [];
-      const resumen = `Procesados ${result?.total_procesados || 0}. Nuevos ${result?.nuevos || 0}, actualizados ${result?.actualizados || 0}.`;
-      const detalleErrores = errores.length
-        ? ` Errores: ${errores.slice(0, 3).map(e => `fila ${e.fila}: ${e.motivo}`).join(' | ')}`
-        : '';
-      setFileState({ status: errores.length ? 'error' : 'success', message: `${resumen}${detalleErrores}` });
+      setFileState({ status: 'idle', message: '' });
+      setImportResult(result);
     } catch (error) {
       setFileState({ status: 'error', message: error.message || 'No se pudo importar el archivo.' });
     } finally {
@@ -373,16 +388,16 @@ function GestionSocios({ readOnly = false }) {
             />
             {!readOnly && (
               <button className="btn-outline" onClick={() => fileInputRef.current?.click()} disabled={fileState.status === 'loading'}>
-                <Upload size={16} /> Importar
+                <Download size={16} /> Importar
               </button>
             )}
             {!readOnly && (
               <button className="btn-outline" onClick={adminApi.descargarTemplateSocios} disabled={fileState.status === 'loading'}>
-                <Download size={16} /> Plantilla
+                <Upload size={16} /> Plantilla
               </button>
             )}
             <button className="btn-outline" onClick={exportSocios}>
-              <Download size={16} /> Exportar
+              <Upload size={16} /> Exportar
             </button>
             {!readOnly && (
               <button className="btn-primary" onClick={openCreateModal}>
@@ -412,6 +427,7 @@ function GestionSocios({ readOnly = false }) {
           <option value="inactivos">Inactivos</option>
         </FilterSelect>
         <FilterSelect label="Orden" value={sortBy} onChange={setSortBy}>
+          <option value="familia">Familia</option>
           <option value="nombre-asc">A-Z</option>
           <option value="nombre-desc">Z-A</option>
           <option value="numero-asc">Número</option>
@@ -427,7 +443,7 @@ function GestionSocios({ readOnly = false }) {
               <th>Tipo</th>
               <th>Estado</th>
               <th>Teléfono</th>
-              <th>Acción Familiar</th>
+              <th>Parentesco</th>
               <th>Sanciones</th>
               <th></th>
             </tr>
@@ -446,7 +462,6 @@ function GestionSocios({ readOnly = false }) {
                 : estadoLabel === 'Suspendido'
                   ? 'badge-warning'
                   : 'badge-neutral';
-              const accionId = socio.accion_id;
               const numSanciones = socio.num_sanciones ?? 0;
 
               return (
@@ -468,12 +483,7 @@ function GestionSocios({ readOnly = false }) {
                     <span className={estadoBadge}>{estadoLabel}</span>
                   </td>
                   <td>{socio.telefono || '-'}</td>
-                  <td>
-                    {accionId
-                      ? <span className="accion-familiar"><Users size={13} /> {accionId}</span>
-                      : <span style={{ color: '#94a3b8' }}>-</span>
-                    }
-                  </td>
+                  <td>{socio.parentesco || <span style={{ color: '#94a3b8' }}>-</span>}</td>
                   <td>
                     <span className={numSanciones > 0 ? 'sanciones-count active' : 'sanciones-count'}>
                       {numSanciones}
@@ -650,6 +660,73 @@ function GestionSocios({ readOnly = false }) {
         </div>
       )}
 
+      {importResult && (
+        <div className="modal-overlay" onClick={() => setImportResult(null)}>
+          <div className="modal-content" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h3 style={{ margin: 0 }}>Resultado de importación</h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: '#64748b' }}>
+                  Resumen del archivo procesado
+                </p>
+              </div>
+              <button onClick={() => setImportResult(null)} className="close-modal"><X size={20} /></button>
+            </div>
+            <div className="modal-body" style={{ padding: '1.25rem 1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div style={{ background: '#f1f5f9', borderRadius: 10, padding: '0.75rem 1rem', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Procesados</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 700, color: '#1e293b' }}>{importResult.total_procesados ?? 0}</p>
+                </div>
+                <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '0.75rem 1rem', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 11, color: '#16a34a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nuevos</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 700, color: '#16a34a' }}>{importResult.nuevos ?? 0}</p>
+                </div>
+                <div style={{ background: '#eff6ff', borderRadius: 10, padding: '0.75rem 1rem', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 11, color: '#2563eb', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actualizados</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 700, color: '#2563eb' }}>{importResult.actualizados ?? 0}</p>
+                </div>
+              </div>
+
+              {Array.isArray(importResult.errores) && importResult.errores.length > 0 ? (
+                <div>
+                  <p style={{ margin: '0 0 0.5rem', fontSize: 13, fontWeight: 600, color: '#dc2626' }}>
+                    <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                    Errores ({importResult.errores.length})
+                  </p>
+                  <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #fecaca', borderRadius: 8, background: '#fff5f5' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ background: '#fee2e2' }}>
+                          <th style={{ padding: '6px 10px', textAlign: 'left', color: '#7f1d1d', fontWeight: 600, width: 60 }}>Fila</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'left', color: '#7f1d1d', fontWeight: 600 }}>Motivo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.errores.map((err, i) => (
+                          <tr key={i} style={{ borderTop: '1px solid #fecaca' }}>
+                            <td style={{ padding: '5px 10px', color: '#b91c1c', fontWeight: 600 }}>{err.fila}</td>
+                            <td style={{ padding: '5px 10px', color: '#7f1d1d' }}>{err.motivo}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.75rem 1rem' }}>
+                  <CheckCircle size={16} style={{ color: '#16a34a', flexShrink: 0 }} />
+                  <p style={{ margin: 0, fontSize: 13, color: '#15803d' }}>Importación completada sin errores.</p>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-primary" onClick={() => setImportResult(null)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {viewingSocio && (() => {
         const s = viewingSocio;
         const tipo = getSocioTipo(s);
@@ -665,7 +742,7 @@ function GestionSocios({ readOnly = false }) {
           { label: 'Fecha nacimiento', value: s.fecha_nacimiento ? new Date(String(s.fecha_nacimiento).split('T')[0] + 'T00:00:00').toLocaleDateString('es-MX') : '-' },
           { label: 'Género', value: s.genero || '-' },
           { label: 'Dirección', value: s.direccion || '-', full: true },
-          { label: 'Acción familiar', value: s.accion_id || '-' },
+          { label: 'Parentesco', value: s.parentesco || '-' },
           { label: 'Sanciones activas', value: s.num_sanciones ?? 0 },
           { label: 'Registro', value: s.fecha_registro ? new Date(String(s.fecha_registro).split('T')[0] + 'T00:00:00').toLocaleDateString('es-MX') : '-' },
         ];

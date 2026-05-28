@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Baby, CheckCircle, Clock, Eye, LogOut, Plus, X } from 'lucide-react';
 import { adminApi, apiRequest, unwrapList } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
@@ -89,6 +90,7 @@ function calcularEdad(fechaNacimiento) {
 }
 
 function Ludoteca() {
+  const { toast, showConfirm } = useNotification();
   const [registrosActivos, setRegistrosActivos] = useState([]);
   const [historial, setHistorial] = useState([]);
   const [socios, setSocios] = useState([]);
@@ -172,18 +174,18 @@ function Ludoteca() {
       setFormErrors({});
       showToast('Entrada registrada correctamente');
     } catch (error) {
-      alert(error.message || 'Error al registrar entrada');
+      toast(error.message || 'Error al registrar entrada', 'error');
     }
   };
 
   const registrarSalida = async (id) => {
-    if (!confirm('¿Registrar salida?')) return;
+    if (!await showConfirm('¿Registrar salida?')) return;
     try {
       await apiRequest(`/ludoteca/salida/${id}`, { method: 'PATCH' });
       await fetchData();
       showToast('Salida registrada correctamente');
     } catch (error) {
-      alert(error.message || 'Error al registrar salida');
+      toast(error.message || 'Error al registrar salida', 'error');
     }
   };
 

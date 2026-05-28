@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Download, Edit2, QrCode, RotateCcw, Search, SlidersHorizontal, Trash2, UserPlus, X } from 'lucide-react';
+import { useNotification } from '../../../context/NotificationContext';
 
 const initialFormData = {
   nombres: '',
@@ -43,6 +44,7 @@ const activeChipStyle = {
 };
 
 function GestionSocios() {
+  const { toast, showConfirm } = useNotification();
   const [socios, setSocios] = useState([]);
   const [filteredSocios, setFilteredSocios] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -135,7 +137,7 @@ function GestionSocios() {
       setFilteredSocios(sociosData);
     } catch (error) {
       console.error(error);
-      alert('No se pudieron cargar los socios');
+      toast('No se pudieron cargar los socios', 'error');
     } finally {
       setLoading(false);
     }
@@ -232,16 +234,16 @@ function GestionSocios() {
         resetForm();
       } else {
         const data = await res.json();
-        alert(data.error || 'Error al guardar socio');
+        toast(data.error || 'Error al guardar socio', 'error');
       }
     } catch (error) {
       console.error(error);
-      alert('Error de conexion');
+      toast('Error de conexión', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Inactivar este socio?')) return;
+    if (!await showConfirm('¿Inactivar este socio?')) return;
 
     const token = localStorage.getItem('token');
     const res = await fetch(`http://localhost:3000/api/socios/${id}`, {
@@ -250,11 +252,11 @@ function GestionSocios() {
     });
 
     if (res.ok) fetchSocios();
-    else alert('Error al inactivar socio');
+    else toast('Error al inactivar socio', 'error');
   };
 
   const handlePermanentDelete = async (id) => {
-    if (!confirm('Eliminar permanentemente? Esta accion no se puede deshacer.')) return;
+    if (!await showConfirm('¿Eliminar permanentemente? Esta acción no se puede deshacer.', { danger: true, confirmLabel: 'Eliminar' })) return;
 
     const token = localStorage.getItem('token');
     const res = await fetch(`http://localhost:3000/api/socios/${id}/permanente`, {
@@ -263,7 +265,7 @@ function GestionSocios() {
     });
 
     if (res.ok) fetchSocios();
-    else alert('Error al eliminar socio');
+    else toast('Error al eliminar socio', 'error');
   };
 
   const handleReactivate = async (socio) => {
@@ -274,7 +276,7 @@ function GestionSocios() {
     });
 
     if (res.ok) fetchSocios();
-    else alert('Error al reactivar socio');
+    else toast('Error al reactivar socio', 'error');
   };
 
   const handleGenerarQr = async (socio) => {
@@ -287,9 +289,9 @@ function GestionSocios() {
         body: JSON.stringify({ socio_id: socio.socio_id }),
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Error al generar QR'); return; }
+      if (!res.ok) { toast(data.error || 'Error al generar QR', 'error'); return; }
       setQrModal({ socio, qr_image: data.qr_image });
-    } catch { alert('Error de conexión al generar QR'); }
+    } catch { toast('Error de conexión al generar QR', 'error'); }
     finally { setGenerandoQrId(null); }
   };
 

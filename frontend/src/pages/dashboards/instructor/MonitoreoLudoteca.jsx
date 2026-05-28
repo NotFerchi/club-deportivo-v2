@@ -9,6 +9,7 @@ import {
   Users
 } from 'lucide-react';
 import { apiRequest, unwrapList } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 
 const TICK_MS = 1000;
 const POLL_MS = 10000;
@@ -150,6 +151,7 @@ function LudotecaCard({ nino, now, lastSyncMs, saliendo, onSalida }) {
 }
 
 function MonitoreoLudoteca() {
+  const { showConfirm, toast: globalToast } = useNotification();
   const [ninos, setNinos] = useState([]);
   const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(true);
@@ -220,7 +222,7 @@ function MonitoreoLudoteca() {
   }, [ninos, now, lastSyncMs]);
 
   const handleSalida = async (registroId) => {
-    if (!window.confirm('¿Dar salida a este niño?')) return;
+    if (!await showConfirm('¿Dar salida a este niño?', { confirmLabel: 'Dar salida' })) return;
 
     setSalidasEnCurso((prev) => ({
       ...prev,
@@ -246,7 +248,7 @@ function MonitoreoLudoteca() {
         });
       }
     } catch (salidaError) {
-      alert(salidaError.message || 'Error al registrar salida');
+      globalToast(salidaError.message || 'Error al registrar salida', 'error');
     } finally {
       setSalidasEnCurso((prev) => {
         const next = { ...prev };

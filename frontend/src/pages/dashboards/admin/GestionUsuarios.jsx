@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Edit2, Eye, RotateCcw, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { getFullName, isActiveValue, normalizeText, toDateInputValue } from '../../../utils/adminData';
 
@@ -21,6 +22,7 @@ const initialFormData = {
 const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
 
 function GestionUsuarios() {
+  const { toast, showConfirm } = useNotification();
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,13 +46,13 @@ function GestionUsuarios() {
       setRoles(rolesData.filter(role => normalizeText(role.nombre) !== 'socio'));
     } catch (error) {
       if (error.status === 401) {
-        alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        toast('Sesión expirada. Por favor, inicia sesión nuevamente.', 'error');
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
         window.location.href = '/login';
         return;
       }
-      alert(`Error al cargar usuarios: ${error.message}`);
+      toast(`Error al cargar usuarios: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -180,31 +182,31 @@ function GestionUsuarios() {
       await fetchData();
       setShowModal(false);
       resetForm();
-      alert(editingUser ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente');
+      toast(editingUser ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente', 'success');
     } catch (error) {
-      alert(error.message || 'Error al guardar usuario');
+      toast(error.message || 'Error al guardar usuario', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Inactivar este usuario?')) return;
+    if (!await showConfirm('¿Inactivar este usuario?')) return;
     try {
       await apiRequest(`/usuarios/${id}`, { method: 'DELETE' });
       await fetchData();
-      alert('Usuario inactivado correctamente');
+      toast('Usuario inactivado correctamente', 'success');
     } catch (error) {
-      alert(error.message || 'Error al inactivar usuario');
+      toast(error.message || 'Error al inactivar usuario', 'error');
     }
   };
 
   const handlePermanentDelete = async (id) => {
-    if (!confirm('¿Eliminar permanentemente este usuario? Esta acción no se puede deshacer.')) return;
+    if (!await showConfirm('¿Eliminar permanentemente este usuario? Esta acción no se puede deshacer.', { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       await apiRequest(`/usuarios/${id}/permanente`, { method: 'DELETE' });
       await fetchData();
-      alert('Usuario eliminado permanentemente');
+      toast('Usuario eliminado permanentemente', 'success');
     } catch (error) {
-      alert(error.message || 'Error al eliminar usuario');
+      toast(error.message || 'Error al eliminar usuario', 'error');
     }
   };
 
@@ -212,9 +214,9 @@ function GestionUsuarios() {
     try {
       await apiRequest(`/usuarios/${user.usuario_id}/reactivar`, { method: 'PUT' });
       await fetchData();
-      alert('Usuario reactivado correctamente');
+      toast('Usuario reactivado correctamente', 'success');
     } catch (error) {
-      alert(error.message || 'Error al reactivar usuario');
+      toast(error.message || 'Error al reactivar usuario', 'error');
     }
   };
 

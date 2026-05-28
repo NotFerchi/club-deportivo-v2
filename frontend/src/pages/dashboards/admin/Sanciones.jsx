@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle, Edit2, Plus, RefreshCw, ShieldAlert, Trash2, X } from 'lucide-react';
 import { adminApi } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput, StatCard } from '../../../components/admin/AdminUI';
 import { fechaFinPorGravedad, formatDate, gravedadDias, normalizeGravedad, normalizeText, todayISO, toDateInputValue } from '../../../utils/adminData';
 
@@ -33,6 +34,7 @@ function gravedadClass(gravedad) {
 }
 
 function ReporteSanciones({ readOnly = false }) {
+  const { toast, showConfirm } = useNotification();
   const [sanciones, setSanciones] = useState([]);
   const [socios, setSocios] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,7 +56,7 @@ function ReporteSanciones({ readOnly = false }) {
       setSanciones(sancionesData);
       setSocios(sociosData.filter(socio => socio.activo === true || socio.activo === 'true'));
     } catch (error) {
-      alert(error.message || 'Error al cargar sanciones');
+      toast(error.message || 'Error al cargar sanciones', 'error');
     } finally {
       setLoading(false);
     }
@@ -193,27 +195,27 @@ function ReporteSanciones({ readOnly = false }) {
       setShowModal(false);
       resetForm();
     } catch (error) {
-      alert(error.message || 'Error al guardar sanción');
+      toast(error.message || 'Error al guardar sanción', 'error');
     }
   };
 
   const handleLevantarSancion = async (id) => {
-    if (!confirm('¿Levantar esta sanción? El socio quedará habilitado nuevamente.')) return;
+    if (!await showConfirm('¿Levantar esta sanción? El socio quedará habilitado nuevamente.')) return;
     try {
       await adminApi.levantarSancion(id);
       await fetchData();
     } catch (error) {
-      alert(error.message || 'Error al levantar sanción');
+      toast(error.message || 'Error al levantar sanción', 'error');
     }
   };
 
   const handleDeleteSancion = async (id) => {
-    if (!confirm('¿Eliminar esta sanción permanentemente? Esta acción no se puede deshacer.')) return;
+    if (!await showConfirm('¿Eliminar esta sanción permanentemente? Esta acción no se puede deshacer.', { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       await adminApi.deleteSancion(id);
       await fetchData();
     } catch (error) {
-      alert(error.message || 'Error al eliminar sanción');
+      toast(error.message || 'Error al eliminar sanción', 'error');
     }
   };
 
@@ -221,9 +223,9 @@ function ReporteSanciones({ readOnly = false }) {
     try {
       const result = await adminApi.sincronizarNoShows();
       await fetchData();
-      alert(result?.message || 'No-shows sincronizados correctamente');
+      toast(result?.message || 'No-shows sincronizados correctamente', 'success');
     } catch (error) {
-      alert(error.message || 'Error al sincronizar no-shows');
+      toast(error.message || 'Error al sincronizar no-shows', 'error');
     }
   };
 

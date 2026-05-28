@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { X, Search, Baby, Clock, Printer, AlertCircle, CheckCircle, LogOut, User, Users, History, ChevronDown, ChevronUp, Loader2, AlertTriangle } from 'lucide-react';
+import { useNotification } from '../../../context/NotificationContext';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function calcularEdadAnios(fechaNacimiento) {
@@ -527,6 +528,7 @@ function SeccionHistorial() {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 function ControlLudoteca() {
+  const { toast, showConfirm } = useNotification();
   const [ninos, setNinos]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [showEntrada, setShowEntrada] = useState(false);
@@ -547,17 +549,17 @@ function ControlLudoteca() {
   useEffect(() => { fetchNinos(); }, []);
 
   const handleSalida = async (registroId) => {
-    if (!window.confirm('Registrar salida de este nino?')) return;
+    if (!await showConfirm('¿Registrar salida de este niño?')) return;
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`http://localhost:3000/api/ludoteca/salida/${registroId}`, {
         method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Error al registrar salida'); return; }
-      if (data.sancion_generada) alert(`Salida registrada. Se genero una sancion al padre por exceso de tiempo (${data.duracion_minutos} min).`);
+      if (!res.ok) { toast(data.error || 'Error al registrar salida', 'error'); return; }
+      if (data.sancion_generada) toast(`Salida registrada. Se generó una sanción al padre por exceso de tiempo (${data.duracion_minutos} min).`, 'warning');
       fetchNinos();
-    } catch { alert('Error de conexion'); }
+    } catch { toast('Error de conexión', 'error'); }
   };
 
   if (loading) return (

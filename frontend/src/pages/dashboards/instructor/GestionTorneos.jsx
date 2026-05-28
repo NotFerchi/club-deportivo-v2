@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Trophy, ChevronDown, ChevronUp, Calendar, Users, Medal, Loader2, Save } from 'lucide-react';
+import { useNotification } from '../../../context/NotificationContext';
 
 const RONDAS = { 1: 'Cuartos de Final', 2: 'Semifinales', 3: 'Final' };
 
@@ -204,6 +205,7 @@ function EncuentroRow({ encuentro, onResultadoGuardado }) {
 }
 
 function TorneoCard({ torneo, index, onTorneoActualizado }) {
+  const { showConfirm } = useNotification();
   const [expandido, setExpandido] = useState(false);
   const [encuentros, setEncuentros] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -246,7 +248,7 @@ function TorneoCard({ torneo, index, onTorneoActualizado }) {
 
   // ── Cerrar inscripciones ──
   const cerrarInscripciones = async () => {
-    if (!window.confirm('¿Cerrar inscripciones y generar el bracket?')) return;
+    if (!await showConfirm('¿Cerrar inscripciones y generar el bracket?')) return;
     setAccionCargando(true);
     setMensajeAccion(null);
     try {
@@ -271,7 +273,7 @@ function TorneoCard({ torneo, index, onTorneoActualizado }) {
 
   // ── Confirmar bracket ──
   const confirmarBracket = async () => {
-    if (!window.confirm('¿Confirmar el bracket y poner el torneo En_curso?')) return;
+    if (!await showConfirm('¿Confirmar el bracket y poner el torneo En_curso?')) return;
     setAccionCargando(true);
     setMensajeAccion(null);
     try {

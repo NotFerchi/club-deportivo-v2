@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Search, ShieldCheck, ShieldX, Shield, Plus, X, AlertTriangle, Calendar, CheckCircle, Loader2 } from 'lucide-react';
+import { useNotification } from '../../../context/NotificationContext';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getGravedadConfig = (gravedad) => {
@@ -434,6 +435,7 @@ function ModalNuevaSancion({ onClose, onCreada }) {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 function VistaSanciones() {
+  const { showConfirm } = useNotification();
   const [sanciones, setSanciones] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [busqueda, setBusqueda]   = useState('');
@@ -458,7 +460,7 @@ function VistaSanciones() {
   };
 
   const handleLevantar = async (id) => {
-    if (!window.confirm('¿Levantar esta sanción? El socio podrá hacer reservas nuevamente.')) return;
+    if (!await showConfirm('¿Levantar esta sanción? El socio podrá hacer reservas nuevamente.', { confirmLabel: 'Levantar' })) return;
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`http://localhost:3000/api/sanciones/${id}/levantar`, {

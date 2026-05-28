@@ -1,22 +1,36 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, CheckCircle, Clock, DoorOpen, Download, Eye, Loader2, LogOut, Mail, Printer, RefreshCw, UserPlus, Users, X } from 'lucide-react';
+import {
+  AlertCircle, Calendar, CheckCircle, Clock, DoorOpen, Download,
+  Eye, LogOut, Mail, Pencil, Printer, QrCode, RefreshCw, UserPlus, Users, X
+} from 'lucide-react';
 import { adminApi } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput, StatCard } from '../../../components/admin/AdminUI';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
+const MX_TIMEZONE = 'America/Mexico_City';
+
 const initialFormData = {
   tipo_pase: 'visita',
-  nombre: '',
-  apellidos: '',
+  socio_id: '',
+  nombre_completo: '',
   identificacion: '',
-  telefono: '',
   correo: '',
-  socio_anfitrion_id: '',
-  motivo: '',
-  mayor_16: true
+  telefono: '',
+  mayor_16: true,
+  observaciones: '',
+  confirmacion_tutor: false
 };
 
-const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
+const initialEditData = {
+  nombre_completo: '',
+  telefono: '',
+  correo: '',
+  identificacion: '',
+  observaciones: '',
+  tipo_pase: 'visita',
+  socio_id: ''
+};
 
 function getVisitanteNombre(visita) {
   return visita.nombre_completo || [visita.nombre, visita.apellidos].filter(Boolean).join(' ').trim();
@@ -36,7 +50,15 @@ function getAnfitrionNombre(visita) {
   return socioId ? `Socio #${socioId}` : '';
 }
 
+function formatHour(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString('es-MX', { timeZone: MX_TIMEZONE, hour: '2-digit', minute: '2-digit' });
+}
+
 function RecepcionVisitas() {
+  const { toast, showConfirm } = useNotification();
   const [visitasActivas, setVisitasActivas] = useState([]);
   const [historial, setHistorial] = useState([]);
   const [socios, setSocios] = useState([]);
@@ -45,16 +67,20 @@ function RecepcionVisitas() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [formData, setFormData] = useState(initialFormData);
-  const [formErrors, setFormErrors] = useState({});
+  const [socioSelectorTerm, setSocioSelectorTerm] = useState('');
   const [filtro, setFiltro] = useState('');
   const [filterHistorial, setFilterHistorial] = useState('');
-  const [limitesPases, setLimitesPases] = useState({});
   const [loadError, setLoadError] = useState('');
   const [closingVisits, setClosingVisits] = useState(false);
-  const [qrModal, setQrModal] = useState({ open: false, qrImage: null, nombre: '', expiraEn: null, correo: '', visitaId: null });
-  const [emailSending, setEmailSending] = useState(false);
+  const [savingExit, setSavingExit] = useState(null);
+  const [qrModal, setQrModal] = useState({ open: false, qrImage: null, nombre: '', expiraEn: null, correo: '' });
   const [viewingVisita, setViewingVisita] = useState(null);
+  const [editingVisita, setEditingVisita] = useState(null);
+  const [editData, setEditData] = useState(initialEditData);
+  const [editSocioTerm, setEditSocioTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loadingQr, setLoadingQr] = useState(false);
   const qrPrintRef = useRef(null);
 
   const fetchData = async () => {
@@ -65,24 +91,9 @@ function RecepcionVisitas() {
         adminApi.getSociosVisitas(),
         adminApi.getHistorialVisitas(7)
       ]);
-
       setVisitasActivas(visitasData);
       setHistorial(historialData);
       setSocios(sociosData);
-
-      const usos = {};
-      sociosData.forEach(socio => { usos[socio.socio_id] = 0; });
-      visitasData.forEach(visita => {
-        const anfitrionId = visita.socio_anfitrion_id || visita.socio_id;
-        if (anfitrionId) usos[anfitrionId] = (usos[anfitrionId] || 0) + 1;
-      });
-
-      const limites = {};
-      sociosData.forEach(socio => {
-        const maximo = normalizeText(socio.tipo_socio || socio.tipo) === 'accionista' ? 5 : 3;
-        limites[socio.socio_id] = { usados: usos[socio.socio_id] || 0, maximo };
-      });
-      setLimitesPases(limites);
       setLoadError('');
     } catch (error) {
       setLoadError(error.message || 'Error al cargar recepcion');
@@ -91,88 +102,90 @@ function RecepcionVisitas() {
     }
   };
 
+  useEffect(() => { fetchData(); }, []);
+
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!showSuccess) return undefined;
+    const t = setTimeout(() => setShowSuccess(false), 3200);
+    return () => clearTimeout(t);
+  }, [showSuccess]);
 
   const showToast = (message) => {
     setSuccessMessage(message);
     setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  const updateForm = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setFormErrors(prev => ({ ...prev, [field]: undefined }));
+  const resetModalState = () => {
+    setShowModal(false);
+    setFormData(initialFormData);
+    setSocioSelectorTerm('');
   };
 
-  const validateForm = () => {
-    const errors = {};
-    if (formData.nombre.trim().length < 2) errors.nombre = 'Nombre obligatorio';
-    if (formData.apellidos.trim().length < 2) errors.apellidos = 'Apellidos obligatorios';
-    if (!/^\d{10}$/.test(formData.telefono.trim())) errors.telefono = 'Teléfono de 10 dígitos obligatorio';
-    if (formData.correo.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo.trim())) errors.correo = 'Correo inválido';
-    if (formData.tipo_pase === 'visita' && !formData.socio_anfitrion_id) {
-      errors.socio_anfitrion_id = 'Selecciona el socio anfitrión';
-    }
+  const filteredSocios = useMemo(() => {
+    const term = normalizeText(socioSelectorTerm);
+    if (!term) return socios;
+    return socios.filter(s =>
+      [s.nombres, s.apellido_paterno, s.apellido_materno, s.email, s.numero_socio, s.tipo_socio, s.tipo]
+        .some(v => normalizeText(v).includes(term))
+    );
+  }, [socios, socioSelectorTerm]);
 
-    if (formData.tipo_pase === 'visita' && formData.socio_anfitrion_id) {
-      const limites = limitesPases[formData.socio_anfitrion_id];
-      if (limites && limites.usados >= limites.maximo) {
-        errors.socio_anfitrion_id = `El socio alcanzó su límite diario de ${limites.maximo} pases`;
-      }
-    }
-
-    return errors;
-  };
+  const filteredSociosEdit = useMemo(() => {
+    const term = normalizeText(editSocioTerm);
+    if (!term) return socios;
+    return socios.filter(s =>
+      [s.nombres, s.apellido_paterno, s.apellido_materno, s.email, s.numero_socio, s.tipo_socio, s.tipo]
+        .some(v => normalizeText(v).includes(term))
+    );
+  }, [socios, editSocioTerm]);
 
   const registrarVisita = async (event) => {
     event.preventDefault();
-    const errors = validateForm();
 
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
+    if (!formData.nombre_completo.trim()) {
+      toast('El nombre completo es obligatorio.', 'warning');
+      return;
+    }
+    if (!formData.telefono.trim()) {
+      toast('El teléfono es obligatorio.', 'warning');
+      return;
+    }
+    if (!formData.mayor_16 && !formData.confirmacion_tutor) {
+      toast('Para menores de 16 años debes confirmar que ingresará con un tutor.', 'warning');
+      return;
+    }
+    if (formData.tipo_pase === 'visita' && !formData.socio_id) {
+      toast('Debes seleccionar un socio activo para una visita.', 'warning');
       return;
     }
 
-    const nombreCompleto = `${formData.nombre.trim()} ${formData.apellidos.trim()}`.trim();
-    const esVisita = formData.tipo_pase === 'visita';
-    const payload = {
-      tipo_pase: formData.tipo_pase,
-      socio_id: esVisita ? formData.socio_anfitrion_id : null,
-      socio_anfitrion_id: esVisita ? formData.socio_anfitrion_id : null,
-      nombre_completo: nombreCompleto,
-      nombre: formData.nombre.trim(),
-      apellido: formData.apellidos.trim(),
-      identificacion: formData.identificacion.trim(),
-      telefono: formData.telefono.trim(),
-      correo: formData.correo.trim() || null,
-      mayor_16: Boolean(formData.mayor_16),
-      motivo: formData.motivo.trim(),
-      observaciones: formData.motivo.trim()
-    };
-
     setIsSubmitting(true);
     try {
-      const respuesta = await adminApi.registrarVisita(payload);
-      setShowModal(false);
-      setFormData(initialFormData);
-      setFormErrors({});
+      const response = await adminApi.registrarVisita({
+        tipo_pase: formData.tipo_pase,
+        socio_id: formData.tipo_pase === 'visita' ? Number(formData.socio_id) : null,
+        socio_anfitrion_id: formData.tipo_pase === 'visita' ? Number(formData.socio_id) : null,
+        nombre_completo: formData.nombre_completo.trim(),
+        identificacion: formData.identificacion.trim(),
+        correo: formData.correo.trim(),
+        telefono: formData.telefono.trim(),
+        mayor_16: formData.mayor_16,
+        observaciones: formData.observaciones.trim()
+      });
+
+      const nombreGuardado = formData.nombre_completo.trim();
+      const correoGuardado = formData.correo.trim();
+
+      resetModalState();
       await fetchData();
-      if (respuesta?.qr_image) {
-        setQrModal({
-          open: true,
-          qrImage: respuesta.qr_image,
-          nombre: nombreCompleto,
-          expiraEn: respuesta.expira_en,
-          correo: formData.correo.trim() || '',
-          visitaId: respuesta.id || null
-        });
+
+      if (response?.qr_image) {
+        setQrModal({ open: true, qrImage: response.qr_image, nombre: nombreGuardado, expiraEn: response.expira_en, correo: correoGuardado });
       } else {
         showToast('Visita registrada correctamente');
       }
     } catch (error) {
-      alert(error.message || 'Error al registrar visita');
+      toast(error.message || 'Error al registrar visita', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -182,33 +195,26 @@ function RecepcionVisitas() {
     const imgSrc = qrModal.qrImage;
     const nombre = qrModal.nombre;
     const expiraTexto = qrModal.expiraEn
-      ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })
+      ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: MX_TIMEZONE })
       : '24 horas';
 
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'display:none;';
     document.body.appendChild(iframe);
-
     const doc = iframe.contentDocument || iframe.contentWindow.document;
     doc.open();
-    doc.write(`<!DOCTYPE html><html><head><title>QR Visita</title><style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;background:#fff;}img{width:220px;height:220px;border:3px solid #1e3a5f;border-radius:8px;}h2{font-size:18px;font-weight:800;color:#1e3a5f;margin-bottom:8px;}p{font-size:12px;color:#374151;margin-top:10px;}</style></head><body><h2>${nombre}</h2><img src="${imgSrc}" alt="QR"/><p>Válido hasta: ${expiraTexto}</p></body></html>`);
+    doc.write(`<!DOCTYPE html><html><head><title>QR Visita</title><style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:Arial,sans-serif;background:#fff;}img{width:260px;height:260px;border:2px solid #dbeafe;border-radius:16px;padding:10px;}h2{font-size:18px;font-weight:700;margin-bottom:12px;}p{font-size:12px;color:#64748b;margin-top:8px;}</style></head><body><h2>${nombre}</h2><img src="${imgSrc}" alt="QR"/><p>Válido hasta: ${expiraTexto}</p></body></html>`);
     doc.close();
-
-    setTimeout(() => {
-      iframe.contentWindow.print();
-      document.body.removeChild(iframe);
-    }, 500);
+    setTimeout(() => { iframe.contentWindow.print(); document.body.removeChild(iframe); }, 500);
   };
 
   const handleEmailQr = () => {
-    const asunto = encodeURIComponent(`QR de acceso - ${qrModal.nombre}`);
-    const cuerpo = encodeURIComponent(
-      `Hola ${qrModal.nombre},\n\nTu código QR de acceso ha sido generado.\n` +
-      `Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX') : '24 horas'}\n\n` +
-      `Presenta este correo en recepción para que escaneen tu QR.\n\nClub Deportivo`
+    const subject = encodeURIComponent(`QR de acceso - ${qrModal.nombre}`);
+    const body = encodeURIComponent(
+      `Hola ${qrModal.nombre},\n\nTu código QR de acceso ya está listo.\n` +
+      `Válido hasta: ${qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: MX_TIMEZONE }) : '24 horas'}\n\nClub Deportivo`
     );
-    const to = qrModal.correo ? encodeURIComponent(qrModal.correo) : '';
-    window.open(`mailto:${to}?subject=${asunto}&body=${cuerpo}`, '_blank');
+    window.open(`mailto:${qrModal.correo ? encodeURIComponent(qrModal.correo) : ''}?subject=${subject}&body=${body}`, '_blank');
   };
 
   const handleDownloadQr = () => {
@@ -219,14 +225,17 @@ function RecepcionVisitas() {
   };
 
   const registrarSalida = async (visitaId) => {
-    if (!confirm('¿Registrar salida del visitante?')) return;
-
+    if (!await showConfirm('¿Registrar salida del visitante?')) return;
+    setSavingExit(visitaId);
     try {
       await adminApi.registrarSalidaVisita(visitaId);
+      if (viewingVisita?.visita_id === visitaId || viewingVisita?.pase_id === visitaId) setViewingVisita(null);
       await fetchData();
       showToast('Salida registrada correctamente');
     } catch (error) {
-      alert(error.message || 'Error al registrar salida');
+      toast(error.message || 'Error al registrar salida', 'error');
+    } finally {
+      setSavingExit(null);
     }
   };
 
@@ -235,40 +244,103 @@ function RecepcionVisitas() {
     try {
       const result = await adminApi.cerrarVisitasVencidas();
       await fetchData();
-      showToast(`Cierre automatico aplicado: ${result?.cerradas || 0} visitas finalizadas`);
+      const cerradas = Number(result?.cerradas || 0);
+      showToast(cerradas > 0 ? `Se cerraron ${cerradas} visita(s) vencida(s).` : 'No había visitas vencidas por cerrar.');
     } catch (error) {
-      alert(error.message || 'Error al cerrar visitas vencidas');
+      toast(error.message || 'Error al cerrar visitas vencidas', 'error');
     } finally {
       setClosingVisits(false);
     }
   };
 
+  const openEdit = (visita) => {
+    setEditingVisita(visita);
+    const socioId = visita.socio_anfitrion_id || visita.socio_id || '';
+    const socioObj = socios.find(s => String(s.socio_id) === String(socioId));
+    const socioNombre = socioObj
+      ? [socioObj.nombres, socioObj.apellido_paterno, socioObj.apellido_materno].filter(Boolean).join(' ')
+      : '';
+    setEditData({
+      nombre_completo: getVisitanteNombre(visita),
+      telefono: visita.telefono || '',
+      correo: visita.correo || '',
+      identificacion: visita.identificacion || '',
+      observaciones: visita.observaciones || visita.motivo || '',
+      tipo_pase: visita.tipo_pase || 'visita',
+      socio_id: String(socioId)
+    });
+    setEditSocioTerm(socioNombre);
+    setViewingVisita(null);
+  };
+
+  const submitEdit = async (event) => {
+    event.preventDefault();
+    if (!editData.nombre_completo.trim()) {
+      toast('El nombre es requerido.', 'warning');
+      return;
+    }
+    setIsEditing(true);
+    try {
+      const id = editingVisita.pase_id || editingVisita.visita_id;
+      await adminApi.actualizarVisita(id, {
+        nombre_completo: editData.nombre_completo.trim(),
+        telefono: editData.telefono.trim(),
+        correo: editData.correo.trim(),
+        identificacion: editData.identificacion.trim(),
+        observaciones: editData.observaciones.trim(),
+        tipo_pase: editData.tipo_pase,
+        socio_id: editData.tipo_pase === 'visita' && editData.socio_id ? Number(editData.socio_id) : null
+      });
+      setEditingVisita(null);
+      await fetchData();
+      showToast('Visita actualizada correctamente');
+    } catch (error) {
+      toast(error.message || 'Error al actualizar visita', 'error');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const verQr = async (visita) => {
+    const id = visita.pase_id || visita.visita_id;
+    setLoadingQr(true);
+    try {
+      const response = await adminApi.obtenerQrVisita(id);
+      setViewingVisita(null);
+      setQrModal({
+        open: true,
+        qrImage: response.qr_image,
+        nombre: getVisitanteNombre(visita),
+        expiraEn: response.expira_en,
+        correo: visita.correo || ''
+      });
+    } catch (error) {
+      toast(error.message || 'No se pudo obtener el QR', 'error');
+    } finally {
+      setLoadingQr(false);
+    }
+  };
+
+  const kpis = useMemo(() => {
+    const visitas = historial.filter(r => r.tipo_pase === 'visita').length;
+    const pasesDia = historial.filter(r => r.tipo_pase === 'dia').length;
+    const finalizadas = historial.filter(r => Boolean(r.hora_salida)).length;
+    return { activos: visitasActivas.length, finalizadas, visitas, pasesDia };
+  }, [historial, visitasActivas]);
+
   const visitasFiltradas = useMemo(() => {
     const query = normalizeText(filtro);
-    return visitasActivas.filter(visita => {
-      const text = normalizeText([
-        getVisitanteNombre(visita),
-        visita.identificacion,
-        getAnfitrionNombre(visita),
-        visita.numero_socio,
-        visita.motivo
-      ].filter(Boolean).join(' '));
+    return visitasActivas.filter(v => {
+      const text = normalizeText([getVisitanteNombre(v), v.identificacion, getAnfitrionNombre(v), v.numero_socio, v.motivo, v.observaciones].filter(Boolean).join(' '));
       return !query || text.includes(query);
     });
   }, [visitasActivas, filtro]);
 
   const historialFiltrado = useMemo(() => {
     const query = normalizeText(filtro);
-    return historial.filter(registro => {
-      const finalizada = Boolean(registro.hora_salida);
-      const text = normalizeText([
-        getVisitanteNombre(registro),
-        registro.identificacion,
-        getAnfitrionNombre(registro),
-        registro.numero_socio,
-        registro.motivo
-      ].filter(Boolean).join(' '));
-
+    return historial.filter(r => {
+      const finalizada = Boolean(r.hora_salida);
+      const text = normalizeText([getVisitanteNombre(r), r.identificacion, getAnfitrionNombre(r), r.numero_socio, r.motivo, r.observaciones].filter(Boolean).join(' '));
       if (query && !text.includes(query)) return false;
       if (filterHistorial === 'activas' && finalizada) return false;
       if (filterHistorial === 'finalizadas' && !finalizada) return false;
@@ -276,8 +348,12 @@ function RecepcionVisitas() {
     });
   }, [historial, filtro, filterHistorial]);
 
-  const visitasFinalizadas = historial.filter(registro => Boolean(registro.hora_salida)).length;
-  const visitasPendientes = historial.filter(registro => !registro.hora_salida).length;
+  const kpiCards = [
+    { label: 'Pases Activos', value: kpis.activos, Icon: Users, tone: 'blue' },
+    { label: 'Finalizados', value: kpis.finalizadas, Icon: CheckCircle, tone: 'green' },
+    { label: 'Visitas', value: kpis.visitas, Icon: UserPlus, tone: 'purple' },
+    { label: 'Pases de un Día', value: kpis.pasesDia, Icon: Calendar, tone: 'amber' }
+  ];
 
   if (loading) return <LoadingState message="Cargando recepcion..." />;
   if (loadError) return <ErrorState message={loadError} onRetry={fetchData} />;
@@ -299,7 +375,7 @@ function RecepcionVisitas() {
           <>
             <SearchInput value={filtro} onChange={setFiltro} placeholder="Buscar visitante o anfitrión" />
             <button className="btn-outline" onClick={cerrarVencidas} disabled={closingVisits}>
-              <RefreshCw size={16} /> {closingVisits ? 'Cerrando...' : 'Cerrar vencidas'}
+              <RefreshCw size={16} className={closingVisits ? 'icon-spin' : ''} /> {closingVisits ? 'Cerrando...' : 'Cerrar vencidas'}
             </button>
             <button className="btn-primary" onClick={() => setShowModal(true)}>
               <UserPlus size={16} /> Nueva Visita
@@ -308,10 +384,13 @@ function RecepcionVisitas() {
         )}
       />
 
-      <div className="reservation-stats-row">
-        <StatCard icon={Users} label="Activas" value={visitasActivas.length} tone="success" />
-        <StatCard icon={CheckCircle} label="Finalizadas" value={visitasFinalizadas} tone="info" />
-        <StatCard icon={AlertCircle} label="Pendientes de salida" value={visitasPendientes} tone="warning" />
+      <div className="recepcion-kpi-row">
+        {kpiCards.map(({ label, value, Icon, tone }) => (
+          <article key={label} className={`recepcion-kpi-card tone-${tone}`}>
+            <div className="recepcion-kpi-icon"><Icon size={20} /></div>
+            <div><strong>{value}</strong><p>{label}</p></div>
+          </article>
+        ))}
       </div>
 
       <div className="admin-filter-row">
@@ -326,43 +405,47 @@ function RecepcionVisitas() {
         <h5 className="chart-title-row"><Users size={18} /> Visitas Activas ({visitasFiltradas.length})</h5>
         <div className="grid-auto">
           {visitasFiltradas.length === 0 && (
-            <p style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-              No hay visitas activas en este momento.
-            </p>
+            <div className="recepcion-empty-state"><p>No hay visitas activas en este momento.</p></div>
           )}
           {visitasFiltradas.map(visita => (
-            <div key={visita.visita_id || visita.pase_id} className="espacio-card-modern">
+            <article key={visita.visita_id || visita.pase_id} className="espacio-card-modern">
               <div className="espacio-header">
                 <div>
                   <h3 className="espacio-title">{getVisitanteNombre(visita)}</h3>
-                  <p className="espacio-sub">{visita.identificacion ? `ID: ${visita.identificacion}` : 'Sin identificación'}</p>
+                  <p className="espacio-sub">
+                    {visita.tipo_pase === 'dia' ? 'Pase de un día' : 'Visita'}
+                    {visita.identificacion ? ` • ID: ${visita.identificacion}` : ''}
+                  </p>
                 </div>
-                <span className="badge-success">
-                  <Clock size={13} /> {new Date(visita.hora_entrada).toLocaleTimeString('es-MX', {
-                    timeZone: 'America/Mexico_City',
-                    hour: '2-digit', minute: '2-digit', second: '2-digit'
-                  })}
-                </span>
+                <span className="badge-success"><Clock size={13} /> {formatHour(visita.hora_entrada)}</span>
               </div>
               <div className="espacio-body">
                 <div className="espacio-stat">
                   <span className="stat-label">Anfitrión</span>
-                  <span className="stat-value">{getAnfitrionNombre(visita) || 'Ninguno'}</span>
+                  <span className="stat-value">{getAnfitrionNombre(visita) || 'Sin socio asociado'}</span>
                 </div>
                 <div className="espacio-stat">
-                  <span className="stat-label">Motivo</span>
-                  <span className="stat-value">{visita.motivo || visita.observaciones || 'No especificado'}</span>
+                  <span className="stat-label">Contacto</span>
+                  <span className="stat-value">{visita.correo || visita.telefono || '-'}</span>
+                </div>
+                <div className="espacio-stat">
+                  <span className="stat-label">Observaciones</span>
+                  <span className="stat-value">{visita.observaciones || visita.motivo || 'Sin observaciones'}</span>
                 </div>
               </div>
               <div className="espacio-footer">
                 <button onClick={() => setViewingVisita(visita)} className="btn-secondary" title="Ver detalle">
                   <Eye size={14} /> Detalle
                 </button>
-                <button onClick={() => registrarSalida(visita.visita_id || visita.pase_id)} className="btn-primary">
-                  <LogOut size={14} /> Registrar salida
+                <button
+                  onClick={() => registrarSalida(visita.visita_id || visita.pase_id)}
+                  className="btn-primary"
+                  disabled={savingExit === (visita.visita_id || visita.pase_id)}
+                >
+                  <LogOut size={14} /> {savingExit === (visita.visita_id || visita.pase_id) ? 'Guardando...' : 'Registrar salida'}
                 </button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </div>
@@ -374,7 +457,7 @@ function RecepcionVisitas() {
             <thead>
               <tr>
                 <th>Visitante</th>
-                <th>Identificación</th>
+                <th>Tipo</th>
                 <th>Anfitrión</th>
                 <th>Entrada</th>
                 <th>Salida</th>
@@ -386,7 +469,11 @@ function RecepcionVisitas() {
               {historialFiltrado.map(registro => (
                 <tr key={registro.visita_id || registro.pase_id}>
                   <td><strong>{getVisitanteNombre(registro)}</strong></td>
-                  <td>{registro.identificacion || '-'}</td>
+                  <td>
+                    <span className={registro.tipo_pase === 'dia' ? 'badge-warning' : 'badge-success'}>
+                      {registro.tipo_pase === 'dia' ? 'Pase de un día' : 'Visita'}
+                    </span>
+                  </td>
                   <td>{getAnfitrionNombre(registro) || '-'}</td>
                   <td>{formatDateTime(registro.hora_entrada)}</td>
                   <td>{registro.hora_salida ? formatDateTime(registro.hora_salida) : '-'}</td>
@@ -399,17 +486,14 @@ function RecepcionVisitas() {
                 </tr>
               ))}
               {historialFiltrado.length === 0 && (
-                <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-                    No hay registros en el historial.
-                  </td>
-                </tr>
+                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>No hay registros para mostrar.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* QR Modal */}
       {qrModal.open && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: 420, textAlign: 'center' }}>
@@ -419,9 +503,9 @@ function RecepcionVisitas() {
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
               <p style={{ margin: 0, fontWeight: 600, fontSize: 16, color: '#1e3a5f' }}>{qrModal.nombre}</p>
-              <img ref={qrPrintRef} src={qrModal.qrImage} alt="QR de acceso" style={{ width: 220, height: 220, border: '4px solid #1e3a5f', borderRadius: 8 }} />
+              <img ref={qrPrintRef} src={qrModal.qrImage} alt="QR de acceso" style={{ width: 220, height: 220, border: '4px solid #dbeafe', borderRadius: 12 }} />
               <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                Válido hasta: {qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '24 horas'}
+                Válido hasta: {qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: MX_TIMEZONE }) : '24 horas'}
               </p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button onClick={handlePrintQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -430,15 +514,8 @@ function RecepcionVisitas() {
                 <button onClick={handleDownloadQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Download size={15} /> Descargar
                 </button>
-                <button
-                  onClick={handleEmailQr}
-                  className="btn-secondary"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  disabled={!qrModal.correo || emailSending}
-                  title={qrModal.correo ? `Enviar a ${qrModal.correo}` : 'El visitante no tiene correo registrado'}
-                >
-                  {emailSending ? <Loader2 size={15} className="icon-spin" /> : <Mail size={15} />}
-                  {emailSending ? 'Enviando...' : 'Enviar por correo'}
+                <button onClick={handleEmailQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }} disabled={!qrModal.correo}>
+                  <Mail size={15} /> Enviar por correo
                 </button>
               </div>
             </div>
@@ -451,6 +528,7 @@ function RecepcionVisitas() {
         </div>
       )}
 
+      {/* Detail Modal */}
       {viewingVisita && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: 520 }}>
@@ -466,8 +544,8 @@ function RecepcionVisitas() {
                 </div>
                 <div className="form-group">
                   <label>Tipo de pase</label>
-                  <span className={viewingVisita.tipo_pase === 'dia' ? 'badge-info' : 'badge-success'}>
-                    {viewingVisita.tipo_pase === 'dia' ? 'Pase de día' : 'Visita de invitado'}
+                  <span className={viewingVisita.tipo_pase === 'dia' ? 'badge-warning' : 'badge-success'}>
+                    {viewingVisita.tipo_pase === 'dia' ? 'Pase de un día' : 'Visita'}
                   </span>
                 </div>
                 <div className="form-group">
@@ -480,7 +558,7 @@ function RecepcionVisitas() {
                 </div>
                 <div className="form-group">
                   <label>Identificación</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.identificacion || viewingVisita.identificacion_tipo || '-'}</p>
+                  <p style={{ margin: 0 }}>{viewingVisita.identificacion || '-'}</p>
                 </div>
                 <div className="form-group">
                   <label>Mayor de 16 años</label>
@@ -488,23 +566,19 @@ function RecepcionVisitas() {
                 </div>
                 <div className="form-group">
                   <label>Socio anfitrión</label>
-                  <p style={{ margin: 0 }}>{getAnfitrionNombre(viewingVisita) || 'Ninguno'}</p>
+                  <p style={{ margin: 0 }}>{getAnfitrionNombre(viewingVisita) || 'Sin socio asociado'}</p>
                 </div>
                 <div className="form-group">
-                  <label>Número de socio anfitrión</label>
+                  <label>Número de socio</label>
                   <p style={{ margin: 0 }}>{viewingVisita.numero_socio || '-'}</p>
                 </div>
                 <div className="form-group">
-                  <label>Fecha de visita</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.fecha_pase || viewingVisita.fecha_visita || '-'}</p>
-                </div>
-                <div className="form-group">
-                  <label>Hora de entrada</label>
+                  <label>Entrada</label>
                   <p style={{ margin: 0 }}>{viewingVisita.hora_entrada ? formatDateTime(viewingVisita.hora_entrada) : '-'}</p>
                 </div>
                 <div className="form-group">
-                  <label>Hora de salida</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.hora_salida ? formatDateTime(viewingVisita.hora_salida) : 'Aún en el club'}</p>
+                  <label>Salida</label>
+                  <p style={{ margin: 0 }}>{viewingVisita.hora_salida ? formatDateTime(viewingVisita.hora_salida) : 'Aún dentro del club'}</p>
                 </div>
                 <div className="form-group">
                   <label>Estado</label>
@@ -512,116 +586,323 @@ function RecepcionVisitas() {
                     {viewingVisita.hora_salida ? 'Finalizada' : 'Activa'}
                   </span>
                 </div>
-                {(viewingVisita.observaciones || viewingVisita.motivo) && (
-                  <div className="form-group form-group-full">
-                    <label>Observaciones / Motivo</label>
-                    <p style={{ margin: 0 }}>{viewingVisita.observaciones || viewingVisita.motivo}</p>
-                  </div>
-                )}
+                <div className="form-group form-group-full">
+                  <label>Observaciones</label>
+                  <p style={{ margin: 0 }}>{viewingVisita.observaciones || viewingVisita.motivo || 'Sin observaciones'}</p>
+                </div>
               </div>
             </div>
             <div className="modal-footer">
               <button onClick={() => setViewingVisita(null)} className="btn-outline">Cerrar</button>
+              <button onClick={() => openEdit(viewingVisita)} className="btn-secondary">
+                <Pencil size={14} /> Editar
+              </button>
               {!viewingVisita.hora_salida && (
-                <button onClick={() => { registrarSalida(viewingVisita.visita_id || viewingVisita.pase_id); setViewingVisita(null); }} className="btn-primary">
-                  <LogOut size={14} /> Registrar salida
-                </button>
+                <>
+                  <button
+                    onClick={() => verQr(viewingVisita)}
+                    className="btn-secondary"
+                    disabled={loadingQr}
+                  >
+                    <QrCode size={14} /> {loadingQr ? 'Cargando...' : 'Ver QR'}
+                  </button>
+                  <button
+                    onClick={() => { registrarSalida(viewingVisita.visita_id || viewingVisita.pase_id); setViewingVisita(null); }}
+                    className="btn-primary"
+                    disabled={savingExit === (viewingVisita.visita_id || viewingVisita.pase_id)}
+                  >
+                    <LogOut size={14} /> Registrar salida
+                  </button>
+                </>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {showModal && (
+      {/* Edit Modal */}
+      {editingVisita && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '640px' }}>
+          <div className="modal-content" style={{ maxWidth: 600 }}>
             <div className="modal-header">
-              <h3>Registrar nueva visita</h3>
-              <button onClick={() => setShowModal(false)} className="close-modal"><X size={24} /></button>
+              <div>
+                <h3>Editar Visita</h3>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>Corrige los datos del pase si hubo un error al registrar.</p>
+              </div>
+              <button onClick={() => setEditingVisita(null)} className="close-modal"><X size={24} /></button>
             </div>
-            <form onSubmit={registrarVisita}>
+            <form onSubmit={submitEdit}>
               <div className="modal-body">
                 <div className="form-row">
-                  <div className="form-group">
-                    <label className="required">Nombre</label>
-                    <input value={formData.nombre} onChange={event => updateForm('nombre', event.target.value)} style={formErrors.nombre ? inputErrorStyle : {}} />
-                    {formErrors.nombre && <p className="field-error">{formErrors.nombre}</p>}
+                  <div className="form-group form-group-full">
+                    <label className="required">Nombre completo</label>
+                    <input
+                      type="text"
+                      value={editData.nombre_completo}
+                      onChange={e => setEditData(prev => ({ ...prev, nombre_completo: e.target.value }))}
+                      required
+                    />
                   </div>
                   <div className="form-group">
-                    <label className="required">Apellidos</label>
-                    <input value={formData.apellidos} onChange={event => updateForm('apellidos', event.target.value)} style={formErrors.apellidos ? inputErrorStyle : {}} />
-                    {formErrors.apellidos && <p className="field-error">{formErrors.apellidos}</p>}
+                    <label>Teléfono</label>
+                    <input
+                      type="text"
+                      value={editData.telefono}
+                      onChange={e => setEditData(prev => ({ ...prev, telefono: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                    />
                   </div>
                   <div className="form-group">
-                    <label className="required">Teléfono</label>
-                    <input value={formData.telefono} onChange={event => updateForm('telefono', event.target.value.replace(/\D/g, '').slice(0, 10))} style={formErrors.telefono ? inputErrorStyle : {}} />
-                    {formErrors.telefono && <p className="field-error">{formErrors.telefono}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label className="required">Tipo de pase</label>
-                    <select
-                      value={formData.tipo_pase}
-                      onChange={event => {
-                        const nextType = event.target.value;
-                        setFormData(prev => ({
-                          ...prev,
-                          tipo_pase: nextType,
-                          socio_anfitrion_id: nextType === 'visita' ? prev.socio_anfitrion_id : ''
-                        }));
-                        setFormErrors(prev => ({ ...prev, tipo_pase: undefined, socio_anfitrion_id: undefined }));
-                      }}
-                    >
-                      <option value="visita">Visita con socio anfitrión</option>
-                      <option value="dia">Pase de día sin anfitrión</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Correo</label>
-                    <input type="email" value={formData.correo} onChange={event => updateForm('correo', event.target.value)} style={formErrors.correo ? inputErrorStyle : {}} />
-                    {formErrors.correo && <p className="field-error">{formErrors.correo}</p>}
+                    <label>Correo electrónico</label>
+                    <input
+                      type="email"
+                      value={editData.correo}
+                      onChange={e => setEditData(prev => ({ ...prev, correo: e.target.value }))}
+                    />
                   </div>
                   <div className="form-group">
                     <label>Identificación</label>
-                    <input value={formData.identificacion} onChange={event => updateForm('identificacion', event.target.value)} />
+                    <input
+                      type="text"
+                      value={editData.identificacion}
+                      onChange={e => setEditData(prev => ({ ...prev, identificacion: e.target.value }))}
+                    />
                   </div>
                   <div className="form-group">
-                    <label className={formData.tipo_pase === 'visita' ? 'required' : ''}>Socio anfitrión</label>
+                    <label>Tipo de pase</label>
                     <select
-                      value={formData.socio_anfitrion_id}
-                      onChange={event => updateForm('socio_anfitrion_id', event.target.value)}
-                      style={formErrors.socio_anfitrion_id ? inputErrorStyle : {}}
-                      disabled={formData.tipo_pase !== 'visita'}
+                      value={editData.tipo_pase}
+                      onChange={e => {
+                        const next = e.target.value;
+                        setEditData(prev => ({ ...prev, tipo_pase: next, socio_id: next === 'visita' ? prev.socio_id : '' }));
+                        if (next !== 'visita') setEditSocioTerm('');
+                      }}
                     >
-                      <option value="">
-                        {formData.tipo_pase === 'visita' ? 'Selecciona un socio' : 'No requerido para pase de día'}
-                      </option>
-                      {socios.map(socio => (
-                        <option key={socio.socio_id} value={socio.socio_id}>
-                          {socio.nombres} {socio.apellido_paterno} ({socio.tipo_socio}) - Pases {limitesPases[socio.socio_id]?.usados || 0}/{limitesPases[socio.socio_id]?.maximo || 0}
-                        </option>
-                      ))}
+                      <option value="visita">Visita (con socio)</option>
+                      <option value="dia">Pase de un día</option>
                     </select>
-                    {formErrors.socio_anfitrion_id && <p className="field-error">{formErrors.socio_anfitrion_id}</p>}
                   </div>
-                  <label className="form-group form-group-full" style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={formData.mayor_16}
-                      onChange={event => updateForm('mayor_16', event.target.checked)}
-                      style={{ width: 'auto' }}
-                    />
-                    <span>El visitante es mayor de 16 años</span>
-                  </label>
+
+                  {editData.tipo_pase === 'visita' && (
+                    <div className="form-group form-group-full">
+                      <label>Socio anfitrión</label>
+                      <input
+                        type="text"
+                        value={editSocioTerm}
+                        onChange={e => {
+                          setEditSocioTerm(e.target.value);
+                          if (editData.socio_id) setEditData(prev => ({ ...prev, socio_id: '' }));
+                        }}
+                        placeholder="Buscar por nombre, correo o número de socio"
+                      />
+                      <div className="recepcion-socio-results">
+                        {filteredSociosEdit.length > 0 ? filteredSociosEdit.slice(0, 8).map(socio => {
+                          const isSelected = String(editData.socio_id) === String(socio.socio_id);
+                          const socioNombre = [socio.nombres, socio.apellido_paterno, socio.apellido_materno].filter(Boolean).join(' ');
+                          return (
+                            <button
+                              key={socio.socio_id}
+                              type="button"
+                              className={`recepcion-socio-option${isSelected ? ' selected' : ''}`}
+                              onClick={() => {
+                                setEditData(prev => ({ ...prev, socio_id: socio.socio_id }));
+                                setEditSocioTerm(socioNombre);
+                              }}
+                            >
+                              <div style={{ fontWeight: 700, color: '#0f172a' }}>{socioNombre}</div>
+                              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                                {socio.numero_socio || 'Sin número'} • {socio.email || 'Sin correo'} • {socio.tipo_socio || socio.tipo || 'Socio'}
+                              </div>
+                            </button>
+                          );
+                        }) : (
+                          <div className="recepcion-socio-empty">No hay socios que coincidan.</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="form-group form-group-full">
-                    <label>Motivo</label>
-                    <textarea rows="2" value={formData.motivo} onChange={event => updateForm('motivo', event.target.value)} />
+                    <label>Observaciones</label>
+                    <textarea
+                      rows="3"
+                      value={editData.observaciones}
+                      onChange={e => setEditData(prev => ({ ...prev, observaciones: e.target.value }))}
+                    />
                   </div>
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-outline">Cancelar</button>
+                <button type="button" onClick={() => setEditingVisita(null)} className="btn-outline">Cancelar</button>
+                <button type="submit" className="btn-primary" disabled={isEditing}>
+                  {isEditing ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* New Visit Modal */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content recepcion-pass-modal">
+            <div className="modal-header">
+              <div>
+                <h3>Registrar Nuevo Pase</h3>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
+                  Registra visitas con socio anfitrión o pases de un día sin anfitrión.
+                </p>
+              </div>
+              <button onClick={resetModalState} className="close-modal"><X size={24} /></button>
+            </div>
+
+            <form onSubmit={registrarVisita}>
+              <div className="modal-body">
+                <div className="recepcion-modal-highlight">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="required">Tipo de Pase</label>
+                      <select
+                        value={formData.tipo_pase}
+                        onChange={e => {
+                          const next = e.target.value;
+                          setFormData(prev => ({ ...prev, tipo_pase: next, socio_id: next === 'visita' ? prev.socio_id : '' }));
+                          if (next !== 'visita') setSocioSelectorTerm('');
+                        }}
+                      >
+                        <option value="visita">Visita (con socio)</option>
+                        <option value="dia">Pase de un día</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Edad</label>
+                      <select
+                        value={formData.mayor_16 ? 'si' : 'no'}
+                        onChange={e => {
+                          const isAdult = e.target.value === 'si';
+                          setFormData(prev => ({ ...prev, mayor_16: isAdult, confirmacion_tutor: isAdult ? false : prev.confirmacion_tutor }));
+                        }}
+                      >
+                        <option value="si">Mayor de 16 años</option>
+                        <option value="no">Menor de 16 años</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {!formData.mayor_16 && (
+                  <div className="form-alert form-alert-warning">
+                    <strong>Importante para menores de 16 años:</strong> debe ingresar con tutor y permanecer con él en todo momento.
+                    <label className="recepcion-checkbox-row">
+                      <input
+                        type="checkbox"
+                        checked={formData.confirmacion_tutor}
+                        onChange={e => setFormData(prev => ({ ...prev, confirmacion_tutor: e.target.checked }))}
+                      />
+                      <span>Confirmo que se respetará esta restricción.</span>
+                    </label>
+                  </div>
+                )}
+
+                <div className="form-row">
+                  <div className="form-group form-group-full">
+                    <label className="required">Nombre completo</label>
+                    <input
+                      type="text"
+                      value={formData.nombre_completo}
+                      onChange={e => setFormData(prev => ({ ...prev, nombre_completo: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Identificación</label>
+                    <input
+                      type="text"
+                      value={formData.identificacion}
+                      onChange={e => setFormData(prev => ({ ...prev, identificacion: e.target.value }))}
+                      placeholder="INE, pasaporte, licencia, etc."
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Correo electrónico</label>
+                    <input
+                      type="email"
+                      value={formData.correo}
+                      onChange={e => setFormData(prev => ({ ...prev, correo: e.target.value }))}
+                      placeholder="Opcional"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="required">Teléfono</label>
+                    <input
+                      type="text"
+                      value={formData.telefono}
+                      onChange={e => setFormData(prev => ({ ...prev, telefono: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                      required
+                    />
+                  </div>
+
+                  {formData.tipo_pase === 'visita' && (
+                    <div className="form-group form-group-full">
+                      <label className="required">Socio asociado</label>
+                      <input
+                        type="text"
+                        value={socioSelectorTerm}
+                        onChange={e => {
+                          setSocioSelectorTerm(e.target.value);
+                          if (formData.socio_id) setFormData(prev => ({ ...prev, socio_id: '' }));
+                        }}
+                        placeholder="Buscar por nombre, correo o número de socio"
+                      />
+                      <div className="recepcion-socio-results">
+                        {filteredSocios.length > 0 ? filteredSocios.slice(0, 8).map(socio => {
+                          const isSelected = String(formData.socio_id) === String(socio.socio_id);
+                          const socioNombre = [socio.nombres, socio.apellido_paterno, socio.apellido_materno].filter(Boolean).join(' ').trim();
+                          return (
+                            <button
+                              key={socio.socio_id}
+                              type="button"
+                              className={`recepcion-socio-option${isSelected ? ' selected' : ''}`}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, socio_id: socio.socio_id }));
+                                setSocioSelectorTerm(socioNombre);
+                              }}
+                            >
+                              <div style={{ fontWeight: 700, color: '#0f172a' }}>{socioNombre}</div>
+                              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                                {socio.numero_socio || 'Sin número'} • {socio.email || 'Sin correo'} • {socio.tipo_socio || socio.tipo || 'Socio'}
+                              </div>
+                            </button>
+                          );
+                        }) : (
+                          <div className="recepcion-socio-empty">No hay socios que coincidan.</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="form-group form-group-full">
+                    <label>Motivo / Observaciones</label>
+                    <textarea
+                      rows="3"
+                      value={formData.observaciones}
+                      onChange={e => setFormData(prev => ({ ...prev, observaciones: e.target.value }))}
+                      placeholder="Opcional"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-alert">
+                  <strong>Nota:</strong> si es visita debes asociarla a un socio activo; si es pase de un día no requiere anfitrión. Al guardar se genera el QR de acceso.
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" onClick={resetModalState} className="btn-outline">Cancelar</button>
                 <button type="submit" className="btn-primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Registrando...' : 'Registrar entrada'}
+                  {isSubmitting ? 'Registrando...' : (
+                    <><QrCode size={15} style={{ display: 'inline', marginRight: 6 }} />Registrar y generar QR</>
+                  )}
                 </button>
               </div>
             </form>

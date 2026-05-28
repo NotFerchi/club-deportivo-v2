@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle, Clock, Edit2, History, MapPin, Plus, RotateCcw, Trash2, Wrench, X } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import { EmptyState, FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { isActiveValue, normalizeText } from '../../../utils/adminData';
 import { getDeporteIcono } from '../../../utils/deporteIconos';
@@ -84,6 +85,7 @@ function MantenimientoModal({ espacio, onClose, onConfirm }) {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 function ConfiguracionEspacios({ readOnly = false }) {
+  const { toast, showConfirm } = useNotification();
   const [espacios, setEspacios] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -202,7 +204,7 @@ function ConfiguracionEspacios({ readOnly = false }) {
       resetForm();
       showToast(editingEspacio ? 'Espacio actualizado correctamente' : 'Espacio creado correctamente');
     } catch (error) {
-      alert(error.message || 'Error al guardar espacio');
+      toast(error.message || 'Error al guardar espacio', 'error');
     }
   };
 
@@ -220,31 +222,31 @@ function ConfiguracionEspacios({ readOnly = false }) {
       await fetchData();
       showToast('Espacio puesto en mantenimiento');
     } catch (error) {
-      alert(error.message || 'Error al poner en mantenimiento');
+      toast(error.message || 'Error al poner en mantenimiento', 'error');
     }
   };
 
   // Reactivar espacio
   const handleReactivar = async (espacio) => {
-    if (!confirm(`¿Reactivar "${espacio.nombre}"?`)) return;
+    if (!await showConfirm(`¿Reactivar "${espacio.nombre}"?`)) return;
     try {
       await adminApi.toggleEspacioEstado(espacio.espacio_id, 'Activo');
       await fetchData();
       showToast('Espacio reactivado correctamente');
     } catch (error) {
-      alert(error.message || 'Error al reactivar espacio');
+      toast(error.message || 'Error al reactivar espacio', 'error');
     }
   };
 
   // Inactivar espacio
   const handleInactivar = async (espacio) => {
-    if (!confirm(`¿Inactivar "${espacio.nombre}"?`)) return;
+    if (!await showConfirm(`¿Inactivar "${espacio.nombre}"?`)) return;
     try {
       await adminApi.toggleEspacioEstado(espacio.espacio_id, 'Inactivo');
       await fetchData();
       showToast('Espacio inactivado');
     } catch (error) {
-      alert(error.message || 'Error al inactivar espacio');
+      toast(error.message || 'Error al inactivar espacio', 'error');
     }
   };
 
@@ -263,13 +265,13 @@ function ConfiguracionEspacios({ readOnly = false }) {
   };
 
   const handlePermanentDelete = async (id) => {
-    if (!confirm('¿Eliminar definitivamente este espacio? Esta acción no se puede deshacer.')) return;
+    if (!await showConfirm('¿Eliminar definitivamente este espacio? Esta acción no se puede deshacer.', { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       await apiRequest(`/espacios/${id}`, { method: 'DELETE' });
       await fetchData();
       showToast('Espacio eliminado permanentemente');
     } catch (error) {
-      alert(error.message || 'Error al eliminar espacio');
+      toast(error.message || 'Error al eliminar espacio', 'error');
     }
   };
 

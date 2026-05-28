@@ -7,7 +7,7 @@ const LUDOTECA_TIME_ZONE = 'America/Mexico_City';
 const CLUB_CLOSE_TIME = process.env.CLUB_HORA_CIERRE || '22:00';
 const VISITA_QR_TTL_MS = 24 * 60 * 60 * 1000;
 
-const getToday = () => new Date().toISOString().split('T')[0];
+const getToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
 
 const isMissingPasesTable = (error) =>
     error?.code === '42P01' && String(error.message || '').includes('pases');

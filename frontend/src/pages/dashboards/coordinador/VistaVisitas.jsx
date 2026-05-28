@@ -10,11 +10,17 @@ function VistaVisitas() {
     const fetchVisitas = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3000/api/recepcion/visitas', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        setVisitas(Array.isArray(data) ? data : []);
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [res1, res2] = await Promise.all([
+          fetch('http://localhost:3000/api/recepcion/visitas/activas', { headers }),
+          fetch('http://localhost:3000/api/recepcion/visitas/historial', { headers }),
+        ]);
+
+        const activas   = await res1.json().then(d => Array.isArray(d) ? d : []);
+        const historial = await res2.json().then(d => Array.isArray(d) ? d : []);
+
+        setVisitas([...activas, ...historial]);
       } catch (err) {
         console.error(err);
       } finally {
@@ -24,8 +30,8 @@ function VistaVisitas() {
     fetchVisitas();
   }, []);
 
-  const activas     = visitas.filter(v => v.vigente);
-  const finalizadas = visitas.filter(v => !v.vigente);
+  const activas    = visitas.filter(v => v.vigente || v.estado === 'activo');
+  const finalizadas = visitas.filter(v => !v.vigente && v.estado !== 'activo');
   const mostrar     = filtro === 'activas' ? activas : finalizadas;
 
   const formatHora = (ts) => {

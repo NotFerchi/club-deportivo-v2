@@ -60,7 +60,7 @@ const instructorController = {
 
         try {
             const query = `
-                SELECT 
+                SELECT
                     r.reserva_id,
                     s.socio_id,
                     v.visita_id,
@@ -74,15 +74,14 @@ const instructorController = {
                 LEFT JOIN socios s ON r.socio_id = s.socio_id
                 LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id
                 LEFT JOIN visitas v ON r.visita_id = v.visita_id
-                LEFT JOIN asistencia a ON a.sesion_id = r.sesion_id 
-                    AND a.socio_id = s.socio_id 
+                LEFT JOIN asistencia a ON a.sesion_id = r.sesion_id
+                    AND a.socio_id = s.socio_id
                     AND a.fecha = r.fecha_reserva
-                WHERE r.sesion_id = $1 AND r.fecha_reserva = $2 
+                WHERE r.sesion_id = $1 AND r.fecha_reserva = $2
                     AND r.estado IN ('Confirmada', 'No-Show')
                     AND (r.socio_id IS NOT NULL OR r.visita_id IS NOT NULL)
                 ORDER BY nombre_socio
             `;
-
             const result = await pool.query(query, [sesionId, fecha]);
             res.json(result.rows);
         } catch (error) {

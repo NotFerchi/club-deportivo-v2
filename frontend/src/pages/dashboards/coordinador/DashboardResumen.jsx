@@ -108,21 +108,23 @@ function DashboardResumen({ onNavigate }) {
       try {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
+        const _hoy = new Date();
+        const _fechaHoy = `${_hoy.getFullYear()}-${String(_hoy.getMonth()+1).padStart(2,'0')}-${String(_hoy.getDate()).padStart(2,'0')}`;
         const [sRes, vRes, rRes, sanRes] = await Promise.all([
-          fetch('http://localhost:3000/api/recepcion/socios',   { headers }),
-          fetch('http://localhost:3000/api/recepcion/visitas',  { headers }),
-          fetch('http://localhost:3000/api/recepcion/reservas', { headers }),
-          fetch('http://localhost:3000/api/sanciones',          { headers }),
+          fetch('http://localhost:3000/api/recepcion/socios',                         { headers }),
+          fetch('http://localhost:3000/api/recepcion/visitas/activas',               { headers }),
+          fetch(`http://localhost:3000/api/recepcion/reservas?fecha=${_fechaHoy}`,   { headers }),
+          fetch('http://localhost:3000/api/sanciones',                               { headers }),
         ]);
         const sa   = await sRes.json().then(d => Array.isArray(d) ? d : []);
-        const va   = await vRes.json().then(d => Array.isArray(d) ? d : []);
+        const va   = await vRes.json().then(d => Array.isArray(d) ? d : (Array.isArray(d?.visitas) ? d.visitas : []));
         const ra   = await rRes.json().then(d => Array.isArray(d) ? d : []);
         const sana = await sanRes.json().then(d => Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []));
         setSocios(sa); setVisitas(va); setReservas(ra); setSanciones(sana);
         setStats({
           totalSocios:      sa.length,
           sociosActivos:    sa.filter(x => x.activo).length,
-          visitasHoy:       va.filter(x => x.vigente).length,
+          visitasHoy:       va.length,
           reservasHoy:      ra.length,
           sancionesActivas: sana.filter(x => x.estado === 'Activa').length,
         });
@@ -219,7 +221,7 @@ function DashboardResumen({ onNavigate }) {
           icono={<UserCheck size={14} color="#10b981" />}
           emptyMsg="No hay visitas activas ahora"
           onClick={() => onNavigate('recepcion')}
-          items={visitas.filter(v => v.vigente).map(v => ({
+          items={visitas.map(v => ({
             principal: v.nombre_completo,
             secundario: 'En instalaciones',
             badgeBg: '#f0fdf4',

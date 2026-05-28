@@ -25,7 +25,7 @@ import {
   X
 } from 'lucide-react';
 import '../../../css/Dashboard.css';
-import { adminApi } from '../../services/api';
+import { adminApi, API_BASE_URL } from '../../services/api';
 import { useNotification } from '../../context/NotificationContext';
 import { estadoReservaLabel, normalizeEstadoReserva } from '../../utils/adminData';
 import OccupancyByHourChart from '../../components/admin/OccupancyByHourChart';
@@ -377,7 +377,7 @@ function Dashboard() {
       const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('foto', file);
-      const res = await fetch('http://localhost:3000/api/usuarios/me/foto', {
+      const res = await fetch(`${API_BASE_URL}/usuarios/me/foto`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

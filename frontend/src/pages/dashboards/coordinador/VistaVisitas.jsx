@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { UserCheck, Clock, Users, LogIn, LogOut, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/api';
 
 function VistaVisitas() {
   const [visitas, setVisitas] = useState([]);
@@ -13,8 +14,8 @@ function VistaVisitas() {
         const headers = { Authorization: `Bearer ${token}` };
 
         const [res1, res2] = await Promise.all([
-          fetch('http://localhost:3000/api/recepcion/visitas/activas', { headers }),
-          fetch('http://localhost:3000/api/recepcion/visitas/historial', { headers }),
+          fetch(`${API_BASE_URL}/recepcion/visitas/activas`, { headers }),
+          fetch(`${API_BASE_URL}/recepcion/visitas/historial`, { headers }),
         ]);
 
         const activas   = await res1.json().then(d => Array.isArray(d) ? d : []);

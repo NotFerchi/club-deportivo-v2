@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Search, ShieldCheck, ShieldX, Shield, Plus, X, AlertTriangle, Calendar, CheckCircle, Loader2 } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
+import { API_BASE_URL } from '../../../services/api';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getGravedadConfig = (gravedad) => {
@@ -48,7 +49,7 @@ function SocioBuscador({ value, onChange }) {
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(
-          `http://localhost:3000/api/recepcion/socios?q=${encodeURIComponent(texto)}`,
+          `${API_BASE_URL}/recepcion/socios?q=${encodeURIComponent(texto)}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = await res.json();
@@ -170,7 +171,7 @@ function ModalEditarSancion({ sancion, onClose, onActualizada }) {
     setCargando(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/sanciones/${sancion.sancion_id}`, {
+      const res = await fetch(`${API_BASE_URL}/sanciones/${sancion.sancion_id}`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -309,7 +310,7 @@ function ModalNuevaSancion({ onClose, onCreada }) {
     setCargando(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/sanciones', {
+      const res = await fetch(`${API_BASE_URL}/sanciones`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -447,7 +448,7 @@ function VistaSanciones() {
   const fetchSanciones = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/sanciones', {
+      const res = await fetch(`${API_BASE_URL}/sanciones`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -463,7 +464,7 @@ function VistaSanciones() {
     if (!await showConfirm('¿Levantar esta sanción? El socio podrá hacer reservas nuevamente.', { confirmLabel: 'Levantar' })) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/sanciones/${id}/levantar`, {
+      const res = await fetch(`${API_BASE_URL}/sanciones/${id}/levantar`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });

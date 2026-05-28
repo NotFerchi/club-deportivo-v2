@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, MapPin, Users, Calendar, Loader2, ClipboardList, Dumbbell, CheckCircle } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/api';
 
 const DIAS_NOMBRE = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const DIAS_CORTO  = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -55,7 +56,7 @@ function MisClases() {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3000/api/instructor/mis-clases', {
+        const res = await fetch(`${API_BASE_URL}/instructor/mis-clases`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Error');

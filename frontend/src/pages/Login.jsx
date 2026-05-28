@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import '../../css/login.css';
+import { API_BASE_URL } from '../services/api';
 
 const rutasPorRol = {
   gerente: '/dashboard-gerente',
@@ -72,7 +73,7 @@ function Login() {
     setError('');
 
     try {
-      const respuesta = await fetch('http://localhost:3000/api/auth/login', {
+      const respuesta = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, contrasena })

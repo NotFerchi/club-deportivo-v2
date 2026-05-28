@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Users, UserCheck, UserX, Mail, Phone, Plus, Edit2, Trash2, X, Loader2 } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
+import { API_BASE_URL } from '../../../services/api';
 
 function iniciales(nombre) {
   if (!nombre) return '?';
@@ -34,7 +35,7 @@ function EspecialidadesSelector({ value, onChange }) {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('http://localhost:3000/api/disciplinas', {
+    fetch(`${API_BASE_URL}/disciplinas`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -102,8 +103,8 @@ function ModalInstructor({ instructor, onClose, onGuardado }) {
     try {
       const token = localStorage.getItem('token');
       const url = esEdicion
-        ? `http://localhost:3000/api/instructores/${instructor.instructor_id}`
-        : `http://localhost:3000/api/instructores`;
+        ? `${API_BASE_URL}/instructores/${instructor.instructor_id}`
+        : `${API_BASE_URL}/instructores`;
       const method = esEdicion ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -224,7 +225,7 @@ function GestionInstructores() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/instructores', {
+      const res = await fetch(`${API_BASE_URL}/instructores`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -242,7 +243,7 @@ function GestionInstructores() {
     if (!await showConfirm(`¿Eliminar a ${inst.nombre}? Esta acción no se puede deshacer.`, { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3000/api/instructores/${inst.instructor_id}`, {
+      await fetch(`${API_BASE_URL}/instructores/${inst.instructor_id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

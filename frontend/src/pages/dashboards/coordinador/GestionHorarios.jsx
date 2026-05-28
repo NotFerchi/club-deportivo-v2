@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Edit2, Trash2, X, Search, Plus } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
+import { API_BASE_URL } from '../../../services/api';
 
 function GestionHorarios() {
   const { toast, showConfirm } = useNotification();
@@ -36,7 +37,7 @@ function GestionHorarios() {
   const fetchSesiones = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/sesiones', {
+      const res = await fetch(`${API_BASE_URL}/sesiones`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -52,7 +53,7 @@ function GestionHorarios() {
   const fetchInstructores = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/instructores', {
+      const res = await fetch(`${API_BASE_URL}/instructores`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -65,7 +66,7 @@ function GestionHorarios() {
   const fetchDisciplinas = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/disciplinas', {
+      const res = await fetch(`${API_BASE_URL}/disciplinas`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -78,7 +79,7 @@ function GestionHorarios() {
   const fetchEspacios = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/espacios', {
+      const res = await fetch(`${API_BASE_URL}/espacios`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -113,8 +114,8 @@ function GestionHorarios() {
     try {
       const token = localStorage.getItem('token');
       const url = editingSesion
-        ? `http://localhost:3000/api/sesiones/${editingSesion.sesion_id}`
-        : 'http://localhost:3000/api/sesiones';
+        ? `${API_BASE_URL}/sesiones/${editingSesion.sesion_id}`
+        : `${API_BASE_URL}/sesiones`;
       const method = editingSesion ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -145,7 +146,7 @@ function GestionHorarios() {
     if (!await showConfirm('¿Eliminar esta sesión?', { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3000/api/sesiones/${id}`, {
+      await fetch(`${API_BASE_URL}/sesiones/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

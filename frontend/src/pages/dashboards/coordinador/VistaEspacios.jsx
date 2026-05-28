@@ -8,6 +8,7 @@ import {
   Dumbbell,
   Loader2
 } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/api';
 
 const PALETA = [
   {
@@ -64,7 +65,7 @@ function VistaEspacios() {
         const token = localStorage.getItem('token');
 
         const res = await fetch(
-          'http://localhost:3000/api/espacios/todos',
+          `${API_BASE_URL}/espacios/todos`,
           {
             headers: {
               Authorization: `Bearer ${token}`

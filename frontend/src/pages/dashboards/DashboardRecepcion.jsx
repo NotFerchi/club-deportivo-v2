@@ -13,7 +13,7 @@ import CentralReservas from './recepcion/CentralReservas';
 import ControlLudoteca from './recepcion/ControlLudoteca';
 import GestionVisitas from './recepcion/GestionVisitas';
 import Sanciones from '../../components/SancionesPanel';
-import { getAuthToken } from '../../services/api';
+import { getAuthToken, API_BASE_URL } from '../../services/api';
 
 function DashboardRecepcion() {
   const { toast } = useNotification();
@@ -56,7 +56,7 @@ function DashboardRecepcion() {
       const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('foto', file);
-      const res = await fetch('http://localhost:3000/api/usuarios/me/foto', {
+      const res = await fetch(`${API_BASE_URL}/usuarios/me/foto`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

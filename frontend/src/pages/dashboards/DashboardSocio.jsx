@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../components/SocioLayout'
 import { CheckCircle, AlertTriangle, Trophy, Clock, Baby, CalendarDays, ShieldAlert, Camera, Loader2 } from 'lucide-react'
-import { apiRequest } from '../../services/api'
+import { apiRequest, API_BASE_URL } from '../../services/api'
 import { useNotification } from '../../context/NotificationContext'
 
 function todayISO() {
@@ -72,7 +72,7 @@ export default function DashboardSocio() {
       const token = localStorage.getItem('token')
       const formData = new FormData()
       formData.append('foto', file)
-      const res = await fetch('http://localhost:3000/api/usuarios/me/foto', {
+      const res = await fetch(`${API_BASE_URL}/usuarios/me/foto`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
         body: formData

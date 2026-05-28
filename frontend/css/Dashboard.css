@@ -1555,6 +1555,274 @@ body {
     background: #f1f5f9;
     border-bottom-color: #06b6d4;
   }
+
+  /* ════════════════════════════════
+     KPI — último card a ancho completo si es impar
+  ════════════════════════════════ */
+  .dashboard-root .top-kpi-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  /* ════════════════════════════════
+     MÓDULOS — encabezados y acciones
+  ════════════════════════════════ */
+  .admin-module-header,
+  .flex-between {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .admin-module-title h4 {
+    font-size: 15px;
+  }
+
+  .admin-module-actions,
+  .flex-gap {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* ════════════════════════════════
+     FILTROS — panel y controles
+  ════════════════════════════════ */
+  .filters-panel,
+  .admin-filter-row {
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.85rem;
+  }
+
+  .search-wrapper {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-filter {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* ════════════════════════════════
+     FORMULARIOS
+  ════════════════════════════════ */
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  /* ════════════════════════════════
+     MINI CARDS (resumen del día)
+  ════════════════════════════════ */
+  .dashboard-root .mini-card {
+    padding: 0.7rem 0.85rem;
+    gap: 8px;
+  }
+
+  /* ════════════════════════════════
+     STATS CARDS
+  ════════════════════════════════ */
+  .stats-card {
+    padding: 0.7rem 0.85rem;
+  }
+
+  /* ════════════════════════════════
+     RESERVAS RECIENTES (lista)
+  ════════════════════════════════ */
+  .res-item {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.65rem 0;
+  }
+
+  .reservation-name  { font-size: 12px; }
+  .reservation-detail { font-size: 11px; }
+
+  /* ════════════════════════════════
+     RESERVAS (grilla horaria)
+  ════════════════════════════════ */
+  .reservas-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .reservas-header-right {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .reservas-filter-select,
+  .reservas-legend {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .reservas-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+  }
+
+  .reservas-date-nav {
+    flex: none;
+    justify-content: space-between;
+  }
+
+  /* ════════════════════════════════
+     OCUPACIÓN — controles
+  ════════════════════════════════ */
+  .occupancy-box .chart-title-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .occupancy-controls {
+    flex-direction: column;
+    width: 100%;
+    margin-top: 0.25rem;
+    gap: 0.45rem;
+  }
+
+  .occupancy-controls select,
+  .occupancy-controls input[type="date"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 13px;
+  }
+
+  .occupancy-legend {
+    gap: 0.75rem;
+  }
+
+  /* ════════════════════════════════
+     ESTADÍSTICAS — fila reservas
+  ════════════════════════════════ */
+  .reservation-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+    margin: 0.75rem 0 1rem;
+  }
+
+  /* ════════════════════════════════
+     ESPACIOS — tarjetas y footer
+  ════════════════════════════════ */
+  .grid-auto {
+    grid-template-columns: 1fr;
+  }
+
+  .espacio-footer {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  /* ════════════════════════════════
+     SANCIONES — filtros
+  ════════════════════════════════ */
+  .sanciones-filter-row {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+    padding: 0.85rem;
+  }
+
+  .sanciones-filter {
+    width: 100%;
+  }
+
+  /* ════════════════════════════════
+     TOAST — posición borde a borde
+  ════════════════════════════════ */
+  .toast-container {
+    right: 0.75rem;
+    left: 0.75rem;
+    max-width: none;
+    bottom: 1rem;
+  }
+
+  /* ════════════════════════════════
+     MODAL — ajustes de tamaño
+  ════════════════════════════════ */
+  .modal-content {
+    border-radius: 12px;
+    margin: 0.5rem;
+  }
+
+  .modal-header { padding: 0.85rem 1rem; }
+  .modal-body   { padding: 1rem; }
+
+  .modal-footer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+
+  /* ════════════════════════════════
+     TABLA — scroll táctil suave
+  ════════════════════════════════ */
+  .table-wrapper {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ADMIN — PANTALLAS MUY PEQUEÑAS (≤ 480px)
+══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .dashboard-root .main-content { padding: 0.75rem; }
+
+  .dashboard-root .top-kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem;
+  }
+
+  .dashboard-root .kpi-card {
+    padding: 0.6rem 0.7rem;
+    gap: 6px;
+  }
+
+  .dashboard-root .kpi-card h3 { font-size: 15px; }
+  .dashboard-root .kpi-card p  { font-size: 9px; }
+  .dashboard-root .kpi-icon    { width: 17px; height: 17px; }
+
+  .dashboard-root .chart-box   { padding: 0.85rem; border-radius: 8px; }
+  .dashboard-root .summary-grid { gap: 0.4rem; }
+
+  .admin-mobile-header          { padding: 0.7rem 1rem; }
+  .admin-mobile-title           { font-size: 13px; }
+  .admin-mobile-subtitle        { font-size: 10px; }
+
+  .admin-tab-mobile-btn {
+    padding: 0.5rem 0.7rem;
+    font-size: 10px;
+    gap: 2px;
+  }
+
+  .filters-panel,
+  .admin-filter-row {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .modal-overlay { padding: 0.35rem; }
+
+  .sanciones-form-grid,
+  .sanciones-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .data-table th { font-size: 0.65rem; padding: 0.6rem 0.5rem; }
+  .data-table td { font-size: 0.8rem;  padding: 0.6rem 0.5rem; }
+
+  .btn-primary,
+  .btn-outline,
+  .btn-secondary { font-size: 13px; padding: 0.5rem 0.75rem; }
+
+  .reservation-stats-row { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 }
 
 .admin-state-panel {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapPin, Clock, Calendar, CheckCircle, XCircle, AlertCircle, CalendarX } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/api';
 
 function VistaReservas() {
   const [reservas, setReservas] = useState([]);
@@ -12,7 +13,7 @@ function VistaReservas() {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:3000/api/recepcion/reservas?fecha=${fecha}`, {
+        const res = await fetch(`${API_BASE_URL}/recepcion/reservas?fecha=${fecha}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

@@ -10,6 +10,7 @@ import MisClases from './instructor/MisClases';
 import MetricasInstructor from './instructor/MetricasInstructor';
 import MonitoreoLudoteca from './instructor/MonitoreoLudoteca';
 import TournamentBracket from '../../components/TournamentBracket';
+import { API_BASE_URL } from '../../services/api';
 
 function VistaSancionesInstructor() {
   const [sanciones, setSanciones]   = useState([]);
@@ -23,7 +24,7 @@ function VistaSancionesInstructor() {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const res   = await fetch('http://localhost:3000/api/sanciones', {
+        const res   = await fetch(`${API_BASE_URL}/sanciones`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -185,7 +186,7 @@ function DashboardInstructor() {
       const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('foto', file);
-      const res = await fetch('http://localhost:3000/api/usuarios/me/foto', {
+      const res = await fetch(`${API_BASE_URL}/usuarios/me/foto`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

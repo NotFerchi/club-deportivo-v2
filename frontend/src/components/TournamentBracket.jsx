@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, CheckCircle, Clock, Edit2, Filter, Lock, Loader2, MapPin, Plus, RotateCcw, Save, Trash2, Trophy, UserPlus, Users, X } from 'lucide-react';
-import { apiRequest, unwrapList } from '../services/api';
+import { apiRequest, unwrapList, API_BASE_URL } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import '../../css/TournamentBracket.css';
 
@@ -172,7 +172,7 @@ function MatchCard({ encuentro, onResultadoGuardado, readOnly }) {
       const body = { marcador_1: m1, marcador_2: m2 };
       if (esEdicion) body.allowEdit = true;
       const res = await fetch(
-        `http://localhost:3000/api/encuentros/${encuentro.encuentro_id}/resultado`,
+        `${API_BASE_URL}/encuentros/${encuentro.encuentro_id}/resultado`,
         {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -280,7 +280,7 @@ function AccionesTorneo({ torneo, onActualizar, readOnly }) {
     setMensaje(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/torneos/${torneo.torneo_id}/${endpoint}`, {
+      const res = await fetch(`${API_BASE_URL}/torneos/${torneo.torneo_id}/${endpoint}`, {
         method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -531,7 +531,7 @@ function MatchEditPanel({ encuentro, onClose, onSaved, readOnly, espacios = [] }
       const body = { marcador_1: n1, marcador_2: n2 };
       if (editMode) body.allowEdit = true;
       if (cancha.trim()) body.cancha_asignada = cancha.trim();
-      const res = await fetch(`http://localhost:3000/api/encuentros/${encuentro.encuentro_id}/resultado`, {
+      const res = await fetch(`${API_BASE_URL}/encuentros/${encuentro.encuentro_id}/resultado`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -549,7 +549,7 @@ function MatchEditPanel({ encuentro, onClose, onSaved, readOnly, espacios = [] }
     setCargando(true); setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/encuentros/${encuentro.encuentro_id}/cancha`, {
+      const res = await fetch(`${API_BASE_URL}/encuentros/${encuentro.encuentro_id}/cancha`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ cancha_asignada: cancha.trim() })
@@ -1052,8 +1052,8 @@ function TournamentBracket({
         tipo_torneo: formTorneo.tipo_torneo || 'Individual'
       };
       const url = editingTorneo
-        ? `http://localhost:3000/api/torneos/${editingTorneo.torneo_id}`
-        : 'http://localhost:3000/api/torneos';
+        ? `${API_BASE_URL}/torneos/${editingTorneo.torneo_id}`
+        : `${API_BASE_URL}/torneos`;
       const res = await fetch(url, {
         method: editingTorneo ? 'PUT' : 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -1075,7 +1075,7 @@ function TournamentBracket({
     setParticipantes([]);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/torneos/${torneo.torneo_id}/participantes`, {
+      const res = await fetch(`${API_BASE_URL}/torneos/${torneo.torneo_id}/participantes`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -1100,7 +1100,7 @@ function TournamentBracket({
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(
-        `http://localhost:3000/api/torneos/${torneoParticipantesActual.torneo_id}/participantes/${participante.participante_id}`,
+        `${API_BASE_URL}/torneos/${torneoParticipantesActual.torneo_id}/participantes/${participante.participante_id}`,
         { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();

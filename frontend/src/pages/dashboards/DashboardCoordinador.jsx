@@ -17,6 +17,7 @@ import VistaSanciones      from '../../components/SancionesPanel';
 import GestionInstructores from './coordinador/GestionInstructores';
 import GestionDisciplinas  from './coordinador/GestionDisciplinas';
 import VistaEspacios from './coordinador/VistaEspacios';
+import { API_BASE_URL } from '../../services/api';
 
 
 const TABS = [
@@ -77,7 +78,7 @@ function DashboardCoordinador() {
       const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('foto', file);
-      const res = await fetch('http://localhost:3000/api/usuarios/me/foto', {
+      const res = await fetch(`${API_BASE_URL}/usuarios/me/foto`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Calendar, ShieldAlert, UserCheck, ArrowRight, Loader2, Inbox, LayoutDashboard, Circle } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/api';
 
 function KpiCard({ valor, label, color, icono, sub, onClick }) {
   return (
@@ -111,10 +112,10 @@ function DashboardResumen({ onNavigate }) {
         const _hoy = new Date();
         const _fechaHoy = `${_hoy.getFullYear()}-${String(_hoy.getMonth()+1).padStart(2,'0')}-${String(_hoy.getDate()).padStart(2,'0')}`;
         const [sRes, vRes, rRes, sanRes] = await Promise.all([
-          fetch('http://localhost:3000/api/recepcion/socios',                         { headers }),
-          fetch('http://localhost:3000/api/recepcion/visitas/activas',               { headers }),
-          fetch(`http://localhost:3000/api/recepcion/reservas?fecha=${_fechaHoy}`,   { headers }),
-          fetch('http://localhost:3000/api/sanciones',                               { headers }),
+          fetch(`${API_BASE_URL}/recepcion/socios`,                         { headers }),
+          fetch(`${API_BASE_URL}/recepcion/visitas/activas`,               { headers }),
+          fetch(`${API_BASE_URL}/recepcion/reservas?fecha=${_fechaHoy}`,   { headers }),
+          fetch(`${API_BASE_URL}/sanciones`,                               { headers }),
         ]);
         const sa   = await sRes.json().then(d => Array.isArray(d) ? d : []);
         const va   = await vRes.json().then(d => Array.isArray(d) ? d : (Array.isArray(d?.visitas) ? d.visitas : []));

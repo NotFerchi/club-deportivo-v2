@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Trophy, ChevronDown, ChevronUp, Calendar, Users, Medal, Loader2, Save } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
+import { API_BASE_URL } from '../../../services/api';
 
 const RONDAS = { 1: 'Cuartos de Final', 2: 'Semifinales', 3: 'Final' };
 
@@ -80,7 +81,7 @@ function EncuentroRow({ encuentro, onResultadoGuardado }) {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(
-        `http://localhost:3000/api/encuentros/${encuentro.encuentro_id}/resultado`,
+        `${API_BASE_URL}/encuentros/${encuentro.encuentro_id}/resultado`,
         {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -220,7 +221,7 @@ function TorneoCard({ torneo, index, onTorneoActualizado }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/torneos/${torneo.torneo_id}/bracket`, {
+      const res = await fetch(`${API_BASE_URL}/torneos/${torneo.torneo_id}/bracket`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -254,7 +255,7 @@ function TorneoCard({ torneo, index, onTorneoActualizado }) {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(
-        `http://localhost:3000/api/torneos/${torneo.torneo_id}/cerrar-inscripciones`,
+        `${API_BASE_URL}/torneos/${torneo.torneo_id}/cerrar-inscripciones`,
         { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
@@ -279,7 +280,7 @@ function TorneoCard({ torneo, index, onTorneoActualizado }) {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(
-        `http://localhost:3000/api/torneos/${torneo.torneo_id}/confirmar-bracket`,
+        `${API_BASE_URL}/torneos/${torneo.torneo_id}/confirmar-bracket`,
         { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
@@ -422,7 +423,7 @@ function GestionTorneos() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/instructor/torneos', {
+      const res = await fetch(`${API_BASE_URL}/instructor/torneos`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Error');

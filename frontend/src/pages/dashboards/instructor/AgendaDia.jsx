@@ -1,6 +1,7 @@
 import { useNotification } from '../../../context/NotificationContext';
 import React, { useEffect, useRef, useState } from 'react';
 import { Clock, Users, ChevronDown, ChevronUp, Check, X, MapPin, Calendar, Loader2, CalendarX, ClipboardList, Search, UserPlus, UserMinus, QrCode, CheckCircle, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/api';
 function formatHora(h) {
   if (!h) return '';
   const [hh, mm] = h.split(':');
@@ -75,7 +76,7 @@ function ModalQR({ sesion, onClose, onRegistrado }) {
         setError(null);
         try {
           const token = localStorage.getItem('token');
-          const res = await fetch(`http://localhost:3000/api/sesiones/${sesion.sesion_id}/asistencia-qr`, {
+          const res = await fetch(`${API_BASE_URL}/sesiones/${sesion.sesion_id}/asistencia-qr`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ codigo_qr: decodedText, fecha: sesion.fecha })
@@ -169,7 +170,7 @@ function ModalAgregarSocio({ sesion, fecha, onClose, onAgregado }) {
       setBuscando(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:3000/api/recepcion/visitas?fecha=${fecha}`, {
+        const res = await fetch(`${API_BASE_URL}/recepcion/visitas?fecha=${fecha}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -185,7 +186,7 @@ function ModalAgregarSocio({ sesion, fecha, onClose, onAgregado }) {
     setBuscando(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/recepcion/socios?q=${encodeURIComponent(termino)}`, {
+      const res = await fetch(`${API_BASE_URL}/recepcion/socios?q=${encodeURIComponent(termino)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -209,7 +210,7 @@ function ModalAgregarSocio({ sesion, fecha, onClose, onAgregado }) {
       const body = visita_id
         ? { sesion_id: sesion.sesion_id, visita_id, fecha }
         : { sesion_id: sesion.sesion_id, socio_id, fecha };
-      const res = await fetch('http://localhost:3000/api/instructor/clases/inscribir', {
+      const res = await fetch(`${API_BASE_URL}/instructor/clases/inscribir`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -359,7 +360,7 @@ function AlumnoRow({ alumno, fecha, sesionId, onEstadoChange }) {
     setCargando(true);
     try {
       const token = localStorage.getItem('token');
-      await fetch('http://localhost:3000/api/instructor/asistencia', {
+      await fetch(`${API_BASE_URL}/instructor/asistencia`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ sesionId, socioId: alumno.socio_id, fecha, presente: estadoFinal === 'presente' })
@@ -404,13 +405,13 @@ function AlumnoRow({ alumno, fecha, sesionId, onEstadoChange }) {
           try {
             const token = localStorage.getItem('token');
             if (alumno.inscripcion_id) {
-              await fetch('http://localhost:3000/api/inscripciones/cancelar', {
+              await fetch(`${API_BASE_URL}/inscripciones/cancelar`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sesionId, socioId: alumno.socio_id })
               });
             } else {
-              await fetch(`http://localhost:3000/api/reservas/${alumno.reserva_id}/cancelar`, {
+              await fetch(`${API_BASE_URL}/reservas/${alumno.reserva_id}/cancelar`, {
                 method: 'PUT',
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ motivo: 'Cancelado por instructor' })
@@ -449,7 +450,7 @@ function ClaseCard({ clase, fecha }) {
     setLoadingAlumnos(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/instructor/clases/${clase.sesion_id}/alumnos?fecha=${fecha}`, {
+      const res = await fetch(`${API_BASE_URL}/instructor/clases/${clase.sesion_id}/alumnos?fecha=${fecha}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Error');
@@ -636,7 +637,7 @@ function AgendaDia() {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:3000/api/instructor/clases?fecha=${fecha}`, {
+        const res = await fetch(`${API_BASE_URL}/instructor/clases?fecha=${fecha}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Error');

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle, Download, Edit2, Eye, QrCode, RotateCcw, Trash2, Upload, UserPlus, Users, X } from 'lucide-react';
-import { adminApi, apiRequest } from '../../../services/api';
+import { adminApi, apiRequest, API_BASE_URL } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { getFullName, getSocioNumero, getSocioTipo, isActiveValue, normalizeText, toDateInputValue } from '../../../utils/adminData';
@@ -301,7 +301,7 @@ function GestionSocios({ readOnly = false }) {
     setGenerandoQrId(socio.socio_id);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/qr/generar-socio', {
+      const res = await fetch(`${API_BASE_URL}/qr/generar-socio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ socio_id: socio.socio_id }),

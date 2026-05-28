@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Users, UserCheck, UserX, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/api';
 
 function iniciales(nombre, email) {
   if (nombre && nombre.trim()) {
@@ -21,7 +22,7 @@ function VistaSocios() {
     const fetchSocios = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3000/api/recepcion/socios', {
+        const res = await fetch(`${API_BASE_URL}/recepcion/socios`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

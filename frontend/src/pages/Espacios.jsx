@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CardEspacio from '../components/CardEspacio'
+import { API_BASE_URL } from '../services/api';
 
 const Espacios = () => {
 
@@ -17,7 +18,7 @@ const Espacios = () => {
       const token = localStorage.getItem('token');
 
       const res = await fetch(
-        `http://localhost:3000/api/espacios?fecha=${fecha}&horaInicio=${horaInicio}&horaFin=${horaFin}`,
+        `${API_BASE_URL}/espacios?fecha=${fecha}&horaInicio=${horaInicio}&horaFin=${horaFin}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }

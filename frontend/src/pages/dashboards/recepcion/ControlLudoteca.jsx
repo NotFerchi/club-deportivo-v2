@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { X, Search, Baby, Clock, Printer, AlertCircle, CheckCircle, LogOut, User, Users, History, ChevronDown, ChevronUp, Loader2, AlertTriangle } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
+import { API_BASE_URL } from '../../../services/api';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function calcularEdadAnios(fechaNacimiento) {
@@ -69,7 +70,7 @@ function BuscadorSocio({ onSelect }) {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(
-        `http://localhost:3000/api/recepcion/socios?q=${encodeURIComponent(termino)}`,
+        `${API_BASE_URL}/recepcion/socios?q=${encodeURIComponent(termino)}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
@@ -221,7 +222,7 @@ function ModalRegistroEntrada({ onClose, onExito }) {
     setCargando(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/ludoteca/entrada', {
+      const res = await fetch(`${API_BASE_URL}/ludoteca/entrada`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -396,7 +397,7 @@ function SeccionHistorial() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/ludoteca/historial?dias=7', {
+      const res = await fetch(`${API_BASE_URL}/ludoteca/historial?dias=7`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -537,7 +538,7 @@ function ControlLudoteca() {
   const fetchNinos = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/recepcion/ludoteca/activos', {
+      const res = await fetch(`${API_BASE_URL}/recepcion/ludoteca/activos`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -552,7 +553,7 @@ function ControlLudoteca() {
     if (!await showConfirm('¿Registrar salida de este niño?')) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/ludoteca/salida/${registroId}`, {
+      const res = await fetch(`${API_BASE_URL}/ludoteca/salida/${registroId}`, {
         method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();

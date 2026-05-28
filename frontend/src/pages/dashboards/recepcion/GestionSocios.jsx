@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Download, Edit2, QrCode, RotateCcw, Search, SlidersHorizontal, Trash2, UserPlus, X } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
+import { API_BASE_URL } from '../../../services/api';
 
 const initialFormData = {
   nombres: '',
@@ -125,7 +126,7 @@ function GestionSocios() {
     const token = localStorage.getItem('token');
 
     try {
-      const res = await fetch('http://localhost:3000/api/socios', {
+      const res = await fetch(`${API_BASE_URL}/socios`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -198,8 +199,8 @@ function GestionSocios() {
 
     const token = localStorage.getItem('token');
     const url = editingSocio
-      ? `http://localhost:3000/api/socios/${editingSocio.socio_id}`
-      : 'http://localhost:3000/api/socios';
+      ? `${API_BASE_URL}/socios/${editingSocio.socio_id}`
+      : `${API_BASE_URL}/socios`;
     const method = editingSocio ? 'PUT' : 'POST';
 
     const payload = {
@@ -246,7 +247,7 @@ function GestionSocios() {
     if (!await showConfirm('¿Inactivar este socio?')) return;
 
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:3000/api/socios/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/socios/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -259,7 +260,7 @@ function GestionSocios() {
     if (!await showConfirm('¿Eliminar permanentemente? Esta acción no se puede deshacer.', { danger: true, confirmLabel: 'Eliminar' })) return;
 
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:3000/api/socios/${id}/permanente`, {
+    const res = await fetch(`${API_BASE_URL}/socios/${id}/permanente`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -270,7 +271,7 @@ function GestionSocios() {
 
   const handleReactivate = async (socio) => {
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:3000/api/socios/${socio.socio_id}/reactivar`, {
+    const res = await fetch(`${API_BASE_URL}/socios/${socio.socio_id}/reactivar`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -283,7 +284,7 @@ function GestionSocios() {
     setGenerandoQrId(socio.socio_id);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/qr/generar-socio', {
+      const res = await fetch(`${API_BASE_URL}/qr/generar-socio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ socio_id: socio.socio_id }),

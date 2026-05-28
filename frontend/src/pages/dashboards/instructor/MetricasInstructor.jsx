@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, Users, Calendar, BarChart2, Award } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/api';
 
 function BarraVertical({ valor, maxValor, color, label, sublabel }) {
   const alturaMax = 140;
@@ -72,7 +73,7 @@ function MetricasInstructor() {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3000/api/instructor/metricas', {
+        const res = await fetch(`${API_BASE_URL}/instructor/metricas`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Error');

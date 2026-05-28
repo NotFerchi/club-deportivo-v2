@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Users, TrendingUp } from 'lucide-react';
+import { API_BASE_URL } from '../../../services/api';
 
 function ReportesAsistencia() {
   const [reportes, setReportes] = useState([]);
@@ -12,7 +13,7 @@ function ReportesAsistencia() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3000/api/reportes/asistencia?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`, {
+      const res = await fetch(`${API_BASE_URL}/reportes/asistencia?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();

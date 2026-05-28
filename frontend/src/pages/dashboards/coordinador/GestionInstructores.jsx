@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Users, UserCheck, UserX, Mail, Phone, Plus, Edit2, Trash2, X, Loader2 } from 'lucide-react';
+import { useNotification } from '../../../context/NotificationContext';
 
 function iniciales(nombre) {
   if (!nombre) return '?';
@@ -211,6 +212,7 @@ function ModalInstructor({ instructor, onClose, onGuardado }) {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 function GestionInstructores() {
+  const { showConfirm } = useNotification();
   const [instructores, setInstructores] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [busqueda, setBusqueda]         = useState('');
@@ -237,7 +239,7 @@ function GestionInstructores() {
   useEffect(() => { fetchInstructores(); }, []);
 
   const handleEliminar = async (inst) => {
-    if (!window.confirm(`¿Eliminar a ${inst.nombre}? Esta acción no se puede deshacer.`)) return;
+    if (!await showConfirm(`¿Eliminar a ${inst.nombre}? Esta acción no se puede deshacer.`, { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       const token = localStorage.getItem('token');
       await fetch(`http://localhost:3000/api/instructores/${inst.instructor_id}`, {

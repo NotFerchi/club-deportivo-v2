@@ -1,11 +1,26 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   X, Search, Baby, Clock, Printer, AlertCircle, CheckCircle,
-  LogOut, User, Users, History, ChevronDown, ChevronUp, Loader2, AlertTriangle
+  LogOut, User, Users, History, ChevronDown, ChevronUp, Loader2, AlertTriangle, Eye, Plus
 } from 'lucide-react';
-import { apiRequest } from '../../../services/api';
+import { adminApi, apiRequest, unwrapList } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
+import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
+import { formatDateTime, normalizeText } from '../../../utils/adminData';
+
+const LUDOTECA_MAX_MIN = 120;
+const MX_TZ = 'America/Mexico_City';
+
+const initialFormData = {
+  socio_padre_id: '',
+  nombre_hijo: '',
+  fecha_nacimiento: '',
+  observaciones: ''
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Calcula la edad exacta del niño en años
 function calcularEdadAnios(fechaNacimiento) {
   if (!fechaNacimiento) return null;
   const nacimiento = new Date(fechaNacimiento);
@@ -13,7 +28,31 @@ function calcularEdadAnios(fechaNacimiento) {
   return (new Date() - nacimiento) / (1000 * 60 * 60 * 24 * 365.25);
 }
 
-const MX_TZ = 'America/Mexico_City';
+// Extrae "H:MM a. m./p. m." del string ISO local "YYYY-MM-DDTHH:MM:SS" (ya es hora México)
+function formatHoraLocal(ts) {
+  if (!ts) return '-';
+  const match = String(ts).match(/T(\d{2}):(\d{2}):?(\d{2})?/);
+  if (!match) return String(ts).slice(0, 5);
+  const h = parseInt(match[1], 10);
+  const m = match[2];
+  const sec = match[3] ? `:${match[3]}` : '';
+  const suffix = h >= 12 ? 'p. m.' : 'a. m.';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${m}${sec} ${suffix}`;
+}
+
+// Extrae "D/M/YYYY, H:MM a. m./p. m." del string ISO local
+function formatFechaHoraLocal(ts) {
+  if (!ts) return '-';
+  const s = String(ts);
+  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return s;
+  const [, y, mo, d, h, mi] = match;
+  const hn = parseInt(h, 10);
+  const suffix = hn >= 12 ? 'p. m.' : 'a. m.';
+  const h12 = hn === 0 ? 12 : hn > 12 ? hn - 12 : hn;
+  return `${parseInt(d, 10)}/${parseInt(mo, 10)}/${y}, ${h12}:${mi} ${suffix}`;
+}
 
 function formatHora(ts) {
   if (!ts) return '';
@@ -193,6 +232,7 @@ function TicketModal({ ticket, onClose }) {
 
 // ── Modal Registro Entrada ────────────────────────────────────────────────────
 function ModalRegistroEntrada({ onClose, onExito }) {
+  const { toast, showConfirm } = useNotification();
   const [socioPadre, setSocioPadre]         = useState(null);
   const [nombreHijo, setNombreHijo]         = useState('');
   const [fechaNac, setFechaNac]             = useState('');
@@ -230,15 +270,22 @@ function ModalRegistroEntrada({ onClose, onExito }) {
           observaciones:    observaciones.trim() || null,
         })
       });
-      onExito({
-        nombre_hijo:   data.registro?.nombre_hijo || nombreHijo.trim(),
-        nombre_padre:  socioPadre.nombre_completo,
-        hora_entrada:  data.registro?.hora_entrada_local || data.registro?.hora_entrada,
-        observaciones: observaciones.trim() || null,
-      });
-    } catch (err) {
-      setError(err.message || 'Error al registrar entrada');
-    } finally {
+
+      if (typeof onExito === 'function') {
+        onExito({
+          nombre_hijo:   data.registro?.nombre_hijo || nombreHijo.trim(),
+          nombre_padre:  socioPadre.nombre_completo,
+          hora_entrada:  data.registro?.hora_entrada_local || data.registro?.hora_entrada,
+          observaciones: observaciones.trim() || null,
+        });
+      }
+
+      // Notificación de éxito adaptativa
+      toast('Entrada registrada correctamente', 'success');
+    } catch (error) {
+      setError(error.message || 'Error al registrar entrada');
+      toast(error.message || 'Error al registrar entrada', 'error');
+    } refinement: {
       setCargando(false);
     }
   };
@@ -451,7 +498,6 @@ function SeccionHistorial() {
           {loading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               <Loader2 size={18} color="#cbd5e1" style={{ animation: 'spin 1s linear infinite' }} />
-              <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
               Cargando historial...
             </div>
           ) : filtrados.length === 0 ? (
@@ -532,6 +578,7 @@ function SeccionHistorial() {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 function Ludoteca() {
+  const { toast } = useNotification();
   const [ninos, setNinos]             = useState([]);
   const [loading, setLoading]         = useState(true);
   const [showEntrada, setShowEntrada] = useState(false);
@@ -553,18 +600,19 @@ function Ludoteca() {
     try {
       const data = await apiRequest(`/ludoteca/salida/${registroId}`, { method: 'PATCH' });
       if (data?.sancion_generada) {
-        alert(`Salida registrada. Se generó una sanción al padre por exceso de tiempo (${data.duracion_minutos} min).`);
+        toast(`Salida registrada. Se generó una sanción por exceso de tiempo (${data.duracion_minutos} min).`, 'warning');
+      } else {
+        toast('Salida registrada correctamente', 'success');
       }
       fetchNinos();
     } catch (err) {
-      alert(err.message || 'Error al registrar salida');
+      toast(err.message || 'Error al registrar salida', 'error');
     }
   };
 
   if (loading) return (
     <div className="chart-box" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
       <Loader2 size={28} color="#cbd5e1" style={{ animation: 'spin 1s linear infinite' }} />
-      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       <span style={{ fontSize: '13px' }}>Cargando ludoteca...</span>
     </div>
   );

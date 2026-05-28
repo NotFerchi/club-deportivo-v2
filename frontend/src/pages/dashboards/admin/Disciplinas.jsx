@@ -4,11 +4,13 @@ import { adminApi, apiRequest } from '../../../services/api';
 import { EmptyState, FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
 import { normalizeText } from '../../../utils/adminData';
 import { getDeporteIcono } from '../../../utils/deporteIconos';
+import { useNotification } from '../../../context/NotificationContext';
 
 const initialFormData = { nombre: '' };
 const inputErrorStyle = { borderColor: '#ef4444', backgroundColor: '#fff1f0' };
 
 function Disciplinas({ readOnly = false }) {
+  const { toast, showConfirm } = useNotification();
   const [disciplinas, setDisciplinas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -22,7 +24,7 @@ function Disciplinas({ readOnly = false }) {
     try {
       setDisciplinas(await adminApi.getDisciplinas());
     } catch (error) {
-      alert(error.message || 'Error al cargar disciplinas');
+      toast(error.message || 'Error al cargar disciplinas', 'error');
     } finally {
       setLoading(false);
     }
@@ -87,17 +89,17 @@ function Disciplinas({ readOnly = false }) {
       setShowModal(false);
       resetForm();
     } catch (error) {
-      alert(error.message || 'Error al guardar disciplina');
+      toast(error.message || 'Error al guardar disciplina', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Eliminar esta disciplina? Se bloqueará si tiene datos asociados.')) return;
+    if (!await showConfirm('¿Eliminar esta disciplina? Se bloqueará si tiene datos asociados.', { danger: true, confirmLabel: 'Eliminar' })) return;
     try {
       await apiRequest(`/disciplinas/${id}`, { method: 'DELETE' });
       await fetchDisciplinas();
     } catch (error) {
-      alert(error.message || 'Error al eliminar disciplina');
+      toast(error.message || 'Error al eliminar disciplina', 'error');
     }
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Baby, Calendar, Users, BarChart3, Trophy, LogOut, Camera, ShieldAlert, Search, Loader2} from 'lucide-react';
+import { useNotification } from '../../context/NotificationContext';
 import '../../../css/instructor.css';
 import SancionesPanel from '../../components/SancionesPanel';
 
@@ -153,6 +154,7 @@ function VistaSancionesInstructor() {
 }
 
 function DashboardInstructor() {
+  const { toast } = useNotification();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('agenda');
   const [userName, setUserName] = useState('');
@@ -177,7 +179,7 @@ function DashboardInstructor() {
   const handleFotoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { alert('La imagen debe ser menor a 5MB'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast('La imagen debe ser menor a 5MB', 'warning'); return; }
     setSubiendoFoto(true);
     try {
       const token = localStorage.getItem('token');
@@ -189,11 +191,11 @@ function DashboardInstructor() {
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Error al subir foto'); return; }
+      if (!res.ok) { toast(data.error || 'Error al subir foto', 'error'); return; }
       setFotoPerfil(data.foto_perfil);
       const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
       localStorage.setItem('usuario', JSON.stringify({ ...usuario, foto_perfil: data.foto_perfil }));
-    } catch { alert('Error de conexión'); }
+    } catch { toast('Error de conexión', 'error'); }
     finally { setSubiendoFoto(false); e.target.value = ''; }
   };
 

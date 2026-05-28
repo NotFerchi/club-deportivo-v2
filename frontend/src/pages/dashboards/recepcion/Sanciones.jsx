@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle, RefreshCw, Search, ShieldAlert } from 'lucide-react';
 import { apiRequest } from '../../../services/api';
+import { useNotification } from '../../../context/NotificationContext';
 import { formatDate, gravedadDias, normalizeGravedad, normalizeText } from '../../../utils/adminData';
 
 const origenes = ['Administración', 'Ludoteca', 'Instalaciones', 'No-show reserva', 'No-show clase', 'Conducta', 'Reglamento'];
@@ -22,6 +23,7 @@ function getNombreSocio(sancion) {
 }
 
 function SancionesRecepcion() {
+  const { toast } = useNotification();
   const [sanciones, setSanciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,7 +48,7 @@ function SancionesRecepcion() {
       setSanciones(Array.isArray(data?.data) ? data.data : []);
       setPagination(data?.pagination || { page, limit: 20, total: 0, total_pages: 1 });
     } catch (error) {
-      alert(error.message || 'Error al cargar sanciones');
+      toast(error.message || 'Error al cargar sanciones', 'error');
       setSanciones([]);
     } finally {
       setLoading(false);

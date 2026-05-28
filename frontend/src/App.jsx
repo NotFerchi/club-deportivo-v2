@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { NotificationProvider } from './context/NotificationContext'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Dashboard from './pages/dashboards/Dashboard'
@@ -34,6 +35,7 @@ function ProtectedRoute({ children, allowedRoles }) {
 
 function App() {
   return (
+    <NotificationProvider>
     <AuthProvider>
       <BrowserRouter>
         <Routes>
@@ -104,6 +106,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </NotificationProvider>
   )
 }
 

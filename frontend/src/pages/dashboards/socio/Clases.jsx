@@ -6,6 +6,7 @@ import {
   MapPin, Zap, Info, BookOpen, Timer
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
+import { useNotification } from '../../../context/NotificationContext'
 import '../../../../css/socio/Clases.css'
 
 // ── Avatar de instructor con iniciales ──────────────────────────────────────
@@ -107,6 +108,7 @@ function transformarInscripcion(i) {
 
 // ── Componente principal ─────────────────────────────────────────────────────
 function Clases() {
+  const { toast } = useNotification()
   // Datos del usuario desde localStorage
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
   const userName = usuario?.nombres || usuario?.nombre || 'Socio'
@@ -295,7 +297,7 @@ function Clases() {
       setShowModalBaja(false)
       await fetchInscripciones()  // Actualiza misClases y misInscripcionIds
     } catch (err) {
-      alert(err.message || 'Error al cancelar')
+      toast(err.message || 'Error al cancelar', 'error')
     }
   }
 

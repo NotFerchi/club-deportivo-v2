@@ -7,7 +7,7 @@ const LUDOTECA_TIME_ZONE = 'America/Mexico_City';
 const CLUB_CLOSE_TIME = process.env.CLUB_HORA_CIERRE || '22:00';
 const VISITA_QR_TTL_MS = 24 * 60 * 60 * 1000;
 
-const getToday = () => new Date().toISOString().split('T')[0];
+const getToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
 
 const isMissingPasesTable = (error) =>
     error?.code === '42P01' && String(error.message || '').includes('pases');
@@ -1020,6 +1020,145 @@ JOIN usuarios u ON s.usuario_id = u.usuario_id
 
     registrarSalidaVisita: async (req, res) => {
         return recepcionController.registrarSalida(req, res);
+    },
+
+    actualizarVisita: async (req, res) => {
+        const { id } = req.params;
+        const {
+            nombre_completo,
+            telefono,
+            correo,
+            identificacion,
+            observaciones,
+            tipo_pase,
+            socio_id
+        } = req.body;
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            const nombreNorm = String(nombre_completo || '').trim();
+            if (!nombreNorm) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: 'El nombre es requerido' });
+            }
+
+            const tipoPaseNorm = tipo_pase ? String(tipo_pase).trim().toLowerCase() : null;
+            if (tipoPaseNorm && !['visita', 'dia'].includes(tipoPaseNorm)) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: 'Tipo de pase inválido' });
+            }
+
+            let socioIdFinal = socio_id ? Number(socio_id) : null;
+            if (tipoPaseNorm === 'dia') socioIdFinal = null;
+
+            const telefonoNorm = normalizeDigits(telefono) || null;
+            const correoNorm = String(correo || '').trim() || null;
+            const identificacionNorm = String(identificacion || '').trim() || null;
+            const observacionesNorm = String(observaciones || '').trim() || null;
+
+            let updated = false;
+
+            try {
+                const result = await client.query(
+                    `UPDATE pases SET
+                        nombre_completo = COALESCE($1, nombre_completo),
+                        telefono = COALESCE($2, telefono),
+                        correo = $3,
+                        identificacion = $4,
+                        observaciones = $5,
+                        tipo_pase = COALESCE($6, tipo_pase),
+                        socio_id = $7
+                     WHERE pase_id = $8
+                     RETURNING pase_id`,
+                    [nombreNorm, telefonoNorm, correoNorm, identificacionNorm, observacionesNorm, tipoPaseNorm, socioIdFinal, id]
+                );
+                updated = result.rows.length > 0;
+            } catch (e) {
+                if (!isMissingPasesTable(e)) throw e;
+                const result = await client.query(
+                    `UPDATE visitas SET
+                        nombre_completo = COALESCE($1, nombre_completo),
+                        observaciones = $2
+                     WHERE visita_id = $3
+                     RETURNING visita_id`,
+                    [nombreNorm, observacionesNorm, id]
+                );
+                updated = result.rows.length > 0;
+            }
+
+            if (!updated) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({ error: 'Visita no encontrada' });
+            }
+
+            await client.query('COMMIT');
+
+            logAudit(req, {
+                accion: 'actualizar_visita',
+                tabla_afectada: 'pases',
+                registro_id: id,
+                detalles: 'Visita editada manualmente'
+            }).catch(() => null);
+
+            return res.json({ ok: true, message: 'Visita actualizada correctamente' });
+        } catch (error) {
+            await rollbackQuietly(client);
+            console.error('actualizarVisita:', error);
+            return res.status(500).json({ error: 'Error al actualizar visita' });
+        } finally {
+            client.release();
+        }
+    },
+
+    obtenerQrPase: async (req, res) => {
+        const { id } = req.params;
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            let paseIdFinal = null;
+            let paseActivo = false;
+
+            try {
+                const r = await client.query(
+                    `SELECT pase_id, estado FROM pases WHERE pase_id = $1`,
+                    [id]
+                );
+                if (r.rows.length > 0) {
+                    paseIdFinal = r.rows[0].pase_id;
+                    paseActivo = r.rows[0].estado === 'activo';
+                }
+            } catch (e) {
+                if (!isMissingPasesTable(e)) throw e;
+            }
+
+            if (!paseIdFinal) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({ error: 'Pase no encontrado' });
+            }
+
+            if (!paseActivo) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: 'El pase ya no está activo' });
+            }
+
+            const qr = await generarQrPase(client, paseIdFinal);
+            await client.query('COMMIT');
+
+            return res.json({
+                ok: true,
+                qr_image: qr.qr_image,
+                expira_en: qr.expira_en
+            });
+        } catch (error) {
+            await rollbackQuietly(client);
+            console.error('obtenerQrPase:', error);
+            return res.status(500).json({ error: 'Error al generar QR' });
+        } finally {
+            client.release();
+        }
     },
 
     listaSociosParaVisitas: async (req, res) => {

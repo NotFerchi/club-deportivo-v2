@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, CheckCircle, Clock, Edit2, Filter, Lock, Loader2, MapPin, Plus, RotateCcw, Save, Trash2, Trophy, UserPlus, Users, X } from 'lucide-react';
 import { apiRequest, unwrapList } from '../services/api';
+import { useNotification } from '../context/NotificationContext';
 import '../../css/TournamentBracket.css';
 
 const DEFAULT_ESTADO_OPTIONS = [
@@ -270,6 +271,7 @@ function MatchCard({ encuentro, onResultadoGuardado, readOnly }) {
 }
 
 function AccionesTorneo({ torneo, onActualizar, readOnly }) {
+  const { showConfirm } = useNotification();
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje]   = useState(null);
 
@@ -300,19 +302,19 @@ function AccionesTorneo({ torneo, onActualizar, readOnly }) {
       <p style={{ margin: '0 0 0.75rem', fontSize: '12px', fontWeight: 700, color: '#475569' }}>⚙️ Gestión del torneo</p>
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
         {estadoReal === 'Abierto' && (
-          <button onClick={() => { if (window.confirm('¿Cerrar inscripciones y generar el bracket?')) llamar('cerrar-inscripciones'); }}
+          <button onClick={async () => { if (await showConfirm('¿Cerrar inscripciones y generar el bracket?', { confirmLabel: 'Cerrar inscripciones' })) llamar('cerrar-inscripciones'); }}
             disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
             {cargando ? <><Loader2 size={13} className="icon-spin" /> Cerrando...</> : <><Lock size={13} /> Cerrar inscripciones</>}
           </button>
         )}
         {estadoReal === 'Inscripciones_cerradas' && (
-          <button onClick={() => { if (window.confirm('¿Confirmar bracket?')) llamar('confirmar-bracket'); }}
+          <button onClick={async () => { if (await showConfirm('¿Confirmar bracket?', { confirmLabel: 'Confirmar' })) llamar('confirmar-bracket'); }}
             disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
             {cargando ? <><Loader2 size={13} className="icon-spin" /> Confirmando...</> : <><CheckCircle size={13} /> Confirmar bracket</>}
           </button>
         )}
         {estadoReal === 'En_curso' && (
-          <button onClick={() => { if (window.confirm('¿Finalizar el torneo? Esta acción no se puede deshacer.')) llamar('finalizar'); }}
+          <button onClick={async () => { if (await showConfirm('¿Finalizar el torneo? Esta acción no se puede deshacer.', { danger: true, confirmLabel: 'Finalizar' })) llamar('finalizar'); }}
             disabled={cargando} style={{ background: cargando ? '#94a3b8' : 'linear-gradient(135deg, #6d28d9, #8b5cf6)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 16px', fontSize: '12px', fontWeight: 700, cursor: cargando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
             {cargando ? <><Loader2 size={13} className="icon-spin" /> Finalizando...</> : <><Trophy size={13} /> Finalizar torneo</>}
           </button>
@@ -876,6 +878,7 @@ function TournamentBracket({
   readOnly = false,
   estadoOptions = DEFAULT_ESTADO_OPTIONS
 }) {
+  const { toast, showConfirm } = useNotification();
   const [filters, setFilters] = useState({ disciplina_id: initialDisciplinaId, estado: initialEstado });
   const [appliedFilters, setAppliedFilters] = useState({ disciplina_id: initialDisciplinaId, estado: initialEstado });
   const [torneos, setTorneos] = useState([]);
@@ -1092,7 +1095,7 @@ function TournamentBracket({
 
   const handleDesinscribir = async (participante) => {
     if (!torneoParticipantesActual) return;
-    if (!window.confirm(`¿Desinscribir a "${participante.nombre_participante}" del torneo?`)) return;
+    if (!await showConfirm(`¿Desinscribir a "${participante.nombre_participante}" del torneo?`, { danger: true, confirmLabel: 'Desinscribir' })) return;
     setDesinscribiendoId(participante.participante_id);
     try {
       const token = localStorage.getItem('token');
@@ -1102,14 +1105,13 @@ function TournamentBracket({
       );
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'Error al desinscribir');
+        toast(data.error || 'Error al desinscribir', 'error');
         return;
       }
-      // Refrescar lista y contador
       await cargarParticipantes(torneoParticipantesActual);
       await cargarTorneos();
     } catch {
-      alert('Error de conexión');
+      toast('Error de conexión', 'error');
     } finally {
       setDesinscribiendoId(null);
     }

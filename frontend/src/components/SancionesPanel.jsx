@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Calendar, CheckCircle, Clock, CreditCard, Edit2, Hash, Loader2, Lock, Plus, RefreshCw, Search, ShieldAlert, User, UserCheck, X } from 'lucide-react';
 import { adminApi, apiRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { formatDate, formatDateTime, normalizeText } from '../utils/adminData';
 import FilterBar from './shared/FilterBar';
 
@@ -166,6 +167,7 @@ function SocioBuscador({ value, onChange }) {
 
 function SancionesPanel() {
   const { rol } = useAuth();
+  const { toast, showConfirm } = useNotification();
   const [sanciones, setSanciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -197,7 +199,7 @@ function SancionesPanel() {
       setSanciones(Array.isArray(payload?.data) ? payload.data : []);
       setPagination(payload?.pagination || { page, limit: PAGE_SIZE, total: 0, total_pages: 1 });
     } catch (error) {
-      alert(error.message || 'Error al cargar sanciones');
+      toast(error.message || 'Error al cargar sanciones', 'error');
       setSanciones([]);
     } finally {
       setLoading(false);
@@ -221,7 +223,7 @@ function SancionesPanel() {
   }, [sanciones]);
 
   const handleResolve = async (sancion) => {
-    if (!confirm('Resolver esta sancion?')) return;
+    if (!await showConfirm('¿Resolver esta sanción?', { confirmLabel: 'Resolver' })) return;
     setResolving(true);
     try {
       const updated = await adminApi.resolverSancion(sancion.sancion_id);
@@ -233,7 +235,7 @@ function SancionesPanel() {
         )));
       }
     } catch (error) {
-      alert(error.message || 'Error al resolver sancion');
+      toast(error.message || 'Error al resolver sancion', 'error');
     } finally {
       setResolving(false);
     }
@@ -254,12 +256,12 @@ function SancionesPanel() {
     event.preventDefault();
 
     if (!editingSancion && !formData.socio_id) {
-      alert('Selecciona un socio');
+      toast('Selecciona un socio', 'warning');
       return;
     }
 
     if (formData.motivo.trim().length < 6) {
-      alert('Describe el motivo con al menos 6 caracteres');
+      toast('Describe el motivo con al menos 6 caracteres', 'warning');
       return;
     }
 
@@ -280,7 +282,7 @@ function SancionesPanel() {
       if (!editingSancion) setPage(1);
       await fetchSanciones();
     } catch (error) {
-      alert(error.message || (editingSancion ? 'Error al actualizar sancion' : 'Error al crear sancion'));
+      toast(error.message || (editingSancion ? 'Error al actualizar sancion' : 'Error al crear sancion'), 'error');
     } finally {
       setSaving(false);
     }

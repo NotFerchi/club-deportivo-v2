@@ -42,6 +42,7 @@ const socioController = {
           s.numero_socio,
           s.nombre_emergencia,
           s.tel_emergencia,
+          s.parentesco,
           s.activo,
           s.fecha_alta,
           s.fecha_alta as fecha_registro,

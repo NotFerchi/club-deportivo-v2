@@ -52,7 +52,7 @@ function getLunes() {
   const diff = dia === 0 ? 1 : 1 - dia;
   const lunes = new Date(hoy);
   lunes.setDate(hoy.getDate() + diff);
-  return lunes.toISOString().split('T')[0];
+  return `${lunes.getFullYear()}-${String(lunes.getMonth() + 1).padStart(2, '0')}-${String(lunes.getDate()).padStart(2, '0')}`;
 }
 
 // ── Helpers de carga de catálogos ─────────────────────────────────────────────
@@ -394,7 +394,7 @@ function GestionDisciplinas() {
   const [fecha, setFecha] = useState(() => {
     const hoy = new Date();
     if (hoy.getDay() === 0) return getLunes();
-    return hoy.toISOString().split('T')[0];
+    return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
   });
 
   const fetchSesiones = async () => {

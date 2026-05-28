@@ -145,13 +145,13 @@ async function validateReserva(payload, options = {}) {
   }
 
   // ── Validar horario de operación ──────────────────────────────────────────
-  // getDiaSemana: Dom=1, Lun=2, Mar=3, Mié=4, Jue=5, Vie=6, Sáb=7
+  // getDiaSemana: Lun=1, Mar=2 … Sáb=6, Dom=7
   const diaSemanaVal = getDiaSemana(fecha);
-  if (diaSemanaVal === 2) {
+  if (diaSemanaVal === 1) {
     errors.push('El club está cerrado los Lunes');
   } else {
-    const apertura = diaSemanaVal === 1 ? '07:00' : '06:00'; // Dom: 7h | Mar-Sáb: 6h
-    const cierre   = diaSemanaVal === 1 ? '19:00' : '22:00'; // Dom: 19h | Mar-Sáb: 22h
+    const apertura = diaSemanaVal === 7 ? '07:00' : '06:00'; // Dom: 7h | Mar-Sáb: 6h
+    const cierre   = diaSemanaVal === 7 ? '19:00' : '22:00'; // Dom: 19h | Mar-Sáb: 22h
     if (horaInicio < apertura) errors.push(`Horario de apertura: ${apertura}`);
     if (horaFin    > cierre)   errors.push(`Horario de cierre: ${cierre}`);
   }
@@ -537,18 +537,18 @@ const reservasController = {
     }
 
     const fecha = localTodayISO();
-    // getDiaSemana: Dom=1, Lun=2, Mar=3, Mié=4, Jue=5, Vie=6, Sáb=7
+    // getDiaSemana: Lun=1, Mar=2 … Sáb=6, Dom=7
     const diaSemana = getDiaSemana(fecha);
 
     // ── Horario de operación ──────────────────────────────────────────────────
     // Lunes: Cerrado
-    if (diaSemana === 2) {
+    if (diaSemana === 1) {
       return res.json({ espacio_id: espacioId, fecha, cerrado: true, motivo: 'Lunes', slots: [] });
     }
     // Domingo 7am–7:30pm  → slots 07:00–18:00 (último slot 18:00–19:00, termina antes del cierre)
     // Mar–Sáb 6am–10:30pm → slots 06:00–21:00 (último slot 21:00–22:00, termina antes del cierre)
-    const HORA_APERTURA = diaSemana === 1 ? 7 : 6;
-    const HORA_CIERRE   = diaSemana === 1 ? 19 : 22;
+    const HORA_APERTURA = diaSemana === 7 ? 7 : 6;
+    const HORA_CIERRE   = diaSemana === 7 ? 19 : 22;
 
     try {
       const reservas = await pool.query(

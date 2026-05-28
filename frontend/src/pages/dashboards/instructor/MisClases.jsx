@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, MapPin, Users, Calendar, Loader2, ClipboardList, Dumbbell, CheckCircle } from 'lucide-react';
 
-const DIAS_NOMBRE = ['', 'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-const DIAS_CORTO  = ['', 'Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DIAS_NOMBRE = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const DIAS_CORTO  = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 const COLORES_DISCIPLINA = {
   'Natación':               { bg: '#e0f2fe', text: '#0369a1', borde: '#38bdf8', grad: 'linear-gradient(135deg, #0369a1, #0ea5e9)' },
@@ -32,7 +32,8 @@ function formatHora(h) {
 
 function getProximaFecha(diaSemana) {
   const hoy = new Date();
-  const diaHoy = hoy.getDay() + 1;
+  const js = hoy.getDay();
+  const diaHoy = js === 0 ? 7 : js;
   let diff = diaSemana - diaHoy;
   if (diff < 0) diff += 7;
   const fecha = new Date(hoy);
@@ -59,7 +60,8 @@ function MisClases() {
         });
         if (!res.ok) throw new Error('Error');
         const data = await res.json();
-        const diaHoy = new Date().getDay() + 1;
+        const _js = new Date().getDay();
+        const diaHoy = _js === 0 ? 7 : _js;
         const ordenadas = [...data].sort((a, b) => {
           let diffA = a.dia_semana - diaHoy; if (diffA < 0) diffA += 7;
           let diffB = b.dia_semana - diaHoy; if (diffB < 0) diffB += 7;
@@ -73,7 +75,8 @@ function MisClases() {
     fetchClases();
   }, []);
 
-  const diaHoy       = new Date().getDay() + 1;
+  const _jsDay = new Date().getDay();
+  const diaHoy       = _jsDay === 0 ? 7 : _jsDay;
   const clasesHoy    = clases.filter(c => c.dia_semana === diaHoy).length;
   const totalAlumnos = clases.reduce((acc, c) => acc + (parseInt(c.cupo_actual) || 0), 0);
   const totalCupo    = clases.reduce((acc, c) => acc + (parseInt(c.cupo_maximo) || 0), 0);

@@ -24,13 +24,13 @@ function GestionHorarios() {
   });
 
   const diasSemana = [
-    { value: 2, label: 'Lunes' },
-    { value: 3, label: 'Martes' },
-    { value: 4, label: 'Miércoles' },
-    { value: 5, label: 'Jueves' },
-    { value: 6, label: 'Viernes' },
-    { value: 7, label: 'Sábado' },
-    { value: 1, label: 'Domingo' }
+    { value: 1, label: 'Lunes' },
+    { value: 2, label: 'Martes' },
+    { value: 3, label: 'Miércoles' },
+    { value: 4, label: 'Jueves' },
+    { value: 5, label: 'Viernes' },
+    { value: 6, label: 'Sábado' },
+    { value: 7, label: 'Domingo' }
   ];
 
   const fetchSesiones = async () => {

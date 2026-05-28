@@ -94,6 +94,7 @@ function GestionVisitas() {
   const [savingExit, setSavingExit] = useState(null);
   const [viewingPase, setViewingPase] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingQr, setLoadingQr] = useState(false);
   const [qrModal, setQrModal] = useState({
     open: false,
     qrImage: null,
@@ -294,6 +295,26 @@ function GestionVisitas() {
       toast(error.message || 'No se pudo registrar la salida.', 'error');
     } finally {
       setSavingExit(null);
+    }
+  };
+
+  const verQr = async (pase) => {
+    const id = pase.pase_id || pase.visita_id;
+    setLoadingQr(true);
+    try {
+      const response = await adminApi.obtenerQrVisita(id);
+      setViewingPase(null);
+      setQrModal({
+        open: true,
+        qrImage: response.qr_image,
+        nombre: getVisitanteNombre(pase),
+        expiraEn: response.expira_en,
+        correo: pase.correo || ''
+      });
+    } catch (error) {
+      toast(error.message || 'No se pudo obtener el QR', 'error');
+    } finally {
+      setLoadingQr(false);
     }
   };
 
@@ -622,13 +643,22 @@ function GestionVisitas() {
             <div className="modal-footer">
               <button onClick={() => setViewingPase(null)} className="btn-outline">Cerrar</button>
               {!viewingPase.hora_salida && (
-                <button
-                  onClick={() => handleRegistrarSalida(viewingPase.visita_id || viewingPase.pase_id)}
-                  className="btn-primary"
-                  disabled={savingExit === (viewingPase.visita_id || viewingPase.pase_id)}
-                >
-                  <LogOut size={14} /> {savingExit === (viewingPase.visita_id || viewingPase.pase_id) ? 'Guardando...' : 'Registrar salida'}
-                </button>
+                <>
+                  <button
+                    onClick={() => verQr(viewingPase)}
+                    className="btn-secondary"
+                    disabled={loadingQr}
+                  >
+                    <QrCode size={14} /> {loadingQr ? 'Cargando...' : 'Ver QR'}
+                  </button>
+                  <button
+                    onClick={() => handleRegistrarSalida(viewingPase.visita_id || viewingPase.pase_id)}
+                    className="btn-primary"
+                    disabled={savingExit === (viewingPase.visita_id || viewingPase.pase_id)}
+                  >
+                    <LogOut size={14} /> {savingExit === (viewingPase.visita_id || viewingPase.pase_id) ? 'Guardando...' : 'Registrar salida'}
+                  </button>
+                </>
               )}
             </div>
           </div>

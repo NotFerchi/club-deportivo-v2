@@ -403,11 +403,19 @@ function AlumnoRow({ alumno, fecha, sesionId, onEstadoChange }) {
           if (!await showConfirm(`¿Quitar a ${alumno.nombre_socio} de esta clase?`)) return;
           try {
             const token = localStorage.getItem('token');
-            await fetch(`http://localhost:3000/api/reservas/${alumno.reserva_id}/cancelar`, {
-              method: 'PUT',
-              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ motivo: 'Cancelado por instructor' })
-            });
+            if (alumno.inscripcion_id) {
+              await fetch('http://localhost:3000/api/inscripciones/cancelar', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sesionId, socioId: alumno.socio_id })
+              });
+            } else {
+              await fetch(`http://localhost:3000/api/reservas/${alumno.reserva_id}/cancelar`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ motivo: 'Cancelado por instructor' })
+              });
+            }
             onEstadoChange && onEstadoChange(alumno.socio_id, 'quitado');
           } catch (err) { console.error(err); }
         }} title="Quitar de la clase" style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -560,7 +568,7 @@ function ClaseCard({ clase, fecha }) {
           ) : (
             alumnos.map((alumno) => (
               <AlumnoRow
-                key={alumno.reserva_id || alumno.socio_id}
+                key={alumno.inscripcion_id ? `ic-${alumno.inscripcion_id}` : alumno.reserva_id || alumno.socio_id}
                 alumno={alumno}
                 fecha={fecha}
                 sesionId={clase.sesion_id}

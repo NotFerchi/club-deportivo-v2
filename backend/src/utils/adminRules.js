@@ -54,10 +54,12 @@ function minutesBetween(start, end) {
   return endHour * 60 + endMinute - (startHour * 60 + startMinute);
 }
 
+// sesiones_programadas.dia_semana: Lun=1, Mar=2 … Sáb=6, Dom=7 (ISO)
 function getDiaSemana(fecha) {
   const [year, month, day] = String(fecha || '').split('-').map(Number);
   if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day).getDay() + 1;
+  const js = new Date(year, month - 1, day).getDay();
+  return js === 0 ? 7 : js;
 }
 
 async function getTableColumns(tableName) {

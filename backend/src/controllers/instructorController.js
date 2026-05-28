@@ -23,10 +23,11 @@ const instructorController = {
 
             const instructorId = instructorQuery.rows[0].instructor_id;
             const [y, m, d] = fecha.split('-').map(Number);
-            const diaSemana = new Date(y, m - 1, d).getDay() + 1;
+            const _js = new Date(y, m - 1, d).getDay();
+            const diaSemana = _js === 0 ? 7 : _js;
 
             const query = `
-                SELECT 
+                SELECT
                     sp.sesion_id,
                     sp.espacio_id,
                     d.nombre as disciplina,
@@ -34,15 +35,24 @@ const instructorController = {
                     sp.hora_inicio,
                     sp.hora_fin,
                     sp.cupo_maximo,
-                    COUNT(r.reserva_id) as cupo_actual
+                    (
+                        SELECT COUNT(DISTINCT socio_id) FROM (
+                            SELECT ic.socio_id FROM inscripciones_clases ic
+                            WHERE ic.sesion_id = sp.sesion_id AND ic.estado = 'Confirmada'
+                            UNION
+                            SELECT r2.socio_id FROM reservaciones r2
+                            WHERE r2.sesion_id = sp.sesion_id AND r2.fecha_reserva = $1
+                              AND r2.estado IN ('Confirmada', 'No-Show') AND r2.socio_id IS NOT NULL
+                        ) sub
+                    ) + (
+                        SELECT COUNT(*) FROM reservaciones r3
+                        WHERE r3.sesion_id = sp.sesion_id AND r3.fecha_reserva = $1
+                          AND r3.estado IN ('Confirmada', 'No-Show') AND r3.visita_id IS NOT NULL
+                    ) as cupo_actual
                 FROM sesiones_programadas sp
                 JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id
                 JOIN espacios e ON sp.espacio_id = e.espacio_id
-                LEFT JOIN reservaciones r ON r.sesion_id = sp.sesion_id 
-                    AND r.fecha_reserva = $1
-                    AND r.estado IN ('Confirmada', 'No-Show')
                 WHERE sp.instructor_id = $2 AND sp.dia_semana = $3
-                GROUP BY sp.sesion_id, sp.espacio_id, d.nombre, e.nombre, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo
                 ORDER BY sp.hora_inicio
             `;
 
@@ -60,26 +70,57 @@ const instructorController = {
 
         try {
             const query = `
+                WITH participantes AS (
+                    -- Inscritos vía inscripciones_clases (recurrentes del socio)
+                    SELECT
+                        ic.inscripcion_id,
+                        NULL::int AS reserva_id,
+                        ic.socio_id,
+                        NULL::int AS visita_id
+                    FROM inscripciones_clases ic
+                    WHERE ic.sesion_id = $1
+                      AND ic.estado = 'Confirmada'
+
+                    UNION ALL
+
+                    -- Agregados por instructor vía reservaciones para esta fecha
+                    -- (excluye socios que ya están en inscripciones_clases)
+                    SELECT
+                        NULL::int AS inscripcion_id,
+                        r.reserva_id,
+                        r.socio_id,
+                        r.visita_id
+                    FROM reservaciones r
+                    WHERE r.sesion_id = $1
+                      AND r.fecha_reserva = $2
+                      AND r.estado IN ('Confirmada', 'No-Show')
+                      AND (r.socio_id IS NOT NULL OR r.visita_id IS NOT NULL)
+                      AND (r.socio_id IS NULL OR NOT EXISTS (
+                            SELECT 1 FROM inscripciones_clases ic2
+                            WHERE ic2.sesion_id = $1
+                              AND ic2.socio_id = r.socio_id
+                              AND ic2.estado = 'Confirmada'
+                          ))
+                )
                 SELECT
-                    r.reserva_id,
-                    s.socio_id,
-                    v.visita_id,
+                    p.inscripcion_id,
+                    p.reserva_id,
+                    p.socio_id,
+                    p.visita_id,
                     COALESCE(
-                        u.nombres || ' ' || COALESCE(u.apellido_paterno, ''),
-                        v.nombre_completo
-                    ) as nombre_socio,
-                    CASE WHEN r.visita_id IS NOT NULL THEN 'Visita' ELSE 'Socio' END as tipo,
-                    a.presente as asistio
-                FROM reservaciones r
-                LEFT JOIN socios s ON r.socio_id = s.socio_id
-                LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id
-                LEFT JOIN visitas v ON r.visita_id = v.visita_id
-                LEFT JOIN asistencia a ON a.sesion_id = r.sesion_id
-                    AND a.socio_id = s.socio_id
-                    AND a.fecha = r.fecha_reserva
-                WHERE r.sesion_id = $1 AND r.fecha_reserva = $2
-                    AND r.estado IN ('Confirmada', 'No-Show')
-                    AND (r.socio_id IS NOT NULL OR r.visita_id IS NOT NULL)
+                        NULLIF(TRIM(u.nombres || ' ' || COALESCE(u.apellido_paterno, '')), ''),
+                        v.nombre_completo,
+                        'Sin nombre'
+                    ) AS nombre_socio,
+                    CASE WHEN p.visita_id IS NOT NULL THEN 'Visita' ELSE 'Socio' END AS tipo,
+                    a.presente AS asistio
+                FROM participantes p
+                LEFT JOIN socios s ON s.socio_id = p.socio_id
+                LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id
+                LEFT JOIN visitas v ON v.visita_id = p.visita_id
+                LEFT JOIN asistencia a ON a.sesion_id = $1
+                    AND a.socio_id = p.socio_id
+                    AND a.fecha = $2::date
                 ORDER BY nombre_socio
             `;
             const result = await pool.query(query, [sesionId, fecha]);
@@ -159,20 +200,18 @@ const instructorController = {
                     sp.cupo_maximo,
                     sp.dia_semana,
                     CASE sp.dia_semana
-                        WHEN 1 THEN 'Domingo'
-                        WHEN 2 THEN 'Lunes'
-                        WHEN 3 THEN 'Martes'
-                        WHEN 4 THEN 'Miércoles'
-                        WHEN 5 THEN 'Jueves'
-                        WHEN 6 THEN 'Viernes'
-                        WHEN 7 THEN 'Sábado'
+                        WHEN 1 THEN 'Lunes'
+                        WHEN 2 THEN 'Martes'
+                        WHEN 3 THEN 'Miércoles'
+                        WHEN 4 THEN 'Jueves'
+                        WHEN 5 THEN 'Viernes'
+                        WHEN 6 THEN 'Sábado'
+                        WHEN 7 THEN 'Domingo'
                     END as dias,
-                    COALESCE((
-                        SELECT COUNT(*) FROM reservaciones r 
-                        WHERE r.sesion_id = sp.sesion_id 
-                        AND r.fecha_reserva >= CURRENT_DATE
-                        AND r.estado = 'Confirmada'
-                    ), 0) as cupo_actual
+                    (
+                        SELECT COUNT(*) FROM inscripciones_clases ic
+                        WHERE ic.sesion_id = sp.sesion_id AND ic.estado = 'Confirmada'
+                    ) as cupo_actual
                 FROM sesiones_programadas sp
                 JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id
                 JOIN espacios e ON sp.espacio_id = e.espacio_id

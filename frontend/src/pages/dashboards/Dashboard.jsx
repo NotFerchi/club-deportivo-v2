@@ -394,7 +394,7 @@ function Dashboard() {
   const isManager = userRole === 'gerente';
   const dashboardTitle = isManager ? 'Panel Gerencial' : 'Dashboard Ejecutivo';
   const todayLabel = useMemo(() =>
-    new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Mexico_City' }),
     []
   );
 

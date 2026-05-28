@@ -8,6 +8,7 @@
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "exceljs": "^4.4.0",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.16.0",
     "multer": "^2.1.1",
     "qrcode": "^1.5.4",

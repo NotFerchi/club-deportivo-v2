@@ -3,7 +3,15 @@ import { AlertTriangle, CheckCircle, Edit2, Plus, RefreshCw, ShieldAlert, Trash2
 import { adminApi } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput, StatCard } from '../../../components/admin/AdminUI';
-import { fechaFinPorGravedad, formatDate, gravedadDias, normalizeGravedad, normalizeText, todayISO, toDateInputValue } from '../../../utils/adminData';
+import {
+  fechaFinPorGravedad,
+  formatDate,
+  gravedadDias,
+  normalizeGravedad,
+  normalizeText,
+  todayISO,
+  toDateInputValue
+} from '../../../utils/adminData';
 
 const initialFormData = {
   socio_id: '',
@@ -49,12 +57,9 @@ function ReporteSanciones({ readOnly = false }) {
 
   const fetchData = async () => {
     try {
-      const [sancionesData, sociosData] = await Promise.all([
-        adminApi.getSanciones(),
-        adminApi.getSocios()
-      ]);
+      const [sancionesData, sociosData] = await Promise.all([adminApi.getSanciones(), adminApi.getSocios()]);
       setSanciones(sancionesData);
-      setSocios(sociosData.filter(socio => socio.activo === true || socio.activo === 'true'));
+      setSocios(sociosData.filter((socio) => socio.activo === true || socio.activo === 'true'));
     } catch (error) {
       toast(error.message || 'Error al cargar sanciones', 'error');
     } finally {
@@ -68,7 +73,7 @@ function ReporteSanciones({ readOnly = false }) {
 
   const sancionesPorSocio = useMemo(() => {
     const map = new Map();
-    sanciones.forEach(sancion => {
+    sanciones.forEach((sancion) => {
       const socioId = String(sancion.socio_id);
       const entry = map.get(socioId) || { total: 0, activas: 0, graves: 0 };
       entry.total += 1;
@@ -81,14 +86,12 @@ function ReporteSanciones({ readOnly = false }) {
 
   const filteredSanciones = useMemo(() => {
     const query = normalizeText(searchTerm);
-    return sanciones.filter(sancion => {
-      const text = normalizeText([
-        sancion.socio_nombre,
-        sancion.numero_socio,
-        sancion.motivo,
-        sancion.tipo_socio,
-        sancion.origen
-      ].filter(Boolean).join(' '));
+    return sanciones.filter((sancion) => {
+      const text = normalizeText(
+        [sancion.socio_nombre, sancion.numero_socio, sancion.motivo, sancion.tipo_socio, sancion.origen]
+          .filter(Boolean)
+          .join(' ')
+      );
       const activa = getSancionActiva(sancion);
 
       if (query && !text.includes(query)) return false;
@@ -100,18 +103,21 @@ function ReporteSanciones({ readOnly = false }) {
     });
   }, [sanciones, searchTerm, filterGravedad, filterEstado, filterOrigen]);
 
-  const estadisticas = useMemo(() => ({
-    activas: sanciones.filter(getSancionActiva).length,
-    resueltas: sanciones.filter(sancion => !getSancionActiva(sancion)).length,
-    leves: sanciones.filter(sancion => normalizeGravedad(sancion.gravedad) === 'Leve').length,
-    moderadas: sanciones.filter(sancion => normalizeGravedad(sancion.gravedad) === 'Moderada').length,
-    graves: sanciones.filter(sancion => normalizeGravedad(sancion.gravedad) === 'Grave').length
-  }), [sanciones]);
+  const estadisticas = useMemo(
+    () => ({
+      activas: sanciones.filter(getSancionActiva).length,
+      resueltas: sanciones.filter((sancion) => !getSancionActiva(sancion)).length,
+      leves: sanciones.filter((sancion) => normalizeGravedad(sancion.gravedad) === 'Leve').length,
+      moderadas: sanciones.filter((sancion) => normalizeGravedad(sancion.gravedad) === 'Moderada').length,
+      graves: sanciones.filter((sancion) => normalizeGravedad(sancion.gravedad) === 'Grave').length
+    }),
+    [sanciones]
+  );
 
   const getInputStyles = (field) => (formErrors[field] ? inputErrorStyle : {});
 
   const updateForm = (field, value) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const next = { ...prev, [field]: value };
       if (field === 'gravedad' || field === 'fecha_inicio') {
         next.fecha_fin = fechaFinPorGravedad(next.fecha_inicio, next.gravedad);
@@ -122,7 +128,7 @@ function ReporteSanciones({ readOnly = false }) {
       }
       return next;
     });
-    setFormErrors(prev => ({ ...prev, [field]: undefined }));
+    setFormErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
   const suggestedGravedad = (socioId) => {
@@ -183,14 +189,17 @@ function ReporteSanciones({ readOnly = false }) {
     }
 
     try {
-      await adminApi.saveSancion({
-        socio_id: formData.socio_id,
-        motivo: formData.motivo.trim(),
-        origen: formData.origen,
-        gravedad: formData.gravedad,
-        fecha_inicio: formData.fecha_inicio,
-        fecha_fin: formData.fecha_fin
-      }, editingSancion?.sancion_id);
+      await adminApi.saveSancion(
+        {
+          socio_id: formData.socio_id,
+          motivo: formData.motivo.trim(),
+          origen: formData.origen,
+          gravedad: formData.gravedad,
+          fecha_inicio: formData.fecha_inicio,
+          fecha_fin: formData.fecha_fin
+        },
+        editingSancion?.sancion_id
+      );
       await fetchData();
       setShowModal(false);
       resetForm();
@@ -200,7 +209,7 @@ function ReporteSanciones({ readOnly = false }) {
   };
 
   const handleLevantarSancion = async (id) => {
-    if (!await showConfirm('¿Levantar esta sanción? El socio quedará habilitado nuevamente.')) return;
+    if (!(await showConfirm('¿Levantar esta sanción? El socio quedará habilitado nuevamente.'))) return;
     try {
       await adminApi.levantarSancion(id);
       await fetchData();
@@ -210,7 +219,13 @@ function ReporteSanciones({ readOnly = false }) {
   };
 
   const handleDeleteSancion = async (id) => {
-    if (!await showConfirm('¿Eliminar esta sanción permanentemente? Esta acción no se puede deshacer.', { danger: true, confirmLabel: 'Eliminar' })) return;
+    if (
+      !(await showConfirm('¿Eliminar esta sanción permanentemente? Esta acción no se puede deshacer.', {
+        danger: true,
+        confirmLabel: 'Eliminar'
+      }))
+    )
+      return;
     try {
       await adminApi.deleteSancion(id);
       await fetchData();
@@ -229,7 +244,12 @@ function ReporteSanciones({ readOnly = false }) {
     }
   };
 
-  if (loading) return <div className="chart-box"><p>Cargando sanciones...</p></div>;
+  if (loading)
+    return (
+      <div className="chart-box">
+        <p>Cargando sanciones...</p>
+      </div>
+    );
 
   return (
     <div className="chart-box">
@@ -238,7 +258,7 @@ function ReporteSanciones({ readOnly = false }) {
         title="Reporte de Sanciones"
         count={filteredSanciones.length}
         subtitle="Gravedad configurable por días y reglas de historial/no-show."
-        actions={(
+        actions={
           <>
             <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar socio, motivo u origen" />
             {!readOnly && (
@@ -252,10 +272,17 @@ function ReporteSanciones({ readOnly = false }) {
               </button>
             )}
           </>
-        )}
+        }
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '1rem',
+          marginBottom: '1.5rem'
+        }}
+      >
         <StatCard icon={AlertTriangle} label="Activas" value={estadisticas.activas} tone="danger" />
         <StatCard icon={CheckCircle} label="Resueltas" value={estadisticas.resueltas} tone="success" />
         <StatCard icon={ShieldAlert} label="Leves" value={estadisticas.leves} tone="info" />
@@ -277,10 +304,21 @@ function ReporteSanciones({ readOnly = false }) {
         </FilterSelect>
         <FilterSelect label="Origen" value={filterOrigen} onChange={setFilterOrigen}>
           <option value="">Todos</option>
-          {origenes.map(origen => <option key={origen} value={origen}>{origen}</option>)}
+          {origenes.map((origen) => (
+            <option key={origen} value={origen}>
+              {origen}
+            </option>
+          ))}
         </FilterSelect>
         {(filterGravedad || filterEstado || filterOrigen) && (
-          <button onClick={() => { setFilterGravedad(''); setFilterEstado(''); setFilterOrigen(''); }} className="btn-outline">
+          <button
+            onClick={() => {
+              setFilterGravedad('');
+              setFilterEstado('');
+              setFilterOrigen('');
+            }}
+            className="btn-outline"
+          >
             Limpiar filtros
           </button>
         )}
@@ -301,7 +339,7 @@ function ReporteSanciones({ readOnly = false }) {
             </tr>
           </thead>
           <tbody>
-            {filteredSanciones.map(sancion => {
+            {filteredSanciones.map((sancion) => {
               const activa = getSancionActiva(sancion);
               const gravedad = normalizeGravedad(sancion.gravedad);
               return (
@@ -312,24 +350,47 @@ function ReporteSanciones({ readOnly = false }) {
                     <span style={{ fontSize: '11px', color: '#64748b' }}>{sancion.numero_socio || 'Sin número'}</span>
                   </td>
                   <td>{sancion.motivo}</td>
-                  <td><span className="badge-neutral">{sancion.origen || 'Administración'}</span></td>
-                  <td><span className={gravedadClass(gravedad)}>{gravedad} ({gravedadDias[gravedad]} días)</span></td>
+                  <td>
+                    <span className="badge-neutral">{sancion.origen || 'Administración'}</span>
+                  </td>
+                  <td>
+                    <span className={gravedadClass(gravedad)}>
+                      {gravedad} ({gravedadDias[gravedad]} días)
+                    </span>
+                  </td>
                   <td>{formatDate(sancion.fecha_inicio || sancion.fecha)}</td>
                   <td>{sancion.fecha_fin ? formatDate(sancion.fecha_fin) : 'Indefinida'}</td>
-                  <td><span className={activa ? 'badge-warning' : 'badge-success'}>{activa ? 'Activa' : 'Resuelta'}</span></td>
+                  <td>
+                    <span className={activa ? 'badge-warning' : 'badge-success'}>{activa ? 'Activa' : 'Resuelta'}</span>
+                  </td>
                   <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {!readOnly && (
-                      <button onClick={() => handleEdit(sancion)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar sanción">
+                      <button
+                        onClick={() => handleEdit(sancion)}
+                        className="btn-icon"
+                        style={{ color: '#3b82f6' }}
+                        title="Editar sanción"
+                      >
                         <Edit2 size={16} />
                       </button>
                     )}
                     {!readOnly && activa && (
-                      <button onClick={() => handleLevantarSancion(sancion.sancion_id)} className="btn-icon" style={{ color: '#10b981' }} title="Levantar sanción">
+                      <button
+                        onClick={() => handleLevantarSancion(sancion.sancion_id)}
+                        className="btn-icon"
+                        style={{ color: '#10b981' }}
+                        title="Levantar sanción"
+                      >
                         <CheckCircle size={16} />
                       </button>
                     )}
                     {!readOnly && (
-                      <button onClick={() => handleDeleteSancion(sancion.sancion_id)} className="btn-icon" style={{ color: '#ef4444' }} title="Eliminar permanentemente">
+                      <button
+                        onClick={() => handleDeleteSancion(sancion.sancion_id)}
+                        className="btn-icon"
+                        style={{ color: '#ef4444' }}
+                        title="Eliminar permanentemente"
+                      >
                         <Trash2 size={16} />
                       </button>
                     )}
@@ -356,10 +417,13 @@ function ReporteSanciones({ readOnly = false }) {
               <div>
                 <h3>{editingSancion ? 'Editar Sanción' : 'Nueva Sanción'}</h3>
                 <p className="form-alert" style={{ margin: 0 }}>
-                  Días por gravedad: leve {gravedadDias.Leve}, moderada {gravedadDias.Moderada}, grave {gravedadDias.Grave}.
+                  Días por gravedad: leve {gravedadDias.Leve}, moderada {gravedadDias.Moderada}, grave{' '}
+                  {gravedadDias.Grave}.
                 </p>
               </div>
-              <button onClick={() => setShowModal(false)} className="close-modal"><X size={24} /></button>
+              <button onClick={() => setShowModal(false)} className="close-modal">
+                <X size={24} />
+              </button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
@@ -367,25 +431,26 @@ function ReporteSanciones({ readOnly = false }) {
                   <label className="required">Socio</label>
                   <select
                     value={formData.socio_id}
-                    onChange={event => {
+                    onChange={(event) => {
                       const socioId = event.target.value;
                       const gravedad = suggestedGravedad(socioId);
-                      setFormData(prev => ({
+                      setFormData((prev) => ({
                         ...prev,
                         socio_id: socioId,
                         gravedad,
                         fecha_fin: fechaFinPorGravedad(prev.fecha_inicio, gravedad)
                       }));
-                      setFormErrors(prev => ({ ...prev, socio_id: undefined }));
+                      setFormErrors((prev) => ({ ...prev, socio_id: undefined }));
                     }}
                     style={getInputStyles('socio_id')}
                   >
                     <option value="">Seleccione un socio</option>
-                    {socios.map(socio => {
+                    {socios.map((socio) => {
                       const historial = sancionesPorSocio.get(String(socio.socio_id));
                       return (
                         <option key={socio.socio_id} value={socio.socio_id}>
-                          {getSocioName(socio)} - {socio.numero_socio || 'Sin número'}{historial ? ` (${historial.activas} activas / ${historial.total} total)` : ''}
+                          {getSocioName(socio)} - {socio.numero_socio || 'Sin número'}
+                          {historial ? ` (${historial.activas} activas / ${historial.total} total)` : ''}
                         </option>
                       );
                     })}
@@ -398,7 +463,7 @@ function ReporteSanciones({ readOnly = false }) {
                   <textarea
                     rows="3"
                     value={formData.motivo}
-                    onChange={event => updateForm('motivo', event.target.value)}
+                    onChange={(event) => updateForm('motivo', event.target.value)}
                     placeholder="Describa el motivo de la sanción"
                     style={getInputStyles('motivo')}
                   />
@@ -408,13 +473,21 @@ function ReporteSanciones({ readOnly = false }) {
                 <div className="form-row">
                   <div className="form-group">
                     <label>Origen</label>
-                    <select value={formData.origen} onChange={event => updateForm('origen', event.target.value)}>
-                      {origenes.map(origen => <option key={origen} value={origen}>{origen}</option>)}
+                    <select value={formData.origen} onChange={(event) => updateForm('origen', event.target.value)}>
+                      {origenes.map((origen) => (
+                        <option key={origen} value={origen}>
+                          {origen}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="required">Gravedad</label>
-                    <select value={formData.gravedad} onChange={event => updateForm('gravedad', event.target.value)} style={getInputStyles('gravedad')}>
+                    <select
+                      value={formData.gravedad}
+                      onChange={(event) => updateForm('gravedad', event.target.value)}
+                      style={getInputStyles('gravedad')}
+                    >
                       <option value="Leve">Leve</option>
                       <option value="Moderada">Moderada</option>
                       <option value="Grave">Grave</option>
@@ -423,12 +496,22 @@ function ReporteSanciones({ readOnly = false }) {
                   </div>
                   <div className="form-group">
                     <label>Fecha inicio</label>
-                    <input type="date" value={formData.fecha_inicio} onChange={event => updateForm('fecha_inicio', event.target.value)} style={getInputStyles('fecha_inicio')} />
+                    <input
+                      type="date"
+                      value={formData.fecha_inicio}
+                      onChange={(event) => updateForm('fecha_inicio', event.target.value)}
+                      style={getInputStyles('fecha_inicio')}
+                    />
                     {formErrors.fecha_inicio && <p className="field-error">{formErrors.fecha_inicio}</p>}
                   </div>
                   <div className="form-group">
                     <label>Fecha fin</label>
-                    <input type="date" value={formData.fecha_fin} onChange={event => updateForm('fecha_fin', event.target.value)} style={getInputStyles('fecha_fin')} />
+                    <input
+                      type="date"
+                      value={formData.fecha_fin}
+                      onChange={(event) => updateForm('fecha_fin', event.target.value)}
+                      style={getInputStyles('fecha_fin')}
+                    />
                     {formErrors.fecha_fin && <p className="field-error">{formErrors.fecha_fin}</p>}
                   </div>
                 </div>

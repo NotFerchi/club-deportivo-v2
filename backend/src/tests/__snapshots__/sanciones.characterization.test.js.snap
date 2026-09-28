@@ -1,0 +1,809 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DELETE /api/sanciones/:id elimina; 404; error → 500 1`] = `
+[
+  [
+    "pool",
+    "DELETE FROM sanciones WHERE sancion_id = $1 RETURNING sancion_id",
+    [
+      "5",
+    ],
+  ],
+  [
+    "pool",
+    "DELETE FROM sanciones WHERE sancion_id = $1 RETURNING sancion_id",
+    [
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/sanciones estado=Suspendida 1`] = `
+[
+  [
+    "pool",
+    "SELECT s.sancion_id, s.socio_id, s.origen, s.motivo, s.fecha, s.estado, NULL::date as fecha_resolucion, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as nombre_socio, NULLIF(TRIM(CONCAT_WS(' ', r.nombres, r.apellido_paterno)), '') as nombre_resolvente, CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END as gravedad, s.fecha::date as fecha_inicio, (s.fecha::date + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date as fecha_fin, (LOWER(s.estado::text) IN ('activa', 'activo') AND ((s.fecha::date + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date IS NULL OR (s.fecha::date + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date >= CURRENT_DATE)) as activa, soc.numero_socio, soc.tipo as tipo_socio, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as socio_nombre, u.username as socio_email FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id WHERE LOWER(s.estado::text) = $1 ORDER BY s.fecha::date DESC, s.sancion_id DESC LIMIT $2 OFFSET $3",
+    [
+      "suspendida",
+      10,
+      20,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id WHERE LOWER(s.estado::text) = $1",
+    [
+      "suspendida",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/sanciones estado=inactivo 1`] = `
+[
+  [
+    "pool",
+    "SELECT s.sancion_id, s.socio_id, s.origen, s.motivo, s.fecha, s.estado, NULL::date as fecha_resolucion, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as nombre_socio, NULLIF(TRIM(CONCAT_WS(' ', r.nombres, r.apellido_paterno)), '') as nombre_resolvente, CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END as gravedad, s.fecha::date as fecha_inicio, (s.fecha::date + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date as fecha_fin, (LOWER(s.estado::text) IN ('activa', 'activo') AND ((s.fecha::date + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date IS NULL OR (s.fecha::date + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date >= CURRENT_DATE)) as activa, soc.numero_socio, soc.tipo as tipo_socio, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as socio_nombre, u.username as socio_email FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id WHERE LOWER(s.estado::text) IN ('inactivo', 'inactiva', 'resuelto', 'resuelta') ORDER BY s.fecha::date DESC, s.sancion_id DESC LIMIT $1 OFFSET $2",
+    [
+      10,
+      20,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id WHERE LOWER(s.estado::text) IN ('inactivo', 'inactiva', 'resuelto', 'resuelta')",
+    [],
+  ],
+]
+`;
+
+exports[`GET /api/sanciones sin filtros → página 1, límite 20 1`] = `
+[
+  [
+    "pool",
+    "SELECT s.sancion_id, s.socio_id, s.origen, s.motivo, s.fecha, s.estado, s.fecha_resolucion as fecha_resolucion, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as nombre_socio, NULLIF(TRIM(CONCAT_WS(' ', r.nombres, r.apellido_paterno)), '') as nombre_resolvente, s.gravedad as gravedad, s.fecha_inicio as fecha_inicio, s.fecha_fin as fecha_fin, (LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE)) as activa, soc.numero_socio, soc.tipo as tipo_socio, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as socio_nombre, u.username as socio_email FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id ORDER BY s.fecha_inicio DESC, s.sancion_id DESC LIMIT $1 OFFSET $2",
+    [
+      20,
+      0,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id",
+    [],
+  ],
+]
+`;
+
+exports[`GET /api/sanciones todos los filtros, límites de paginación y esquema mínimo 1`] = `
+[
+  [
+    "pool",
+    "SELECT s.sancion_id, s.socio_id, s.origen, s.motivo, s.fecha, s.estado, NULL::date as fecha_resolucion, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as nombre_socio, NULLIF(TRIM(CONCAT_WS(' ', r.nombres, r.apellido_paterno)), '') as nombre_resolvente, CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END as gravedad, CURRENT_DATE as fecha_inicio, (CURRENT_DATE + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date as fecha_fin, (LOWER(s.estado::text) IN ('activa', 'activo') AND ((CURRENT_DATE + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date IS NULL OR (CURRENT_DATE + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date >= CURRENT_DATE)) as activa, soc.numero_socio, soc.tipo as tipo_socio, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as socio_nombre, u.username as socio_email FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id WHERE s.origen = $1 AND LOWER(s.estado::text) IN ('activo', 'activa') AND s.socio_id = $2 AND ( TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) ILIKE $3 OR soc.numero_socio::text ILIKE $3 ) AND CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END ILIKE $4 AND CURRENT_DATE >= $5::date AND CURRENT_DATE <= $6::date ORDER BY CURRENT_DATE DESC, s.sancion_id DESC LIMIT $7 OFFSET $8",
+    [
+      "Conducta",
+      10,
+      "%Ana%",
+      "grave",
+      "2026-01-01",
+      "2026-12-31",
+      100,
+      0,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id WHERE s.origen = $1 AND LOWER(s.estado::text) IN ('activo', 'activa') AND s.socio_id = $2 AND ( TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) ILIKE $3 OR soc.numero_socio::text ILIKE $3 ) AND CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END ILIKE $4 AND CURRENT_DATE >= $5::date AND CURRENT_DATE <= $6::date",
+    [
+      "Conducta",
+      10,
+      "%Ana%",
+      "grave",
+      "2026-01-01",
+      "2026-12-31",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/sanciones/:id esquema completo → sanción 1`] = `
+[
+  [
+    "pool",
+    "SELECT s.*, s.gravedad as gravedad, s.fecha_inicio as fecha_inicio, s.fecha_fin as fecha_fin, soc.numero_socio, u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as socio_nombre FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id WHERE s.sancion_id = $1",
+    [
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/sanciones/:id esquema minimo → sanción 1`] = `
+[
+  [
+    "pool",
+    "SELECT s.*, CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END as gravedad, CURRENT_DATE as fecha_inicio, (CURRENT_DATE + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date as fecha_fin, soc.numero_socio, u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as socio_nombre FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id WHERE s.sancion_id = $1",
+    [
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/socios/:id/sanciones socio dueño → permitido; socio ajeno → 403; otro rol → 403 1`] = `
+[
+  [
+    "pool",
+    "SELECT 1 FROM socios WHERE socio_id = $1 AND usuario_id = $2",
+    [
+      10,
+      9,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT s.sancion_id, s.socio_id, s.origen, s.motivo, s.fecha, s.estado, s.fecha_resolucion as fecha_resolucion, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as nombre_socio, NULLIF(TRIM(CONCAT_WS(' ', r.nombres, r.apellido_paterno)), '') as nombre_resolvente, s.gravedad as gravedad, s.fecha_inicio as fecha_inicio, s.fecha_fin as fecha_fin, (LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE)) as activa, soc.numero_socio, soc.tipo as tipo_socio, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as socio_nombre, u.username as socio_email FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id WHERE s.socio_id = $1 ORDER BY s.fecha DESC NULLS LAST, s.fecha_inicio DESC, s.sancion_id DESC",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('activo', 'activa'))::int as total_sanciones_activas, COUNT(*)::int as total_sanciones_historico FROM sanciones WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT 1 FROM socios WHERE socio_id = $1 AND usuario_id = $2",
+    [
+      10,
+      9,
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/socios/:id/sanciones staff → consulta sin verificar dueño 1`] = `
+{
+  "sanciones": [
+    {
+      "gravedad": "Leve",
+      "sancion_id": 5,
+      "socio_id": 10,
+    },
+  ],
+  "socio_id": 10,
+  "total_sanciones_activas": 1,
+  "total_sanciones_historico": 3,
+}
+`;
+
+exports[`GET /api/socios/:id/sanciones staff → consulta sin verificar dueño 2`] = `
+[
+  [
+    "pool",
+    "SELECT s.sancion_id, s.socio_id, s.origen, s.motivo, s.fecha, s.estado, s.fecha_resolucion as fecha_resolucion, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as nombre_socio, NULLIF(TRIM(CONCAT_WS(' ', r.nombres, r.apellido_paterno)), '') as nombre_resolvente, s.gravedad as gravedad, s.fecha_inicio as fecha_inicio, s.fecha_fin as fecha_fin, (LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE)) as activa, soc.numero_socio, soc.tipo as tipo_socio, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as socio_nombre, u.username as socio_email FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id WHERE s.socio_id = $1 ORDER BY s.fecha DESC NULLS LAST, s.fecha_inicio DESC, s.sancion_id DESC",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('activo', 'activa'))::int as total_sanciones_activas, COUNT(*)::int as total_sanciones_historico FROM sanciones WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+]
+`;
+
+exports[`GET /socio/:id socio dueño → permitido; socio ajeno → 403; otro rol → 403 1`] = `
+[
+  [
+    "pool",
+    "SELECT 1 FROM socios WHERE socio_id = $1 AND usuario_id = $2",
+    [
+      10,
+      9,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT s.*, s.gravedad as gravedad, s.fecha_inicio as fecha_inicio, s.fecha_fin as fecha_fin, (LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE)) as activa, soc.numero_socio, u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as socio_nombre FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id WHERE s.socio_id = $1 ORDER BY s.fecha_inicio DESC",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT 1 FROM socios WHERE socio_id = $1 AND usuario_id = $2",
+    [
+      10,
+      9,
+    ],
+  ],
+]
+`;
+
+exports[`GET /socio/:id staff → consulta sin verificar dueño 1`] = `
+[
+  {
+    "gravedad": "Leve",
+    "sancion_id": 5,
+    "socio_id": 10,
+  },
+]
+`;
+
+exports[`GET /socio/:id staff → consulta sin verificar dueño 2`] = `
+[
+  [
+    "pool",
+    "SELECT s.*, s.gravedad as gravedad, s.fecha_inicio as fecha_inicio, s.fecha_fin as fecha_fin, (LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE)) as activa, soc.numero_socio, u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as socio_nombre FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id WHERE s.socio_id = $1 ORDER BY s.fecha_inicio DESC",
+    [
+      10,
+    ],
+  ],
+]
+`;
+
+exports[`GET /socio/:id/verificar socio dueño → permitido; socio ajeno → 403; otro rol → 403 1`] = `
+[
+  [
+    "pool",
+    "SELECT 1 FROM socios WHERE socio_id = $1 AND usuario_id = $2",
+    [
+      10,
+      9,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) as total FROM sanciones s WHERE s.socio_id = $1 AND LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE)",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT 1 FROM socios WHERE socio_id = $1 AND usuario_id = $2",
+    [
+      10,
+      9,
+    ],
+  ],
+]
+`;
+
+exports[`GET /socio/:id/verificar staff → consulta sin verificar dueño 1`] = `
+{
+  "tiene_sancion": false,
+}
+`;
+
+exports[`GET /socio/:id/verificar staff → consulta sin verificar dueño 2`] = `
+[
+  [
+    "pool",
+    "SELECT COUNT(*) as total FROM sanciones s WHERE s.socio_id = $1 AND LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE)",
+    [
+      10,
+    ],
+  ],
+]
+`;
+
+exports[`PATCH /api/sanciones/:sancion_id resuelve y devuelve la sanción detallada 1`] = `
+[
+  [
+    "pool",
+    "SELECT * FROM sanciones WHERE sancion_id = $1",
+    [
+      5,
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE sanciones SET estado = 'Inactivo', resuelto_por = $1, fecha_resolucion = NOW() WHERE sancion_id = $2",
+    [
+      3,
+      5,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT s.sancion_id, s.socio_id, s.origen, s.motivo, s.fecha, s.estado, s.fecha_resolucion as fecha_resolucion, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as nombre_socio, NULLIF(TRIM(CONCAT_WS(' ', r.nombres, r.apellido_paterno)), '') as nombre_resolvente, s.gravedad as gravedad, s.fecha_inicio as fecha_inicio, s.fecha_fin as fecha_fin, (LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE)) as activa, soc.numero_socio, soc.tipo as tipo_socio, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as socio_nombre, u.username as socio_email FROM sanciones s JOIN socios soc ON s.socio_id = soc.socio_id JOIN usuarios u ON soc.usuario_id = u.usuario_id LEFT JOIN usuarios r ON s.resuelto_por = r.usuario_id WHERE s.sancion_id = $1",
+    [
+      5,
+    ],
+  ],
+]
+`;
+
+exports[`POST /api/sanciones 2 activas → Grave 1`] = `
+{
+  "fecha_fin": "2026-10-30",
+  "gravedad": "Grave",
+  "message": "Sancion creada",
+  "sancion_id": 77,
+}
+`;
+
+exports[`POST /api/sanciones 2 activas → Grave 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE))::int as activas, COUNT(*) FILTER (WHERE s.gravedad = 'Grave')::int as graves FROM sanciones s WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, motivo, origen, estado, gravedad, fecha_inicio, fecha_fin) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING sancion_id",
+    [
+      10,
+      "x",
+      "Administración",
+      "Activa",
+      "Grave",
+      "2026-09-30",
+      "2026-10-30",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/sanciones con graves → Grave 1`] = `
+{
+  "fecha_fin": "2026-10-30",
+  "gravedad": "Grave",
+  "message": "Sancion creada",
+  "sancion_id": 77,
+}
+`;
+
+exports[`POST /api/sanciones con graves → Grave 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE))::int as activas, COUNT(*) FILTER (WHERE s.gravedad = 'Grave')::int as graves FROM sanciones s WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, motivo, origen, estado, gravedad, fecha_inicio, fecha_fin) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING sancion_id",
+    [
+      10,
+      "x",
+      "Administración",
+      "Activa",
+      "Grave",
+      "2026-09-30",
+      "2026-10-30",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/sanciones esquema minimo → columnas del INSERT 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE LOWER(s.estado::text) IN ('activa', 'activo') AND ((CURRENT_DATE + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date IS NULL OR (CURRENT_DATE + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date >= CURRENT_DATE))::int as activas, COUNT(*) FILTER (WHERE CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave')::int as graves FROM sanciones s WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, motivo, origen, estado) VALUES ($1, $2, $3, $4) RETURNING sancion_id",
+    [
+      10,
+      "x",
+      "Administración",
+      "Activa",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/sanciones esquema soloFecha → columnas del INSERT 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE LOWER(s.estado::text) IN ('activa', 'activo') AND ((s.fecha::date + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date IS NULL OR (s.fecha::date + ( CASE WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave' THEN INTERVAL '30 days' WHEN CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Moderada' THEN INTERVAL '7 days' ELSE INTERVAL '1 day' END ))::date >= CURRENT_DATE))::int as activas, COUNT(*) FILTER (WHERE CASE WHEN s.origen ILIKE '%no-show%' THEN 'Moderada' ELSE 'Leve' END = 'Grave')::int as graves FROM sanciones s WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, motivo, origen, estado, fecha) VALUES ($1, $2, $3, $4, $5) RETURNING sancion_id",
+    [
+      10,
+      "x",
+      "Administración",
+      "Activa",
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/sanciones fechas explícitas 1`] = `
+{
+  "fecha_fin": "2026-10-06",
+  "gravedad": "Grave",
+  "message": "Sancion creada",
+  "sancion_id": 77,
+}
+`;
+
+exports[`POST /api/sanciones fechas explícitas 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE))::int as activas, COUNT(*) FILTER (WHERE s.gravedad = 'Grave')::int as graves FROM sanciones s WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, motivo, origen, estado, gravedad, fecha_inicio, fecha_fin) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING sancion_id",
+    [
+      10,
+      "x",
+      "Administración",
+      "Activa",
+      "Grave",
+      "2026-10-05",
+      "2026-10-06",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/sanciones historial previo y leve → Moderada 1`] = `
+{
+  "fecha_fin": "2026-10-07",
+  "gravedad": "Moderada",
+  "message": "Sancion creada",
+  "sancion_id": 77,
+}
+`;
+
+exports[`POST /api/sanciones historial previo y leve → Moderada 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE))::int as activas, COUNT(*) FILTER (WHERE s.gravedad = 'Grave')::int as graves FROM sanciones s WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, motivo, origen, estado, gravedad, fecha_inicio, fecha_fin) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING sancion_id",
+    [
+      10,
+      "x",
+      "Administración",
+      "Activa",
+      "Moderada",
+      "2026-09-30",
+      "2026-10-07",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/sanciones sin historial, no-show leve → Moderada 1`] = `
+{
+  "fecha_fin": "2026-10-07",
+  "gravedad": "Moderada",
+  "message": "Sancion creada",
+  "sancion_id": 77,
+}
+`;
+
+exports[`POST /api/sanciones sin historial, no-show leve → Moderada 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE))::int as activas, COUNT(*) FILTER (WHERE s.gravedad = 'Grave')::int as graves FROM sanciones s WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, motivo, origen, estado, gravedad, fecha_inicio, fecha_fin) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING sancion_id",
+    [
+      10,
+      "Faltó",
+      "No-show reserva",
+      "Activa",
+      "Moderada",
+      "2026-09-30",
+      "2026-10-07",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/sanciones/no-shows/sincronizar crea una sanción por reserva no-show pendiente 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT r.reserva_id, r.socio_id FROM reservaciones r WHERE ( COALESCE((to_jsonb(r)->>'no_show')::boolean, false) = true OR LOWER(r.estado::text) IN ('no-show', 'no show') ) AND NOT EXISTS ( SELECT 1 FROM sanciones s WHERE s.socio_id = r.socio_id AND s.origen = 'No-show reserva' AND s.motivo ILIKE ('%' || 'reserva #' || r.reserva_id || '%') )",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, motivo, origen, estado, gravedad, fecha_inicio, fecha_fin) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING sancion_id",
+    [
+      10,
+      "No-show registrado en reserva #31",
+      "No-show reserva",
+      "Activa",
+      "Moderada",
+      "2026-09-30",
+      "2026-10-07",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, motivo, origen, estado, gravedad, fecha_inicio, fecha_fin) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING sancion_id",
+    [
+      12,
+      "No-show registrado en reserva #32",
+      "No-show reserva",
+      "Activa",
+      "Moderada",
+      "2026-09-30",
+      "2026-10-07",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PUT /:id/levantar esquema completo 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sanciones SET estado = $1, fecha_resolucion = $2, resuelto_por = $3 WHERE sancion_id = $4 RETURNING sancion_id",
+    [
+      "Resuelta",
+      "2026-09-30",
+      1,
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`PUT /:id/levantar esquema minimo 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sanciones SET estado = $1 WHERE sancion_id = $2 RETURNING sancion_id",
+    [
+      "Resuelta",
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`PUT /:id/levantar sin usuario en el token → no registra resuelto_por; 404; error 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sanciones SET estado = $1, fecha_resolucion = $2 WHERE sancion_id = $3 RETURNING sancion_id",
+    [
+      "Resuelta",
+      "2026-09-30",
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`PUT /:id/perdonar esquema completo 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sanciones SET estado = $1, fecha_resolucion = $2, resuelto_por = $3 WHERE sancion_id = $4 RETURNING sancion_id",
+    [
+      "Resuelta",
+      "2026-09-30",
+      1,
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`PUT /:id/perdonar esquema minimo 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sanciones SET estado = $1 WHERE sancion_id = $2 RETURNING sancion_id",
+    [
+      "Resuelta",
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`PUT /:id/perdonar sin usuario en el token → no registra resuelto_por; 404; error 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sanciones SET estado = $1, fecha_resolucion = $2 WHERE sancion_id = $3 RETURNING sancion_id",
+    [
+      "Resuelta",
+      "2026-09-30",
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`PUT /api/sanciones/:id admin (puede cambiar estado), esquema completo 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sanciones SET socio_id = $1, motivo = $2, origen = $3, estado = $4, gravedad = $5, fecha_inicio = $6, fecha_fin = $7 WHERE sancion_id = $8 RETURNING sancion_id",
+    [
+      11,
+      "Nuevo",
+      "Conducta",
+      "Resuelta",
+      "Grave",
+      "2026-10-01",
+      "2026-10-31",
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`PUT /api/sanciones/:id admin, esquema mínimo 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sanciones SET socio_id = $1, motivo = $2, origen = $3, estado = $4 WHERE sancion_id = $5 RETURNING sancion_id",
+    [
+      11,
+      "Nuevo",
+      "Conducta",
+      "Resuelta",
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`PUT /api/sanciones/:id coordinador, esquema soloFecha 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sanciones SET socio_id = $1, motivo = $2, origen = $3, estado = $4, fecha = $5 WHERE sancion_id = $6 RETURNING sancion_id",
+    [
+      11,
+      "Nuevo",
+      "Conducta",
+      "Resuelta",
+      "2026-10-01",
+      "5",
+    ],
+  ],
+]
+`;
+
+exports[`PUT /api/sanciones/:id gerente (estado ignorado) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sanciones SET socio_id = $1, motivo = $2, origen = $3, gravedad = $4, fecha_inicio = $5, fecha_fin = $6 WHERE sancion_id = $7 RETURNING sancion_id",
+    [
+      11,
+      "Nuevo",
+      "Conducta",
+      "Grave",
+      "2026-10-01",
+      "2026-10-31",
+      "5",
+    ],
+  ],
+]
+`;

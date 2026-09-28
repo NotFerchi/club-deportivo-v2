@@ -1,7 +1,8 @@
 const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 const ServiceError = require('./serviceError');
-const { connectOrEscalate, requireBodyOrEscalate } = require('./escalate');
+const { requireBodyOrEscalate } = require('./escalate');
+const { enTransaccion } = require('./transaction');
 const { validarCURP } = require('../utils/validacionCurp');
 
 const normalizeTipoSocio = (tipo, tipoSocio) => {
@@ -27,22 +28,6 @@ const validateSocioPayload = (data, editing = false) => {
   if (data.password && data.password.length < 6) errors.push('Contrasena minima de 6 caracteres');
   return errors;
 };
-
-/** Ejecuta fn(client) en una transacción; ROLLBACK ante cualquier error. */
-async function enTransaccion(fn) {
-  const client = await connectOrEscalate(pool);
-  try {
-    await client.query('BEGIN');
-    const result = await fn(client);
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-}
 
 function lanzarSiInvalido(body, editing) {
   const validationErrors = validateSocioPayload(body, editing);

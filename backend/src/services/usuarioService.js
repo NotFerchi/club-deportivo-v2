@@ -66,6 +66,42 @@ async function listarRoles() {
   return result.rows;
 }
 
+/**
+ * Campos del body usados en alta y actualización. Se llama fuera del try del
+ * controlador: sin body lanza TypeError y responde el errorHandler global, como
+ * cuando el controlador original desestructuraba req.body antes del try.
+ */
+function camposUsuario(body) {
+  const {
+    nombres,
+    apellidoPaterno,
+    apellidoMaterno,
+    email,
+    telefono,
+    curp,
+    fechaNacimiento,
+    genero,
+    direccion,
+    rol_id,
+    activo,
+    password
+  } = body;
+  return {
+    nombres,
+    apellidoPaterno,
+    apellidoMaterno,
+    email,
+    telefono,
+    curp,
+    fechaNacimiento,
+    genero,
+    direccion,
+    rol_id,
+    activo,
+    password
+  };
+}
+
 /** Validaciones de entrada comunes a crear y actualizar (mismo orden y mensajes). */
 function validarDatosUsuario({ nombres, apellidoPaterno, email, telefono, curp, rol_id }) {
   if (!nombres?.trim() || !apellidoPaterno?.trim() || !email?.trim() || !curp?.trim() || !rol_id) {
@@ -295,6 +331,7 @@ async function actualizarFotoPerfil(usuarioId, file) {
 }
 
 module.exports = {
+  camposUsuario,
   listarUsuarios,
   obtenerUsuario,
   listarRoles,

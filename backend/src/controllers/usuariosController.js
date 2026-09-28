@@ -29,8 +29,9 @@ const usuariosController = {
   },
 
   createUsuario: async (req, res) => {
+    const datos = usuarioService.camposUsuario(req.body);
     try {
-      const { usuario_id, password } = await usuarioService.crearUsuario(req.body);
+      const { usuario_id, password } = await usuarioService.crearUsuario(datos);
       res.status(201).json({ message: 'Usuario creado', usuario_id, password });
     } catch (error) {
       handleError(res, error, 'createUsuario', 'Error al crear usuario');
@@ -38,8 +39,9 @@ const usuariosController = {
   },
 
   updateUsuario: async (req, res) => {
+    const datos = usuarioService.camposUsuario(req.body);
     try {
-      await usuarioService.actualizarUsuario(req.params.id, req.body);
+      await usuarioService.actualizarUsuario(req.params.id, datos);
       res.json({ message: 'Usuario actualizado correctamente' });
     } catch (error) {
       handleError(res, error, 'updateUsuario', 'Error al actualizar usuario');

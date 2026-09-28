@@ -135,6 +135,15 @@ describe('lecturas', () => {
 describe('POST / (crear)', () => {
   const post = (body) => request(app).post('/api/usuarios').send(body);
 
+  it('sin body → el error ocurre antes del try y responde el errorHandler global', async () => {
+    const res = await request(app).post('/api/usuarios');
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ ok: false, error: 'Error interno del servidor' });
+    expect(pool.connect).not.toHaveBeenCalled();
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
   it('validaciones → 400 en orden, sin conectar a la BD', async () => {
     const casos = [
       [{ ...validBody, nombres: ' ' }, 'Nombres, apellido paterno, email, CURP y rol son obligatorios'],
@@ -249,6 +258,15 @@ describe('POST / (crear)', () => {
 
 describe('PUT /:id (actualizar)', () => {
   const put = (body) => request(app).put('/api/usuarios/5').send(body);
+
+  it('sin body → el error ocurre antes del try y responde el errorHandler global', async () => {
+    const res = await request(app).put('/api/usuarios/5');
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ ok: false, error: 'Error interno del servidor' });
+    expect(pool.connect).not.toHaveBeenCalled();
+    expect(pool.query).not.toHaveBeenCalled();
+  });
 
   it('validación → 400 sin consultar la BD', async () => {
     const res = await put({ ...validBody, email: 'x' });

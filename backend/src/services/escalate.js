@@ -24,4 +24,15 @@ async function connectOrEscalate(pool) {
   }
 }
 
-module.exports = { escalate, isEscalated, connectOrEscalate };
+/**
+ * Sin body, los controladores originales fallaban al desestructurar req.body
+ * antes del try (TypeError → errorHandler global). Se reproduce escalando.
+ */
+function requireBodyOrEscalate(body) {
+  if (body === undefined || body === null) {
+    throw escalate(new TypeError('Cannot destructure properties of undefined (req.body)'));
+  }
+  return body;
+}
+
+module.exports = { escalate, isEscalated, connectOrEscalate, requireBodyOrEscalate };

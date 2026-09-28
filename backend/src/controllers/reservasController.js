@@ -1,8 +1,10 @@
 const { logAudit } = require('../utils/auditLogger');
 const reservaService = require('../services/reservaService');
 const ServiceError = require('../services/serviceError');
+const { isEscalated } = require('../services/escalate');
 
 function handleError(res, error, fnName, status = 500, body = { error: error.message }) {
+  if (isEscalated(error)) throw error;
   if (error instanceof ServiceError) {
     return res.status(error.status).json(error.body);
   }

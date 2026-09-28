@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
+const { connectOrEscalate } = require('./escalate');
 const { getMexicoDateISO, getMexicoTimeISO } = require('../utils/mexicoDate');
 const {
   addDaysISO,
@@ -382,7 +383,7 @@ async function crearReserva({ espacio_id, socio_id, fecha, hora_inicio, hora_fin
 
 /** Actualiza la reserva en una transacción y devuelve el estado normalizado final. */
 async function actualizarReserva(id, datos) {
-  const client = await pool.connect();
+  const client = await connectOrEscalate(pool);
 
   try {
     await client.query('BEGIN');

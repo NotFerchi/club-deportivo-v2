@@ -44,6 +44,7 @@ const reservasRoutes = require('../routes/reservas.routes');
 const app = express();
 app.use(express.json());
 app.use('/api/reservas', reservasRoutes);
+app.use(require('../middleware/errorHandler'));
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -272,6 +273,14 @@ describe('createReserva', () => {
 // ── updateReserva ────────────────────────────────────────────────────────────
 
 describe('updateReserva', () => {
+  it('si falla la conexión a la BD, responde el errorHandler global (vía router)', async () => {
+    pool.connect.mockRejectedValueOnce(new Error('connection refused'));
+    const res = await request(app).put('/api/reservas/5').send({ estado: 'cancelada' });
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ ok: false, error: 'Error interno del servidor' });
+  });
+
   const current = {
     reserva_id: 5,
     espacio_id: 1,

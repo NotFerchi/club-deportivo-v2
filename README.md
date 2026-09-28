@@ -19,45 +19,62 @@ Versión 2 del sistema integral para la gestión del club social y deportivo. Es
 
 ##  Instalación y Ejecución Local
 
+### Requisitos
+* Node.js **24** (ver `.nvmrc`). Se recomienda usar [nvm-windows](https://github.com/coreybutler/nvm-windows) para manejar versiones.
+
 ### 1. Clonar el repositorio
 ```bash
-git clone [https://github.com/tu-usuario/club-deportivo-v2.git](https://github.com/tu-usuario/club-deportivo-v2.git)
+git clone https://github.com/NotFerchi/club-deportivo-v2.git
 cd club-deportivo-v2
 ```
 
-### 2. Configuración del Backend
-Abre una terminal y navega a la carpeta del servidor:
+### 2. Usar la versión de Node del proyecto
+```bash
+nvm install 24
+nvm use 24
+node -v   # debe coincidir con el contenido de .nvmrc
+```
+
+### 3. Configuración del Backend
 ```bash
 cd backend
 npm install
 ```
 
-Crea un archivo `.env` en la raíz de `/backend` guiándote con el archivo `.env.example`. Asegúrate de incluir las siguientes variables:
-```env
-# Conexión a Neon
-DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
-PORT=3000
-
-# Seguridad
-JWT_SECRET=tu_secreto_jwt
-
-# Envío de correos y QR
-GMAIL_USER=tucorreo@gmail.com
-GMAIL_APP_PASSWORD=tu_app_password_de_gmail
+Copia `backend/.env.example` a `backend/.env` y completa los valores reales:
+```powershell
+Copy-Item .env.example .env
 ```
 
-Inicia el servidor de desarrollo:
+Pide las credenciales reales (`DATABASE_URL`, `JWT_SECRET`, `QR_SECRET`, `GMAIL_APP_PASSWORD`) al líder del equipo por un canal privado — **nunca** se suben al repositorio.
+
+Inicia el servidor:
 ```bash
 npm run dev
 ```
 
-### 3. Configuración del Frontend
-Abre **otra** terminal y navega a la carpeta del cliente:
+### 4. Configuración del Frontend
+Abre **otra** terminal:
 ```bash
 cd frontend
 npm install
+```
+
+Copia `frontend/.env.example` a `frontend/.env`:
+```powershell
+Copy-Item .env.example .env
+```
+
+Inicia el cliente:
+```bash
 npm run dev
 ```
+El frontend corre en `http://localhost:3001` y espera al backend en `http://localhost:3000`.
+
+### Reglas del proyecto
+* Ninguna credencial va en el código fuente: todo se lee con `process.env.*`.
+* `.env` está en `.gitignore`; solo `.env.example` se versiona en el repositorio.
+* Todos los integrantes deben usar la misma versión de Node.js indicada en `.nvmrc`.
 
 ---
 

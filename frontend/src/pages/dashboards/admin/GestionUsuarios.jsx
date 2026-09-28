@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Edit2, Eye, RotateCcw, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { Edit2, Eye, RotateCcw, Trash2, UserPlus, Users } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '../../../components/shared/Modal';
 import { getFullName, isActiveValue, normalizeText, toDateInputValue } from '../../../utils/adminData';
 
 const initialFormData = {
@@ -372,152 +373,147 @@ function GestionUsuarios() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '760px' }}>
-            <div className="modal-header">
-              <div>
-                <h3>{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
-                <p className="form-alert" style={{ margin: 0 }}>
-                  Los usuarios creados aquí son empleados, no socios.
-                </p>
-              </div>
-              <button onClick={() => setShowModal(false)} className="close-modal">
-                <X size={24} />
-              </button>
+        <Modal maxWidth="760px">
+          <ModalHeader onClose={() => setShowModal(false)}>
+            <div>
+              <h3>{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
+              <p className="form-alert" style={{ margin: 0 }}>
+                Los usuarios creados aquí son empleados, no socios.
+              </p>
             </div>
+          </ModalHeader>
 
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="required">Nombres</label>
-                    <input
-                      value={formData.nombres}
-                      onChange={(event) => updateForm('nombres', event.target.value)}
-                      style={getInputStyles('nombres')}
-                    />
-                    {formErrors.nombres && <p className="field-error">{formErrors.nombres}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label className="required">Apellido paterno</label>
-                    <input
-                      value={formData.apellidoPaterno}
-                      onChange={(event) => updateForm('apellidoPaterno', event.target.value)}
-                      style={getInputStyles('apellidoPaterno')}
-                    />
-                    {formErrors.apellidoPaterno && <p className="field-error">{formErrors.apellidoPaterno}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label>Apellido materno</label>
-                    <input
-                      value={formData.apellidoMaterno}
-                      onChange={(event) => updateForm('apellidoMaterno', event.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="required">Email</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(event) => updateForm('email', event.target.value)}
-                      style={getInputStyles('email')}
-                    />
-                    {formErrors.email && <p className="field-error">{formErrors.email}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label>Teléfono</label>
-                    <input
-                      value={formData.telefono}
-                      onChange={(event) => updateForm('telefono', event.target.value.replace(/\D/g, '').slice(0, 10))}
-                      style={getInputStyles('telefono')}
-                    />
-                    {formErrors.telefono && <p className="field-error">{formErrors.telefono}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label className="required">CURP</label>
-                    <input
-                      value={formData.curp}
-                      onChange={(event) => updateForm('curp', event.target.value.toUpperCase().slice(0, 18))}
-                      style={getInputStyles('curp')}
-                    />
-                    {formErrors.curp && <p className="field-error">{formErrors.curp}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label className="required">Rol</label>
-                    <select
-                      value={formData.rol_id}
-                      onChange={(event) => updateForm('rol_id', event.target.value)}
-                      style={getInputStyles('rol_id')}
-                    >
-                      <option value="">Seleccione</option>
-                      {roles.map((role) => (
-                        <option key={role.rol_id} value={role.rol_id}>
-                          {role.nombre}
-                        </option>
-                      ))}
-                    </select>
-                    {formErrors.rol_id && <p className="field-error">{formErrors.rol_id}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label>Fecha de nacimiento</label>
-                    <input
-                      type="date"
-                      value={formData.fechaNacimiento}
-                      onChange={(event) => updateForm('fechaNacimiento', event.target.value)}
-                      style={getInputStyles('fechaNacimiento')}
-                    />
-                    {formErrors.fechaNacimiento && <p className="field-error">{formErrors.fechaNacimiento}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label>Género</label>
-                    <select value={formData.genero} onChange={(event) => updateForm('genero', event.target.value)}>
-                      <option value="">Seleccione</option>
-                      <option value="Masculino">Masculino</option>
-                      <option value="Femenino">Femenino</option>
-                      <option value="No especificado">No especificado</option>
-                    </select>
-                  </div>
-                  <div className="form-group form-group-full">
-                    <label className="required">Dirección</label>
-                    <input
-                      value={formData.direccion}
-                      onChange={(event) => updateForm('direccion', event.target.value)}
-                      style={getInputStyles('direccion')}
-                    />
-                    {formErrors.direccion && <p className="field-error">{formErrors.direccion}</p>}
-                  </div>
-                  <div className="form-group form-group-full">
-                    <label>{editingUser ? 'Contraseña (opcional)' : 'Contraseña'}</label>
-                    <input
-                      type="password"
-                      value={formData.password}
-                      onChange={(event) => updateForm('password', event.target.value)}
-                      style={getInputStyles('password')}
-                    />
-                    <p className="field-hint">Mínimo 6 caracteres.</p>
-                    {formErrors.password && <p className="field-error">{formErrors.password}</p>}
-                  </div>
+          <form onSubmit={handleSubmit}>
+            <ModalBody>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="required">Nombres</label>
+                  <input
+                    value={formData.nombres}
+                    onChange={(event) => updateForm('nombres', event.target.value)}
+                    style={getInputStyles('nombres')}
+                  />
+                  {formErrors.nombres && <p className="field-error">{formErrors.nombres}</p>}
+                </div>
+                <div className="form-group">
+                  <label className="required">Apellido paterno</label>
+                  <input
+                    value={formData.apellidoPaterno}
+                    onChange={(event) => updateForm('apellidoPaterno', event.target.value)}
+                    style={getInputStyles('apellidoPaterno')}
+                  />
+                  {formErrors.apellidoPaterno && <p className="field-error">{formErrors.apellidoPaterno}</p>}
+                </div>
+                <div className="form-group">
+                  <label>Apellido materno</label>
+                  <input
+                    value={formData.apellidoMaterno}
+                    onChange={(event) => updateForm('apellidoMaterno', event.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="required">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(event) => updateForm('email', event.target.value)}
+                    style={getInputStyles('email')}
+                  />
+                  {formErrors.email && <p className="field-error">{formErrors.email}</p>}
+                </div>
+                <div className="form-group">
+                  <label>Teléfono</label>
+                  <input
+                    value={formData.telefono}
+                    onChange={(event) => updateForm('telefono', event.target.value.replace(/\D/g, '').slice(0, 10))}
+                    style={getInputStyles('telefono')}
+                  />
+                  {formErrors.telefono && <p className="field-error">{formErrors.telefono}</p>}
+                </div>
+                <div className="form-group">
+                  <label className="required">CURP</label>
+                  <input
+                    value={formData.curp}
+                    onChange={(event) => updateForm('curp', event.target.value.toUpperCase().slice(0, 18))}
+                    style={getInputStyles('curp')}
+                  />
+                  {formErrors.curp && <p className="field-error">{formErrors.curp}</p>}
+                </div>
+                <div className="form-group">
+                  <label className="required">Rol</label>
+                  <select
+                    value={formData.rol_id}
+                    onChange={(event) => updateForm('rol_id', event.target.value)}
+                    style={getInputStyles('rol_id')}
+                  >
+                    <option value="">Seleccione</option>
+                    {roles.map((role) => (
+                      <option key={role.rol_id} value={role.rol_id}>
+                        {role.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {formErrors.rol_id && <p className="field-error">{formErrors.rol_id}</p>}
+                </div>
+                <div className="form-group">
+                  <label>Fecha de nacimiento</label>
+                  <input
+                    type="date"
+                    value={formData.fechaNacimiento}
+                    onChange={(event) => updateForm('fechaNacimiento', event.target.value)}
+                    style={getInputStyles('fechaNacimiento')}
+                  />
+                  {formErrors.fechaNacimiento && <p className="field-error">{formErrors.fechaNacimiento}</p>}
+                </div>
+                <div className="form-group">
+                  <label>Género</label>
+                  <select value={formData.genero} onChange={(event) => updateForm('genero', event.target.value)}>
+                    <option value="">Seleccione</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="No especificado">No especificado</option>
+                  </select>
+                </div>
+                <div className="form-group form-group-full">
+                  <label className="required">Dirección</label>
+                  <input
+                    value={formData.direccion}
+                    onChange={(event) => updateForm('direccion', event.target.value)}
+                    style={getInputStyles('direccion')}
+                  />
+                  {formErrors.direccion && <p className="field-error">{formErrors.direccion}</p>}
+                </div>
+                <div className="form-group form-group-full">
+                  <label>{editingUser ? 'Contraseña (opcional)' : 'Contraseña'}</label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(event) => updateForm('password', event.target.value)}
+                    style={getInputStyles('password')}
+                  />
+                  <p className="field-hint">Mínimo 6 caracteres.</p>
+                  {formErrors.password && <p className="field-error">{formErrors.password}</p>}
                 </div>
               </div>
+            </ModalBody>
 
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowModal(false);
-                    setFormErrors({});
-                  }}
-                  className="btn-outline"
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-primary">
-                  Guardar Usuario
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <ModalFooter>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  setFormErrors({});
+                }}
+                className="btn-outline"
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="btn-primary">
+                Guardar Usuario
+              </button>
+            </ModalFooter>
+          </form>
+        </Modal>
       )}
 
       {viewingUser &&
@@ -540,57 +536,52 @@ function GestionUsuarios() {
             { label: 'Dirección', value: u.direccion || '-', full: true }
           ];
           return (
-            <div className="modal-overlay">
-              <div className="modal-content" style={{ maxWidth: '580px' }}>
-                <div className="modal-header">
-                  <div>
-                    <h3>{getFullName(u)}</h3>
-                    <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Ficha de usuario interno</p>
-                  </div>
-                  <button onClick={() => setViewingUser(null)} className="close-modal">
-                    <X size={24} />
-                  </button>
+            <Modal maxWidth="580px">
+              <ModalHeader onClose={() => setViewingUser(null)}>
+                <div>
+                  <h3>{getFullName(u)}</h3>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Ficha de usuario interno</p>
                 </div>
-                <div className="modal-body">
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem' }}>
-                    {fields.map((f) => (
-                      <div key={f.label} style={f.full ? { gridColumn: '1 / -1' } : {}}>
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: 11,
-                            color: '#94a3b8',
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em'
-                          }}
-                        >
-                          {f.label}
-                        </p>
-                        <p style={{ margin: '2px 0 0', fontSize: 14, color: '#1e293b', fontWeight: 500 }}>
-                          {String(f.value)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+              </ModalHeader>
+              <ModalBody>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem' }}>
+                  {fields.map((f) => (
+                    <div key={f.label} style={f.full ? { gridColumn: '1 / -1' } : {}}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 11,
+                          color: '#94a3b8',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      >
+                        {f.label}
+                      </p>
+                      <p style={{ margin: '2px 0 0', fontSize: 14, color: '#1e293b', fontWeight: 500 }}>
+                        {String(f.value)}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-                <div className="modal-footer">
-                  <button type="button" onClick={() => setViewingUser(null)} className="btn-outline">
-                    Cerrar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setViewingUser(null);
-                      handleEdit(u);
-                    }}
-                    className="btn-primary"
-                  >
-                    <Edit2 size={15} /> Editar
-                  </button>
-                </div>
-              </div>
-            </div>
+              </ModalBody>
+              <ModalFooter>
+                <button type="button" onClick={() => setViewingUser(null)} className="btn-outline">
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewingUser(null);
+                    handleEdit(u);
+                  }}
+                  className="btn-primary"
+                >
+                  <Edit2 size={15} /> Editar
+                </button>
+              </ModalFooter>
+            </Modal>
           );
         })()}
     </div>

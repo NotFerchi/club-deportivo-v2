@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Clock, Edit2, History, MapPin, Plus, RotateCcw, Trash2, Wrench, X } from 'lucide-react';
+import { CheckCircle, Clock, Edit2, History, MapPin, Plus, RotateCcw, Trash2, Wrench } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
 import { EmptyState, FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '../../../components/shared/Modal';
 import { isActiveValue, normalizeText } from '../../../utils/adminData';
 import { getDeporteIcono } from '../../../utils/deporteIconos';
 
@@ -29,64 +30,59 @@ function MantenimientoModal({ espacio, onClose, onConfirm }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: 440 }}>
-        <div className="modal-header">
-          <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Wrench size={18} style={{ color: '#f97316' }} />
-              Poner en mantenimiento
-            </h3>
-            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{espacio.nombre}</p>
-          </div>
-          <button onClick={onClose} className="close-modal">
-            <X size={22} />
-          </button>
+    <Modal maxWidth={440}>
+      <ModalHeader onClose={onClose} closeIconSize={22}>
+        <div>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Wrench size={18} style={{ color: '#f97316' }} />
+            Poner en mantenimiento
+          </h3>
+          <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{espacio.nombre}</p>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            <div className="form-group form-group-full">
-              <label>Motivo del mantenimiento</label>
-              <textarea
-                rows={3}
-                placeholder="Ej: Reparación de piso, pintura, revisión eléctrica..."
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                style={{ resize: 'vertical', minHeight: 70 }}
-                autoFocus
-              />
-              <p className="field-hint">Opcional pero recomendado para el historial.</p>
-            </div>
-            <div className="form-group form-group-full">
-              <label>Fecha estimada de finalización</label>
-              <input
-                type="date"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
-                min={(() => {
-                  const d = new Date();
-                  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                })()}
-              />
-              <p className="field-hint">Opcional. Puedes reactivar el espacio manualmente en cualquier momento.</p>
-            </div>
+      </ModalHeader>
+      <form onSubmit={handleSubmit}>
+        <ModalBody>
+          <div className="form-group form-group-full">
+            <label>Motivo del mantenimiento</label>
+            <textarea
+              rows={3}
+              placeholder="Ej: Reparación de piso, pintura, revisión eléctrica..."
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              style={{ resize: 'vertical', minHeight: 70 }}
+              autoFocus
+            />
+            <p className="field-hint">Opcional pero recomendado para el historial.</p>
           </div>
-          <div className="modal-footer">
-            <button type="button" onClick={onClose} className="btn-outline" disabled={saving}>
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={saving}
-              style={{ background: '#f97316', borderColor: '#f97316' }}
-            >
-              {saving ? 'Guardando...' : 'Confirmar mantenimiento'}
-            </button>
+          <div className="form-group form-group-full">
+            <label>Fecha estimada de finalización</label>
+            <input
+              type="date"
+              value={fechaFin}
+              onChange={(e) => setFechaFin(e.target.value)}
+              min={(() => {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              })()}
+            />
+            <p className="field-hint">Opcional. Puedes reactivar el espacio manualmente en cualquier momento.</p>
           </div>
-        </form>
-      </div>
-    </div>
+        </ModalBody>
+        <ModalFooter>
+          <button type="button" onClick={onClose} className="btn-outline" disabled={saving}>
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={saving}
+            style={{ background: '#f97316', borderColor: '#f97316' }}
+          >
+            {saving ? 'Guardando...' : 'Confirmar mantenimiento'}
+          </button>
+        </ModalFooter>
+      </form>
+    </Modal>
   );
 }
 
@@ -610,121 +606,116 @@ function ConfiguracionEspacios({ readOnly = false }) {
 
       {/* Modal crear/editar espacio */}
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '500px' }}>
-            <div className="modal-header">
-              <div>
-                <h3>{editingEspacio ? 'Editar Espacio' : 'Nuevo Espacio'}</h3>
-                <p className="form-alert" style={{ margin: 0 }}>
-                  Los campos marcados como obligatorios se validan antes de guardar.
-                </p>
-              </div>
-              <button onClick={() => setShowModal(false)} className="close-modal">
-                <X size={24} />
-              </button>
+        <Modal maxWidth="500px">
+          <ModalHeader onClose={() => setShowModal(false)}>
+            <div>
+              <h3>{editingEspacio ? 'Editar Espacio' : 'Nuevo Espacio'}</h3>
+              <p className="form-alert" style={{ margin: 0 }}>
+                Los campos marcados como obligatorios se validan antes de guardar.
+              </p>
             </div>
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="form-row">
-                  <div className="form-group form-group-full">
-                    <label className="required">Nombre del espacio</label>
-                    <input
-                      type="text"
-                      placeholder="Ej: Cancha de Fútbol"
-                      value={formData.nombre}
-                      onChange={(e) => updateForm('nombre', e.target.value)}
-                      style={getInputStyles('nombre')}
-                      autoFocus
-                    />
-                    {formErrors.nombre && <p className="field-error">{formErrors.nombre}</p>}
-                  </div>
+          </ModalHeader>
+          <form onSubmit={handleSubmit}>
+            <ModalBody>
+              <div className="form-row">
+                <div className="form-group form-group-full">
+                  <label className="required">Nombre del espacio</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Cancha de Fútbol"
+                    value={formData.nombre}
+                    onChange={(e) => updateForm('nombre', e.target.value)}
+                    style={getInputStyles('nombre')}
+                    autoFocus
+                  />
+                  {formErrors.nombre && <p className="field-error">{formErrors.nombre}</p>}
+                </div>
 
-                  <div className="form-group form-group-full">
-                    <label>Disciplinas</label>
-                    {disciplinas.length === 0 ? (
-                      <p className="field-hint">No hay disciplinas registradas.</p>
-                    ) : (
-                      <div
-                        style={{
-                          maxHeight: 140,
-                          overflowY: 'auto',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: 8,
-                          padding: '8px 12px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 6,
-                          background: '#fff'
-                        }}
-                      >
-                        {disciplinas.map((d) => (
-                          <label
-                            key={d.disciplina_id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                              cursor: 'pointer',
-                              fontSize: 14,
-                              color: '#1e293b',
-                              userSelect: 'none'
+                <div className="form-group form-group-full">
+                  <label>Disciplinas</label>
+                  {disciplinas.length === 0 ? (
+                    <p className="field-hint">No hay disciplinas registradas.</p>
+                  ) : (
+                    <div
+                      style={{
+                        maxHeight: 140,
+                        overflowY: 'auto',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 8,
+                        padding: '8px 12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        background: '#fff'
+                      }}
+                    >
+                      {disciplinas.map((d) => (
+                        <label
+                          key={d.disciplina_id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            cursor: 'pointer',
+                            fontSize: 14,
+                            color: '#1e293b',
+                            userSelect: 'none'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.disciplina_ids.includes(d.disciplina_id)}
+                            onChange={(e) => {
+                              const id = d.disciplina_id;
+                              const curr = formData.disciplina_ids;
+                              updateForm(
+                                'disciplina_ids',
+                                e.target.checked ? [...curr, id] : curr.filter((x) => x !== id)
+                              );
                             }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.disciplina_ids.includes(d.disciplina_id)}
-                              onChange={(e) => {
-                                const id = d.disciplina_id;
-                                const curr = formData.disciplina_ids;
-                                updateForm(
-                                  'disciplina_ids',
-                                  e.target.checked ? [...curr, id] : curr.filter((x) => x !== id)
-                                );
-                              }}
-                              style={{ accentColor: '#3b82f6', width: 15, height: 15 }}
-                            />
-                            {d.nombre}
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                    <p className="field-hint">Selecciona una o más disciplinas que se practican en este espacio.</p>
-                  </div>
+                            style={{ accentColor: '#3b82f6', width: 15, height: 15 }}
+                          />
+                          {d.nombre}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  <p className="field-hint">Selecciona una o más disciplinas que se practican en este espacio.</p>
+                </div>
 
-                  <div className="form-group form-group-full">
-                    <label className="required">Capacidad máxima</label>
-                    <input
-                      type="number"
-                      placeholder="Ej: 100"
-                      value={formData.capacidad_maxima}
-                      onChange={(e) => updateForm('capacidad_maxima', e.target.value)}
-                      style={getInputStyles('capacidad')}
-                      min="1"
-                      max="500"
-                    />
-                    {formErrors.capacidad && <p className="field-error">{formErrors.capacidad}</p>}
-                    <p className="field-hint">Rango permitido: 1 a 500 personas.</p>
-                  </div>
+                <div className="form-group form-group-full">
+                  <label className="required">Capacidad máxima</label>
+                  <input
+                    type="number"
+                    placeholder="Ej: 100"
+                    value={formData.capacidad_maxima}
+                    onChange={(e) => updateForm('capacidad_maxima', e.target.value)}
+                    style={getInputStyles('capacidad')}
+                    min="1"
+                    max="500"
+                  />
+                  {formErrors.capacidad && <p className="field-error">{formErrors.capacidad}</p>}
+                  <p className="field-hint">Rango permitido: 1 a 500 personas.</p>
                 </div>
               </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowModal(false);
-                    setFormErrors({});
-                  }}
-                  className="btn-outline"
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-primary">
-                  {editingEspacio ? 'Actualizar' : 'Crear'} Espacio
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </ModalBody>
+            <ModalFooter>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  setFormErrors({});
+                }}
+                className="btn-outline"
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="btn-primary">
+                {editingEspacio ? 'Actualizar' : 'Crear'} Espacio
+              </button>
+            </ModalFooter>
+          </form>
+        </Modal>
       )}
 
       {/* Modal de mantenimiento */}
@@ -738,82 +729,75 @@ function ConfiguracionEspacios({ readOnly = false }) {
 
       {/* Modal historial de mantenimiento */}
       {historialModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 560 }}>
-            <div className="modal-header">
-              <div>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <History size={18} style={{ color: '#6366f1' }} />
-                  Historial de Mantenimiento
-                </h3>
-                <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{historialModal.espacio.nombre}</p>
-              </div>
-              <button onClick={() => setHistorialModal(null)} className="close-modal">
-                <X size={22} />
-              </button>
+        <Modal maxWidth={560}>
+          <ModalHeader onClose={() => setHistorialModal(null)} closeIconSize={22}>
+            <div>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <History size={18} style={{ color: '#6366f1' }} />
+                Historial de Mantenimiento
+              </h3>
+              <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{historialModal.espacio.nombre}</p>
             </div>
-            <div className="modal-body">
-              {historialLoading ? (
-                <p style={{ textAlign: 'center', color: '#64748b', padding: '2rem 0' }}>Cargando historial...</p>
-              ) : historialModal.error ? (
-                <p style={{ textAlign: 'center', color: '#ef4444', padding: '2rem 0' }}>
-                  Error: {historialModal.error}
-                </p>
-              ) : historialModal.registros.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#64748b', padding: '2rem 0' }}>
-                  Este espacio no tiene registros de mantenimiento.
-                </p>
-              ) : (
-                <div className="table-wrapper">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Inicio</th>
-                        <th>Fin</th>
-                        <th>Motivo</th>
-                        <th>Registrado por</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {historialModal.registros.map((r) => (
-                        <tr key={r.mant_id}>
-                          <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                            <Clock size={11} style={{ marginRight: 4, color: '#f97316' }} />
-                            {r.fecha_inicio
-                              ? new Date(r.fecha_inicio).toLocaleString('es-MX', {
-                                  timeZone: 'America/Mexico_City',
-                                  dateStyle: 'short',
-                                  timeStyle: 'short'
-                                })
-                              : '—'}
-                          </td>
-                          <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                            {r.fecha_fin ? (
-                              new Date(r.fecha_fin).toLocaleString('es-MX', {
+          </ModalHeader>
+          <ModalBody>
+            {historialLoading ? (
+              <p style={{ textAlign: 'center', color: '#64748b', padding: '2rem 0' }}>Cargando historial...</p>
+            ) : historialModal.error ? (
+              <p style={{ textAlign: 'center', color: '#ef4444', padding: '2rem 0' }}>Error: {historialModal.error}</p>
+            ) : historialModal.registros.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#64748b', padding: '2rem 0' }}>
+                Este espacio no tiene registros de mantenimiento.
+              </p>
+            ) : (
+              <div className="table-wrapper">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Inicio</th>
+                      <th>Fin</th>
+                      <th>Motivo</th>
+                      <th>Registrado por</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historialModal.registros.map((r) => (
+                      <tr key={r.mant_id}>
+                        <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                          <Clock size={11} style={{ marginRight: 4, color: '#f97316' }} />
+                          {r.fecha_inicio
+                            ? new Date(r.fecha_inicio).toLocaleString('es-MX', {
                                 timeZone: 'America/Mexico_City',
                                 dateStyle: 'short',
                                 timeStyle: 'short'
                               })
-                            ) : (
-                              <span style={{ color: '#f97316', fontWeight: 600 }}>En curso</span>
-                            )}
-                          </td>
-                          <td style={{ fontSize: 12 }}>{r.motivo || '—'}</td>
-                          <td style={{ fontSize: 12, color: '#64748b' }}>{r.usuario_nombre?.trim() || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setHistorialModal(null)} className="btn-outline">
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+                            : '—'}
+                        </td>
+                        <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                          {r.fecha_fin ? (
+                            new Date(r.fecha_fin).toLocaleString('es-MX', {
+                              timeZone: 'America/Mexico_City',
+                              dateStyle: 'short',
+                              timeStyle: 'short'
+                            })
+                          ) : (
+                            <span style={{ color: '#f97316', fontWeight: 600 }}>En curso</span>
+                          )}
+                        </td>
+                        <td style={{ fontSize: 12 }}>{r.motivo || '—'}</td>
+                        <td style={{ fontSize: 12, color: '#64748b' }}>{r.usuario_nombre?.trim() || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <button onClick={() => setHistorialModal(null)} className="btn-outline">
+              Cerrar
+            </button>
+          </ModalFooter>
+        </Modal>
       )}
     </div>
   );

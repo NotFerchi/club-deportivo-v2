@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dumbbell, Edit2, Plus, Trash2, X } from 'lucide-react';
+import { Dumbbell, Edit2, Plus, Trash2 } from 'lucide-react';
 import { adminApi, apiRequest } from '../../../services/api';
 import { EmptyState, FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '../../../components/shared/Modal';
 import { normalizeText } from '../../../utils/adminData';
 import { getDeporteIcono } from '../../../utils/deporteIconos';
 import { useNotification } from '../../../context/NotificationContext';
@@ -207,52 +208,47 @@ function Disciplinas({ readOnly = false }) {
       )}
 
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '500px' }}>
-            <div className="modal-header">
-              <h3>{editing ? 'Editar Disciplina' : 'Nueva Disciplina'}</h3>
-              <button onClick={() => setShowModal(false)} className="close-modal">
-                <X size={24} />
-              </button>
-            </div>
+        <Modal maxWidth="500px">
+          <ModalHeader onClose={() => setShowModal(false)}>
+            <h3>{editing ? 'Editar Disciplina' : 'Nueva Disciplina'}</h3>
+          </ModalHeader>
 
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="form-group form-group-full">
-                  <label className="required">Nombre de la disciplina</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: Fútbol, Tenis, Natación"
-                    value={formData.nombre}
-                    onChange={(event) => {
-                      setFormData({ nombre: event.target.value });
-                      setFormErrors({});
-                    }}
-                    style={formErrors.nombre ? inputErrorStyle : {}}
-                    autoFocus
-                  />
-                  {formErrors.nombre && <p className="field-error">{formErrors.nombre}</p>}
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowModal(false);
+          <form onSubmit={handleSubmit}>
+            <ModalBody>
+              <div className="form-group form-group-full">
+                <label className="required">Nombre de la disciplina</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Fútbol, Tenis, Natación"
+                  value={formData.nombre}
+                  onChange={(event) => {
+                    setFormData({ nombre: event.target.value });
                     setFormErrors({});
                   }}
-                  className="btn-outline"
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-primary">
-                  {editing ? 'Actualizar' : 'Crear'} Disciplina
-                </button>
+                  style={formErrors.nombre ? inputErrorStyle : {}}
+                  autoFocus
+                />
+                {formErrors.nombre && <p className="field-error">{formErrors.nombre}</p>}
               </div>
-            </form>
-          </div>
-        </div>
+            </ModalBody>
+
+            <ModalFooter>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  setFormErrors({});
+                }}
+                className="btn-outline"
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="btn-primary">
+                {editing ? 'Actualizar' : 'Crear'} Disciplina
+              </button>
+            </ModalFooter>
+          </form>
+        </Modal>
       )}
     </div>
   );

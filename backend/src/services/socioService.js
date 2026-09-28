@@ -362,11 +362,121 @@ async function eliminarSocioPermanente(id) {
   });
 }
 
+// ── Variante de recepción (/api/recepcion/socios) ─────────────────────────────
+// Flujo heredado distinto del de arriba: sin validaciones de payload, contraseña
+// fija 'socio123' y numeración por SUBSTRING (ver fuera de alcance). ROLLBACK
+// silencioso como en el controlador original.
+
+/** Alta de socio desde recepción. Devuelve la contraseña asignada. */
+async function crearSocioRecepcion(body) {
+  requireBodyOrEscalate(body);
+  const { nombres, apellidoPaterno, apellidoMaterno, email, telefono, curp, tipo, modalidad } = body;
+
+  return enTransaccion(
+    async (client) => {
+      const existe = await client.query('SELECT usuario_id FROM usuarios WHERE username = $1', [email]);
+      if (existe.rows.length > 0) {
+        throw new ServiceError(400, { error: 'El correo ya esta registrado' });
+      }
+
+      const passwordDefault = 'socio123';
+      const rolResult = await client.query(`SELECT rol_id FROM roles WHERE nombre = 'socio'`);
+      const rolId = rolResult.rows[0].rol_id;
+
+      const userResult = await client.query(
+        `INSERT INTO usuarios (
+                    username,
+                    nombres,
+                    apellido_paterno,
+                    apellido_materno,
+                    curp,
+                    telefono,
+                    password_hash,
+                    rol_id,
+                    activo
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, crypt($7, gen_salt('bf')), $8, true)
+                RETURNING usuario_id`,
+        [email, nombres, apellidoPaterno, apellidoMaterno || '', curp, telefono, passwordDefault, rolId]
+      );
+      const usuarioId = userResult.rows[0].usuario_id;
+
+      const numSocioResult = await client.query(`
+                SELECT COALESCE(MAX(CAST(SUBSTRING(numero_socio FROM 5) AS INTEGER)), 0) + 1
+                FROM socios
+            `);
+      const numeroSocio = `SOC-${String(numSocioResult.rows[0].coalesce).padStart(4, '0')}`;
+
+      await client.query(
+        `INSERT INTO socios (
+                    usuario_id,
+                    tipo,
+                    modalidad,
+                    es_titular,
+                    numero_socio,
+                    activo
+                )
+                VALUES ($1, $2, $3, true, $4, true)`,
+        [usuarioId, tipo || 'Rentista', modalidad || 'Individual', numeroSocio]
+      );
+
+      return passwordDefault;
+    },
+    { quietRollback: true }
+  );
+}
+
+async function actualizarSocioRecepcion(id, body) {
+  requireBodyOrEscalate(body);
+  const { nombres, apellidoPaterno, apellidoMaterno, email, telefono, activo } = body;
+
+  await enTransaccion(
+    async (client) => {
+      const socioResult = await client.query('SELECT usuario_id FROM socios WHERE socio_id = $1', [id]);
+      if (socioResult.rows.length === 0) {
+        throw new ServiceError(404, { error: 'Socio no encontrado' });
+      }
+
+      await client.query(
+        `UPDATE usuarios
+                 SET nombres = $1,
+                     apellido_paterno = $2,
+                     apellido_materno = $3,
+                     username = $4,
+                     telefono = $5,
+                     activo = $6
+                 WHERE usuario_id = $7`,
+        [nombres, apellidoPaterno, apellidoMaterno, email, telefono, activo, socioResult.rows[0].usuario_id]
+      );
+    },
+    { quietRollback: true }
+  );
+}
+
+/** Inactiva socio y usuario (la ruta se llama "eliminar"). */
+async function inactivarSocioRecepcion(id) {
+  await enTransaccion(
+    async (client) => {
+      const socioResult = await client.query('SELECT usuario_id FROM socios WHERE socio_id = $1', [id]);
+      if (socioResult.rows.length === 0) {
+        throw new ServiceError(404, { error: 'Socio no encontrado' });
+      }
+
+      await client.query('UPDATE socios SET activo = false WHERE socio_id = $1', [id]);
+      await client.query('UPDATE usuarios SET activo = false WHERE usuario_id = $1', [socioResult.rows[0].usuario_id]);
+    },
+    { quietRollback: true }
+  );
+}
+
 module.exports = {
   listarSocios,
   obtenerSocio,
   crearSocio,
   actualizarSocio,
   cambiarActivoSocio,
-  eliminarSocioPermanente
+  eliminarSocioPermanente,
+  crearSocioRecepcion,
+  actualizarSocioRecepcion,
+  inactivarSocioRecepcion
 };

@@ -1,6 +1,6 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
-const { escalate } = require('./escalate');
+const { escalate, requireBodyOrEscalate } = require('./escalate');
 const { enTransaccion } = require('./transaction');
 const { validarQrFirmado } = require('../helpers/qrSecurity.helper');
 
@@ -391,7 +391,67 @@ async function entradaPorQr(socioPadreId, { nombre_hijo, fecha_nacimiento, obser
   return { registro, horaLimite: horaLimite.toISOString() };
 }
 
+// ── Variante de recepción (/api/recepcion/ludoteca) ──────────────────────────
+// Flujo heredado más simple: sin validar edad ni generar sanciones.
+
+async function activosRecepcion() {
+  const result = await pool.query(`
+                SELECT
+                    rl.registro_id,
+                    rl.nombre_hijo,
+                    rl.fecha_nacimiento,
+                    rl.hora_entrada,
+                    rl.hora_salida,
+                    rl.observaciones,
+                    TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local,
+                    u.nombres || ' ' || u.apellido_paterno as tutor_nombre,
+                    GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}') - rl.hora_entrada)))::int, 0) AS segundos_transcurridos,
+                    GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}') - rl.hora_entrada)) / 60)::int, 0) AS minutos_transcurridos,
+                    CASE WHEN rl.hora_salida IS NULL THEN 'Activo' ELSE 'Finalizado' END as estado
+                FROM registro_ludoteca rl
+                JOIN socios s ON rl.socio_padre_id = s.socio_id
+                JOIN usuarios u ON s.usuario_id = u.usuario_id
+                WHERE rl.hora_salida IS NULL ORDER BY rl.hora_entrada
+            `);
+  return result.rows;
+}
+
+/** Devuelve el registro_id creado. */
+async function entradaRecepcion(body) {
+  requireBodyOrEscalate(body);
+  const { socioId, nombreHijo, fechaNacimiento, observaciones } = body;
+  const result = await pool.query(
+    `INSERT INTO registro_ludoteca (
+                    socio_padre_id,
+                    nombre_hijo,
+                    fecha_nacimiento,
+                    hora_entrada,
+                    observaciones
+                )
+                VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}', $4)
+                RETURNING registro_id`,
+    [socioId, nombreHijo, fechaNacimiento, String(observaciones || '').trim() || null]
+  );
+  return result.rows[0].registro_id;
+}
+
+async function salidaRecepcion(id) {
+  const result = await pool.query(
+    `UPDATE registro_ludoteca
+                 SET hora_salida = NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}'
+                 WHERE registro_id = $1 AND hora_salida IS NULL
+                 RETURNING registro_id`,
+    [id]
+  );
+  if (result.rows.length === 0) {
+    throw new ServiceError(404, { error: 'Registro no encontrado o ya finalizado' });
+  }
+}
+
 module.exports = {
+  activosRecepcion,
+  entradaRecepcion,
+  salidaRecepcion,
   registrosActivos,
   historial,
   aforo,

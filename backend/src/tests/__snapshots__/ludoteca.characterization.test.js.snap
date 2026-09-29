@@ -267,7 +267,7 @@ exports[`POST / (alias con socio_id / nombre_nino) registra la entrada y audita 
     [
       10,
       "Leo",
-      "2021-09-18",
+      "2021-09-20",
       "alergia",
     ],
   ],
@@ -400,7 +400,7 @@ exports[`POST /acceso-qr sin registro activo: pide datos, valida y registra entr
     [
       10,
       "Leo",
-      "2021-09-18",
+      "2021-09-20",
       "x",
     ],
   ],
@@ -424,7 +424,7 @@ exports[`POST /acceso-qr sin registro activo: pide datos, valida y registra entr
     [
       10,
       "Leo",
-      "2021-09-18",
+      "2021-09-20",
       null,
     ],
   ],
@@ -465,7 +465,7 @@ exports[`POST /entrada registra la entrada y audita 1`] = `
     [
       10,
       "Leo",
-      "2021-09-18",
+      "2021-09-20",
       "alergia",
     ],
   ],
@@ -517,7 +517,7 @@ exports[`POST /socio/entrada validaciones, 403 sin socio, 409 niño activo, alta
     [
       10,
       "Leo",
-      "2021-09-18",
+      "2021-09-20",
       null,
     ],
   ],
@@ -542,7 +542,7 @@ exports[`POST /socio/entrada validaciones, 403 sin socio, 409 niño activo, alta
     [
       10,
       "Leo",
-      "2021-09-18",
+      "2021-09-20",
       null,
     ],
   ],

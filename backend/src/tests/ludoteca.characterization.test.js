@@ -33,10 +33,28 @@ app.use(require('../middleware/errorHandler'));
 const rows = (list) => ({ rows: list, rowCount: list.length });
 
 /** Fecha YYYY-MM-DD de hace `anios` años (y unos días más, para no caer en el borde). */
+// Reloj fijo (solo Date): las edades y los snapshots no dependen del día ni de la zona horaria.
+jest.useFakeTimers({
+  now: new Date('2026-09-30T18:00:00.000Z'),
+  doNotFake: [
+    'nextTick',
+    'setImmediate',
+    'clearImmediate',
+    'setTimeout',
+    'clearTimeout',
+    'setInterval',
+    'clearInterval',
+    'queueMicrotask',
+    'hrtime',
+    'performance'
+  ]
+});
+afterAll(() => jest.useRealTimers());
+
 function haceAnios(anios, dias = 10) {
   const d = new Date();
-  d.setFullYear(d.getFullYear() - anios);
-  d.setDate(d.getDate() - dias);
+  d.setUTCFullYear(d.getUTCFullYear() - anios);
+  d.setUTCDate(d.getUTCDate() - dias);
   return d.toISOString().split('T')[0];
 }
 const NACIMIENTO_OK = haceAnios(5);

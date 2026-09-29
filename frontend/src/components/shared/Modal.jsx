@@ -18,12 +18,13 @@ import { X } from 'lucide-react';
  * ponga cada pantalla (comportamiento heredado de la V1).
  *
  * Props:
- *   maxWidth - ancho máximo de .modal-content; se pasa tal cual ('500px' o 440)
+ *   maxWidth  - ancho máximo de .modal-content; se pasa tal cual ('500px' o 440)
+ *   className - clase extra de .modal-content (p. ej. 'sanciones-modal'); opcional
  */
-export function Modal({ maxWidth, children }) {
+export function Modal({ maxWidth, className, children }) {
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth }}>
+      <div className={className ? `modal-content ${className}` : 'modal-content'} style={{ maxWidth }}>
         {children}
       </div>
     </div>
@@ -35,14 +36,16 @@ export function Modal({ maxWidth, children }) {
  * <div> con <h3> y subtítulo.
  *
  * Props:
- *   onClose       - acción de la X (puede diferir de la del botón Cancelar)
- *   closeIconSize - tamaño del ícono X (default 24)
+ *   onClose         - acción de la X (puede diferir de la del botón Cancelar)
+ *   closeIconSize   - tamaño del ícono X (default 24)
+ *   style           - estilo en línea de .modal-header (p. ej. borde de color); opcional
+ *   closeButtonType - atributo type de la X ('button' dentro de formularios); si se omite, no se pone
  */
-export function ModalHeader({ onClose, closeIconSize = 24, children }) {
+export function ModalHeader({ onClose, closeIconSize = 24, style, closeButtonType, children }) {
   return (
-    <div className="modal-header">
+    <div className="modal-header" style={style}>
       {children}
-      <button onClick={onClose} className="close-modal">
+      <button onClick={onClose} className="close-modal" type={closeButtonType}>
         <X size={closeIconSize} />
       </button>
     </div>

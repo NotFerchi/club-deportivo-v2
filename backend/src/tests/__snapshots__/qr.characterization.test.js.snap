@@ -1,0 +1,425 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GET /api/qr/mi-qr QR propio y casos de error 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id, activo, numero_socio FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT qr_id, socio_id, codigo_qr, created_at FROM codigos_qr_socios WHERE socio_id = $1 AND activo = TRUE ORDER BY created_at DESC, qr_id DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id, activo, numero_socio FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id, activo, numero_socio FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id, activo, numero_socio FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT qr_id, socio_id, codigo_qr, created_at FROM codigos_qr_socios WHERE socio_id = $1 AND activo = TRUE ORDER BY created_at DESC, qr_id DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id, activo, numero_socio FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/socios/:socio_id/qr QR activo, 400, 404 y error 1`] = `
+[
+  [
+    "pool",
+    "SELECT qr_id, socio_id, codigo_qr FROM codigos_qr_socios WHERE socio_id = $1 AND activo = TRUE ORDER BY created_at DESC, qr_id DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT qr_id, socio_id, codigo_qr FROM codigos_qr_socios WHERE socio_id = $1 AND activo = TRUE ORDER BY created_at DESC, qr_id DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT qr_id, socio_id, codigo_qr FROM codigos_qr_socios WHERE socio_id = $1 AND activo = TRUE ORDER BY created_at DESC, qr_id DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+]
+`;
+
+exports[`POST /api/qr/generar-socio genera el QR (desactiva los anteriores) 1`] = `
+{
+  "qr_id": 11,
+  "qr_image": "data:image/png;base64,QR({"socio_id":10,"timestamp":"2026-09-30T18:00:00.000Z","type":"socio","hash":"hmac({\\"socio_id\\":10,\\"timestamp\\":\\"2026-09-30T18:00:00.000Z\\",\\"type\\":\\"socio\\"})"})",
+  "socio_id": 10,
+}
+`;
+
+exports[`POST /api/qr/generar-socio genera el QR (desactiva los anteriores) 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1 FOR UPDATE",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE codigos_qr_socios SET activo = FALSE, updated_at = NOW() WHERE socio_id = $1 AND activo = TRUE",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO codigos_qr_socios (socio_id, codigo_qr, activo) VALUES ($1, $2, TRUE) RETURNING qr_id",
+    [
+      10,
+      "data:image/png;base64,QR({"socio_id":10,"timestamp":"2026-09-30T18:00:00.000Z","type":"socio","hash":"hmac({\\"socio_id\\":10,\\"timestamp\\":\\"2026-09-30T18:00:00.000Z\\",\\"type\\":\\"socio\\"})"})",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/qr/generar-socio validaciones y errores 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1 FOR UPDATE",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1 FOR UPDATE",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1 FOR UPDATE",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE codigos_qr_socios SET activo = FALSE, updated_at = NOW() WHERE socio_id = $1 AND activo = TRUE",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO codigos_qr_socios (socio_id, codigo_qr, activo) VALUES ($1, $2, TRUE) RETURNING qr_id",
+    [
+      10,
+      "data:image/png;base64,QR({"socio_id":10,"timestamp":"2026-09-30T18:00:00.000Z","type":"socio","hash":"hmac({\\"socio_id\\":10,\\"timestamp\\":\\"2026-09-30T18:00:00.000Z\\",\\"type\\":\\"socio\\"})"})",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1 FOR UPDATE",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE codigos_qr_socios SET activo = FALSE, updated_at = NOW() WHERE socio_id = $1 AND activo = TRUE",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO codigos_qr_socios (socio_id, codigo_qr, activo) VALUES ($1, $2, TRUE) RETURNING qr_id",
+    [
+      10,
+      "data:image/png;base64,QR({"socio_id":10,"timestamp":"2026-09-30T18:00:00.000Z","type":"socio","hash":"hmac({\\"socio_id\\":10,\\"timestamp\\":\\"2026-09-30T18:00:00.000Z\\",\\"type\\":\\"socio\\"})"})",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/qr/generar-visita genera el QR con vigencia de 24 h 1`] = `
+{
+  "expira_en": "2026-10-01T18:00:00.000Z",
+  "qr_id": 22,
+  "qr_image": "data:image/png;base64,QR({"visita_id":5,"expira_en":"2026-10-01T18:00:00.000Z","type":"visita","hash":"hmac({\\"visita_id\\":5,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\",\\"type\\":\\"visita\\"})"})",
+}
+`;
+
+exports[`POST /api/qr/generar-visita genera el QR con vigencia de 24 h 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT visita_id, vigente FROM visitas WHERE visita_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO codigos_qr_visitas (visita_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) RETURNING qr_id",
+    [
+      5,
+      "data:image/png;base64,QR({"visita_id":5,"expira_en":"2026-10-01T18:00:00.000Z","type":"visita","hash":"hmac({\\"visita_id\\":5,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\",\\"type\\":\\"visita\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/qr/generar-visita validaciones y errores 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT visita_id, vigente FROM visitas WHERE visita_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT visita_id, vigente FROM visitas WHERE visita_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT visita_id, vigente FROM visitas WHERE visita_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO codigos_qr_visitas (visita_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) RETURNING qr_id",
+    [
+      5,
+      "data:image/png;base64,QR({"visita_id":5,"expira_en":"2026-10-01T18:00:00.000Z","type":"visita","hash":"hmac({\\"visita_id\\":5,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\",\\"type\\":\\"visita\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT visita_id, vigente FROM visitas WHERE visita_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO codigos_qr_visitas (visita_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) RETURNING qr_id",
+    [
+      5,
+      "data:image/png;base64,QR({"visita_id":5,"expira_en":"2026-10-01T18:00:00.000Z","type":"visita","hash":"hmac({\\"visita_id\\":5,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\",\\"type\\":\\"visita\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/qr/identificar-socio identifica al socio con sus sanciones activas 1`] = `
+[
+  [
+    "pool",
+    "SELECT s.socio_id, s.numero_socio, s.activo, s.tipo, s.modalidad, s.es_titular, u.nombres, u.apellido_paterno, u.apellido_materno, u.telefono, u.fecha_nacimiento, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) AS nombre_completo FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) AS total FROM sanciones WHERE socio_id = $1 AND estado = 'Activo'",
+    [
+      10,
+    ],
+  ],
+]
+`;
+
+exports[`POST /api/qr/identificar-socio validaciones y errores 1`] = `
+[
+  [
+    "pool",
+    "SELECT s.socio_id, s.numero_socio, s.activo, s.tipo, s.modalidad, s.es_titular, u.nombres, u.apellido_paterno, u.apellido_materno, u.telefono, u.fecha_nacimiento, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) AS nombre_completo FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT s.socio_id, s.numero_socio, s.activo, s.tipo, s.modalidad, s.es_titular, u.nombres, u.apellido_paterno, u.apellido_materno, u.telefono, u.fecha_nacimiento, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) AS nombre_completo FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT s.socio_id, s.numero_socio, s.activo, s.tipo, s.modalidad, s.es_titular, u.nombres, u.apellido_paterno, u.apellido_materno, u.telefono, u.fecha_nacimiento, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) AS nombre_completo FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) AS total FROM sanciones WHERE socio_id = $1 AND estado = 'Activo'",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT s.socio_id, s.numero_socio, s.activo, s.tipo, s.modalidad, s.es_titular, u.nombres, u.apellido_paterno, u.apellido_materno, u.telefono, u.fecha_nacimiento, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)) AS nombre_completo FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) AS total FROM sanciones WHERE socio_id = $1 AND estado = 'Activo'",
+    [
+      10,
+    ],
+  ],
+]
+`;

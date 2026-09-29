@@ -1,0 +1,533 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GET /metricas tipo=socio 1`] = `
+{
+  "accesos_por_dia": [
+    {
+      "fecha": "2026-09-01",
+      "total": 5,
+    },
+    {
+      "fecha": "2026-09-02",
+      "total": 4,
+    },
+  ],
+  "horarios_pico": [
+    {
+      "hora": 9,
+      "total": 4,
+    },
+    {
+      "hora": 18,
+      "total": 3,
+    },
+  ],
+  "promedio_diario": 3,
+  "top_socios": [
+    {
+      "nombre": "Ana López",
+      "socio_id": 10,
+      "total_accesos": 6,
+    },
+  ],
+  "total_accesos": 9,
+  "total_entradas": 5,
+  "total_salidas": 4,
+}
+`;
+
+exports[`GET /metricas tipo=socio 2`] = `
+[
+  [
+    "pool",
+    "SELECT COUNT(*) AS total_accesos, COUNT(*) FILTER (WHERE tipo = 'entrada') AS total_entradas, COUNT(*) FILTER (WHERE tipo = 'salida') AS total_salidas FROM registro_acceso WHERE "timestamp" >= $1::date AND "timestamp" < ($2::date + INTERVAL '1 day') AND socio_id IS NOT NULL",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT EXTRACT(HOUR FROM "timestamp")::int AS hora, COUNT(*)::int AS total FROM registro_acceso WHERE "timestamp" >= $1::date AND "timestamp" < ($2::date + INTERVAL '1 day') AND socio_id IS NOT NULL GROUP BY hora ORDER BY total DESC",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT DATE("timestamp") AS fecha, COUNT(*)::int AS total FROM registro_acceso WHERE "timestamp" >= $1::date AND "timestamp" < ($2::date + INTERVAL '1 day') AND socio_id IS NOT NULL GROUP BY fecha ORDER BY fecha ASC",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT ra.socio_id, COALESCE( NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), ''), CONCAT('Socio ', ra.socio_id) ) AS nombre, COUNT(*)::int AS total_accesos FROM registro_acceso ra LEFT JOIN socios s ON s.socio_id = ra.socio_id LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id WHERE ra."timestamp" >= $1::date AND ra."timestamp" < ($2::date + INTERVAL '1 day') AND ra.socio_id IS NOT NULL AND ra.socio_id IS NOT NULL GROUP BY ra.socio_id, u.nombres, u.apellido_paterno, u.apellido_materno ORDER BY total_accesos DESC LIMIT 10",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+]
+`;
+
+exports[`GET /metricas tipo=undefined 1`] = `
+{
+  "accesos_por_dia": [
+    {
+      "fecha": "2026-09-01",
+      "total": 5,
+    },
+    {
+      "fecha": "2026-09-02",
+      "total": 4,
+    },
+  ],
+  "horarios_pico": [
+    {
+      "hora": 9,
+      "total": 4,
+    },
+    {
+      "hora": 18,
+      "total": 3,
+    },
+  ],
+  "promedio_diario": 3,
+  "top_socios": [
+    {
+      "nombre": "Ana López",
+      "socio_id": 10,
+      "total_accesos": 6,
+    },
+  ],
+  "total_accesos": 9,
+  "total_entradas": 5,
+  "total_salidas": 4,
+}
+`;
+
+exports[`GET /metricas tipo=undefined 2`] = `
+[
+  [
+    "pool",
+    "SELECT COUNT(*) AS total_accesos, COUNT(*) FILTER (WHERE tipo = 'entrada') AS total_entradas, COUNT(*) FILTER (WHERE tipo = 'salida') AS total_salidas FROM registro_acceso WHERE "timestamp" >= $1::date AND "timestamp" < ($2::date + INTERVAL '1 day')",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT EXTRACT(HOUR FROM "timestamp")::int AS hora, COUNT(*)::int AS total FROM registro_acceso WHERE "timestamp" >= $1::date AND "timestamp" < ($2::date + INTERVAL '1 day') GROUP BY hora ORDER BY total DESC",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT DATE("timestamp") AS fecha, COUNT(*)::int AS total FROM registro_acceso WHERE "timestamp" >= $1::date AND "timestamp" < ($2::date + INTERVAL '1 day') GROUP BY fecha ORDER BY fecha ASC",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT ra.socio_id, COALESCE( NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), ''), CONCAT('Socio ', ra.socio_id) ) AS nombre, COUNT(*)::int AS total_accesos FROM registro_acceso ra LEFT JOIN socios s ON s.socio_id = ra.socio_id LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id WHERE ra."timestamp" >= $1::date AND ra."timestamp" < ($2::date + INTERVAL '1 day') AND ra.socio_id IS NOT NULL GROUP BY ra.socio_id, u.nombres, u.apellido_paterno, u.apellido_materno ORDER BY total_accesos DESC LIMIT 10",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+]
+`;
+
+exports[`GET /metricas tipo=visita 1`] = `
+{
+  "accesos_por_dia": [
+    {
+      "fecha": "2026-09-01",
+      "total": 5,
+    },
+    {
+      "fecha": "2026-09-02",
+      "total": 4,
+    },
+  ],
+  "horarios_pico": [
+    {
+      "hora": 9,
+      "total": 4,
+    },
+    {
+      "hora": 18,
+      "total": 3,
+    },
+  ],
+  "promedio_diario": 3,
+  "top_socios": [
+    {
+      "nombre": "Ana López",
+      "socio_id": 10,
+      "total_accesos": 6,
+    },
+  ],
+  "total_accesos": 9,
+  "total_entradas": 5,
+  "total_salidas": 4,
+}
+`;
+
+exports[`GET /metricas tipo=visita 2`] = `
+[
+  [
+    "pool",
+    "SELECT COUNT(*) AS total_accesos, COUNT(*) FILTER (WHERE tipo = 'entrada') AS total_entradas, COUNT(*) FILTER (WHERE tipo = 'salida') AS total_salidas FROM registro_acceso WHERE "timestamp" >= $1::date AND "timestamp" < ($2::date + INTERVAL '1 day') AND visita_id IS NOT NULL",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT EXTRACT(HOUR FROM "timestamp")::int AS hora, COUNT(*)::int AS total FROM registro_acceso WHERE "timestamp" >= $1::date AND "timestamp" < ($2::date + INTERVAL '1 day') AND visita_id IS NOT NULL GROUP BY hora ORDER BY total DESC",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT DATE("timestamp") AS fecha, COUNT(*)::int AS total FROM registro_acceso WHERE "timestamp" >= $1::date AND "timestamp" < ($2::date + INTERVAL '1 day') AND visita_id IS NOT NULL GROUP BY fecha ORDER BY fecha ASC",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT ra.socio_id, COALESCE( NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), ''), CONCAT('Socio ', ra.socio_id) ) AS nombre, COUNT(*)::int AS total_accesos FROM registro_acceso ra LEFT JOIN socios s ON s.socio_id = ra.socio_id LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id WHERE ra."timestamp" >= $1::date AND ra."timestamp" < ($2::date + INTERVAL '1 day') AND ra.visita_id IS NOT NULL AND ra.socio_id IS NOT NULL GROUP BY ra.socio_id, u.nombres, u.apellido_paterno, u.apellido_materno ORDER BY total_accesos DESC LIMIT 10",
+    [
+      "2026-09-01",
+      "2026-09-03",
+    ],
+  ],
+]
+`;
+
+exports[`POST /lectura-qr: socio entrada y luego salida (timestamp Date → ISO) 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT q.qr_id, s.socio_id, s.activo, COALESCE( NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), ''), s.numero_socio, CONCAT('Socio ', s.socio_id) ) AS nombre_completo FROM codigos_qr_socios q JOIN socios s ON s.socio_id = q.socio_id LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id WHERE q.codigo_qr = ANY($1::text[]) AND q.activo = TRUE ORDER BY q.created_at DESC, q.qr_id DESC LIMIT 1 FOR UPDATE OF q, s",
+    [
+      [
+        "{"a":1}",
+        "data:image/png;base64,QR({"a":1})",
+      ],
+    ],
+  ],
+  [
+    "client",
+    "SELECT tipo FROM registro_acceso WHERE ($1::int IS NOT NULL AND socio_id = $1) OR ($2::int IS NOT NULL AND visita_id = $2) OR ($3::int IS NOT NULL AND pase_id = $3) ORDER BY "timestamp" DESC, acceso_id DESC LIMIT 1",
+    [
+      10,
+      null,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO registro_acceso ( socio_id, visita_id, tipo, metodo, "timestamp" ) VALUES ($1, $2, $3, $4, NOW()) RETURNING acceso_id, "timestamp"",
+    [
+      10,
+      null,
+      "entrada",
+      "qr",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT q.qr_id, s.socio_id, s.activo, COALESCE( NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), ''), s.numero_socio, CONCAT('Socio ', s.socio_id) ) AS nombre_completo FROM codigos_qr_socios q JOIN socios s ON s.socio_id = q.socio_id LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id WHERE q.codigo_qr = ANY($1::text[]) AND q.activo = TRUE ORDER BY q.created_at DESC, q.qr_id DESC LIMIT 1 FOR UPDATE OF q, s",
+    [
+      [
+        "x",
+        "data:image/png;base64,QR(x)",
+      ],
+    ],
+  ],
+  [
+    "client",
+    "SELECT tipo FROM registro_acceso WHERE ($1::int IS NOT NULL AND socio_id = $1) OR ($2::int IS NOT NULL AND visita_id = $2) OR ($3::int IS NOT NULL AND pase_id = $3) ORDER BY "timestamp" DESC, acceso_id DESC LIMIT 1",
+    [
+      10,
+      null,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO registro_acceso ( socio_id, visita_id, tipo, metodo, "timestamp" ) VALUES ($1, $2, $3, $4, NOW()) RETURNING acceso_id, "timestamp"",
+    [
+      10,
+      null,
+      "salida",
+      "qr",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /lectura-qr: socio sin columna pase_id en registro_acceso 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT q.qr_id, s.socio_id, s.activo, COALESCE( NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), ''), s.numero_socio, CONCAT('Socio ', s.socio_id) ) AS nombre_completo FROM codigos_qr_socios q JOIN socios s ON s.socio_id = q.socio_id LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id WHERE q.codigo_qr = ANY($1::text[]) AND q.activo = TRUE ORDER BY q.created_at DESC, q.qr_id DESC LIMIT 1 FOR UPDATE OF q, s",
+    [
+      [
+        "x",
+        "data:image/png;base64,QR(x)",
+      ],
+    ],
+  ],
+  [
+    "client",
+    "SELECT tipo FROM registro_acceso WHERE ($1::int IS NOT NULL AND socio_id = $1) OR ($2::int IS NOT NULL AND visita_id = $2) ORDER BY "timestamp" DESC, acceso_id DESC LIMIT 1",
+    [
+      10,
+      null,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO registro_acceso ( socio_id, visita_id, tipo, metodo, "timestamp" ) VALUES ($1, $2, $3, $4, NOW()) RETURNING acceso_id, "timestamp"",
+    [
+      10,
+      null,
+      "entrada",
+      "qr",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /lectura-qr: visita y pase pase sin columna pase_id → 500 con mensaje 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT q.qr_id, q.expira_en, p.pase_id, p.nombre_completo FROM codigos_qr_pases q JOIN pases p ON p.pase_id = q.pase_id WHERE q.codigo_qr = ANY($1::text[]) AND q.activo = TRUE AND q.expira_en > NOW() AND p.estado = 'activo' ORDER BY q.created_at DESC, q.qr_id DESC LIMIT 1 FOR UPDATE OF q, p",
+    [
+      [
+        "x",
+        "data:image/png;base64,QR(x)",
+      ],
+    ],
+  ],
+  [
+    "client",
+    "SELECT tipo FROM registro_acceso WHERE ($1::int IS NOT NULL AND socio_id = $1) OR ($2::int IS NOT NULL AND visita_id = $2) ORDER BY "timestamp" DESC, acceso_id DESC LIMIT 1",
+    [
+      null,
+      null,
+      30,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`POST /lectura-qr: visita y pase pase: entrada, salida (finaliza el pase), no activo y tabla faltante 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT q.qr_id, q.expira_en, p.pase_id, p.nombre_completo FROM codigos_qr_pases q JOIN pases p ON p.pase_id = q.pase_id WHERE q.codigo_qr = ANY($1::text[]) AND q.activo = TRUE AND q.expira_en > NOW() AND p.estado = 'activo' ORDER BY q.created_at DESC, q.qr_id DESC LIMIT 1 FOR UPDATE OF q, p",
+    [
+      [
+        "x",
+        "data:image/png;base64,QR(x)",
+      ],
+    ],
+  ],
+  [
+    "client",
+    "SELECT tipo FROM registro_acceso WHERE ($1::int IS NOT NULL AND socio_id = $1) OR ($2::int IS NOT NULL AND visita_id = $2) OR ($3::int IS NOT NULL AND pase_id = $3) ORDER BY "timestamp" DESC, acceso_id DESC LIMIT 1",
+    [
+      null,
+      null,
+      30,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO registro_acceso ( socio_id, visita_id, pase_id, tipo, metodo, "timestamp" ) VALUES (NULL, NULL, $1, $2, $3, NOW()) RETURNING acceso_id, "timestamp"",
+    [
+      30,
+      "entrada",
+      "qr",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT q.qr_id, q.expira_en, p.pase_id, p.nombre_completo FROM codigos_qr_pases q JOIN pases p ON p.pase_id = q.pase_id WHERE q.codigo_qr = ANY($1::text[]) AND q.activo = TRUE AND q.expira_en > NOW() AND p.estado = 'activo' ORDER BY q.created_at DESC, q.qr_id DESC LIMIT 1 FOR UPDATE OF q, p",
+    [
+      [
+        "x",
+        "data:image/png;base64,QR(x)",
+      ],
+    ],
+  ],
+  [
+    "client",
+    "SELECT tipo FROM registro_acceso WHERE ($1::int IS NOT NULL AND socio_id = $1) OR ($2::int IS NOT NULL AND visita_id = $2) OR ($3::int IS NOT NULL AND pase_id = $3) ORDER BY "timestamp" DESC, acceso_id DESC LIMIT 1",
+    [
+      null,
+      null,
+      30,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO registro_acceso ( socio_id, visita_id, pase_id, tipo, metodo, "timestamp" ) VALUES (NULL, NULL, $1, $2, $3, NOW()) RETURNING acceso_id, "timestamp"",
+    [
+      30,
+      "salida",
+      "qr",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE pases SET hora_salida = NOW(), estado = 'finalizado' WHERE pase_id = $1 AND estado = 'activo'",
+    [
+      30,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /lectura-qr: visita y pase visita: entrada; expirada → 401 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT q.qr_id, q.expira_en, v.visita_id, v.nombre_completo FROM codigos_qr_visitas q JOIN visitas v ON v.visita_id = q.visita_id WHERE q.codigo_qr = ANY($1::text[]) AND q.activo = TRUE AND q.expira_en > NOW() ORDER BY q.created_at DESC, q.qr_id DESC LIMIT 1 FOR UPDATE OF q, v",
+    [
+      [
+        "x",
+        "data:image/png;base64,QR(x)",
+      ],
+    ],
+  ],
+  [
+    "client",
+    "SELECT tipo FROM registro_acceso WHERE ($1::int IS NOT NULL AND socio_id = $1) OR ($2::int IS NOT NULL AND visita_id = $2) OR ($3::int IS NOT NULL AND pase_id = $3) ORDER BY "timestamp" DESC, acceso_id DESC LIMIT 1",
+    [
+      null,
+      20,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO registro_acceso ( socio_id, visita_id, tipo, metodo, "timestamp" ) VALUES ($1, $2, $3, $4, NOW()) RETURNING acceso_id, "timestamp"",
+    [
+      null,
+      20,
+      "entrada",
+      "qr",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT q.qr_id, q.expira_en, v.visita_id, v.nombre_completo FROM codigos_qr_visitas q JOIN visitas v ON v.visita_id = q.visita_id WHERE q.codigo_qr = ANY($1::text[]) AND q.activo = TRUE AND q.expira_en > NOW() ORDER BY q.created_at DESC, q.qr_id DESC LIMIT 1 FOR UPDATE OF q, v",
+    [
+      [
+        "x",
+        "data:image/png;base64,QR(x)",
+      ],
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;

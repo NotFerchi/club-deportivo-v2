@@ -3,6 +3,7 @@ const router = express.Router();
 const sesionesController = require('../controllers/sesionesController');
 const asistenciaQrController = require('../controllers/asistenciaQrController');
 const { verifyToken, checkRole } = require('../middleware/auth.middleware');
+const { requirePositiveInt, requireNonEmptyString } = require('../middleware/validators');
 
 const asistenciaQrRoles = ['admin', 'gerente', 'coordinador', 'instructor', 'recepcion'];
 
@@ -15,6 +16,11 @@ router.post(
   '/:sesion_id/asistencia-qr',
   verifyToken,
   checkRole(asistenciaQrRoles),
+  requirePositiveInt('sesion_id', { body: { error: 'sesion_id debe ser un entero positivo' } }),
+  requireNonEmptyString('codigo_qr', {
+    missingBody: { error: 'codigo_qr es requerido' },
+    invalidBody: { error: 'codigo_qr debe ser una cadena no vacía' }
+  }),
   asistenciaQrController.registrarAsistenciaQr
 );
 

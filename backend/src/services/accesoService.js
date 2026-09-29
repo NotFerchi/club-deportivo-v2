@@ -10,7 +10,6 @@ const { validarQrFirmado } = require('../helpers/qrSecurity.helper');
 const { getTableColumns } = require('../utils/adminRules');
 
 const TIPOS_QR_SOPORTADOS = ['socio', 'visita', 'pase'];
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Error con statusCode: el controlador responde ese status con el mensaje. */
 function errorConStatus(message, statusCode) {
@@ -18,8 +17,6 @@ function errorConStatus(message, statusCode) {
   error.statusCode = statusCode;
   return error;
 }
-
-const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0;
 
 /** La columna codigo_qr puede guardar el texto o su imagen: se buscan ambos. */
 const buildCodigoQrCandidates = async (codigoQr) => {
@@ -219,13 +216,7 @@ const registrarAccesoPase = async (client, codigosQr) => {
  * Errores de firma con statusCode → ese status; otros → 500 (registrado).
  */
 async function validarLectura(codigoQrInput) {
-  if (codigoQrInput === undefined || codigoQrInput === null) {
-    throw new ServiceError(400, { error: 'codigo_qr es requerido' });
-  }
-  if (!isNonEmptyString(codigoQrInput)) {
-    throw new ServiceError(400, { error: 'codigo_qr debe ser una cadena no vacia' });
-  }
-
+  // codigo_qr requerido y cadena no vacía: validado en la ruta
   const codigoQr = codigoQrInput.trim();
   let payload;
   let codigosQr;
@@ -255,25 +246,11 @@ async function registrarLectura({ payload, codigosQr }) {
 
 // ── Métricas ─────────────────────────────────────────────────────────────────
 
-function validarRangoMetricas({ desde, hasta, tipo }) {
-  if (!desde || !hasta) {
-    throw new ServiceError(400, { error: 'Los parámetros desde y hasta son requeridos' });
-  }
-  if (!DATE_REGEX.test(desde) || !DATE_REGEX.test(hasta)) {
-    throw new ServiceError(400, { error: 'Formato de fecha inválido. Use YYYY-MM-DD' });
-  }
-  if (tipo !== undefined && tipo !== 'socio' && tipo !== 'visita') {
-    throw new ServiceError(400, { error: 'El parámetro tipo debe ser "socio" o "visita"' });
-  }
-}
-
 /**
  * Métricas de accesos entre `desde` y `hasta` (inclusive). `tipo` filtra por
- * persona (socio o visita), no por movimiento.
+ * persona (socio o visita), no por movimiento. Fechas y tipo: validados en la ruta.
  */
 async function obtenerMetricas({ desde, hasta, tipo }) {
-  validarRangoMetricas({ desde, hasta, tipo });
-
   let tipoFilter = '';
   let topSociosTipoFilter = '';
   if (tipo === 'socio') {

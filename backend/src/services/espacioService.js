@@ -188,13 +188,10 @@ async function historialMantenimiento(id) {
 
 /** Crea el espacio y su relación con disciplinas en una transacción. Devuelve { id, nombre }. */
 async function crearEspacio(body) {
-  const { nombre, disciplina_id, capacidad_maxima, estado } = requireBodyOrEscalate(body);
+  // nombre y capacidad_maxima requeridos: validados en la ruta
+  const { nombre, disciplina_id, capacidad_maxima, estado } = body;
   const disciplinaIds = normalizeDisciplinaIds(body);
   const estadoFinal = normalizeEstado(estado);
-
-  if (!nombre || !capacidad_maxima) {
-    throw new ServiceError(400, { error: 'Nombre y capacidad máxima son requeridos' });
-  }
 
   const id = await enTransaccion(async (client) => {
     const activoFinal = estadoFinal === 'Activo';

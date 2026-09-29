@@ -11,7 +11,7 @@ const { generarQrPase, generarQrVisitaLegacy } = require('./qrService');
 
 const normalizeDigits = (value) => String(value || '').replace(/\D/g, '');
 
-/** Normaliza y valida el body de alta (acepta el formato legacy sin tipo_pase). */
+/** Normaliza el body de alta (acepta el formato legacy sin tipo_pase). La validación está en la ruta. */
 function normalizarVisita(body, usuarioId) {
   const {
     tipo_pase,
@@ -46,19 +46,6 @@ function normalizarVisita(body, usuarioId) {
   const identificacionNormalizada = String(identificacion || '').trim();
   const observacionesNormalizadas = String(observaciones || motivo || '').trim();
 
-  if (!['visita', 'dia'].includes(tipoPase)) {
-    throw new ServiceError(400, { error: 'Tipo de pase invalido' });
-  }
-  if (!nombreNormalizado) {
-    throw new ServiceError(400, { error: 'Nombre completo es requerido' });
-  }
-  if (!legacyPayload && (!telefonoNormalizado || telefonoNormalizado.length < 10)) {
-    throw new ServiceError(400, { error: 'Telefono valido es requerido' });
-  }
-  if (!legacyPayload && typeof mayor_16 !== 'boolean') {
-    throw new ServiceError(400, { error: 'Debe indicar si es mayor de 16 anos' });
-  }
-
   return {
     socioIdEntrada,
     legacyPayload,
@@ -67,6 +54,7 @@ function normalizarVisita(body, usuarioId) {
     nombre: nombreNormalizado,
     correo: String(correo || '').trim(),
     identificacion: identificacionNormalizada,
+    telefonoNormalizado,
     telefonoFinal: telefonoNormalizado || normalizeDigits(identificacionNormalizada).slice(0, 20) || '0000000000',
     mayor16: typeof mayor_16 === 'boolean' ? mayor_16 : true,
     observaciones: observacionesNormalizadas || null,
@@ -115,8 +103,7 @@ async function crearVisitaLegacy(v, socioIdFinal) {
  * posteriores a BEGIN hacen ROLLBACK explícito antes de lanzar.
  */
 async function crearVisita(body, usuarioId) {
-  requireBodyOrEscalate(body);
-  const v = normalizarVisita(body, usuarioId);
+  const v = normalizarVisita(body, usuarioId); // body validado en la ruta
 
   const client = await connectOrEscalate(pool);
   let socioIdFinal = null;
@@ -327,4 +314,4 @@ async function actualizarVisita(id, body) {
   }
 }
 
-module.exports = { crearVisita, registrarSalida, actualizarVisita };
+module.exports = { normalizarVisita, crearVisita, registrarSalida, actualizarVisita };

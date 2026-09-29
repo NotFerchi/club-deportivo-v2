@@ -16,12 +16,8 @@ function handleError(res, error, fnName, message, { sinDetalle = false } = {}) {
 
 const instructorController = {
   getClasesPorFecha: async (req, res) => {
-    const { fecha } = req.query;
+    const { fecha } = req.query; // requerida: validada en la ruta
     const usuarioId = req.user.usuario_id;
-
-    if (!fecha) {
-      return res.status(400).json({ error: 'La fecha es requerida' });
-    }
 
     try {
       res.json(await panel.clasesPorFecha(usuarioId, fecha));
@@ -103,8 +99,8 @@ const instructorController = {
 
   inscribirSocioClase: async (req, res) => {
     try {
-      const datos = panel.validarInscripcionClase(req.body);
-      const reservaId = await panel.inscribirEnClase(datos);
+      // Campos requeridos: validados en la ruta
+      const reservaId = await panel.inscribirEnClase(req.body);
       res.status(201).json({ ok: true, reserva_id: reservaId });
     } catch (error) {
       handleError(res, error, 'inscribirSocioClase', 'Error al inscribir socio');

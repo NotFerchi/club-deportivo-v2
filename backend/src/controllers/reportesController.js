@@ -3,7 +3,6 @@ const { buildDemographicWorkbook, buildDemographicPdf } = require('../services/r
 const { buildOccupationWorkbook, buildOccupationPdf } = require('../services/reportes/ocupacionReport');
 const { buildAttendanceWorkbook, buildAttendancePdf } = require('../services/reportes/afluenciaReport');
 const { buildSanctionsWorkbook, buildSanctionsPdf } = require('../services/reportes/sancionesReport');
-const { resolveDateRange, resolveFormat } = require('../services/reportes/reporteComun');
 const { sendWorkbook } = require('../services/reportes/excelExporter');
 
 async function sendReport(res, format, xlsxFilename, xlsxBuilder, pdfBuilder) {
@@ -39,7 +38,7 @@ const reportesController = {
 
   getReporteDemografico: async (req, res) => {
     try {
-      const format = resolveFormat(req.query.formato);
+      const { formato: format } = res.locals; // validado en la ruta
       await sendReport(
         res,
         format,
@@ -55,8 +54,8 @@ const reportesController = {
 
   getReporteOcupacion: async (req, res) => {
     try {
-      const format = resolveFormat(req.query.formato);
-      const { desde, hasta } = resolveDateRange(req.query);
+      const { formato: format } = res.locals; // validado en la ruta
+      const { desde, hasta } = res.locals.rango; // validado en la ruta
       await sendReport(
         res,
         format,
@@ -72,8 +71,8 @@ const reportesController = {
 
   getReporteAfluencia: async (req, res) => {
     try {
-      const format = resolveFormat(req.query.formato);
-      const { desde, hasta } = resolveDateRange(req.query);
+      const { formato: format } = res.locals; // validado en la ruta
+      const { desde, hasta } = res.locals.rango; // validado en la ruta
       await sendReport(
         res,
         format,
@@ -89,8 +88,8 @@ const reportesController = {
 
   getReporteSanciones: async (req, res) => {
     try {
-      const format = resolveFormat(req.query.formato);
-      const { desde, hasta } = resolveDateRange(req.query);
+      const { formato: format } = res.locals; // validado en la ruta
+      const { desde, hasta } = res.locals.rango; // validado en la ruta
       await sendReport(
         res,
         format,

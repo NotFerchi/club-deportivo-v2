@@ -1,15 +1,12 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
-const { requireBodyOrEscalate } = require('./escalate');
 const {
   ERROR_CATEGORIA_NO_EXISTE,
   ERROR_PARTICIPANTE_DUPLICADO,
   ERROR_SOCIO_NO_VALIDO,
-  ERROR_TIPO_PARTICIPANTE,
   ERROR_VISITA_NO_VALIDA,
   esEnteroValido,
-  tieneValor,
-  torneoIdOrThrow
+  tieneValor
 } = require('./torneoComun');
 
 const MINIMO_PARTICIPANTES = 4;
@@ -19,7 +16,7 @@ const badRequest = (error) => new ServiceError(400, { error });
 // ── Consulta ─────────────────────────────────────────────────────────────────
 
 async function listarParticipantes(torneoIdParam) {
-  const torneoId = torneoIdOrThrow(torneoIdParam);
+  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   const result = await pool.query(
     `SELECT
@@ -94,18 +91,18 @@ async function misParticipaciones(user) {
 
 // ── Inscripción ──────────────────────────────────────────────────────────────
 
-/** Inscripción por staff: exactamente uno de socio_id, visita_id o nombre_externo. */
+/**
+ * Inscripción por staff: exactamente uno de socio_id, visita_id o nombre_externo
+ * (validado en la ruta junto con torneo_id). Lo que depende de la BD se valida aquí.
+ */
 async function inscribirParticipante(torneoIdParam, body) {
-  const { socio_id, visita_id, nombre_externo, categoria_id, equipo_id } = requireBodyOrEscalate(body);
+  const { socio_id, visita_id, nombre_externo, categoria_id, equipo_id } = body;
   const socioPresente = tieneValor(socio_id);
   const visitaPresente = tieneValor(visita_id);
   const nombreExternoNormalizado = typeof nombre_externo === 'string' ? nombre_externo.trim() : null;
   const externoPresente = Boolean(nombreExternoNormalizado);
-  const tiposParticipante = [socioPresente, visitaPresente, externoPresente].filter(Boolean).length;
 
-  if (tiposParticipante !== 1) throw badRequest(ERROR_TIPO_PARTICIPANTE);
-
-  const torneoId = torneoIdOrThrow(torneoIdParam);
+  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   const socioId = socioPresente ? esEnteroValido(socio_id) : null;
   const visitaId = visitaPresente ? esEnteroValido(visita_id) : null;
@@ -160,7 +157,7 @@ async function inscribirParticipante(torneoIdParam, body) {
  * La categoría la decide el administrador al crear el torneo (torneo.categoria_id).
  */
 async function inscribirSocioPropio(torneoIdParam, user) {
-  const torneoId = torneoIdOrThrow(torneoIdParam);
+  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   // Obtener socio_id a partir del usuario autenticado (no se confía en el body)
   const socioResult = await pool.query('SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE', [
@@ -201,10 +198,9 @@ async function inscribirSocioPropio(torneoIdParam, user) {
 
 /** Desinscribe a un participante; solo mientras el torneo siga abierto. */
 async function desinscribirParticipante(torneoIdParam, participanteIdParam) {
-  const torneoId = esEnteroValido(torneoIdParam);
-  const participanteId = esEnteroValido(participanteIdParam);
-
-  if (torneoId === null || participanteId === null) throw badRequest('IDs inválidos');
+  // Ambos enteros: validado en la ruta
+  const torneoId = Number(torneoIdParam);
+  const participanteId = Number(participanteIdParam);
 
   const torneo = await pool.query('SELECT estado FROM torneos WHERE torneo_id = $1', [torneoId]);
   if (torneo.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });

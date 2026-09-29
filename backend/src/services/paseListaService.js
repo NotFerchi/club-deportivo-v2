@@ -2,7 +2,6 @@
  * Pase de lista de recepción: clases del día y alumnos con reserva.
  */
 const pool = require('../config/database');
-const ServiceError = require('./serviceError');
 const { escalate } = require('./escalate');
 const { getMexicoTodayLocale } = require('../utils/mexicoDate');
 
@@ -19,9 +18,7 @@ async function clasesPorFecha(fecha) {
     throw escalate(error);
   }
 
-  if (!year || !month || !day) {
-    throw new ServiceError(400, { error: 'Fecha invalida' });
-  }
+  // año, mes y día presentes: validado en la ruta
 
   // sesiones_programadas.dia_semana: Lun=1 … Sáb=6, Dom=7
   const jsDay = new Date(year, month - 1, day).getDay();
@@ -70,11 +67,8 @@ async function clasesPorFecha(fecha) {
   return result.rows;
 }
 
+/** Sesión y fecha requeridas: validado en la ruta. */
 async function alumnosPorClase(sesionId, fecha) {
-  if (!sesionId || !fecha) {
-    throw new ServiceError(400, { error: 'Sesion y fecha son requeridas' });
-  }
-
   const result = await pool.query(
     `
                 SELECT

@@ -36,7 +36,7 @@ const disciplinasController = {
   // Crear nueva disciplina
   createDisciplina: async (req, res) => {
     try {
-      const nombre = disciplinaService.nombreRequerido(req.body);
+      const { nombre } = req.body; // requerido: validado en la ruta
       const id = await disciplinaService.crearDisciplina(nombre);
       await logAudit(req, {
         accion: 'crear_disciplina',
@@ -54,7 +54,7 @@ const disciplinasController = {
   updateDisciplina: async (req, res) => {
     const { id } = req.params;
     try {
-      const nombre = disciplinaService.nombreRequerido(req.body);
+      const { nombre } = req.body; // requerido: validado en la ruta
       await disciplinaService.actualizarDisciplina(id, nombre);
       await logAudit(req, {
         accion: 'actualizar_disciplina',

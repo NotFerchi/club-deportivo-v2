@@ -3,6 +3,7 @@ const router = express.Router();
 const usuariosController = require('../controllers/usuariosController');
 const { verifyToken, checkRole } = require('../middleware/auth.middleware');
 const multer = require('multer');
+const { datosUsuario, fotoRequerida } = require('../middleware/usuarioValidators');
 
 const adminRoles = ['admin', 'gerente'];
 const upload = multer({
@@ -15,7 +16,7 @@ const upload = multer({
 });
 
 // Ruta pública para foto de perfil — cualquier usuario autenticado
-router.put('/me/foto', verifyToken, upload.single('foto'), usuariosController.actualizarFotoPerfil);
+router.put('/me/foto', verifyToken, upload.single('foto'), fotoRequerida, usuariosController.actualizarFotoPerfil);
 router.get('/me/perfil', verifyToken, usuariosController.getMiPerfil);
 
 // Rutas de admin
@@ -23,8 +24,8 @@ router.use(verifyToken, checkRole(adminRoles));
 router.get('/', usuariosController.getUsuarios);
 router.get('/roles', usuariosController.getRoles);
 router.get('/:id', usuariosController.getUsuarioById);
-router.post('/', usuariosController.createUsuario);
-router.put('/:id', usuariosController.updateUsuario);
+router.post('/', datosUsuario('createUsuario', 'Error al crear usuario'), usuariosController.createUsuario);
+router.put('/:id', datosUsuario('updateUsuario', 'Error al actualizar usuario'), usuariosController.updateUsuario);
 router.put('/:id/desactivar', usuariosController.desactivarUsuario);
 router.put('/:id/reactivar', usuariosController.reactivarUsuario);
 router.delete('/:id', usuariosController.deleteUsuario);

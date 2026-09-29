@@ -2,12 +2,8 @@ const importacionService = require('../services/importacionService');
 const ServiceError = require('../services/serviceError');
 
 // ── SCRUM-134: GET /api/importacion/template ─────────────────────────────────
+// ?tipo (si viene) debe ser 'socios': validado en la ruta.
 const descargarTemplate = async (req, res) => {
-  const tipo = req.query.tipo;
-  if (tipo && tipo !== 'socios') {
-    return res.status(400).json({ error: `Tipo '${tipo}' no válido. Usa ?tipo=socios` });
-  }
-
   const workbook = importacionService.crearTemplateSocios();
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename="template_socios.xlsx"');
@@ -16,11 +12,8 @@ const descargarTemplate = async (req, res) => {
 };
 
 // ── SCRUM-135: POST /api/importacion/socios ──────────────────────────────────
+// req.file requerido: validado en la ruta.
 const importarSocios = async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'Se requiere un archivo .xlsx (field: archivo)' });
-  }
-
   let filas;
   try {
     filas = await importacionService.leerFilasExcel(req.file.buffer);

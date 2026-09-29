@@ -12,21 +12,8 @@ const parsePositiveInteger = (value) => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-const validarYExtraerPayload = (codigoQrInput) => {
-  if (codigoQrInput === undefined || codigoQrInput === null) {
-    const error = new Error('codigo_qr es requerido');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (typeof codigoQrInput !== 'string' || !codigoQrInput.trim()) {
-    const error = new Error('codigo_qr debe ser una cadena no vacía');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  return validarQrFirmado(codigoQrInput.trim());
-};
+// codigo_qr requerido y cadena no vacía: validado en la ruta.
+const validarYExtraerPayload = (codigoQrInput) => validarQrFirmado(codigoQrInput.trim());
 
 const obtenerNombreSocio = async (client, socioId) => {
   const result = await client.query(
@@ -153,10 +140,8 @@ const registrarAsistenciaVisita = async (client, sesionId, visitaId) => {
  * Devuelve { sesionId, fechaReserva, payload }; la fecha por defecto es hoy en Ciudad de México.
  */
 function validarLectura(sesionIdParam, body) {
-  const sesionId = parsePositiveInteger(sesionIdParam);
+  const sesionId = Number(sesionIdParam); // entero positivo: validado en la ruta
   const fechaReserva = body?.fecha || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
-
-  if (!sesionId) throw fail(400, 'sesion_id debe ser un entero positivo');
 
   let payload;
 

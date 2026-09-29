@@ -3,11 +3,8 @@ const { logAudit } = require('../utils/auditLogger');
 
 const logsController = {
   createLog: async (req, res) => {
+    // accion requerida: validada en la ruta
     const { accion, tabla_afectada, detalles, registro_id } = req.body || {};
-
-    if (!accion) {
-      return res.status(400).json({ error: 'accion es requerida' });
-    }
 
     await logAudit(req, {
       accion,

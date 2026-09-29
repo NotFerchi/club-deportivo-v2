@@ -1,6 +1,5 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
-const { requireBodyOrEscalate } = require('./escalate');
 const { enTransaccion } = require('./transaction');
 
 const ROLES_ARBITRAJE = ['instructor', 'admin', 'gerente', 'coordinador'];
@@ -72,22 +71,10 @@ async function registrarResultado(user, encuentroIdParam, body) {
     throw fail(403, 'No tienes permisos para registrar resultados');
   }
 
+  // encuentro_id positivo y marcadores (enteros ≥ 0, sin empate): validados en la ruta
   const encuentroId = Number(encuentroIdParam);
-  if (!Number.isInteger(encuentroId) || encuentroId <= 0) {
-    throw fail(400, 'encuentro_id debe ser un entero válido');
-  }
-
-  requireBodyOrEscalate(body);
   const marcador1 = Number(body.marcador_1);
   const marcador2 = Number(body.marcador_2);
-
-  if (!Number.isInteger(marcador1) || marcador1 < 0 || !Number.isInteger(marcador2) || marcador2 < 0) {
-    throw fail(400, 'marcador_1 y marcador_2 deben ser enteros no negativos');
-  }
-
-  if (marcador1 === marcador2) {
-    throw fail(400, 'No se permiten empates. Corrige el marcador para determinar un ganador.');
-  }
 
   const allowEdit = body.allowEdit === true;
   const cancha = body.cancha_asignada !== undefined ? String(body.cancha_asignada).trim() || null : undefined;
@@ -175,12 +162,10 @@ async function registrarResultado(user, encuentroIdParam, body) {
   });
 }
 
+/** encuentro_id positivo y cancha no vacía: validados en la ruta. */
 async function asignarCancha(encuentroIdParam, body) {
   const encuentroId = Number(encuentroIdParam);
-  if (!Number.isInteger(encuentroId) || encuentroId <= 0) throw fail(400, 'encuentro_id inválido');
-
-  const cancha = String(requireBodyOrEscalate(body).cancha_asignada || '').trim();
-  if (!cancha) throw fail(400, 'cancha_asignada es requerida');
+  const cancha = String(body.cancha_asignada || '').trim();
 
   const { rows, rowCount } = await pool.query(
     `UPDATE encuentros_torneo SET cancha_asignada = $1 WHERE encuentro_id = $2
@@ -193,19 +178,11 @@ async function asignarCancha(encuentroIdParam, body) {
 
 /** Reasigna los participantes de un encuentro pendiente (ambos del mismo torneo). */
 async function actualizarParticipantes(encuentroIdParam, body) {
-  const { participante_1_id, participante_2_id } = requireBodyOrEscalate(body);
-
+  // Ids enteros y participantes distintos: validados en la ruta
+  const { participante_1_id, participante_2_id } = body;
   const encuentroId = Number(encuentroIdParam);
   const p1Id = Number(participante_1_id);
   const p2Id = Number(participante_2_id);
-
-  if (!Number.isInteger(encuentroId)) throw fail(400, 'encuentro_id debe ser un entero valido');
-
-  if (!Number.isInteger(p1Id) || !Number.isInteger(p2Id)) {
-    throw fail(400, 'participante_1_id y participante_2_id deben ser enteros validos');
-  }
-
-  if (p1Id === p2Id) throw fail(400, 'Los participantes deben ser distintos');
 
   return enTransaccion(async (client) => {
     const encuentro = await client.query(

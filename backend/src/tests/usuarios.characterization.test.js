@@ -161,6 +161,14 @@ describe('POST / (crear)', () => {
     expect(pool.connect).not.toHaveBeenCalled();
   });
 
+  it('nombres no string (.trim falla) → 500 del endpoint, no del errorHandler', async () => {
+    const res = await post({ ...validBody, nombres: 5 });
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Error al crear usuario' });
+    expect(consoleSpies[1].mock.calls.at(-1)[0]).toBe('Error en createUsuario:');
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
   it('email ya registrado → 400 y ROLLBACK', async () => {
     db.emailExiste = [{ usuario_id: 2 }];
     const res = await post(validBody);
@@ -273,6 +281,14 @@ describe('PUT /:id (actualizar)', () => {
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Formato de email inválido' });
+    expect(pool.query).not.toHaveBeenCalled();
+  });
+
+  it('apellidoPaterno no string (.trim falla) → 500 del endpoint', async () => {
+    const res = await put({ ...validBody, apellidoPaterno: 7 });
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Error al actualizar usuario' });
+    expect(consoleSpies[1].mock.calls.at(-1)[0]).toBe('Error en updateUsuario:');
     expect(pool.query).not.toHaveBeenCalled();
   });
 

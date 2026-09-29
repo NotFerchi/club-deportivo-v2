@@ -1,14 +1,7 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
-const { requireBodyOrEscalate } = require('./escalate');
 const { enTransaccion } = require('./transaction');
-const {
-  ERROR_DISCIPLINA_NO_EXISTE,
-  esEnteroValido,
-  normalizarFechaOpcional,
-  tieneValor,
-  torneoIdOrThrow
-} = require('./torneoComun');
+const { ERROR_DISCIPLINA_NO_EXISTE, esEnteroValido, normalizarFechaOpcional, tieneValor } = require('./torneoComun');
 
 const badRequest = (error) => new ServiceError(400, { error });
 
@@ -19,9 +12,7 @@ async function listarTorneos({ disciplina_id, estado }) {
   const valores = [];
 
   if (tieneValor(disciplina_id)) {
-    const disciplinaId = esEnteroValido(disciplina_id);
-    if (disciplinaId === null) throw badRequest('disciplina_id debe ser un entero valido');
-    valores.push(disciplinaId);
+    valores.push(Number(disciplina_id)); // entero: validado en la ruta
     condiciones.push(`t.disciplina_id = $${valores.length}`);
   }
 
@@ -66,7 +57,7 @@ async function listarCategorias() {
 }
 
 async function obtenerReporte(torneoIdParam) {
-  const torneoId = torneoIdOrThrow(torneoIdParam, 'torneo_id debe ser un entero válido');
+  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   const torneo = await pool.query(
     `SELECT t.torneo_id, t.nombre, t.estado, d.nombre AS disciplina
@@ -146,18 +137,10 @@ async function obtenerReporte(torneoIdParam) {
 
 // ── Alta / edición ───────────────────────────────────────────────────────────
 
+/** Body validado en la ruta (nombre no vacío, disciplina_id entero). */
 async function crearTorneo(body) {
-  const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo } =
-    requireBodyOrEscalate(body);
-
-  if (typeof nombre !== 'string' || nombre.trim() === '') throw badRequest('El nombre es requerido');
-
-  if (disciplina_id === undefined || disciplina_id === null || disciplina_id === '') {
-    throw badRequest('disciplina_id es requerido');
-  }
-
+  const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo } = body;
   const disciplinaId = Number(disciplina_id);
-  if (!Number.isInteger(disciplinaId)) throw badRequest('disciplina_id debe ser un entero valido');
 
   const disciplina = await pool.query('SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1', [disciplinaId]);
 
@@ -183,17 +166,11 @@ async function crearTorneo(body) {
   return result.rows[0].torneo_id;
 }
 
+/** torneo_id y body validados en la ruta (nombre no vacío, disciplina_id entero). */
 async function actualizarTorneo(torneoIdParam, body) {
-  const torneoId = esEnteroValido(torneoIdParam);
-  const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo } =
-    requireBodyOrEscalate(body);
-
-  if (torneoId === null) throw badRequest('torneo_id debe ser un entero valido');
-
-  if (typeof nombre !== 'string' || nombre.trim() === '') throw badRequest('El nombre es requerido');
-
-  const disciplinaId = esEnteroValido(disciplina_id);
-  if (disciplinaId === null) throw badRequest('disciplina_id debe ser un entero valido');
+  const torneoId = Number(torneoIdParam);
+  const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo } = body;
+  const disciplinaId = Number(disciplina_id);
 
   const categoriaId = tieneValor(categoria_id) ? esEnteroValido(categoria_id) : null;
 
@@ -228,7 +205,7 @@ async function actualizarTorneo(torneoIdParam, body) {
 // ── Cambios de estado ────────────────────────────────────────────────────────
 
 async function finalizarTorneo(torneoIdParam) {
-  const torneoId = torneoIdOrThrow(torneoIdParam, 'torneo_id debe ser un entero válido');
+  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   await enTransaccion(async (client) => {
     const torneo = await client.query('SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE', [torneoId]);
@@ -256,7 +233,7 @@ async function finalizarTorneo(torneoIdParam) {
 }
 
 async function cancelarTorneo(torneoIdParam) {
-  const torneoId = torneoIdOrThrow(torneoIdParam, 'torneo_id debe ser un entero válido');
+  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   const result = await pool.query(
     `UPDATE torneos SET estado = 'Cancelado'

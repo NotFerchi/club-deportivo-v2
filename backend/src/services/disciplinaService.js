@@ -1,15 +1,7 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
-const { requireBodyOrEscalate } = require('./escalate');
 
 const noEncontrada = () => new ServiceError(404, { error: 'Disciplina no encontrada' });
-
-/** Nombre requerido en alta/edición (el body ausente se escala al errorHandler). */
-function nombreRequerido(body) {
-  const { nombre } = requireBodyOrEscalate(body);
-  if (!nombre) throw new ServiceError(400, { error: 'El nombre es requerido' });
-  return nombre;
-}
 
 async function listarDisciplinas() {
   const result = await pool.query(`
@@ -55,7 +47,6 @@ async function eliminarDisciplina(id) {
 }
 
 module.exports = {
-  nombreRequerido,
   listarDisciplinas,
   obtenerDisciplina,
   crearDisciplina,

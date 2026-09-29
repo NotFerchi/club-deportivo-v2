@@ -1,7 +1,5 @@
 // Mensajes y helpers compartidos por los servicios de torneos (torneo, participante, bracket).
 
-const ServiceError = require('./serviceError');
-
 const ERROR_DISCIPLINA_NO_EXISTE = 'La disciplina no existe';
 const ERROR_FECHAS_TORNEO = 'La fecha de fin no puede ser menor que la fecha de inicio';
 const ERROR_TIPO_PARTICIPANTE = 'Debe especificar exactamente un tipo de participante';
@@ -23,13 +21,6 @@ function esEnteroValido(valor) {
   return Number.isInteger(numero) ? numero : null;
 }
 
-/** Valida torneo_id de la ruta; `mensaje` varía por endpoint (con o sin acento). */
-function torneoIdOrThrow(valor, mensaje = 'torneo_id debe ser un entero valido') {
-  const torneoId = esEnteroValido(valor);
-  if (torneoId === null) throw new ServiceError(400, { error: mensaje });
-  return torneoId;
-}
-
 module.exports = {
   ERROR_DISCIPLINA_NO_EXISTE,
   ERROR_FECHAS_TORNEO,
@@ -40,6 +31,5 @@ module.exports = {
   ERROR_PARTICIPANTE_DUPLICADO,
   normalizarFechaOpcional,
   tieneValor,
-  esEnteroValido,
-  torneoIdOrThrow
+  esEnteroValido
 };

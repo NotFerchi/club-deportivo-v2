@@ -1,7 +1,6 @@
 // Panel del instructor: clases del día, alumnos, asistencia, métricas, inscripción rápida y torneos.
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
-const { requireBodyOrEscalate } = require('./escalate');
 const { getMexicoDateISO } = require('../utils/mexicoDate');
 
 /** Día ISO (1 = lunes … 7 = domingo) de una fecha 'YYYY-MM-DD' (hora local). */
@@ -384,15 +383,6 @@ async function metricas(usuarioId) {
 
 // ── Inscripción rápida a clase ───────────────────────────────────────────────
 
-/** Valida los campos requeridos (antes del try en el controlador original). */
-function validarInscripcionClase(body) {
-  const { sesion_id, socio_id, visita_id, fecha } = requireBodyOrEscalate(body);
-  if (!sesion_id || (!socio_id && !visita_id) || !fecha) {
-    throw new ServiceError(400, { error: 'sesion_id, (socio_id o visita_id) y fecha son requeridos' });
-  }
-  return { sesion_id, socio_id, visita_id, fecha };
-}
-
 /** Crea la reservación si no está inscrito, sin sanción activa y con cupo. Devuelve reserva_id. */
 async function inscribirEnClase({ sesion_id, socio_id, visita_id, fecha }) {
   const existe = await pool.query(
@@ -487,7 +477,6 @@ module.exports = {
   inscritosPorSesion,
   registrarAsistencia,
   metricas,
-  validarInscripcionClase,
   inscribirEnClase,
   listarTorneos,
   encuentrosDeTorneo,

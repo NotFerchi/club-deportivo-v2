@@ -103,8 +103,7 @@ const usuariosController = {
 
   actualizarFotoPerfil: async (req, res) => {
     try {
-      if (!req.file) return res.status(400).json({ error: 'Se requiere una imagen' });
-
+      // req.file requerido: validado en la ruta
       const fotoPerfil = await usuarioService.actualizarFotoPerfil(req.user.usuario_id, req.file);
       res.json({
         ok: true,

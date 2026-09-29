@@ -273,6 +273,14 @@ describe('POST /api/sanciones', () => {
     expect(pool.connect).not.toHaveBeenCalled();
   });
 
+  it('motivo no string (.trim falla) → 500 del endpoint, no del errorHandler', async () => {
+    const res = await post({ socio_id: 10, motivo: 5 });
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Error al crear sancion' });
+    expect(consoleSpies[1].mock.calls.at(-1)[0]).toBe('Error en createSancion:');
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
   it('sin body y fallo de conexión → errorHandler global', async () => {
     let res = await request(app).post('/api/sanciones');
     expect(res.status).toBe(500);

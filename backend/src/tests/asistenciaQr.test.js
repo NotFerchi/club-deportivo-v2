@@ -34,16 +34,36 @@ const makeMockClient = (...queryResults) => {
   };
 };
 
+/**
+ * Las validaciones de entrada viven en la ruta (middleware): ejecuta la cadena de
+ * POST /:sesion_id/asistencia-qr sin verifyToken/checkRole, y después el controlador.
+ */
+const rutaChain = require('../routes/sesiones.routes')
+  .stack.find((layer) => layer.route?.path === '/:sesion_id/asistencia-qr' && layer.route.methods.post)
+  .route.stack.slice(2)
+  .map((layer) => layer.handle);
+
+async function runRuta(req, res) {
+  for (const handler of rutaChain) {
+    let siguiente = false;
+    await handler(req, res, () => {
+      siguiente = true;
+    });
+    if (!siguiente) return;
+  }
+}
+
 // ── suite ─────────────────────────────────────────────────────────────────────
 
 describe('POST /api/sesiones/:sesion_id/asistencia-qr', () => {
-
   // ── 1. QR inválido → 401 ────────────────────────────────────────────────────
   describe('QR inválido', () => {
     it('responde 401 cuando el HMAC es inválido', async () => {
       const hmacError = new Error('QR inválido o manipulado');
       hmacError.statusCode = 401;
-      validarQrFirmado.mockImplementation(() => { throw hmacError; });
+      validarQrFirmado.mockImplementation(() => {
+        throw hmacError;
+      });
 
       const req = mockReq(1, { codigo_qr: '{"type":"socio","socio_id":1,"hash":"badhash"}' });
       const res = mockRes();
@@ -63,7 +83,7 @@ describe('POST /api/sesiones/:sesion_id/asistencia-qr', () => {
         throw Object.assign(new Error('codigo_qr es requerido'), { statusCode: 400 });
       });
 
-      await asistenciaQrController.registrarAsistenciaQr(req, res);
+      await runRuta(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
@@ -75,9 +95,9 @@ describe('POST /api/sesiones/:sesion_id/asistencia-qr', () => {
       validarQrFirmado.mockReturnValue({ type: 'socio', socio_id: 5 });
 
       const client = makeMockClient(
-        undefined,                   // BEGIN
-        { rows: [] },                // inscripciones_clases → vacío
-        undefined                    // ROLLBACK (se llama en catch)
+        undefined, // BEGIN
+        { rows: [] }, // inscripciones_clases → vacío
+        undefined // ROLLBACK (se llama en catch)
       );
       pool.connect = jest.fn().mockResolvedValue(client);
 
@@ -100,12 +120,12 @@ describe('POST /api/sesiones/:sesion_id/asistencia-qr', () => {
       validarQrFirmado.mockReturnValue({ type: 'socio', socio_id: 5 });
 
       const client = makeMockClient(
-        undefined,                                          // BEGIN
-        { rows: [{ inscripcion_id: 10 }] },                // inscripciones_clases → confirmada
-        { rows: [] },                                       // asistencia duplicado → vacío
-        { rows: [{ asistencia_id: 42 }] },                 // INSERT asistencia
-        { rows: [{ nombre: 'Ana García López' }] },         // SELECT nombre socio
-        undefined                                           // COMMIT
+        undefined, // BEGIN
+        { rows: [{ inscripcion_id: 10 }] }, // inscripciones_clases → confirmada
+        { rows: [] }, // asistencia duplicado → vacío
+        { rows: [{ asistencia_id: 42 }] }, // INSERT asistencia
+        { rows: [{ nombre: 'Ana García López' }] }, // SELECT nombre socio
+        undefined // COMMIT
       );
       pool.connect = jest.fn().mockResolvedValue(client);
 
@@ -137,11 +157,11 @@ describe('POST /api/sesiones/:sesion_id/asistencia-qr', () => {
       });
 
       const client = makeMockClient(
-        undefined,                                              // BEGIN
-        { rows: [] },                                           // asistencia duplicado → vacío
-        { rows: [{ nombre_completo: 'Carlos Visita' }] },       // SELECT visita
-        { rows: [{ asistencia_id: 99 }] },                      // INSERT asistencia
-        undefined                                               // COMMIT
+        undefined, // BEGIN
+        { rows: [] }, // asistencia duplicado → vacío
+        { rows: [{ nombre_completo: 'Carlos Visita' }] }, // SELECT visita
+        { rows: [{ asistencia_id: 99 }] }, // INSERT asistencia
+        undefined // COMMIT
       );
       pool.connect = jest.fn().mockResolvedValue(client);
 
@@ -161,9 +181,7 @@ describe('POST /api/sesiones/:sesion_id/asistencia-qr', () => {
 
       // Verificar que NO se consultó inscripciones_clases
       const calls = client.query.mock.calls.map((c) => c[0]);
-      const consultaInscripcion = calls.some(
-        (q) => typeof q === 'string' && q.includes('inscripciones_clases')
-      );
+      const consultaInscripcion = calls.some((q) => typeof q === 'string' && q.includes('inscripciones_clases'));
       expect(consultaInscripcion).toBe(false);
     });
   });
@@ -174,10 +192,10 @@ describe('POST /api/sesiones/:sesion_id/asistencia-qr', () => {
       validarQrFirmado.mockReturnValue({ type: 'socio', socio_id: 5 });
 
       const client = makeMockClient(
-        undefined,                                  // BEGIN
-        { rows: [{ inscripcion_id: 10 }] },         // inscripciones_clases → confirmada
-        { rows: [{ asistencia_id: 20 }] },          // asistencia duplicado → existe
-        undefined                                   // ROLLBACK
+        undefined, // BEGIN
+        { rows: [{ inscripcion_id: 10 }] }, // inscripciones_clases → confirmada
+        { rows: [{ asistencia_id: 20 }] }, // asistencia duplicado → existe
+        undefined // ROLLBACK
       );
       pool.connect = jest.fn().mockResolvedValue(client);
 
@@ -187,9 +205,7 @@ describe('POST /api/sesiones/:sesion_id/asistencia-qr', () => {
       await asistenciaQrController.registrarAsistenciaQr(req, res);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: 'Asistencia ya registrada hoy' })
-      );
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Asistencia ya registrada hoy' }));
     });
 
     it('responde 409 para visita con asistencia ya registrada hoy', async () => {
@@ -201,9 +217,9 @@ describe('POST /api/sesiones/:sesion_id/asistencia-qr', () => {
       });
 
       const client = makeMockClient(
-        undefined,                          // BEGIN
+        undefined, // BEGIN
         { rows: [{ asistencia_id: 55 }] }, // asistencia duplicado → existe
-        undefined                           // ROLLBACK
+        undefined // ROLLBACK
       );
       pool.connect = jest.fn().mockResolvedValue(client);
 
@@ -213,10 +229,7 @@ describe('POST /api/sesiones/:sesion_id/asistencia-qr', () => {
       await asistenciaQrController.registrarAsistenciaQr(req, res);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: 'Asistencia ya registrada hoy' })
-      );
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Asistencia ya registrada hoy' }));
     });
   });
-
 });

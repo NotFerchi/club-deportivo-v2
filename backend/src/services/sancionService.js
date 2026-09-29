@@ -305,10 +305,7 @@ async function obtenerSancion(id) {
  * Devuelve el socioId numérico.
  */
 async function autorizarConsultaSocio(user, socioIdParam) {
-  const socioId = Number(socioIdParam);
-  if (!Number.isInteger(socioId) || socioId <= 0) {
-    throw new ServiceError(400, { error: 'socio_id debe ser un entero valido' });
-  }
+  const socioId = Number(socioIdParam); // entero positivo: validado en la ruta
 
   let permitido = false;
   if (staffRoles.includes(user?.rol)) {
@@ -388,13 +385,9 @@ async function historialCompletoSocio(socioId) {
 
 /** Crea la sanción con gravedad y fecha fin resueltas. Devuelve { sancionId, gravedad, fechaFin }. */
 async function crearSancion(body) {
-  requireBodyOrEscalate(body);
+  // Socio y motivo obligatorios: validado en la ruta
   const { socioId, socio_id, motivo, origen, gravedad, fecha_inicio, fecha_fin } = body;
   const id = socioId || socio_id;
-
-  if (!id || !motivo?.trim()) {
-    throw new ServiceError(400, { error: 'Socio y motivo son obligatorios' });
-  }
 
   return enTransaccion(async (client) => {
     const gravedadFinal = await resolveGravedad(id, gravedad, origen);
@@ -484,10 +477,7 @@ async function levantarSancion(id, user) {
 
 /** Resuelve la sanción (estado Inactivo) y devuelve su detalle actualizado. */
 async function resolverSancion(sancionIdParam, user) {
-  const sancionId = Number(sancionIdParam);
-  if (!Number.isInteger(sancionId) || sancionId <= 0) {
-    throw new ServiceError(400, { error: 'sancion_id debe ser un entero valido' });
-  }
+  const sancionId = Number(sancionIdParam); // entero positivo: validado en la ruta
   if (!rolesResolucion.includes(user?.rol)) {
     throw new ServiceError(403, { error: 'Forbidden' });
   }

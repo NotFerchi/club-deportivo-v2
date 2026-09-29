@@ -148,15 +148,9 @@ async function obtenerQrPase(id) {
 
 // ── QR de socios y visitas (/api/qr) ─────────────────────────────────────────
 
-const parsePositiveInteger = (value) => {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-};
-
 /** Genera un QR nuevo para el socio y desactiva los anteriores. */
 async function generarQrSocio(socioIdParam) {
-  const socioId = parsePositiveInteger(socioIdParam);
-  if (!socioId) throw new ServiceError(400, { error: 'socio_id debe ser un entero positivo' });
+  const socioId = Number(socioIdParam); // entero positivo: validado en la ruta
 
   return enTransaccion(async (client) => {
     const socioResult = await client.query('SELECT socio_id, activo FROM socios WHERE socio_id = $1 FOR UPDATE', [
@@ -193,8 +187,7 @@ async function generarQrSocio(socioIdParam) {
 
 /** Genera el QR (24 h) de una visita legacy vigente. */
 async function generarQrVisita(visitaIdParam) {
-  const visitaId = parsePositiveInteger(visitaIdParam);
-  if (!visitaId) throw new ServiceError(400, { error: 'visita_id debe ser un entero positivo' });
+  const visitaId = Number(visitaIdParam); // entero positivo: validado en la ruta
 
   return enTransaccion(async (client) => {
     const visitaResult = await client.query('SELECT visita_id, vigente FROM visitas WHERE visita_id = $1 FOR UPDATE', [
@@ -227,8 +220,7 @@ async function generarQrVisita(visitaIdParam) {
 
 /** Último QR activo del socio. */
 async function qrActivoSocio(socioIdParam) {
-  const socioId = parsePositiveInteger(socioIdParam);
-  if (!socioId) throw new ServiceError(400, { error: 'socio_id debe ser un entero positivo' });
+  const socioId = Number(socioIdParam); // entero positivo: validado en la ruta
 
   const result = await pool.query(
     `SELECT qr_id, socio_id, codigo_qr
@@ -287,8 +279,7 @@ async function miQr(usuarioId) {
  * statusCode o 401. Devuelve el socioId.
  */
 function socioIdDesdeQr(codigoQr) {
-  if (!codigoQr) throw new ServiceError(400, { error: 'codigo_qr es requerido' });
-
+  // codigo_qr requerido: validado en la ruta
   let payload;
   try {
     payload = validarQrFirmado(codigoQr);

@@ -3,6 +3,7 @@ const router = express.Router();
 
 const recepcionController = require('../controllers/recepcionController');
 const { verifyToken, checkRole } = require('../middleware/auth.middleware');
+const validar = require('../middleware/recepcionValidators');
 
 const staffRoles = ['admin', 'gerente', 'recepcion', 'coordinador'];
 
@@ -25,7 +26,7 @@ router.get('/visitas/activas', recepcionController.visitasActivas);
 router.get('/visitas/historial', recepcionController.historialVisitas);
 router.get('/visitas', recepcionController.listarVisitas);
 router.post('/visitas/cerrar-vencidas', checkRole(staffRoles), recepcionController.cerrarVisitasVencidas);
-router.post('/visitas', checkRole(staffRoles), recepcionController.crearVisita);
+router.post('/visitas', checkRole(staffRoles), validar.nuevaVisita, recepcionController.crearVisita);
 router.put('/visitas/:id/salida', checkRole(staffRoles), recepcionController.registrarSalidaVisita);
 router.put('/visitas/:id', checkRole(['admin', 'gerente']), recepcionController.actualizarVisita);
 router.get('/visitas/:id/qr', checkRole(staffRoles), recepcionController.obtenerQrPase);
@@ -38,8 +39,8 @@ router.post('/ludoteca/entrada', checkRole(staffRoles), recepcionController.regi
 router.put('/ludoteca/salida/:id', checkRole(staffRoles), recepcionController.registrarSalidaLudoteca);
 
 // Pase de lista
-router.get('/clases', recepcionController.getClasesDia);
-router.get('/clases/:sesionId/alumnos', recepcionController.getAlumnosPorSesion);
+router.get('/clases', validar.fechaClases, recepcionController.getClasesDia);
+router.get('/clases/:sesionId/alumnos', validar.alumnosClase, recepcionController.getAlumnosPorSesion);
 router.post('/asistencia/manual', checkRole(staffRoles), recepcionController.registrarAsistenciaManual);
 
 module.exports = router;

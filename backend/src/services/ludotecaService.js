@@ -50,14 +50,6 @@ function validarNino(nombreHijo, fechaNacimiento, mensajeEdad = () => 'El niño 
   }
 }
 
-function registroIdValido(valor) {
-  const registroId = Number(valor);
-  if (!Number.isInteger(registroId) || registroId <= 0) {
-    throw new ServiceError(400, { error: 'registro_id debe ser un entero válido' });
-  }
-  return registroId;
-}
-
 async function insertarRegistro(
   socioPadreId,
   nombreHijo,
@@ -229,19 +221,6 @@ async function misRegistros(usuarioId) {
  * Validaciones de la entrada registrada por staff (sin tocar la BD).
  * Devuelve el socioPadreId numérico.
  */
-function validarEntradaStaff({ socio_padre_id, nombre_hijo, fecha_nacimiento }) {
-  if (!socio_padre_id || !nombre_hijo || !fecha_nacimiento) {
-    throw new ServiceError(400, { error: 'socio_padre_id, nombre_hijo y fecha_nacimiento son requeridos' });
-  }
-  validarNino(nombre_hijo, fecha_nacimiento);
-
-  const socioPadreId = Number(socio_padre_id);
-  if (!Number.isInteger(socioPadreId) || socioPadreId <= 0) {
-    throw new ServiceError(400, { error: 'socio_padre_id debe ser un entero válido' });
-  }
-  return socioPadreId;
-}
-
 async function registrarEntradaStaff(socioPadreId, { nombre_hijo, fecha_nacimiento, observaciones }) {
   const socio = await pool.query('SELECT socio_id FROM socios WHERE socio_id = $1', [socioPadreId]);
   if (socio.rowCount === 0) {
@@ -260,13 +239,6 @@ async function registrarSalidaStaff(registroId) {
 }
 
 // ── Autoservicio del socio ───────────────────────────────────────────────────
-
-function validarEntradaSocio({ nombre_hijo, fecha_nacimiento }) {
-  if (!nombre_hijo || !fecha_nacimiento) {
-    throw new ServiceError(400, { error: 'nombre_hijo y fecha_nacimiento son requeridos' });
-  }
-  validarNino(nombre_hijo, fecha_nacimiento);
-}
 
 async function registrarEntradaSocio(usuarioId, { nombre_hijo, fecha_nacimiento, observaciones }) {
   const socioPadreId = await socioDelUsuario(usuarioId);
@@ -291,7 +263,7 @@ async function registrarEntradaSocio(usuarioId, { nombre_hijo, fecha_nacimiento,
  * del socio ocurrían fuera del try en el original: sus errores se escalan.
  */
 async function registrarSalidaSocio(registroIdParam, user) {
-  const registroId = registroIdValido(registroIdParam);
+  const registroId = Number(registroIdParam); // entero positivo: validado en la ruta
 
   let socioPadreId;
   try {
@@ -323,8 +295,7 @@ async function registrarSalidaSocio(registroIdParam, user) {
  * Devuelve { socioPadreId, registroActivo | null }.
  */
 async function prepararAccesoQr(codigoQr) {
-  if (!codigoQr) throw new ServiceError(400, { error: 'codigo_qr es requerido' });
-
+  // codigo_qr requerido: validado en la ruta
   let payload;
   try {
     payload = validarQrFirmado(codigoQr);
@@ -456,11 +427,9 @@ module.exports = {
   historial,
   aforo,
   misRegistros,
-  registroIdValido,
-  validarEntradaStaff,
+  validarNino,
   registrarEntradaStaff,
   registrarSalidaStaff,
-  validarEntradaSocio,
   registrarEntradaSocio,
   registrarSalidaSocio,
   prepararAccesoQr,

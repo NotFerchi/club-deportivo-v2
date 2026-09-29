@@ -1,7 +1,6 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
 const { enTransaccion } = require('./transaction');
-const { torneoIdOrThrow } = require('./torneoComun');
 
 const MINIMO_PARTICIPANTES = 4;
 
@@ -26,7 +25,7 @@ function siguientePotenciaDeDos(numero) {
  * rondas futuras vacías para que los ganadores tengan a dónde avanzar.
  */
 async function cerrarInscripciones(torneoIdParam) {
-  const torneoId = torneoIdOrThrow(torneoIdParam, 'torneo_id debe ser un entero válido');
+  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   await enTransaccion(async (client) => {
     const torneo = await client.query('SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE', [torneoId]);
@@ -96,7 +95,7 @@ async function cerrarInscripciones(torneoIdParam) {
 
 /** Confirma el bracket: programa la ronda 1 y pone el torneo En_curso. */
 async function confirmarBracket(torneoIdParam) {
-  const torneoId = torneoIdOrThrow(torneoIdParam, 'torneo_id debe ser un entero válido');
+  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   await enTransaccion(async (client) => {
     const torneo = await client.query('SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE', [torneoId]);
@@ -120,7 +119,7 @@ async function confirmarBracket(torneoIdParam) {
 
 /** Encuentros del torneo agrupados por ronda. */
 async function obtenerBracket(torneoIdParam) {
-  const torneoId = torneoIdOrThrow(torneoIdParam);
+  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   const torneo = await pool.query('SELECT torneo_id FROM torneos WHERE torneo_id = $1', [torneoId]);
 

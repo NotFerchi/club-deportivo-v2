@@ -24,18 +24,19 @@ module.exports = {
     }
   },
 
-  registrarEntrada: async (req, res) => {
+  // Alias antiguos: normalizan la entrada y la ruta sigue con la validación y el handler principal.
+  aliasEntrada: (req, res, next) => {
     req.body = {
       ...req.body,
       socio_padre_id: req.body.socio_padre_id || req.body.socio_id,
       nombre_hijo: req.body.nombre_hijo || req.body.nombre_nino
     };
-    return module.exports.registrarEntradaLudoteca(req, res);
+    next();
   },
 
-  registrarSalida: async (req, res) => {
+  aliasSalida: (req, res, next) => {
     req.params.registro_id = req.params.registro_id || req.params.id;
-    return module.exports.registrarSalidaLudoteca(req, res);
+    next();
   },
 
   historial: async (req, res) => {
@@ -53,7 +54,7 @@ module.exports = {
     const { socio_padre_id, nombre_hijo, fecha_nacimiento, observaciones } = req.body;
 
     try {
-      const socioPadreId = ludotecaService.validarEntradaStaff({ socio_padre_id, nombre_hijo, fecha_nacimiento });
+      const socioPadreId = Number(socio_padre_id); // datos de entrada: validados en la ruta
       const registro = await ludotecaService.registrarEntradaStaff(socioPadreId, {
         nombre_hijo,
         fecha_nacimiento,
@@ -81,7 +82,7 @@ module.exports = {
   // ── SCRUM-109: PATCH /api/ludoteca/salida/:registro_id ──
   registrarSalidaLudoteca: async (req, res) => {
     try {
-      const registroId = ludotecaService.registroIdValido(req.params.registro_id);
+      const registroId = Number(req.params.registro_id); // entero positivo: validado en la ruta
       const { horaSalida, duracionMinutos, sancionGenerada } = await ludotecaService.registrarSalidaStaff(registroId);
 
       await logAudit(req, {
@@ -117,7 +118,7 @@ module.exports = {
     const { nombre_hijo, fecha_nacimiento, observaciones } = req.body;
 
     try {
-      ludotecaService.validarEntradaSocio({ nombre_hijo, fecha_nacimiento });
+      // nombre_hijo y fecha_nacimiento: validados en la ruta
       const registro = await ludotecaService.registrarEntradaSocio(req.user.usuario_id, {
         nombre_hijo,
         fecha_nacimiento,

@@ -1,9 +1,6 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
 const { connectOrEscalate, escalate } = require('./escalate');
-const { validarCURP } = require('../utils/validacionCurp');
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 async function listarUsuarios() {
   const result = await pool.query(`
@@ -102,26 +99,9 @@ function camposUsuario(body) {
   };
 }
 
-/** Validaciones de entrada comunes a crear y actualizar (mismo orden y mensajes). */
-function validarDatosUsuario({ nombres, apellidoPaterno, email, telefono, curp, rol_id }) {
-  if (!nombres?.trim() || !apellidoPaterno?.trim() || !email?.trim() || !curp?.trim() || !rol_id) {
-    throw new ServiceError(400, { error: 'Nombres, apellido paterno, email, CURP y rol son obligatorios' });
-  }
-  if (!EMAIL_REGEX.test(email)) {
-    throw new ServiceError(400, { error: 'Formato de email inválido' });
-  }
-  const curpValidation = validarCURP(curp);
-  if (!curpValidation.valido) {
-    throw new ServiceError(400, { error: curpValidation.mensaje });
-  }
-  if (telefono && !/^\d{10}$/.test(telefono)) {
-    throw new ServiceError(400, { error: 'El teléfono debe tener 10 dígitos numéricos' });
-  }
-}
-
 /** Crea el usuario en una transacción. Devuelve { usuario_id, password }. */
+/** Datos validados en la ruta (middleware/usuarioValidators). */
 async function crearUsuario(datos) {
-  validarDatosUsuario(datos);
   const {
     nombres,
     apellidoPaterno,
@@ -188,8 +168,8 @@ async function crearUsuario(datos) {
  * Actualiza el usuario. Los errores de BD al revisar duplicados se escalan
  * (en el controlador original esas consultas estaban fuera del try).
  */
+/** Datos validados en la ruta (middleware/usuarioValidators). */
 async function actualizarUsuario(id, datos) {
-  validarDatosUsuario(datos);
   const {
     nombres,
     apellidoPaterno,

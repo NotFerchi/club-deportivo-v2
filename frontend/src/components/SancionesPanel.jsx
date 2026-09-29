@@ -1,5 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Calendar, CheckCircle, Clock, CreditCard, Edit2, Hash, Loader2, Lock, Plus, RefreshCw, Search, ShieldAlert, User, UserCheck, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  Edit2,
+  Hash,
+  Loader2,
+  Lock,
+  Plus,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  User,
+  UserCheck,
+  X
+} from 'lucide-react';
 import { adminApi, apiRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
@@ -11,7 +28,15 @@ const PAGE_SIZE = 20;
 const WRITE_ROLES = ['admin', 'coordinador'];
 // Roles que pueden marcar una sanción como resuelta
 const RESOLVER_ROLES = ['admin', 'coordinador'];
-const ORIGENES_BASE = ['Administracion', 'Ludoteca', 'Instalaciones', 'No-show reserva', 'No-show clase', 'Conducta', 'Reglamento'];
+const ORIGENES_BASE = [
+  'Administracion',
+  'Ludoteca',
+  'Instalaciones',
+  'No-show reserva',
+  'No-show clase',
+  'Conducta',
+  'Reglamento'
+];
 const initialFormData = {
   socio_id: '',
   origen: 'Administracion',
@@ -57,12 +82,12 @@ function useSancionesFilters() {
 
 // ── Buscador de socios con búsqueda en servidor ───────────────────────────────
 function SocioBuscador({ value, onChange }) {
-  const [query, setQuery]             = useState('');
-  const [resultados, setResultados]   = useState([]);
-  const [buscando, setBuscando]       = useState(false);
-  const [abierto, setAbierto]         = useState(false);
+  const [query, setQuery] = useState('');
+  const [resultados, setResultados] = useState([]);
+  const [buscando, setBuscando] = useState(false);
+  const [abierto, setAbierto] = useState(false);
   const [seleccionado, setSeleccionado] = useState(null);
-  const ref      = useRef(null);
+  const ref = useRef(null);
   const timerRef = useRef(null);
 
   const nombreVisible = seleccionado
@@ -71,25 +96,44 @@ function SocioBuscador({ value, onChange }) {
 
   const buscarEnServidor = (texto) => {
     clearTimeout(timerRef.current);
-    if (!texto.trim()) { setResultados([]); setBuscando(false); return; }
+    if (!texto.trim()) {
+      setResultados([]);
+      setBuscando(false);
+      return;
+    }
     setBuscando(true);
     timerRef.current = setTimeout(async () => {
       try {
         const data = await apiRequest(`/recepcion/socios?q=${encodeURIComponent(texto)}`);
-        setResultados(Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []));
-      } catch { setResultados([]); }
-      finally { setBuscando(false); }
+        setResultados(Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []);
+      } catch {
+        setResultados([]);
+      } finally {
+        setBuscando(false);
+      }
     }, 300);
   };
 
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setAbierto(false); };
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setAbierto(false);
+    };
     document.addEventListener('mousedown', handler);
-    return () => { document.removeEventListener('mousedown', handler); clearTimeout(timerRef.current); };
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      clearTimeout(timerRef.current);
+    };
   }, []);
 
-  const handleFocus  = () => { setAbierto(true); setQuery(''); setResultados([]); };
-  const handleChange = (e) => { setQuery(e.target.value); buscarEnServidor(e.target.value); };
+  const handleFocus = () => {
+    setAbierto(true);
+    setQuery('');
+    setResultados([]);
+  };
+  const handleChange = (e) => {
+    setQuery(e.target.value);
+    buscarEnServidor(e.target.value);
+  };
   const handleSelect = (socio) => {
     setSeleccionado(socio);
     onChange(String(socio.socio_id));
@@ -97,17 +141,47 @@ function SocioBuscador({ value, onChange }) {
     setQuery('');
     setResultados([]);
   };
-  const handleClear = () => { setSeleccionado(null); onChange(''); setQuery(''); setResultados([]); };
+  const handleClear = () => {
+    setSeleccionado(null);
+    onChange('');
+    setQuery('');
+    setResultados([]);
+  };
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <div style={{ position: 'relative' }}>
-        {buscando
-          ? <Loader2 size={13} className="icon-spin" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
-          : <Search size={13} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-        }
+        {buscando ? (
+          <Loader2
+            size={13}
+            className="icon-spin"
+            style={{
+              position: 'absolute',
+              left: 10,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#94a3b8',
+              pointerEvents: 'none'
+            }}
+          />
+        ) : (
+          <Search
+            size={13}
+            color="#94a3b8"
+            style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+          />
+        )}
         <input
-          style={{ width: '100%', padding: '9px 12px 9px 32px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', background: 'white' }}
+          style={{
+            width: '100%',
+            padding: '9px 12px 9px 32px',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            fontSize: '13px',
+            outline: 'none',
+            boxSizing: 'border-box',
+            background: 'white'
+          }}
           placeholder="Escribe el nombre o número de socio..."
           value={abierto ? query : nombreVisible}
           onFocus={handleFocus}
@@ -115,50 +189,106 @@ function SocioBuscador({ value, onChange }) {
           autoComplete="off"
         />
         {value && !abierto && (
-          <button onMouseDown={handleClear} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+          <button
+            onMouseDown={handleClear}
+            style={{
+              position: 'absolute',
+              right: 8,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 2
+            }}
+          >
             <X size={13} color="#94a3b8" />
           </button>
         )}
       </div>
 
       {abierto && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 300,
-          background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 220, overflowY: 'auto', marginTop: 2
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 300,
+            background: 'white',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            maxHeight: 220,
+            overflowY: 'auto',
+            marginTop: 2
+          }}
+        >
           {!query.trim() ? (
             <div style={{ padding: '0.75rem 1rem', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
               Empieza a escribir para buscar...
             </div>
           ) : buscando ? (
-            <div style={{ padding: '0.75rem 1rem', fontSize: '12px', color: '#94a3b8', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <div
+              style={{
+                padding: '0.75rem 1rem',
+                fontSize: '12px',
+                color: '#94a3b8',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
               <Loader2 size={13} className="icon-spin" /> Buscando...
             </div>
           ) : resultados.length === 0 ? (
             <div style={{ padding: '0.75rem 1rem', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
               Sin resultados para "{query}"
             </div>
-          ) : resultados.map(s => {
-            const nombre = s.nombre_completo || `${s.nombres || ''} ${s.apellido_paterno || ''}`.trim();
-            return (
-              <div
-                key={s.socio_id}
-                onMouseDown={() => handleSelect(s)}
-                style={{ padding: '0.6rem 1rem', fontSize: '13px', cursor: 'pointer', borderBottom: '1px solid #f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                onMouseLeave={e => e.currentTarget.style.background = 'white'}
-              >
-                <div>
-                  <div style={{ fontWeight: 700, color: '#1e293b' }}>{nombre}</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>{s.tipo} · {s.modalidad}</div>
+          ) : (
+            resultados.map((s) => {
+              const nombre = s.nombre_completo || `${s.nombres || ''} ${s.apellido_paterno || ''}`.trim();
+              return (
+                <div
+                  key={s.socio_id}
+                  onMouseDown={() => handleSelect(s)}
+                  style={{
+                    padding: '0.6rem 1rem',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #f8fafc',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#1e293b' }}>{nombre}</div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>
+                      {s.tipo} · {s.modalidad}
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#3b82f6',
+                      background: '#eff6ff',
+                      padding: '2px 8px',
+                      borderRadius: '20px',
+                      flexShrink: 0
+                    }}
+                  >
+                    {s.numero_socio}
+                  </span>
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#3b82f6', background: '#eff6ff', padding: '2px 8px', borderRadius: '20px', flexShrink: 0 }}>
-                  {s.numero_socio}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       )}
     </div>
@@ -223,16 +353,14 @@ function SancionesPanel() {
   }, [sanciones]);
 
   const handleResolve = async (sancion) => {
-    if (!await showConfirm('¿Resolver esta sanción?', { confirmLabel: 'Resolver' })) return;
+    if (!(await showConfirm('¿Resolver esta sanción?', { confirmLabel: 'Resolver' }))) return;
     setResolving(true);
     try {
       const updated = await adminApi.resolverSancion(sancion.sancion_id);
       setSelected(null);
       await fetchSanciones();
       if (updated?.sancion_id) {
-        setSanciones((current) => current.map((item) => (
-          item.sancion_id === updated.sancion_id ? updated : item
-        )));
+        setSanciones((current) => current.map((item) => (item.sancion_id === updated.sancion_id ? updated : item)));
       }
     } catch (error) {
       toast(error.message || 'Error al resolver sancion', 'error');
@@ -302,7 +430,9 @@ function SancionesPanel() {
       <div className="sanciones-header">
         <div>
           <span className="sanciones-eyebrow">Control disciplinario</span>
-          <h4><ShieldAlert size={18} /> Sanciones</h4>
+          <h4>
+            <ShieldAlert size={18} /> Sanciones
+          </h4>
           <p>Consulta sanciones, revisa historial por socio y da seguimiento a resoluciones.</p>
         </div>
         <div className="sanciones-header-actions">
@@ -364,7 +494,7 @@ function SancionesPanel() {
           {
             label: 'Origen',
             key: 'origen',
-            options: origenes.map(o => ({ value: o, label: o }))
+            options: origenes.map((o) => ({ value: o, label: o }))
           }
         ]}
       />
@@ -392,10 +522,16 @@ function SancionesPanel() {
                     <br />
                     <span className="sanciones-muted">{sancion.numero_socio || `ID ${sancion.socio_id}`}</span>
                   </td>
-                  <td><span className="badge-neutral">{sancion.origen || 'Administracion'}</span></td>
+                  <td>
+                    <span className="badge-neutral">{sancion.origen || 'Administracion'}</span>
+                  </td>
                   <td>{sancion.motivo}</td>
                   <td>{formatDate(sancion.fecha_inicio || sancion.fecha)}</td>
-                  <td><span className={isActiva(sancion) ? 'badge-warning' : 'badge-success'}>{estadoLabel(sancion)}</span></td>
+                  <td>
+                    <span className={isActiva(sancion) ? 'badge-warning' : 'badge-success'}>
+                      {estadoLabel(sancion)}
+                    </span>
+                  </td>
                   <td onClick={(event) => event.stopPropagation()}>
                     <button className="btn-outline btn-compact" type="button" onClick={() => setSelected(sancion)}>
                       Detalle
@@ -416,10 +552,17 @@ function SancionesPanel() {
       )}
 
       <div className="recepcion-pagination">
-        <button className="btn-outline" disabled={page <= 1} type="button" onClick={() => setPage((current) => Math.max(1, current - 1))}>
+        <button
+          className="btn-outline"
+          disabled={page <= 1}
+          type="button"
+          onClick={() => setPage((current) => Math.max(1, current - 1))}
+        >
           Anterior
         </button>
-        <span>Pagina {pagination.page} de {pagination.total_pages || 1} ({pagination.total} registros)</span>
+        <span>
+          Pagina {pagination.page} de {pagination.total_pages || 1} ({pagination.total} registros)
+        </span>
         <button
           className="btn-outline"
           disabled={page >= (pagination.total_pages || 1)}
@@ -430,114 +573,250 @@ function SancionesPanel() {
         </button>
       </div>
 
-      {selected && (() => {
-        const activa = isActiva(selected);
-        const gravedad = selected.gravedad || 'Leve';
-        const gravedadConfig = gravedad === 'Grave'
-          ? { color: '#dc2626', bg: '#fef2f2', borderColor: '#fca5a5' }
-          : gravedad === 'Moderada'
-            ? { color: '#d97706', bg: '#fffbeb', borderColor: '#fde68a' }
-            : { color: '#16a34a', bg: '#f0fdf4', borderColor: '#bbf7d0' };
+      {selected &&
+        (() => {
+          const activa = isActiva(selected);
+          const gravedad = selected.gravedad || 'Leve';
+          const gravedadConfig =
+            gravedad === 'Grave'
+              ? { color: '#dc2626', bg: '#fef2f2', borderColor: '#fca5a5' }
+              : gravedad === 'Moderada'
+                ? { color: '#d97706', bg: '#fffbeb', borderColor: '#fde68a' }
+                : { color: '#16a34a', bg: '#f0fdf4', borderColor: '#bbf7d0' };
 
-        return (
-          <div className="modal-overlay">
-            <div className="modal-content sanciones-modal">
-              <div className="modal-header" style={{ borderBottom: `3px solid ${gravedadConfig.color}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 10, background: gravedadConfig.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <ShieldAlert size={22} style={{ color: gravedadConfig.color }} />
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0 }}>Sancion #{selected.sancion_id}</h3>
-                    <p className="sanciones-modal-subtitle">{getNombreSocio(selected)}</p>
-                  </div>
-                </div>
-                <button className="close-modal" type="button" onClick={() => setSelected(null)}><X size={24} /></button>
-              </div>
-
-              <div className="modal-body">
-                {/* Badges de estado */}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1rem' }}>
-                  <span className={activa ? 'badge-warning' : 'badge-success'}>{estadoLabel(selected)}</span>
-                  <span className="badge-neutral">{selected.origen || 'Administracion'}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 10px', borderRadius: 20, background: gravedadConfig.bg, color: gravedadConfig.color, border: `1px solid ${gravedadConfig.borderColor}` }}>
-                    <AlertTriangle size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
-                    {gravedad}
-                  </span>
-                </div>
-
-                {/* Motivo destacado */}
-                <div style={{ background: '#f8fafc', borderLeft: `4px solid ${gravedadConfig.color}`, borderRadius: '0 8px 8px 0', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
-                  <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Motivo</p>
-                  <p style={{ margin: 0, fontSize: 15, color: '#0f172a', fontWeight: 600 }}>{selected.motivo}</p>
-                </div>
-
-                {/* Grid de info */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                  {[
-                    { Icon: User,       label: 'Socio',   value: getNombreSocio(selected) },
-                    { Icon: Hash,       label: 'Número',  value: selected.numero_socio || `ID ${selected.socio_id}` },
-                    { Icon: Calendar,   label: 'Fecha',   value: formatDate(selected.fecha_inicio || selected.fecha) },
-                    { Icon: CreditCard, label: 'ID Sancion', value: `#${selected.sancion_id}` },
-                  ].map(({ Icon, label, value }) => (
-                    <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: '#f8fafc', borderRadius: 8, padding: '10px 12px' }}>
-                      <div style={{ width: 30, height: 30, borderRadius: 7, background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon size={15} style={{ color: '#475569' }} />
-                      </div>
-                      <div>
-                        <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 13, color: '#1e293b', fontWeight: 600 }}>{value}</p>
-                      </div>
+          return (
+            <div className="modal-overlay">
+              <div className="modal-content sanciones-modal">
+                <div className="modal-header" style={{ borderBottom: `3px solid ${gravedadConfig.color}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 10,
+                        background: gravedadConfig.bg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      <ShieldAlert size={22} style={{ color: gravedadConfig.color }} />
                     </div>
-                  ))}
+                    <div>
+                      <h3 style={{ margin: 0 }}>Sancion #{selected.sancion_id}</h3>
+                      <p className="sanciones-modal-subtitle">{getNombreSocio(selected)}</p>
+                    </div>
+                  </div>
+                  <button className="close-modal" type="button" onClick={() => setSelected(null)}>
+                    <X size={24} />
+                  </button>
                 </div>
 
-                {/* Card de resolución */}
-                <div style={{ border: `1px solid ${activa ? '#fde68a' : '#bbf7d0'}`, borderRadius: 10, background: activa ? '#fffbeb' : '#f0fdf4', padding: '1rem', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 9, background: activa ? '#fef3c7' : '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {activa ? <Clock size={18} style={{ color: '#92400e' }} /> : <UserCheck size={18} style={{ color: '#166534' }} />}
+                <div className="modal-body">
+                  {/* Badges de estado */}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1rem' }}>
+                    <span className={activa ? 'badge-warning' : 'badge-success'}>{estadoLabel(selected)}</span>
+                    <span className="badge-neutral">{selected.origen || 'Administracion'}</span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        padding: '2px 10px',
+                        borderRadius: 20,
+                        background: gravedadConfig.bg,
+                        color: gravedadConfig.color,
+                        border: `1px solid ${gravedadConfig.borderColor}`
+                      }}
+                    >
+                      <AlertTriangle size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
+                      {gravedad}
+                    </span>
                   </div>
-                  <div>
-                    <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resolución</p>
-                    {activa ? (
-                      <>
-                        <p style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 700, color: '#92400e' }}>Pendiente</p>
-                        <p style={{ margin: '3px 0 0', fontSize: 12, color: '#78716c' }}>{canResolve ? 'Puedes marcarla como resuelta desde este panel.' : 'Tu rol solo permite consultar el estado.'}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 700, color: '#166534' }}>{selected.nombre_resolvente || 'Sin registro'}</p>
-                        <p style={{ margin: '3px 0 0', fontSize: 12, color: '#4b7a57' }}>{formatDateTime(selected.fecha_resolucion)}</p>
-                      </>
-                    )}
+
+                  {/* Motivo destacado */}
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      borderLeft: `4px solid ${gravedadConfig.color}`,
+                      borderRadius: '0 8px 8px 0',
+                      padding: '0.75rem 1rem',
+                      marginBottom: '1.25rem'
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 11,
+                        color: '#94a3b8',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: 4
+                      }}
+                    >
+                      Motivo
+                    </p>
+                    <p style={{ margin: 0, fontSize: 15, color: '#0f172a', fontWeight: 600 }}>{selected.motivo}</p>
                   </div>
+
+                  {/* Grid de info */}
+                  <div
+                    style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}
+                  >
+                    {[
+                      { Icon: User, label: 'Socio', value: getNombreSocio(selected) },
+                      { Icon: Hash, label: 'Número', value: selected.numero_socio || `ID ${selected.socio_id}` },
+                      { Icon: Calendar, label: 'Fecha', value: formatDate(selected.fecha_inicio || selected.fecha) },
+                      { Icon: CreditCard, label: 'ID Sancion', value: `#${selected.sancion_id}` }
+                    ].map(({ Icon, label, value }) => (
+                      <div
+                        key={label}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 10,
+                          background: '#f8fafc',
+                          borderRadius: 8,
+                          padding: '10px 12px'
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 7,
+                            background: '#e2e8f0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}
+                        >
+                          <Icon size={15} style={{ color: '#475569' }} />
+                        </div>
+                        <div>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: 11,
+                              color: '#94a3b8',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em'
+                            }}
+                          >
+                            {label}
+                          </p>
+                          <p style={{ margin: '2px 0 0', fontSize: 13, color: '#1e293b', fontWeight: 600 }}>{value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Card de resolución */}
+                  <div
+                    style={{
+                      border: `1px solid ${activa ? '#fde68a' : '#bbf7d0'}`,
+                      borderRadius: 10,
+                      background: activa ? '#fffbeb' : '#f0fdf4',
+                      padding: '1rem',
+                      display: 'flex',
+                      gap: 12,
+                      alignItems: 'flex-start'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 9,
+                        background: activa ? '#fef3c7' : '#dcfce7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      {activa ? (
+                        <Clock size={18} style={{ color: '#92400e' }} />
+                      ) : (
+                        <UserCheck size={18} style={{ color: '#166534' }} />
+                      )}
+                    </div>
+                    <div>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 11,
+                          color: '#94a3b8',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      >
+                        Resolución
+                      </p>
+                      {activa ? (
+                        <>
+                          <p style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 700, color: '#92400e' }}>
+                            Pendiente
+                          </p>
+                          <p style={{ margin: '3px 0 0', fontSize: 12, color: '#78716c' }}>
+                            {canResolve
+                              ? 'Puedes marcarla como resuelta desde este panel.'
+                              : 'Tu rol solo permite consultar el estado.'}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 700, color: '#166534' }}>
+                            {selected.nombre_resolvente || 'Sin registro'}
+                          </p>
+                          <p style={{ margin: '3px 0 0', fontSize: 12, color: '#4b7a57' }}>
+                            {formatDateTime(selected.fecha_resolucion)}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {isActiva(selected) && !canWrite && (
+                    <div className="sanciones-readonly-alert" style={{ marginTop: '0.75rem' }}>
+                      <Lock size={16} />
+                      Tu rol permite visualizar sanciones. La creación y resolución corresponde a coordinación o
+                      administración.
+                    </div>
+                  )}
                 </div>
 
-                {isActiva(selected) && !canWrite && (
-                  <div className="sanciones-readonly-alert" style={{ marginTop: '0.75rem' }}>
-                    <Lock size={16} />
-                    Tu rol permite visualizar sanciones. La creación y resolución corresponde a coordinación o administración.
-                  </div>
-                )}
-              </div>
-
-              <div className="modal-footer">
-                <button className="btn-outline" type="button" onClick={() => setSelected(null)}>Cerrar</button>
-                {canWrite && activa && (
-                  <button className="btn-outline" type="button" onClick={() => { setSelected(null); handleOpenEdit(selected); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Edit2 size={15} /> Editar
+                <div className="modal-footer">
+                  <button className="btn-outline" type="button" onClick={() => setSelected(null)}>
+                    Cerrar
                   </button>
-                )}
-                {canResolve && activa && (
-                  <button className="btn-primary" type="button" onClick={() => handleResolve(selected)}>
-                    <CheckCircle size={16} /> {resolving ? 'Resolviendo...' : 'Resolver sancion'}
-                  </button>
-                )}
+                  {canWrite && activa && (
+                    <button
+                      className="btn-outline"
+                      type="button"
+                      onClick={() => {
+                        setSelected(null);
+                        handleOpenEdit(selected);
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Edit2 size={15} /> Editar
+                    </button>
+                  )}
+                  {canResolve && activa && (
+                    <button className="btn-primary" type="button" onClick={() => handleResolve(selected)}>
+                      <CheckCircle size={16} /> {resolving ? 'Resolviendo...' : 'Resolver sancion'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {showCreateModal && canWrite && (
         <div className="modal-overlay">
@@ -551,7 +830,17 @@ function SancionesPanel() {
                     : 'Registro disponible solo para administracion y coordinacion.'}
                 </p>
               </div>
-              <button className="close-modal" type="button" onClick={() => { setShowCreateModal(false); setEditingSancion(null); setFormData(initialFormData); }}><X size={24} /></button>
+              <button
+                className="close-modal"
+                type="button"
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setEditingSancion(null);
+                  setFormData(initialFormData);
+                }}
+              >
+                <X size={24} />
+              </button>
             </div>
 
             <form onSubmit={handleCreateSancion}>
@@ -559,7 +848,17 @@ function SancionesPanel() {
                 <div className="sanciones-form-grid">
                   {!editingSancion && (
                     <div className="form-group form-group-full">
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>Socio</span>
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: '#374151',
+                          display: 'block',
+                          marginBottom: '6px'
+                        }}
+                      >
+                        Socio
+                      </span>
                       <SocioBuscador
                         value={formData.socio_id}
                         onChange={(val) => setFormData((current) => ({ ...current, socio_id: val }))}
@@ -569,14 +868,24 @@ function SancionesPanel() {
 
                   <label className="form-group">
                     <span>Origen</span>
-                    <select value={formData.origen} onChange={(event) => setFormData((current) => ({ ...current, origen: event.target.value }))}>
-                      {ORIGENES_BASE.map((origen) => <option key={origen} value={origen}>{origen}</option>)}
+                    <select
+                      value={formData.origen}
+                      onChange={(event) => setFormData((current) => ({ ...current, origen: event.target.value }))}
+                    >
+                      {ORIGENES_BASE.map((origen) => (
+                        <option key={origen} value={origen}>
+                          {origen}
+                        </option>
+                      ))}
                     </select>
                   </label>
 
                   <label className="form-group">
                     <span>Gravedad</span>
-                    <select value={formData.gravedad} onChange={(event) => setFormData((current) => ({ ...current, gravedad: event.target.value }))}>
+                    <select
+                      value={formData.gravedad}
+                      onChange={(event) => setFormData((current) => ({ ...current, gravedad: event.target.value }))}
+                    >
                       <option value="Leve">Leve</option>
                       <option value="Moderada">Moderada</option>
                       <option value="Grave">Grave</option>
@@ -596,7 +905,15 @@ function SancionesPanel() {
               </div>
 
               <div className="modal-footer">
-                <button className="btn-outline" type="button" onClick={() => { setShowCreateModal(false); setEditingSancion(null); setFormData(initialFormData); }}>
+                <button
+                  className="btn-outline"
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setEditingSancion(null);
+                    setFormData(initialFormData);
+                  }}
+                >
                   Cancelar
                 </button>
                 <button className="btn-primary" type="submit">

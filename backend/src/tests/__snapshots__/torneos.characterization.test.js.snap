@@ -1,0 +1,1390 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DELETE /api/torneos/:torneo_id/participantes/:participante_id desinscribe 1`] = `
+[
+  [
+    "pool",
+    "SELECT estado FROM torneos WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "DELETE FROM participantes_torneo WHERE participante_id = $1 AND torneo_id = $2 RETURNING participante_id",
+    [
+      31,
+      4,
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/torneos sin filtros y con filtros → SQL según filtros 1`] = `
+[
+  [
+    "pool",
+    "SELECT t.torneo_id, t.nombre, t.disciplina_id, d.nombre AS nombre_disciplina, t.fecha_inicio, t.fecha_fin, t.estado, t.tipo_torneo, t.categoria_id, ct.nombre AS nombre_categoria, COUNT(pt.participante_id)::int AS total_participantes, (COUNT(pt.participante_id) >= 4) AS se_realiza FROM torneos t JOIN disciplinas d ON t.disciplina_id = d.disciplina_id LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id GROUP BY t.torneo_id, t.disciplina_id, d.nombre, t.tipo_torneo, t.categoria_id, ct.nombre ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT t.torneo_id, t.nombre, t.disciplina_id, d.nombre AS nombre_disciplina, t.fecha_inicio, t.fecha_fin, t.estado, t.tipo_torneo, t.categoria_id, ct.nombre AS nombre_categoria, COUNT(pt.participante_id)::int AS total_participantes, (COUNT(pt.participante_id) >= 4) AS se_realiza FROM torneos t JOIN disciplinas d ON t.disciplina_id = d.disciplina_id LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id WHERE t.disciplina_id = $1 AND LOWER(t.estado) = LOWER($2) GROUP BY t.torneo_id, t.disciplina_id, d.nombre, t.tipo_torneo, t.categoria_id, ct.nombre ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC",
+    [
+      2,
+      "abierto",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT t.torneo_id, t.nombre, t.disciplina_id, d.nombre AS nombre_disciplina, t.fecha_inicio, t.fecha_fin, t.estado, t.tipo_torneo, t.categoria_id, ct.nombre AS nombre_categoria, COUNT(pt.participante_id)::int AS total_participantes, (COUNT(pt.participante_id) >= 4) AS se_realiza FROM torneos t JOIN disciplinas d ON t.disciplina_id = d.disciplina_id LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id GROUP BY t.torneo_id, t.disciplina_id, d.nombre, t.tipo_torneo, t.categoria_id, ct.nombre ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC",
+    [],
+  ],
+]
+`;
+
+exports[`GET /api/torneos/:torneo_id/bracket agrupa por ronda (ronda null → 1) y rellena nombres vacíos 1`] = `
+[
+  {
+    "encuentros": [
+      {
+        "cancha_asignada": "C1",
+        "encuentro_id": 100,
+        "estado": "finalizado",
+        "ganador_id": 11,
+        "ganador_nombre": "Ana",
+        "hora_programada": "10:00",
+        "marcador_1": 3,
+        "marcador_2": 1,
+        "participante_1": {
+          "nombre": "Ana",
+          "participante_id": 11,
+        },
+        "participante_2": {
+          "nombre": "Beto",
+          "participante_id": 12,
+        },
+      },
+      {
+        "encuentro_id": 101,
+        "estado": "programado",
+        "participante_1": {
+          "nombre": "Por definir",
+          "participante_id": 13,
+        },
+        "participante_2": {
+          "nombre": "Por definir",
+          "participante_id": null,
+        },
+      },
+      {
+        "encuentro_id": 102,
+        "estado": "pendiente",
+        "participante_1": {
+          "nombre": "Por definir",
+        },
+        "participante_2": {
+          "nombre": "Por definir",
+        },
+      },
+    ],
+    "ronda": 1,
+  },
+  {
+    "encuentros": [
+      {
+        "encuentro_id": 103,
+        "estado": "pendiente",
+        "participante_1": {
+          "nombre": "Por definir",
+        },
+        "participante_2": {
+          "nombre": "Por definir",
+        },
+      },
+    ],
+    "ronda": 2,
+  },
+]
+`;
+
+exports[`GET /api/torneos/:torneo_id/bracket agrupa por ronda (ronda null → 1) y rellena nombres vacíos 2`] = `
+[
+  [
+    "pool",
+    "SELECT torneo_id FROM torneos WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT e.encuentro_id, e.ronda, e.estado, e.cancha_asignada, e.hora_programada, e.marcador_1, e.marcador_2, e.ganador_id, e.ganador AS ganador_nombre, p1.participante_id AS participante_1_id, COALESCE( NULLIF(TRIM(eq1.nombre_equipo), ''), NULLIF(TRIM(CONCAT(u1.nombres, ' ', COALESCE(u1.apellido_paterno, ''), ' ', COALESCE(u1.apellido_materno, ''))), ''), NULLIF(TRIM(v1.nombre_completo), ''), NULLIF(TRIM(p1.nombre_externo), ''), NULLIF(TRIM(e.participante_1), ''), 'Por definir' ) AS participante_1_nombre, p2.participante_id AS participante_2_id, COALESCE( NULLIF(TRIM(eq2.nombre_equipo), ''), NULLIF(TRIM(CONCAT(u2.nombres, ' ', COALESCE(u2.apellido_paterno, ''), ' ', COALESCE(u2.apellido_materno, ''))), ''), NULLIF(TRIM(v2.nombre_completo), ''), NULLIF(TRIM(p2.nombre_externo), ''), NULLIF(TRIM(e.participante_2), ''), 'Por definir' ) AS participante_2_nombre FROM encuentros_torneo e LEFT JOIN participantes_torneo p1 ON p1.participante_id = e.participante_1_id LEFT JOIN socios s1 ON s1.socio_id = p1.socio_id LEFT JOIN usuarios u1 ON u1.usuario_id = s1.usuario_id LEFT JOIN visitas v1 ON v1.visita_id = p1.visita_id LEFT JOIN equipos eq1 ON eq1.equipo_id = p1.equipo_id LEFT JOIN participantes_torneo p2 ON p2.participante_id = e.participante_2_id LEFT JOIN socios s2 ON s2.socio_id = p2.socio_id LEFT JOIN usuarios u2 ON u2.usuario_id = s2.usuario_id LEFT JOIN visitas v2 ON v2.visita_id = p2.visita_id LEFT JOIN equipos eq2 ON eq2.equipo_id = p2.equipo_id WHERE e.torneo_id = $1 ORDER BY e.ronda ASC, e.encuentro_id ASC",
+    [
+      4,
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/torneos/:torneo_id/participantes lista con total y se_realiza 1`] = `
+[
+  [
+    "pool",
+    "SELECT pt.participante_id, pt.torneo_id, pt.socio_id, pt.visita_id, pt.nombre_externo, pt.resultado_final, c.nombre AS categoria, COALESCE( NULLIF(TRIM(eq.nombre_equipo), ''), NULLIF(TRIM(CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, ''), ' ', COALESCE(u.apellido_materno, ''))), ''), NULLIF(TRIM(v.nombre_completo), ''), NULLIF(TRIM(pt.nombre_externo), ''), 'Participante sin nombre' ) AS nombre_participante, CASE WHEN pt.socio_id IS NOT NULL THEN 'Socio' WHEN pt.visita_id IS NOT NULL THEN 'Visita' ELSE 'Externo' END AS tipo_participante FROM participantes_torneo pt LEFT JOIN categorias_torneo c ON c.categoria_id = pt.categoria_id LEFT JOIN socios s ON s.socio_id = pt.socio_id LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id LEFT JOIN visitas v ON v.visita_id = pt.visita_id LEFT JOIN equipos eq ON eq.equipo_id = pt.equipo_id WHERE pt.torneo_id = $1 ORDER BY c.nombre, nombre_participante",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT pt.participante_id, pt.torneo_id, pt.socio_id, pt.visita_id, pt.nombre_externo, pt.resultado_final, c.nombre AS categoria, COALESCE( NULLIF(TRIM(eq.nombre_equipo), ''), NULLIF(TRIM(CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, ''), ' ', COALESCE(u.apellido_materno, ''))), ''), NULLIF(TRIM(v.nombre_completo), ''), NULLIF(TRIM(pt.nombre_externo), ''), 'Participante sin nombre' ) AS nombre_participante, CASE WHEN pt.socio_id IS NOT NULL THEN 'Socio' WHEN pt.visita_id IS NOT NULL THEN 'Visita' ELSE 'Externo' END AS tipo_participante FROM participantes_torneo pt LEFT JOIN categorias_torneo c ON c.categoria_id = pt.categoria_id LEFT JOIN socios s ON s.socio_id = pt.socio_id LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id LEFT JOIN visitas v ON v.visita_id = pt.visita_id LEFT JOIN equipos eq ON eq.equipo_id = pt.equipo_id WHERE pt.torneo_id = $1 ORDER BY c.nombre, nombre_participante",
+    [
+      4,
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/torneos/:torneo_id/reporte torneo + encuentros formateados 1`] = `
+{
+  "encuentros": [
+    {
+      "cancha_asignada": "C1",
+      "encuentro_id": 100,
+      "estado": "finalizado",
+      "ganador": {
+        "id": 11,
+        "nombre": "Ana",
+      },
+      "hora_programada": "10:00",
+      "marcador_1": 3,
+      "marcador_2": 1,
+      "participante_1": {
+        "id": 11,
+        "nombre": "Ana",
+      },
+      "participante_2": {
+        "id": 12,
+        "nombre": "Beto",
+      },
+      "ronda": 1,
+    },
+    {
+      "cancha_asignada": null,
+      "encuentro_id": 101,
+      "estado": "pendiente",
+      "ganador": null,
+      "hora_programada": null,
+      "marcador_1": null,
+      "marcador_2": null,
+      "participante_1": {
+        "id": null,
+        "nombre": "Por definir",
+      },
+      "participante_2": {
+        "id": null,
+        "nombre": "Por definir",
+      },
+      "ronda": 2,
+    },
+  ],
+  "torneo": {
+    "disciplina": "Tenis",
+    "estado": "En_curso",
+    "nombre": "Copa",
+    "torneo_id": 4,
+  },
+}
+`;
+
+exports[`GET /api/torneos/:torneo_id/reporte torneo + encuentros formateados 2`] = `
+[
+  [
+    "pool",
+    "SELECT t.torneo_id, t.nombre, t.estado, d.nombre AS disciplina FROM torneos t JOIN disciplinas d ON d.disciplina_id = t.disciplina_id WHERE t.torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT e.encuentro_id, e.ronda, e.estado, e.marcador_1, e.marcador_2, e.cancha_asignada, e.hora_programada, p1.participante_id AS p1_id, COALESCE( NULLIF(TRIM(eq1.nombre_equipo), ''), NULLIF(TRIM(CONCAT(u1.nombres, ' ', COALESCE(u1.apellido_paterno,''), ' ', COALESCE(u1.apellido_materno,''))), ''), NULLIF(TRIM(v1.nombre_completo), ''), NULLIF(TRIM(p1.nombre_externo), ''), 'Por definir' ) AS p1_nombre, p2.participante_id AS p2_id, COALESCE( NULLIF(TRIM(eq2.nombre_equipo), ''), NULLIF(TRIM(CONCAT(u2.nombres, ' ', COALESCE(u2.apellido_paterno,''), ' ', COALESCE(u2.apellido_materno,''))), ''), NULLIF(TRIM(v2.nombre_completo), ''), NULLIF(TRIM(p2.nombre_externo), ''), 'Por definir' ) AS p2_nombre, e.ganador_id, COALESCE( NULLIF(TRIM(eqg.nombre_equipo), ''), NULLIF(TRIM(CONCAT(ug.nombres, ' ', COALESCE(ug.apellido_paterno,''), ' ', COALESCE(ug.apellido_materno,''))), ''), NULLIF(TRIM(vg.nombre_completo), ''), NULLIF(TRIM(pg.nombre_externo), ''), NULL ) AS ganador_nombre FROM encuentros_torneo e LEFT JOIN participantes_torneo p1 ON p1.participante_id = e.participante_1_id LEFT JOIN socios s1 ON s1.socio_id = p1.socio_id LEFT JOIN usuarios u1 ON u1.usuario_id = s1.usuario_id LEFT JOIN visitas v1 ON v1.visita_id = p1.visita_id LEFT JOIN equipos eq1 ON eq1.equipo_id = p1.equipo_id LEFT JOIN participantes_torneo p2 ON p2.participante_id = e.participante_2_id LEFT JOIN socios s2 ON s2.socio_id = p2.socio_id LEFT JOIN usuarios u2 ON u2.usuario_id = s2.usuario_id LEFT JOIN visitas v2 ON v2.visita_id = p2.visita_id LEFT JOIN equipos eq2 ON eq2.equipo_id = p2.equipo_id LEFT JOIN participantes_torneo pg ON pg.participante_id = e.ganador_id LEFT JOIN socios sg ON sg.socio_id = pg.socio_id LEFT JOIN usuarios ug ON ug.usuario_id = sg.usuario_id LEFT JOIN visitas vg ON vg.visita_id = pg.visita_id LEFT JOIN equipos eqg ON eqg.equipo_id = pg.equipo_id WHERE e.torneo_id = $1 ORDER BY e.ronda ASC, e.encuentro_id ASC",
+    [
+      4,
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/torneos/categorias lista y error 1`] = `
+[
+  [
+    "pool",
+    "SELECT categoria_id, nombre FROM categorias_torneo ORDER BY nombre",
+    [],
+  ],
+]
+`;
+
+exports[`GET /api/torneos/mis-participaciones lista, socio no encontrado y error 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT pt.participante_id, t.torneo_id, t.nombre, t.estado, t.fecha_inicio, t.fecha_fin, d.nombre AS nombre_disciplina, c.nombre AS categoria FROM participantes_torneo pt JOIN torneos t ON t.torneo_id = pt.torneo_id JOIN disciplinas d ON d.disciplina_id = t.disciplina_id LEFT JOIN categorias_torneo c ON c.categoria_id = pt.categoria_id WHERE pt.socio_id = $1 ORDER BY t.fecha_inicio DESC NULLS LAST",
+    [
+      10,
+    ],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/cancelar 400 / 404 / 409 con estado en minúsculas / 500 1`] = `
+[
+  [
+    "pool",
+    "UPDATE torneos SET estado = 'Cancelado' WHERE torneo_id = $1 AND estado NOT IN ('Cancelado', 'Finalizado') RETURNING torneo_id",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT estado FROM torneos WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE torneos SET estado = 'Cancelado' WHERE torneo_id = $1 AND estado NOT IN ('Cancelado', 'Finalizado') RETURNING torneo_id",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT estado FROM torneos WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/cancelar cancela 1`] = `
+[
+  [
+    "pool",
+    "UPDATE torneos SET estado = 'Cancelado' WHERE torneo_id = $1 AND estado NOT IN ('Cancelado', 'Finalizado') RETURNING torneo_id",
+    [
+      4,
+    ],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 4 participantes (random 0.3) → genera bracket completo 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, participante_2_id, ronda, estado) VALUES ($1, $2, $3, 1, 'pendiente')",
+    [
+      4,
+      14,
+      13,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, participante_2_id, ronda, estado) VALUES ($1, $2, $3, 1, 'pendiente')",
+    [
+      4,
+      11,
+      12,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE torneos SET estado = 'Inscripciones_cerradas' WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 5 participantes (random 0.3) → genera bracket completo 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, participante_2_id, ronda, estado) VALUES ($1, $2, $3, 1, 'pendiente')",
+    [
+      4,
+      14,
+      13,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      11,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      15,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      12,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      3,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE torneos SET estado = 'Inscripciones_cerradas' WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 6 participantes (random 0.7) → genera bracket completo 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, participante_2_id, ronda, estado) VALUES ($1, $2, $3, 1, 'pendiente')",
+    [
+      4,
+      11,
+      12,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, participante_2_id, ronda, estado) VALUES ($1, $2, $3, 1, 'pendiente')",
+    [
+      4,
+      16,
+      13,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      14,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      15,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      3,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE torneos SET estado = 'Inscripciones_cerradas' WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (random 0.1) → genera bracket completo 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, participante_2_id, ronda, estado) VALUES ($1, $2, $3, 1, 'pendiente')",
+    [
+      4,
+      12,
+      13,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      14,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      15,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      16,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      17,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      18,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      19,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado) VALUES ($1, $2, 1, $2, 'programado')",
+    [
+      4,
+      11,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      3,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      3,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    [
+      4,
+      4,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE torneos SET estado = 'Inscripciones_cerradas' WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones error de BD → ROLLBACK + 500; fallo de conexión → errorHandler 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO encuentros_torneo (torneo_id, participante_1_id, participante_2_id, ronda, estado) VALUES ($1, $2, $3, 1, 'pendiente')",
+    [
+      4,
+      11,
+      14,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones errores de negocio → ROLLBACK 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/confirmar-bracket 400 / 404 / 409 / 500 / conexión 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET estado = 'programado' WHERE torneo_id = $1 AND ronda = 1 AND estado = 'pendiente'",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE torneos SET estado = 'En_curso' WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/confirmar-bracket confirma (cualquier estado distinto de En_curso) 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET estado = 'programado' WHERE torneo_id = $1 AND ronda = 1 AND estado = 'pendiente'",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE torneos SET estado = 'En_curso' WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/finalizar 400 / 404 / 409 / pendientes / 500 / conexión 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND estado != 'finalizado' AND participante_1_id IS NOT NULL AND participante_2_id IS NOT NULL",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/torneos/:torneo_id/finalizar finaliza 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND estado != 'finalizado' AND participante_1_id IS NOT NULL AND participante_2_id IS NOT NULL",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE torneos SET estado = 'Finalizado' WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /api/torneos crea con valores por defecto y con todos los campos 1`] = `
+[
+  [
+    "pool",
+    "SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1",
+    [
+      2,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING torneo_id",
+    [
+      2,
+      "Copa",
+      null,
+      null,
+      "Abierto",
+      null,
+      "Individual",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1",
+    [
+      2,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING torneo_id",
+    [
+      2,
+      "Liga",
+      "2026-10-01",
+      null,
+      "Cerrado",
+      3,
+      "Equipos",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1",
+    [
+      2,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING torneo_id",
+    [
+      2,
+      "X",
+      null,
+      null,
+      "Abierto",
+      null,
+      "Individual",
+    ],
+  ],
+]
+`;
+
+exports[`POST /api/torneos disciplina inexistente → 400 1`] = `
+[
+  [
+    "pool",
+    "SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1",
+    [
+      99,
+    ],
+  ],
+]
+`;
+
+exports[`POST /api/torneos/:torneo_id/inscribir socio / visita / categoría no encontrados, duplicado, equipo inválido 1`] = `
+[
+  [
+    "pool",
+    "SELECT * FROM socios WHERE socio_id = $1 AND activo IS NOT FALSE",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE",
+    [
+      20,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    [
+      3,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE",
+    [
+      20,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    [
+      3,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND (socio_id = $2 OR visita_id = $3) LIMIT 1",
+    [
+      4,
+      null,
+      20,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    [
+      3,
+    ],
+  ],
+]
+`;
+
+exports[`POST /api/torneos/:torneo_id/inscribir socio, visita y externo → 201 1`] = `
+[
+  [
+    "pool",
+    "SELECT * FROM socios WHERE socio_id = $1 AND activo IS NOT FALSE",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    [
+      3,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND (socio_id = $2 OR visita_id = $3) LIMIT 1",
+    [
+      4,
+      10,
+      null,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO participantes_torneo (torneo_id, socio_id, visita_id, nombre_externo, equipo_id, categoria_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING participante_id",
+    [
+      4,
+      10,
+      null,
+      null,
+      null,
+      3,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE",
+    [
+      20,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    [
+      3,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND (socio_id = $2 OR visita_id = $3) LIMIT 1",
+    [
+      4,
+      null,
+      20,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO participantes_torneo (torneo_id, socio_id, visita_id, nombre_externo, equipo_id, categoria_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING participante_id",
+    [
+      4,
+      null,
+      20,
+      null,
+      6,
+      3,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    [
+      3,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO participantes_torneo (torneo_id, socio_id, visita_id, nombre_externo, equipo_id, categoria_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING participante_id",
+    [
+      4,
+      null,
+      null,
+      "Juan",
+      null,
+      3,
+    ],
+  ],
+]
+`;
+
+exports[`POST /api/torneos/:torneo_id/inscribir-me errores de negocio 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT torneo_id, estado, categoria_id FROM torneos WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT torneo_id, estado, categoria_id FROM torneos WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT torneo_id, estado, categoria_id FROM torneos WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT torneo_id, estado, categoria_id FROM torneos WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND socio_id = $2 LIMIT 1",
+    [
+      4,
+      10,
+    ],
+  ],
+]
+`;
+
+exports[`POST /api/torneos/:torneo_id/inscribir-me inscribe al socio autenticado con la categoría del torneo 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT torneo_id, estado, categoria_id FROM torneos WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND socio_id = $2 LIMIT 1",
+    [
+      4,
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO participantes_torneo (torneo_id, socio_id, categoria_id) VALUES ($1, $2, $3) RETURNING participante_id",
+    [
+      4,
+      10,
+      3,
+    ],
+  ],
+]
+`;
+
+exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
+[
+  [
+    "pool",
+    "UPDATE torneos SET disciplina_id = $1, nombre = $2, fecha_inicio = $3, fecha_fin = $4, estado = COALESCE($5, estado), categoria_id = $6, tipo_torneo = COALESCE($7, tipo_torneo) WHERE torneo_id = $8 RETURNING torneo_id",
+    [
+      2,
+      "Copa",
+      null,
+      null,
+      null,
+      null,
+      null,
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE torneos SET disciplina_id = $1, nombre = $2, fecha_inicio = $3, fecha_fin = $4, estado = COALESCE($5, estado), categoria_id = $6, tipo_torneo = COALESCE($7, tipo_torneo) WHERE torneo_id = $8 RETURNING torneo_id",
+    [
+      2,
+      "Copa",
+      "2026-10-01",
+      "2026-10-05",
+      "Abierto",
+      null,
+      "Equipos",
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE torneos SET disciplina_id = $1, nombre = $2, fecha_inicio = $3, fecha_fin = $4, estado = COALESCE($5, estado), categoria_id = $6, tipo_torneo = COALESCE($7, tipo_torneo) WHERE torneo_id = $8 RETURNING torneo_id",
+    [
+      0,
+      "Copa",
+      null,
+      null,
+      null,
+      null,
+      null,
+      4,
+    ],
+  ],
+]
+`;

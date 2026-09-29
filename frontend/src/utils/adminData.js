@@ -121,24 +121,3 @@ export const formatLocalDateTime = (value) => {
   const h12 = hn === 0 ? 12 : hn > 12 ? hn - 12 : hn;
   return `${parseInt(d, 10)}/${parseInt(mo, 10)}/${y}, ${h12}:${mi} ${suffix}`;
 };
-
-export const normalizeGravedad = (value) => {
-  const normalized = normalizeText(value);
-  if (normalized === 'grave') return 'Grave';
-  if (normalized === 'moderada' || normalized === 'moderado') return 'Moderada';
-  return 'Leve';
-};
-
-export const gravedadDias = {
-  Leve: 1,
-  Moderada: 7,
-  Grave: 30
-};
-
-export const fechaFinPorGravedad = (fechaInicio, gravedad) => {
-  if (!fechaInicio) return '';
-  const days = gravedadDias[normalizeGravedad(gravedad)] || gravedadDias.Leve;
-  const date = new Date(`${fechaInicio}T00:00:00`);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split('T')[0];
-};

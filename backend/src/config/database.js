@@ -1,26 +1,32 @@
-const { Pool, types } = require('pg');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-console.log('Conectando a Neon...');
-console.log('DATABASE_URL actual:', process.env.DATABASE_URL ? 'Cargada correctamente' : 'ESTA VACIA');
-console.log('DATABASE_URL detectada:', process.env.DATABASE_URL ? 'SI' : 'NO');
-console.log('Puerto detectado:', process.env.PORT || 'No detectado');
+const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false,
-    },
-    connectionTimeoutMillis: 10000,
+if (!connectionString) {
+  console.warn('⚠️ No se encontró NEON_DATABASE_URL ni DATABASE_URL en tu .env');
+}
+
+// Patrón Singleton para reutilizar una sola conexión del pool y evitar agotamiento
+const poolSingleton = global.__pgPool || new Pool({
+  connectionString,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
-pool.on('connect', (client) => {
-    console.log('Conectado a la base de datos Neon');
-    client.query("SET timezone = 'America/Mexico_City'").catch(() => {});
+global.__pgPool = poolSingleton;
+
+// Si quieres mantener la zona horaria local del sistema
+poolSingleton.on('connect', (client) => {
+  client.query("SET timezone = 'America/Mexico_City'").catch(() => {});
 });
 
-pool.on('error', (err) => {
-    console.error('Error en la base de datos:', err.message);
+poolSingleton.on('error', (err) => {
+  console.error('Error inesperado en el cliente PostgreSQL inactivo:', err);
 });
 
-module.exports = pool;
+module.exports = poolSingleton;

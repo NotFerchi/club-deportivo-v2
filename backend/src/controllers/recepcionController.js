@@ -1,7 +1,7 @@
 const pool = require('../config/database');
 const { logAudit } = require('../utils/auditLogger');
 const { resolveReservaEstado } = require('../utils/adminRules');
-const { getMexicoTodayLocale } = require('../utils/mexicoDate');
+const { getMexicoTodayLocale, getMexicoDateISO, getMexicoTimeISO } = require('../utils/mexicoDate');
 const ServiceError = require('../services/serviceError');
 const { isEscalated } = require('../services/escalate');
 const paseService = require('../services/paseService');
@@ -11,6 +11,7 @@ const recepcionDashboardService = require('../services/recepcionDashboardService
 const paseListaService = require('../services/paseListaService');
 const socioService = require('../services/socioService');
 const ludotecaService = require('../services/ludotecaService');
+const { sendQrVisita } = require('../utils/emailService');
 
 /**
  * Errores escalados → errorHandler global; ServiceError → su status/cuerpo;
@@ -288,11 +289,10 @@ const recepcionController = {
     return recepcionController.alumnosPorClase(req, res);
   },
 
-  // ── Métodos sin extraer: BUGS HEREDADOS (fuera de alcance) ──────────────────
-  // Se dejan tal cual para no cambiar su comportamiento actual:
-  // - registrarAsistenciaManual usa getMexicoDateISO/getMexicoTimeISO sin importarlos:
-  //   con una reserva válida siempre responde 500 (ReferenceError).
-  // - enviarQrVisita usa sendQrVisita sin importarlo: siempre responde 503.
+  // ── Métodos sin extraer ──────────────────────────────────────────────────
+  // Bugs #23 y #24 (imports faltantes en registrarAsistenciaManual y
+  // enviarQrVisita) corregidos el 29/09/2026 — ver ticket "Corrección de
+  // bugs pendientes de la versión 1".
 
   registrarAsistenciaManual: async (req, res) => {
     const { sesionId, socioId, fecha, presente = true } = req.body;
@@ -334,10 +334,9 @@ const recepcionController = {
       }
 
       // Usa México City — getTimezoneOffset() refleja la TZ del servidor (USA), no México
-      // eslint-disable-next-line no-undef -- bug heredado: no importado (fuera de alcance)
       const hoyLocal = getMexicoDateISO();
-      // eslint-disable-next-line no-undef -- bug heredado: no importado (fuera de alcance)
       const horaLocal = getMexicoTimeISO();
+
       const horaFin = String(reserva.hora_fin || '').slice(0, 5);
       if (fecha < hoyLocal || (fecha === hoyLocal && horaFin && horaFin < horaLocal)) {
         const estadoNoShow = await resolveReservaEstado('no-show');
@@ -412,7 +411,6 @@ const recepcionController = {
     }
 
     try {
-      // eslint-disable-next-line no-undef -- bug heredado: no importado (fuera de alcance)
       await sendQrVisita({
         to: correo,
         nombre: nombre || 'Visitante',

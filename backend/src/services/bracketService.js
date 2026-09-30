@@ -63,14 +63,16 @@ async function cerrarInscripciones(torneoIdParam) {
       encuentrosEnRonda++;
     }
 
-    // Ronda 1 — byes (pasan directo)
+    // Ronda 1 — byes (pasan directo: ya están decididos, sin partido que jugar)
+    const byeGanadores = [];
     for (let i = totalConCruce; i < ids.length; i++) {
       await client.query(
         `INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado)
-           VALUES ($1, $2, 1, $2, 'programado')`,
+           VALUES ($1, $2, 1, $2, 'finalizado')`,
         [torneoId, ids[i]]
       );
       encuentrosEnRonda++;
+      byeGanadores.push(ids[i]);
     }
 
     // Rondas futuras — slots vacíos para que los ganadores tengan a dónde avanzar
@@ -87,6 +89,35 @@ async function cerrarInscripciones(torneoIdParam) {
         );
       }
       encuentrosPrevios = encuentrosEstaRonda;
+    }
+
+    // Los byes ya quedaron 'finalizado' arriba y nunca pasan por registrarResultado
+    // (no hay marcador que registrar), así que su ganador se coloca aquí mismo en
+    // su slot de la ronda 2 — antes esto nunca ocurría y esos avances se perdían
+    // (bug #29: los byes no activaban la ronda 2).
+    if (totalRondas >= 2) {
+      for (const ganadorId of byeGanadores) {
+        const { rows: slotRows } = await client.query(
+          `SELECT encuentro_id, participante_1_id, participante_2_id
+             FROM encuentros_torneo
+             WHERE torneo_id = $1
+               AND ronda     = 2
+               AND (participante_1_id IS NULL OR participante_2_id IS NULL)
+             ORDER BY encuentro_id ASC
+             LIMIT 1
+             FOR UPDATE`,
+          [torneoId]
+        );
+
+        if (slotRows.length > 0) {
+          const slot = slotRows[0];
+          const campo = slot.participante_1_id === null ? 'participante_1_id' : 'participante_2_id';
+          await client.query(`UPDATE encuentros_torneo SET ${campo} = $1 WHERE encuentro_id = $2`, [
+            ganadorId,
+            slot.encuentro_id
+          ]);
+        }
+      }
     }
 
     await client.query("UPDATE torneos SET estado = 'Inscripciones_cerradas' WHERE torneo_id = $1", [torneoId]);

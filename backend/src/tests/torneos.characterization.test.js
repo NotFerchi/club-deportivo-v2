@@ -62,6 +62,9 @@ function route(q) {
   if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE') return rows(db.torneoLock);
   if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1') return rows(db.torneoEstado);
   if (q.startsWith('INSERT INTO encuentros_torneo')) return rows([]);
+  if (q.startsWith('SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo'))
+    return rows(db.byeSlot);
+  if (q.startsWith('UPDATE encuentros_torneo SET participante_')) return rows([]);
   if (q.startsWith("UPDATE torneos SET estado = 'Cancelado'")) return rows(db.cancelado);
   if (q.startsWith('UPDATE torneos SET estado')) return rows([]);
   if (q.startsWith('UPDATE encuentros_torneo SET estado')) return rows([]);
@@ -96,6 +99,7 @@ beforeEach(() => {
     duplicado: [],
     existente: [],
     ids: [11, 12, 13, 14, 15].map((participante_id) => ({ participante_id })),
+    byeSlot: [{ encuentro_id: 500, participante_1_id: null, participante_2_id: null }],
     torneoLock: [{ estado: 'Abierto' }],
     torneoEstado: [{ estado: 'Abierto' }],
     cancelado: [{ torneo_id: 4 }],

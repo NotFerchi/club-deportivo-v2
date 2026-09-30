@@ -1,0 +1,1981 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GET /dashboard con tabla pases y cierre automático auditado 1`] = `
+{
+  "accionistasDentro": 4,
+  "capacidadLudoteca": 15,
+  "ingresosHoy": 12,
+  "ninosLudoteca": 3,
+  "noShowsHoy": 1,
+  "pasesDiaActivos": 2,
+  "rentistasDentro": 5,
+  "reservasActivasHoy": 4,
+  "reservasCanceladasHoy": 1,
+  "reservasHoy": 6,
+  "sancionesActivas": 2,
+  "sociosDentro": 9,
+  "visitasActivas": 5,
+  "visitasInvitadosActivas": 3,
+}
+`;
+
+exports[`GET /dashboard con tabla pases y cierre automático auditado 2`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM asistencia WHERE fecha = $1",
+    [
+      "2026-09-30",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM registro_ludoteca WHERE hora_salida IS NULL",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM sanciones WHERE LOWER(estado::text) IN ('activo', 'activa')",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(DISTINCT a.socio_id)::int as total, COUNT(DISTINCT a.socio_id) FILTER (WHERE LOWER(COALESCE(s.tipo::text, s.modalidad::text, '')) = 'accionista')::int as accionistas, COUNT(DISTINCT a.socio_id) FILTER (WHERE LOWER(COALESCE(s.tipo::text, s.modalidad::text, '')) <> 'accionista')::int as rentistas FROM asistencia a JOIN socios s ON a.socio_id = s.socio_id WHERE a.fecha = $1 AND a.presente = true AND a.socio_id IS NOT NULL",
+    [
+      "2026-09-30",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('confirmada', 'confirmado', 'pendiente'))::int as activas, COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('cancelada', 'cancelado'))::int as canceladas, COUNT(*) FILTER (WHERE COALESCE(no_show, false) = true OR LOWER(estado::text) IN ('no-show', 'no show'))::int as no_shows FROM reservaciones WHERE fecha_reserva = $1",
+    [
+      "2026-09-30",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE tipo_pase = 'dia')::int as pases_dia, COUNT(*) FILTER (WHERE tipo_pase = 'visita')::int as visitas FROM pases WHERE estado = 'activo' AND fecha_pase = $1",
+    [
+      "2026-09-30",
+    ],
+  ],
+]
+`;
+
+exports[`GET /dashboard sin tabla pases → visitas legacy; sin filas de resumen → ceros 1`] = `
+{
+  "accionistasDentro": 0,
+  "capacidadLudoteca": 15,
+  "ingresosHoy": 12,
+  "ninosLudoteca": 3,
+  "noShowsHoy": 0,
+  "pasesDiaActivos": 0,
+  "rentistasDentro": 0,
+  "reservasActivasHoy": 0,
+  "reservasCanceladasHoy": 0,
+  "reservasHoy": 0,
+  "sancionesActivas": 2,
+  "sociosDentro": 0,
+  "visitasActivas": 4,
+  "visitasInvitadosActivas": 4,
+}
+`;
+
+exports[`GET /dashboard sin tabla pases → visitas legacy; sin filas de resumen → ceros 2`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM asistencia WHERE fecha = $1",
+    [
+      "2026-09-30",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM registro_ludoteca WHERE hora_salida IS NULL",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM sanciones WHERE LOWER(estado::text) IN ('activo', 'activa')",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(DISTINCT a.socio_id)::int as total, COUNT(DISTINCT a.socio_id) FILTER (WHERE LOWER(COALESCE(s.tipo::text, s.modalidad::text, '')) = 'accionista')::int as accionistas, COUNT(DISTINCT a.socio_id) FILTER (WHERE LOWER(COALESCE(s.tipo::text, s.modalidad::text, '')) <> 'accionista')::int as rentistas FROM asistencia a JOIN socios s ON a.socio_id = s.socio_id WHERE a.fecha = $1 AND a.presente = true AND a.socio_id IS NOT NULL",
+    [
+      "2026-09-30",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('confirmada', 'confirmado', 'pendiente'))::int as activas, COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('cancelada', 'cancelado'))::int as canceladas, COUNT(*) FILTER (WHERE COALESCE(no_show, false) = true OR LOWER(estado::text) IN ('no-show', 'no show'))::int as no_shows FROM reservaciones WHERE fecha_reserva = $1",
+    [
+      "2026-09-30",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE tipo_pase = 'dia')::int as pases_dia, COUNT(*) FILTER (WHERE tipo_pase = 'visita')::int as visitas FROM pases WHERE estado = 'activo' AND fecha_pase = $1",
+    [
+      "2026-09-30",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM visitas WHERE vigente = true AND fecha_visita = $1",
+    [
+      "2026-09-30",
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas con tabla pases 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase = $1 ORDER BY p.hora_entrada DESC",
+    [
+      "2026-09-30",
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas sin tabla pases → visitas (sin columnas opcionales) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase = $1 ORDER BY p.hora_entrada DESC",
+    [
+      "2026-09-30",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "SELECT v.visita_id, v.visita_id as pase_id, CASE WHEN false THEN 'visita' WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia' ELSE 'visita' END as tipo_pase, NULL::int as socio_id, NULL::int as socio_anfitrion_id, v.nombre_completo, split_part(v.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos, NULL::text as correo, NULL::text as telefono, true as mayor_16, v.fecha_visita as fecha_pase, v.fecha_visita, v.hora_entrada, v.hora_salida, CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado, v.vigente, NULL::text as observaciones, NULL::text as motivo, v.identificacion_tipo as identificacion, v.identificacion_tipo, NULL::text as numero_socio, NULL::text as socio_nombre, NULL::text as socio_anfitrion_nombre, NULL::text as socio_anfitrion_apellido, NULL::text as socio_anfitrion_apellido_materno, NULL::text as socio_anfitrion_email FROM visitas v WHERE v.fecha_visita = $1 ORDER BY v.hora_entrada DESC",
+    [
+      "2026-09-30",
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas sin tabla pases → visitas (todas las columnas legacy) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase = $1 ORDER BY p.hora_entrada DESC",
+    [
+      "2026-09-30",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "SELECT v.visita_id, v.visita_id as pase_id, CASE WHEN v.socio_id IS NOT NULL THEN 'visita' WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia' ELSE 'visita' END as tipo_pase, v.socio_id as socio_id, v.socio_id as socio_anfitrion_id, v.nombre_completo, split_part(v.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos, v.correo as correo, v.telefono as telefono, COALESCE(v.mayor_16, true) as mayor_16, v.fecha_visita as fecha_pase, v.fecha_visita, v.hora_entrada, v.hora_salida, CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado, v.vigente, v.observaciones as observaciones, v.observaciones as motivo, v.identificacion_tipo as identificacion, v.identificacion_tipo, s.numero_socio as numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM visitas v LEFT JOIN socios s ON v.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE v.fecha_visita = $1 ORDER BY v.hora_entrada DESC",
+    [
+      "2026-09-30",
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas/:id/qr pase activo → QR; inactivo → 400 1`] = `
+{
+  "expira_en": "2026-10-01T18:00:00.000Z",
+  "ok": true,
+  "qr_image": "data:image/png;base64,QR({"type":"pase","pase_id":1,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":1,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+}
+`;
+
+exports[`GET /visitas/:id/qr pase activo → QR; inactivo → 400 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT pase_id, estado FROM pases WHERE pase_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "SAVEPOINT before_qr_pase",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO codigos_qr_pases (pase_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) ON CONFLICT (pase_id) DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr, expira_en = EXCLUDED.expira_en, activo = TRUE RETURNING qr_id",
+    [
+      1,
+      "data:image/png;base64,QR({"type":"pase","pase_id":1,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":1,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT pase_id, estado FROM pases WHERE pase_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`GET /visitas/:id/qr sin pase → visitas legacy: 404, no vigente, QR, error → 404 1`] = `
+{
+  "expira_en": "2026-10-01T18:00:00.000Z",
+  "ok": true,
+  "qr_image": "data:image/png;base64,QR({"type":"visita","visita_id":1,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":1,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+}
+`;
+
+exports[`GET /visitas/:id/qr sin pase → visitas legacy: 404, no vigente, QR, error → 404 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT pase_id, estado FROM pases WHERE pase_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT visita_id, vigente FROM visitas WHERE visita_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT pase_id, estado FROM pases WHERE pase_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT visita_id, vigente FROM visitas WHERE visita_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT pase_id, estado FROM pases WHERE pase_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT visita_id, vigente FROM visitas WHERE visita_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO codigos_qr_visitas (visita_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) ON CONFLICT (visita_id) DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr, expira_en = EXCLUDED.expira_en, activo = TRUE RETURNING qr_id",
+    [
+      "1",
+      "data:image/png;base64,QR({"type":"visita","visita_id":1,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":1,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT pase_id, estado FROM pases WHERE pase_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT visita_id, vigente FROM visitas WHERE visita_id = $1",
+    [
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas/:id/qr tabla pases faltante → legacy; error en pases → 500; conexión → errorHandler 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT pase_id, estado FROM pases WHERE pase_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT visita_id, vigente FROM visitas WHERE visita_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO codigos_qr_visitas (visita_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) ON CONFLICT (visita_id) DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr, expira_en = EXCLUDED.expira_en, activo = TRUE RETURNING qr_id",
+    [
+      "1",
+      "data:image/png;base64,QR({"type":"visita","visita_id":1,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":1,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT pase_id, estado FROM pases WHERE pase_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`GET /visitas/activas con tabla pases 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.estado = 'activo' ORDER BY p.hora_entrada DESC",
+    [],
+  ],
+]
+`;
+
+exports[`GET /visitas/activas sin tabla pases → visitas (sin columnas opcionales) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.estado = 'activo' ORDER BY p.hora_entrada DESC",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "SELECT v.visita_id, v.visita_id as pase_id, CASE WHEN false THEN 'visita' WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia' ELSE 'visita' END as tipo_pase, NULL::int as socio_id, NULL::int as socio_anfitrion_id, v.nombre_completo, split_part(v.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos, NULL::text as correo, NULL::text as telefono, true as mayor_16, v.fecha_visita as fecha_pase, v.fecha_visita, v.hora_entrada, v.hora_salida, CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado, v.vigente, NULL::text as observaciones, NULL::text as motivo, v.identificacion_tipo as identificacion, v.identificacion_tipo, NULL::text as numero_socio, NULL::text as socio_nombre, NULL::text as socio_anfitrion_nombre, NULL::text as socio_anfitrion_apellido, NULL::text as socio_anfitrion_apellido_materno, NULL::text as socio_anfitrion_email FROM visitas v WHERE v.vigente = true ORDER BY v.hora_entrada DESC",
+    [],
+  ],
+]
+`;
+
+exports[`GET /visitas/activas sin tabla pases → visitas (todas las columnas legacy) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.estado = 'activo' ORDER BY p.hora_entrada DESC",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "SELECT v.visita_id, v.visita_id as pase_id, CASE WHEN v.socio_id IS NOT NULL THEN 'visita' WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia' ELSE 'visita' END as tipo_pase, v.socio_id as socio_id, v.socio_id as socio_anfitrion_id, v.nombre_completo, split_part(v.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos, v.correo as correo, v.telefono as telefono, COALESCE(v.mayor_16, true) as mayor_16, v.fecha_visita as fecha_pase, v.fecha_visita, v.hora_entrada, v.hora_salida, CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado, v.vigente, v.observaciones as observaciones, v.observaciones as motivo, v.identificacion_tipo as identificacion, v.identificacion_tipo, s.numero_socio as numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM visitas v LEFT JOIN socios s ON v.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE v.vigente = true ORDER BY v.hora_entrada DESC",
+    [],
+  ],
+]
+`;
+
+exports[`GET /visitas/historial?dias=-1 con tabla pases 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase >= CURRENT_DATE - ($1::int - 1) ORDER BY p.hora_entrada DESC",
+    [
+      7,
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas/historial?dias=-1 sin tabla pases → visitas (sin columnas opcionales) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase >= CURRENT_DATE - ($1::int - 1) ORDER BY p.hora_entrada DESC",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "SELECT v.visita_id, v.visita_id as pase_id, CASE WHEN false THEN 'visita' WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia' ELSE 'visita' END as tipo_pase, NULL::int as socio_id, NULL::int as socio_anfitrion_id, v.nombre_completo, split_part(v.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos, NULL::text as correo, NULL::text as telefono, true as mayor_16, v.fecha_visita as fecha_pase, v.fecha_visita, v.hora_entrada, v.hora_salida, CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado, v.vigente, NULL::text as observaciones, NULL::text as motivo, v.identificacion_tipo as identificacion, v.identificacion_tipo, NULL::text as numero_socio, NULL::text as socio_nombre, NULL::text as socio_anfitrion_nombre, NULL::text as socio_anfitrion_apellido, NULL::text as socio_anfitrion_apellido_materno, NULL::text as socio_anfitrion_email FROM visitas v WHERE v.fecha_visita >= CURRENT_DATE - ($1::int - 1) ORDER BY v.hora_entrada DESC",
+    [
+      7,
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas/historial?dias=-1 sin tabla pases → visitas (todas las columnas legacy) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase >= CURRENT_DATE - ($1::int - 1) ORDER BY p.hora_entrada DESC",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "SELECT v.visita_id, v.visita_id as pase_id, CASE WHEN v.socio_id IS NOT NULL THEN 'visita' WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia' ELSE 'visita' END as tipo_pase, v.socio_id as socio_id, v.socio_id as socio_anfitrion_id, v.nombre_completo, split_part(v.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos, v.correo as correo, v.telefono as telefono, COALESCE(v.mayor_16, true) as mayor_16, v.fecha_visita as fecha_pase, v.fecha_visita, v.hora_entrada, v.hora_salida, CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado, v.vigente, v.observaciones as observaciones, v.observaciones as motivo, v.identificacion_tipo as identificacion, v.identificacion_tipo, s.numero_socio as numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM visitas v LEFT JOIN socios s ON v.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE v.fecha_visita >= CURRENT_DATE - ($1::int - 1) ORDER BY v.hora_entrada DESC",
+    [
+      7,
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas/historial?dias=3 con tabla pases 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase >= CURRENT_DATE - ($1::int - 1) ORDER BY p.hora_entrada DESC",
+    [
+      3,
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas/historial?dias=3 sin tabla pases → visitas (sin columnas opcionales) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase >= CURRENT_DATE - ($1::int - 1) ORDER BY p.hora_entrada DESC",
+    [
+      3,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "SELECT v.visita_id, v.visita_id as pase_id, CASE WHEN false THEN 'visita' WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia' ELSE 'visita' END as tipo_pase, NULL::int as socio_id, NULL::int as socio_anfitrion_id, v.nombre_completo, split_part(v.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos, NULL::text as correo, NULL::text as telefono, true as mayor_16, v.fecha_visita as fecha_pase, v.fecha_visita, v.hora_entrada, v.hora_salida, CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado, v.vigente, NULL::text as observaciones, NULL::text as motivo, v.identificacion_tipo as identificacion, v.identificacion_tipo, NULL::text as numero_socio, NULL::text as socio_nombre, NULL::text as socio_anfitrion_nombre, NULL::text as socio_anfitrion_apellido, NULL::text as socio_anfitrion_apellido_materno, NULL::text as socio_anfitrion_email FROM visitas v WHERE v.fecha_visita >= CURRENT_DATE - ($1::int - 1) ORDER BY v.hora_entrada DESC",
+    [
+      3,
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas/historial?dias=3 sin tabla pases → visitas (todas las columnas legacy) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase >= CURRENT_DATE - ($1::int - 1) ORDER BY p.hora_entrada DESC",
+    [
+      3,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "SELECT v.visita_id, v.visita_id as pase_id, CASE WHEN v.socio_id IS NOT NULL THEN 'visita' WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia' ELSE 'visita' END as tipo_pase, v.socio_id as socio_id, v.socio_id as socio_anfitrion_id, v.nombre_completo, split_part(v.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos, v.correo as correo, v.telefono as telefono, COALESCE(v.mayor_16, true) as mayor_16, v.fecha_visita as fecha_pase, v.fecha_visita, v.hora_entrada, v.hora_salida, CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado, v.vigente, v.observaciones as observaciones, v.observaciones as motivo, v.identificacion_tipo as identificacion, v.identificacion_tipo, s.numero_socio as numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM visitas v LEFT JOIN socios s ON v.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE v.fecha_visita >= CURRENT_DATE - ($1::int - 1) ORDER BY v.hora_entrada DESC",
+    [
+      3,
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas?fecha=2026-10-01 con tabla pases 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase = $1 ORDER BY p.hora_entrada DESC",
+    [
+      "2026-10-01",
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas?fecha=2026-10-01 sin tabla pases → visitas (sin columnas opcionales) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase = $1 ORDER BY p.hora_entrada DESC",
+    [
+      "2026-10-01",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "SELECT v.visita_id, v.visita_id as pase_id, CASE WHEN false THEN 'visita' WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia' ELSE 'visita' END as tipo_pase, NULL::int as socio_id, NULL::int as socio_anfitrion_id, v.nombre_completo, split_part(v.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos, NULL::text as correo, NULL::text as telefono, true as mayor_16, v.fecha_visita as fecha_pase, v.fecha_visita, v.hora_entrada, v.hora_salida, CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado, v.vigente, NULL::text as observaciones, NULL::text as motivo, v.identificacion_tipo as identificacion, v.identificacion_tipo, NULL::text as numero_socio, NULL::text as socio_nombre, NULL::text as socio_anfitrion_nombre, NULL::text as socio_anfitrion_apellido, NULL::text as socio_anfitrion_apellido_materno, NULL::text as socio_anfitrion_email FROM visitas v WHERE v.fecha_visita = $1 ORDER BY v.hora_entrada DESC",
+    [
+      "2026-10-01",
+    ],
+  ],
+]
+`;
+
+exports[`GET /visitas?fecha=2026-10-01 sin tabla pases → visitas (todas las columnas legacy) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT p.pase_id, p.pase_id as visita_id, p.tipo_pase, p.socio_id, p.socio_id as socio_anfitrion_id, p.nombre_completo, split_part(p.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(p.nombre_completo FROM LENGTH(split_part(p.nombre_completo, ' ', 1)) + 1)), '') as apellidos, p.correo, p.telefono, p.mayor_16, p.identificacion, p.fecha_pase, p.fecha_pase as fecha_visita, p.hora_entrada, p.hora_salida, p.estado, (p.estado = 'activo') as vigente, p.observaciones, p.observaciones as motivo, NULL::text as identificacion, NULL::text as identificacion_tipo, s.numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM pases p LEFT JOIN socios s ON p.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE p.fecha_pase = $1 ORDER BY p.hora_entrada DESC",
+    [
+      "2026-10-01",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "SELECT v.visita_id, v.visita_id as pase_id, CASE WHEN v.socio_id IS NOT NULL THEN 'visita' WHEN LOWER(COALESCE(v.identificacion_tipo, '')) IN ('dia', 'pase dia', 'pase de dia', 'pase de un dia') THEN 'dia' ELSE 'visita' END as tipo_pase, v.socio_id as socio_id, v.socio_id as socio_anfitrion_id, v.nombre_completo, split_part(v.nombre_completo, ' ', 1) as nombre, NULLIF(BTRIM(SUBSTRING(v.nombre_completo FROM LENGTH(split_part(v.nombre_completo, ' ', 1)) + 1)), '') as apellidos, v.correo as correo, v.telefono as telefono, COALESCE(v.mayor_16, true) as mayor_16, v.fecha_visita as fecha_pase, v.fecha_visita, v.hora_entrada, v.hora_salida, CASE WHEN v.vigente THEN 'activo' ELSE 'finalizado' END as estado, v.vigente, v.observaciones as observaciones, v.observaciones as motivo, v.identificacion_tipo as identificacion, v.identificacion_tipo, s.numero_socio as numero_socio, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as socio_nombre, u.nombres as socio_anfitrion_nombre, u.apellido_paterno as socio_anfitrion_apellido, u.apellido_materno as socio_anfitrion_apellido_materno, u.username as socio_anfitrion_email FROM visitas v LEFT JOIN socios s ON v.socio_id = s.socio_id LEFT JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE v.fecha_visita = $1 ORDER BY v.hora_entrada DESC",
+    [
+      "2026-10-01",
+    ],
+  ],
+]
+`;
+
+exports[`POST /visitas pase de día → 201 con QR y audit 1`] = `
+{
+  "codigo_qr": "{"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"}",
+  "expira_en": "2026-10-01T18:00:00.000Z",
+  "id": 300,
+  "message": "Pase registrado correctamente",
+  "ok": true,
+  "pase_id": 300,
+  "qr": {
+    "codigo_qr": "{"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"}",
+    "expira_en": "2026-10-01T18:00:00.000Z",
+    "qr_id": 400,
+    "qr_image": "data:image/png;base64,QR({"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+  },
+  "qr_image": "data:image/png;base64,QR({"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+}
+`;
+
+exports[`POST /visitas pase de día → 201 con QR y audit 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO pases ( tipo_pase, socio_id, nombre_completo, identificacion, correo, telefono, mayor_16, fecha_pase, hora_entrada, estado, creado_por, observaciones ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, NOW(), 'activo', $8, $9) RETURNING pase_id",
+    [
+      "dia",
+      null,
+      "Carla Ruiz",
+      "INE",
+      "c@x.mx",
+      "4431234567",
+      true,
+      7,
+      "nota",
+    ],
+  ],
+  [
+    "client",
+    "SAVEPOINT before_qr_pase",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO codigos_qr_pases (pase_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) ON CONFLICT (pase_id) DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr, expira_en = EXCLUDED.expira_en, activo = TRUE RETURNING qr_id",
+    [
+      300,
+      "data:image/png;base64,QR({"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /visitas payload legacy (sin tipo_pase) y QR que no se persiste 1`] = `
+{
+  "codigo_qr": "{"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"}",
+  "expira_en": "2026-10-01T18:00:00.000Z",
+  "id": 300,
+  "message": "Pase registrado correctamente",
+  "ok": true,
+  "pase_id": 300,
+  "qr": {
+    "codigo_qr": "{"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"}",
+    "expira_en": "2026-10-01T18:00:00.000Z",
+    "qr_id": null,
+    "qr_image": "data:image/png;base64,QR({"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+  },
+  "qr_image": "data:image/png;base64,QR({"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+}
+`;
+
+exports[`POST /visitas payload legacy (sin tipo_pase) y QR que no se persiste 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO pases ( tipo_pase, socio_id, nombre_completo, identificacion, correo, telefono, mayor_16, fecha_pase, hora_entrada, estado, creado_por, observaciones ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, NOW(), 'activo', $8, $9) RETURNING pase_id",
+    [
+      "dia",
+      null,
+      "Luis Pérez",
+      "ABC-123",
+      null,
+      "123",
+      true,
+      7,
+      "Tenis",
+    ],
+  ],
+  [
+    "client",
+    "SAVEPOINT before_qr_pase",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO codigos_qr_pases (pase_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) ON CONFLICT (pase_id) DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr, expira_en = EXCLUDED.expira_en, activo = TRUE RETURNING qr_id",
+    [
+      300,
+      "data:image/png;base64,QR({"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK TO SAVEPOINT before_qr_pase",
+    [],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /visitas sin tabla pases → alta en visitas (sin columnas opcionales) 1`] = `
+{
+  "codigo_qr": "{"type":"visita","visita_id":500,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":500,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"}",
+  "expira_en": "2026-10-01T18:00:00.000Z",
+  "id": 500,
+  "message": "Visita registrada correctamente",
+  "ok": true,
+  "qr": {
+    "codigo_qr": "{"type":"visita","visita_id":500,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":500,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"}",
+    "expira_en": "2026-10-01T18:00:00.000Z",
+    "qr_id": 600,
+    "qr_image": "data:image/png;base64,QR({"type":"visita","visita_id":500,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":500,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+  },
+  "qr_image": "data:image/png;base64,QR({"type":"visita","visita_id":500,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":500,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+  "visitaId": 500,
+}
+`;
+
+exports[`POST /visitas sin tabla pases → alta en visitas (sin columnas opcionales) 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT s.socio_id FROM socios s WHERE s.socio_id = $1 AND s.activo = true",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO pases ( tipo_pase, socio_id, nombre_completo, identificacion, correo, telefono, mayor_16, fecha_pase, hora_entrada, estado, creado_por, observaciones ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, NOW(), 'activo', $8, $9) RETURNING pase_id",
+    [
+      "visita",
+      10,
+      "Luis",
+      "INE 99",
+      null,
+      "99",
+      true,
+      7,
+      "x",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO visitas (nombre_completo, identificacion_tipo, fecha_visita, hora_entrada, vigente) VALUES ($1, $2, CURRENT_DATE, NOW(), true) RETURNING visita_id",
+    [
+      "Luis",
+      "INE 99",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO codigos_qr_visitas (visita_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) ON CONFLICT (visita_id) DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr, expira_en = EXCLUDED.expira_en, activo = TRUE RETURNING qr_id",
+    [
+      500,
+      "data:image/png;base64,QR({"type":"visita","visita_id":500,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":500,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+]
+`;
+
+exports[`POST /visitas sin tabla pases → alta en visitas (todas las columnas) 1`] = `
+{
+  "codigo_qr": "{"type":"visita","visita_id":500,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":500,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"}",
+  "expira_en": "2026-10-01T18:00:00.000Z",
+  "id": 500,
+  "message": "Visita registrada correctamente",
+  "ok": true,
+  "qr": {
+    "codigo_qr": "{"type":"visita","visita_id":500,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":500,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"}",
+    "expira_en": "2026-10-01T18:00:00.000Z",
+    "qr_id": 600,
+    "qr_image": "data:image/png;base64,QR({"type":"visita","visita_id":500,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":500,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+  },
+  "qr_image": "data:image/png;base64,QR({"type":"visita","visita_id":500,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":500,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+  "visitaId": 500,
+}
+`;
+
+exports[`POST /visitas sin tabla pases → alta en visitas (todas las columnas) 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT s.socio_id FROM socios s WHERE s.socio_id = $1 AND s.activo = true",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO pases ( tipo_pase, socio_id, nombre_completo, identificacion, correo, telefono, mayor_16, fecha_pase, hora_entrada, estado, creado_por, observaciones ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, NOW(), 'activo', $8, $9) RETURNING pase_id",
+    [
+      "visita",
+      10,
+      "Luis",
+      "INE 99",
+      null,
+      "99",
+      true,
+      7,
+      "x",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'visitas' AND column_name = ANY($1::text[])",
+    [
+      [
+        "socio_id",
+        "correo",
+        "telefono",
+        "mayor_16",
+        "observaciones",
+      ],
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO visitas (nombre_completo, identificacion_tipo, fecha_visita, hora_entrada, vigente, socio_id, correo, telefono, mayor_16, observaciones) VALUES ($1, $2, CURRENT_DATE, NOW(), true, $3, $4, $5, $6, $7) RETURNING visita_id",
+    [
+      "Luis",
+      "INE 99",
+      10,
+      null,
+      "99",
+      true,
+      "Identificacion: INE 99 | x",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO codigos_qr_visitas (visita_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) ON CONFLICT (visita_id) DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr, expira_en = EXCLUDED.expira_en, activo = TRUE RETURNING qr_id",
+    [
+      500,
+      "data:image/png;base64,QR({"type":"visita","visita_id":500,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"visita\\",\\"visita_id\\":500,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+]
+`;
+
+exports[`POST /visitas visita: exige socio activo 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT s.socio_id FROM socios s WHERE s.socio_id = $1 AND s.activo = true",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT s.socio_id FROM socios s WHERE s.socio_id = $1 AND s.activo = true",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO pases ( tipo_pase, socio_id, nombre_completo, identificacion, correo, telefono, mayor_16, fecha_pase, hora_entrada, estado, creado_por, observaciones ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, NOW(), 'activo', $8, $9) RETURNING pase_id",
+    [
+      "visita",
+      10,
+      "Carla Ruiz",
+      null,
+      null,
+      "4431234567",
+      true,
+      7,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "SAVEPOINT before_qr_pase",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO codigos_qr_pases (pase_id, codigo_qr, expira_en, activo) VALUES ($1, $2, $3, TRUE) ON CONFLICT (pase_id) DO UPDATE SET codigo_qr = EXCLUDED.codigo_qr, expira_en = EXCLUDED.expira_en, activo = TRUE RETURNING qr_id",
+    [
+      300,
+      "data:image/png;base64,QR({"type":"pase","pase_id":300,"expira_en":"2026-10-01T18:00:00.000Z","hash":"hmac({\\"type\\":\\"pase\\",\\"pase_id\\":300,\\"expira_en\\":\\"2026-10-01T18:00:00.000Z\\"})"})",
+      2026-10-01T18:00:00.000Z,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /visitas/cerrar-vencidas cierra (pases y legacy) y error 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), estado = 'finalizado' WHERE estado = 'activo' AND ( fecha_pase < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_pase = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING pase_id",
+    [
+      "22:00",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = (NOW() AT TIME ZONE 'America/Mexico_City'), vigente = false WHERE vigente = true AND ( fecha_visita < ((NOW() AT TIME ZONE 'America/Mexico_City'))::date OR (fecha_visita = ((NOW() AT TIME ZONE 'America/Mexico_City'))::date AND ((NOW() AT TIME ZONE 'America/Mexico_City'))::time >= $1::time) ) RETURNING visita_id",
+    [
+      "22:00",
+    ],
+  ],
+]
+`;
+
+exports[`PUT /visitas/:id validaciones, edición, 404, legacy y errores 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "UPDATE pases SET nombre_completo = COALESCE($1, nombre_completo), telefono = COALESCE($2, telefono), correo = $3, identificacion = $4, observaciones = $5, tipo_pase = COALESCE($6, tipo_pase), socio_id = $7 WHERE pase_id = $8 RETURNING pase_id",
+    [
+      "Ana",
+      "4431",
+      null,
+      null,
+      "x",
+      "dia",
+      null,
+      "8",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "UPDATE pases SET nombre_completo = COALESCE($1, nombre_completo), telefono = COALESCE($2, telefono), correo = $3, identificacion = $4, observaciones = $5, tipo_pase = COALESCE($6, tipo_pase), socio_id = $7 WHERE pase_id = $8 RETURNING pase_id",
+    [
+      "Ana",
+      null,
+      null,
+      null,
+      null,
+      null,
+      10,
+      "8",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "UPDATE pases SET nombre_completo = COALESCE($1, nombre_completo), telefono = COALESCE($2, telefono), correo = $3, identificacion = $4, observaciones = $5, tipo_pase = COALESCE($6, tipo_pase), socio_id = $7 WHERE pase_id = $8 RETURNING pase_id",
+    [
+      "Ana",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      "8",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "UPDATE pases SET nombre_completo = COALESCE($1, nombre_completo), telefono = COALESCE($2, telefono), correo = $3, identificacion = $4, observaciones = $5, tipo_pase = COALESCE($6, tipo_pase), socio_id = $7 WHERE pase_id = $8 RETURNING pase_id",
+    [
+      "Ana",
+      null,
+      null,
+      null,
+      "y",
+      null,
+      null,
+      "8",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE visitas SET nombre_completo = COALESCE($1, nombre_completo), observaciones = $2 WHERE visita_id = $3 RETURNING visita_id",
+    [
+      "Ana",
+      "y",
+      "8",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PUT /visitas/:id/salida pases y legacy: salida, 404 y errores 1`] = `
+[
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = NOW(), estado = 'finalizado' WHERE pase_id = $1 AND estado = 'activo' RETURNING pase_id",
+    [
+      "8",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = NOW(), estado = 'finalizado' WHERE pase_id = $1 AND estado = 'activo' RETURNING pase_id",
+    [
+      "8",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = NOW(), estado = 'finalizado' WHERE pase_id = $1 AND estado = 'activo' RETURNING pase_id",
+    [
+      "8",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = NOW(), vigente = false WHERE visita_id = $1 AND vigente = true RETURNING visita_id",
+    [
+      "8",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE pases SET hora_salida = NOW(), estado = 'finalizado' WHERE pase_id = $1 AND estado = 'activo' RETURNING pase_id",
+    [
+      "8",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE visitas SET hora_salida = NOW(), vigente = false WHERE visita_id = $1 AND vigente = true RETURNING visita_id",
+    [
+      "8",
+    ],
+  ],
+]
+`;
+
+exports[`ludoteca de recepción activos, entrada y salida con errores 1`] = `
+[
+  [
+    "pool",
+    "SELECT rl.registro_id, rl.nombre_hijo, rl.fecha_nacimiento, rl.hora_entrada, rl.hora_salida, rl.observaciones, TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, u.nombres || ' ' || u.apellido_paterno as tutor_nombre, GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'America/Mexico_City') - rl.hora_entrada)))::int, 0) AS segundos_transcurridos, GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'America/Mexico_City') - rl.hora_entrada)) / 60)::int, 0) AS minutos_transcurridos, CASE WHEN rl.hora_salida IS NULL THEN 'Activo' ELSE 'Finalizado' END as estado FROM registro_ludoteca rl JOIN socios s ON rl.socio_padre_id = s.socio_id JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE rl.hora_salida IS NULL ORDER BY rl.hora_entrada",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO registro_ludoteca ( socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones ) VALUES ($1, $2, $3, NOW() AT TIME ZONE 'America/Mexico_City', $4) RETURNING registro_id",
+    [
+      10,
+      "Leo",
+      "2021-01-01",
+      null,
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE registro_ludoteca SET hora_salida = NOW() AT TIME ZONE 'America/Mexico_City' WHERE registro_id = $1 AND hora_salida IS NULL RETURNING registro_id",
+    [
+      "70",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE registro_ludoteca SET hora_salida = NOW() AT TIME ZONE 'America/Mexico_City' WHERE registro_id = $1 AND hora_salida IS NULL RETURNING registro_id",
+    [
+      "70",
+    ],
+  ],
+]
+`;
+
+exports[`pase de lista GET /clases/:sesionId/alumnos: sin fecha → 400; ok; error 1`] = `
+[
+  [
+    "pool",
+    "SELECT r.reserva_id, r.estado::text as reserva_estado, r.no_show, r.hora_fin, s.socio_id, u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as nombre_socio, u.username as contacto, a.presente as asistio FROM reservaciones r JOIN socios s ON r.socio_id = s.socio_id JOIN usuarios u ON s.usuario_id = u.usuario_id LEFT JOIN asistencia a ON a.sesion_id = r.sesion_id AND a.socio_id = s.socio_id AND a.fecha = r.fecha_reserva WHERE r.sesion_id = $1 AND r.fecha_reserva = $2 AND r.estado::text IN ('Confirmada', 'No-Show', 'pendiente', 'confirmada') ORDER BY u.apellido_paterno, u.nombres",
+    [
+      "3",
+      "2026-09-30",
+    ],
+  ],
+]
+`;
+
+exports[`pase de lista GET /clases: hoy, fecha dada (domingo), inválida, error 1`] = `
+[
+  [
+    "pool",
+    "SELECT sp.sesion_id, d.nombre as disciplina, e.nombre as espacio, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, COALESCE( NULLIF(TRIM(CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, ''))), ''), NULLIF(TRIM(i.especialidad), ''), 'Por asignar' ) as instructor, COUNT(r.reserva_id) as cupo_actual FROM sesiones_programadas sp JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id JOIN espacios e ON sp.espacio_id = e.espacio_id LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id LEFT JOIN reservaciones r ON r.sesion_id = sp.sesion_id AND r.fecha_reserva = $1 AND r.estado::text IN ('Confirmada', 'No-Show', 'pendiente', 'confirmada') WHERE sp.dia_semana = $2 AND e.activo = true AND COALESCE((to_jsonb(sp)->>'activo')::boolean, true) = true GROUP BY sp.sesion_id, d.nombre, e.nombre, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, i.especialidad, u.nombres, u.apellido_paterno ORDER BY sp.hora_inicio",
+    [
+      "2026-09-30",
+      3,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT sp.sesion_id, d.nombre as disciplina, e.nombre as espacio, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, COALESCE( NULLIF(TRIM(CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, ''))), ''), NULLIF(TRIM(i.especialidad), ''), 'Por asignar' ) as instructor, COUNT(r.reserva_id) as cupo_actual FROM sesiones_programadas sp JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id JOIN espacios e ON sp.espacio_id = e.espacio_id LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id LEFT JOIN reservaciones r ON r.sesion_id = sp.sesion_id AND r.fecha_reserva = $1 AND r.estado::text IN ('Confirmada', 'No-Show', 'pendiente', 'confirmada') WHERE sp.dia_semana = $2 AND e.activo = true AND COALESCE((to_jsonb(sp)->>'activo')::boolean, true) = true GROUP BY sp.sesion_id, d.nombre, e.nombre, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, i.especialidad, u.nombres, u.apellido_paterno ORDER BY sp.hora_inicio",
+    [
+      "2026-10-04",
+      7,
+    ],
+  ],
+]
+`;
+
+exports[`pase de lista POST /asistencia/manual: 400, 404, 409 no-show y el fallo heredado (ReferenceError → 500) 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id, estado::text as estado, hora_fin, no_show FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 ORDER BY reserva_id DESC LIMIT 1 FOR UPDATE",
+    [
+      3,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id, estado::text as estado, hora_fin, no_show FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 ORDER BY reserva_id DESC LIMIT 1 FOR UPDATE",
+    [
+      3,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id, estado::text as estado, hora_fin, no_show FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 ORDER BY reserva_id DESC LIMIT 1 FOR UPDATE",
+    [
+      3,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id, estado::text as estado, hora_fin, no_show FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 ORDER BY reserva_id DESC LIMIT 1 FOR UPDATE",
+    [
+      3,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`reservas y espacios GET /reservas (hoy y fecha dada); GET /espacios; errores 1`] = `
+[
+  [
+    "pool",
+    "SELECT r.reserva_id, e.nombre as espacio_nombre, r.hora_inicio, r.hora_fin, u.nombres || ' ' || u.apellido_paterno as socio_nombre, r.estado FROM reservaciones r JOIN espacios e ON r.espacio_id = e.espacio_id JOIN socios s ON r.socio_id = s.socio_id JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE r.fecha_reserva = $1 ORDER BY r.hora_inicio",
+    [
+      "2026-09-30",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT r.reserva_id, e.nombre as espacio_nombre, r.hora_inicio, r.hora_fin, u.nombres || ' ' || u.apellido_paterno as socio_nombre, r.estado FROM reservaciones r JOIN espacios e ON r.espacio_id = e.espacio_id JOIN socios s ON r.socio_id = s.socio_id JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE r.fecha_reserva = $1 ORDER BY r.hora_inicio",
+    [
+      "2026-10-02",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT espacio_id, nombre, capacidad_maxima FROM espacios ORDER BY nombre",
+    [],
+  ],
+]
+`;
+
+exports[`socios DELETE /socios/:id: inactiva, 404, error 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT usuario_id FROM socios WHERE socio_id = $1",
+    [
+      "4",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE socios SET activo = false WHERE socio_id = $1",
+    [
+      "4",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE usuarios SET activo = false WHERE usuario_id = $1",
+    [
+      50,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT usuario_id FROM socios WHERE socio_id = $1",
+    [
+      "4",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT usuario_id FROM socios WHERE socio_id = $1",
+    [
+      "4",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE socios SET activo = false WHERE socio_id = $1",
+    [
+      "4",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`socios GET /socios con y sin búsqueda; error 1`] = `
+[
+  [
+    "pool",
+    "SELECT s.socio_id, u.usuario_id, u.nombres, u.apellido_paterno, u.apellido_materno, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as nombre_completo, u.username as email, u.telefono, u.activo, u.foto_perfil, s.tipo, s.modalidad, s.numero_socio, s.activo as socio_activo FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id ORDER BY u.apellido_paterno, u.nombres LIMIT 20",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT s.socio_id, u.usuario_id, u.nombres, u.apellido_paterno, u.apellido_materno, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as nombre_completo, u.username as email, u.telefono, u.activo, u.foto_perfil, s.tipo, s.modalidad, s.numero_socio, s.activo as socio_activo FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE s.activo = true AND ( LOWER(u.nombres) LIKE $1 OR LOWER(u.apellido_paterno) LIKE $1 OR LOWER(u.apellido_materno) LIKE $1 OR LOWER(CONCAT(u.nombres, ' ', u.apellido_paterno)) LIKE $1 OR LOWER(s.numero_socio::text) LIKE $1 ) ORDER BY u.apellido_paterno, u.nombres LIMIT 20",
+    [
+      "%ana%",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT s.socio_id, u.usuario_id, u.nombres, u.apellido_paterno, u.apellido_materno, NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), '') as nombre_completo, u.username as email, u.telefono, u.activo, u.foto_perfil, s.tipo, s.modalidad, s.numero_socio, s.activo as socio_activo FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id ORDER BY u.apellido_paterno, u.nombres LIMIT 20",
+    [],
+  ],
+]
+`;
+
+exports[`socios GET /socios-lista; error 1`] = `
+[
+  [
+    "pool",
+    "SELECT s.socio_id, s.numero_socio, u.nombres, u.apellido_paterno, u.apellido_materno, u.username as email, s.tipo as tipo_socio, s.tipo FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE s.activo = true ORDER BY u.apellido_paterno, u.nombres",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT s.socio_id, s.numero_socio, u.nombres, u.apellido_paterno, u.apellido_materno, u.username as email, s.tipo as tipo_socio, s.tipo FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE s.activo = true ORDER BY u.apellido_paterno, u.nombres",
+    [],
+  ],
+]
+`;
+
+exports[`socios POST /socios: correo existente, alta, error y casos fuera del try 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT usuario_id FROM usuarios WHERE username = $1",
+    [
+      "ana@club.mx",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT usuario_id FROM usuarios WHERE username = $1",
+    [
+      "ana@club.mx",
+    ],
+  ],
+  [
+    "client",
+    "SELECT rol_id FROM roles WHERE nombre = 'socio'",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO usuarios ( username, nombres, apellido_paterno, apellido_materno, curp, telefono, password_hash, rol_id, activo ) VALUES ($1, $2, $3, $4, $5, $6, crypt($7, gen_salt('bf')), $8, true) RETURNING usuario_id",
+    [
+      "ana@club.mx",
+      "Ana",
+      "López",
+      "",
+      "X",
+      "5512345678",
+      "socio123",
+      5,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COALESCE(MAX(CAST(SUBSTRING(numero_socio FROM 5) AS INTEGER)), 0) + 1 FROM socios",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO socios ( usuario_id, tipo, modalidad, es_titular, numero_socio, activo ) VALUES ($1, $2, $3, true, $4, true)",
+    [
+      50,
+      "Accionista",
+      "Individual",
+      "SOC-0008",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT usuario_id FROM usuarios WHERE username = $1",
+    [
+      "ana@club.mx",
+    ],
+  ],
+  [
+    "client",
+    "SELECT rol_id FROM roles WHERE nombre = 'socio'",
+    [],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`socios PUT /socios/:id: actualiza, 404, error 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT usuario_id FROM socios WHERE socio_id = $1",
+    [
+      "4",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE usuarios SET nombres = $1, apellido_paterno = $2, apellido_materno = $3, username = $4, telefono = $5, activo = $6 WHERE usuario_id = $7",
+    [
+      "Ana",
+      "López",
+      undefined,
+      "ana@club.mx",
+      "55",
+      true,
+      50,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT usuario_id FROM socios WHERE socio_id = $1",
+    [
+      "4",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT usuario_id FROM socios WHERE socio_id = $1",
+    [
+      "4",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE usuarios SET nombres = $1, apellido_paterno = $2, apellido_materno = $3, username = $4, telefono = $5, activo = $6 WHERE usuario_id = $7",
+    [
+      "Ana",
+      "López",
+      undefined,
+      "ana@club.mx",
+      "55",
+      true,
+      50,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;

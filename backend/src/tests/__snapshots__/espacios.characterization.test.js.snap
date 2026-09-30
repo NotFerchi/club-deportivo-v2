@@ -1,0 +1,787 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DELETE /api/espacios/:id elimina, 404 y error 1`] = `
+[
+  [
+    "pool",
+    "DELETE FROM espacios WHERE espacio_id = $1 RETURNING espacio_id",
+    [
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "eliminar_espacio",
+      "espacios",
+      "Espacio eliminado",
+      "::ffff:127.0.0.1",
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "DELETE FROM espacios WHERE espacio_id = $1 RETURNING espacio_id",
+    [
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/espacios/:id/mantenimiento esquema completo 1`] = `
+[
+  [
+    "pool",
+    "SELECT m.mant_id AS mant_id, m.motivo, m.fecha_inicio, m.fecha_fin, NULLIF(TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno, u.apellido_materno)), '') AS usuario_nombre FROM mantenimiento_espacios m LEFT JOIN usuarios u ON u.usuario_id = m.usuario_id WHERE m.espacio_id = $1 ORDER BY m.fecha_inicio DESC NULLS LAST LIMIT 50",
+    [
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/espacios/:id/mantenimiento esquema id alterno, sin orden útil 1`] = `
+[
+  [
+    "pool",
+    "SELECT m.mantenimiento_id AS mant_id, NULL::text AS motivo, NULL::timestamp AS fecha_inicio, NULL::timestamp AS fecha_fin, NULL::text AS usuario_nombre FROM mantenimiento_espacios m WHERE m.espacio_id = $1 ORDER BY m.mantenimiento_id DESC NULLS LAST LIMIT 50",
+    [
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/espacios/:id/mantenimiento esquema sin columnas de orden ni usuario 1`] = `
+[
+  [
+    "pool",
+    "SELECT ROW_NUMBER() OVER (ORDER BY 1) AS mant_id, NULL::text AS motivo, NULL::timestamp AS fecha_inicio, NULL::timestamp AS fecha_fin, NULL::text AS usuario_nombre FROM mantenimiento_espacios m WHERE m.espacio_id = $1 ORDER BY 1 LIMIT 50",
+    [
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/espacios/:id/mantenimiento esquema sin id propio, con created_at 1`] = `
+[
+  [
+    "pool",
+    "SELECT ROW_NUMBER() OVER (ORDER BY m.created_at DESC NULLS LAST) AS mant_id, NULL::text AS motivo, m.created_at AS fecha_inicio, NULL::timestamp AS fecha_fin, u.username AS usuario_nombre FROM mantenimiento_espacios m LEFT JOIN usuarios u ON u.usuario_id = m.usuario_id WHERE m.espacio_id = $1 ORDER BY m.created_at DESC NULLS LAST LIMIT 50",
+    [
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/espacios/:id/mantenimiento esquema usuarios sin nombre ni username 1`] = `
+[
+  [
+    "pool",
+    "SELECT ROW_NUMBER() OVER (ORDER BY m.fecha_fin DESC NULLS LAST) AS mant_id, NULL::text AS motivo, NULL::timestamp AS fecha_inicio, m.fecha_fin, NULL::text AS usuario_nombre FROM mantenimiento_espacios m LEFT JOIN usuarios u ON u.usuario_id = m.usuario_id WHERE m.espacio_id = $1 ORDER BY m.fecha_fin DESC NULLS LAST LIMIT 50",
+    [
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/espacios/:id/mantenimiento esquema usuarios sin usuario_id 1`] = `
+[
+  [
+    "pool",
+    "SELECT ROW_NUMBER() OVER (ORDER BY 1) AS mant_id, NULL::text AS motivo, NULL::timestamp AS fecha_inicio, NULL::timestamp AS fecha_fin, NULL::text AS usuario_nombre FROM mantenimiento_espacios m WHERE m.espacio_id = $1 ORDER BY 1 LIMIT 50",
+    [
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`GET /todos, /disciplinas, /:id GET /disciplinas y /:id (200, 404, 500) 1`] = `
+[
+  [
+    "pool",
+    "SELECT disciplina_id, nombre FROM disciplinas ORDER BY nombre",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT e.*, COALESCE(array_agg(ed.disciplina_id ORDER BY d.nombre) FILTER (WHERE ed.disciplina_id IS NOT NULL), ARRAY[]::int[]) AS disciplina_ids FROM espacios e LEFT JOIN espacios_disciplinas ed ON ed.espacio_id = e.espacio_id LEFT JOIN disciplinas d ON d.disciplina_id = ed.disciplina_id WHERE e.espacio_id = $1 GROUP BY e.espacio_id",
+    [
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT e.*, COALESCE(array_agg(ed.disciplina_id ORDER BY d.nombre) FILTER (WHERE ed.disciplina_id IS NOT NULL), ARRAY[]::int[]) AS disciplina_ids FROM espacios e LEFT JOIN espacios_disciplinas ed ON ed.espacio_id = e.espacio_id LEFT JOIN disciplinas d ON d.disciplina_id = ed.disciplina_id WHERE e.espacio_id = $1 GROUP BY e.espacio_id",
+    [
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`GET /todos, /disciplinas, /:id listado con join; fallback 42P01 sin espacios_disciplinas; error 1`] = `
+[
+  [
+    "pool",
+    "SELECT e.espacio_id, e.nombre, e.capacidad_maxima, e.activo, COALESCE(e.estado, CASE WHEN e.activo THEN 'Activo' ELSE 'Inactivo' END) AS estado, e.disciplina_id, d.nombre AS disciplina, COALESCE( json_agg(json_build_object('disciplina_id', dr.disciplina_id, 'nombre', dr.nombre) ORDER BY dr.nombre) FILTER (WHERE dr.disciplina_id IS NOT NULL), '[]'::json ) AS disciplinas, COALESCE( array_agg(dr.disciplina_id ORDER BY dr.nombre) FILTER (WHERE dr.disciplina_id IS NOT NULL), ARRAY[]::int[] ) AS disciplina_ids, COALESCE(string_agg(dr.nombre, ', ' ORDER BY dr.nombre), d.nombre) AS disciplinas_texto FROM espacios e LEFT JOIN disciplinas d ON e.disciplina_id = d.disciplina_id LEFT JOIN espacios_disciplinas ed ON ed.espacio_id = e.espacio_id LEFT JOIN disciplinas dr ON dr.disciplina_id = ed.disciplina_id GROUP BY e.espacio_id, d.nombre ORDER BY e.nombre",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT e.espacio_id, e.nombre, e.capacidad_maxima, e.activo, COALESCE(e.estado, CASE WHEN e.activo THEN 'Activo' ELSE 'Inactivo' END) AS estado, e.disciplina_id, d.nombre AS disciplina, COALESCE( json_agg(json_build_object('disciplina_id', dr.disciplina_id, 'nombre', dr.nombre) ORDER BY dr.nombre) FILTER (WHERE dr.disciplina_id IS NOT NULL), '[]'::json ) AS disciplinas, COALESCE( array_agg(dr.disciplina_id ORDER BY dr.nombre) FILTER (WHERE dr.disciplina_id IS NOT NULL), ARRAY[]::int[] ) AS disciplina_ids, COALESCE(string_agg(dr.nombre, ', ' ORDER BY dr.nombre), d.nombre) AS disciplinas_texto FROM espacios e LEFT JOIN disciplinas d ON e.disciplina_id = d.disciplina_id LEFT JOIN espacios_disciplinas ed ON ed.espacio_id = e.espacio_id LEFT JOIN disciplinas dr ON dr.disciplina_id = ed.disciplina_id GROUP BY e.espacio_id, d.nombre ORDER BY e.nombre",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT e.espacio_id, e.nombre, e.capacidad_maxima, e.activo, COALESCE(e.estado, CASE WHEN e.activo THEN 'Activo' ELSE 'Inactivo' END) AS estado, e.disciplina_id, d.nombre AS disciplina, '[]'::json AS disciplinas, ARRAY[]::int[] AS disciplina_ids, d.nombre AS disciplinas_texto FROM espacios e LEFT JOIN disciplinas d ON e.disciplina_id = d.disciplina_id ORDER BY e.nombre",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/espacios/:id/estado 404, error → ROLLBACK, conexión y sin body 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM espacios WHERE espacio_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM espacios WHERE espacio_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE espacios SET estado = $1 WHERE espacio_id = $2",
+    [
+      "Mantenimiento",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE mantenimiento_espacios SET fecha_fin = NOW() WHERE espacio_id = $1 AND fecha_fin IS NULL",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO mantenimiento_espacios (espacio_id, fecha_inicio, motivo, usuario_id) VALUES ($1, NOW(), $2, $3)",
+    [
+      "1",
+      "Sin motivo especificado",
+      3,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/espacios/:id/estado a mantenimiento (esquema completo), reactivar desde mantenimiento, inactivar 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM espacios WHERE espacio_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE espacios SET estado = $1 WHERE espacio_id = $2",
+    [
+      "Mantenimiento",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE mantenimiento_espacios SET fecha_fin = NOW() WHERE espacio_id = $1 AND fecha_fin IS NULL",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO mantenimiento_espacios (espacio_id, fecha_inicio, motivo, usuario_id) VALUES ($1, NOW(), $2, $3)",
+    [
+      "1",
+      "Pintura",
+      3,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "cambiar_estado_espacio",
+      "espacios",
+      "Estado cambiado de Activo a Mantenimiento — motivo: Pintura",
+      "::ffff:127.0.0.1",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM espacios WHERE espacio_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE espacios SET estado = $1 WHERE espacio_id = $2",
+    [
+      "Activo",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE mantenimiento_espacios SET fecha_fin = NOW() WHERE espacio_id = $1 AND fecha_fin IS NULL",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "cambiar_estado_espacio",
+      "espacios",
+      "Estado cambiado de Mantenimiento a Activo",
+      "::ffff:127.0.0.1",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM espacios WHERE espacio_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE espacios SET estado = $1 WHERE espacio_id = $2",
+    [
+      "Inactivo",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "cambiar_estado_espacio",
+      "espacios",
+      "Estado cambiado de Activo a Inactivo",
+      "::ffff:127.0.0.1",
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`PATCH /api/espacios/:id/estado esquemas reducidos de mantenimiento_espacios 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM espacios WHERE espacio_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE espacios SET estado = $1 WHERE espacio_id = $2",
+    [
+      "Mantenimiento",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO mantenimiento_espacios (espacio_id) VALUES ($1)",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "cambiar_estado_espacio",
+      "espacios",
+      "Estado cambiado de Activo a Mantenimiento",
+      "::ffff:127.0.0.1",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM espacios WHERE espacio_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE espacios SET estado = $1 WHERE espacio_id = $2",
+    [
+      "Mantenimiento",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO mantenimiento_espacios (espacio_id, motivo) VALUES ($1, $2)",
+    [
+      "1",
+      "Sin motivo especificado",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "cambiar_estado_espacio",
+      "espacios",
+      "Estado cambiado de Activo a Mantenimiento",
+      "::ffff:127.0.0.1",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT estado FROM espacios WHERE espacio_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE espacios SET estado = $1 WHERE espacio_id = $2",
+    [
+      "Mantenimiento",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "cambiar_estado_espacio",
+      "espacios",
+      "Estado cambiado de Activo a Mantenimiento",
+      "::ffff:127.0.0.1",
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`POST / y PUT /:id actualiza, 404 con ROLLBACK, error, conexión y sin body 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "UPDATE espacios SET nombre=$1, disciplina_id=$2, capacidad_maxima=$3, activo=$4, estado=$5 WHERE espacio_id=$6 RETURNING espacio_id",
+    [
+      "Cancha 2",
+      5,
+      12,
+      false,
+      "Inactivo",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "DELETE FROM espacios_disciplinas WHERE espacio_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO espacios_disciplinas (espacio_id, disciplina_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    [
+      "1",
+      5,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "actualizar_espacio",
+      "espacios",
+      "Espacio actualizado: Cancha 2",
+      "::ffff:127.0.0.1",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "UPDATE espacios SET nombre=$1, disciplina_id=$2, capacidad_maxima=$3, activo=$4, estado=$5 WHERE espacio_id=$6 RETURNING espacio_id",
+    [
+      undefined,
+      null,
+      undefined,
+      true,
+      "Activo",
+      "1",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`POST / y PUT /:id crea con disciplina_ids (dedup, inválidos fuera), con disciplina_id y sin disciplinas 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO espacios (nombre, disciplina_id, capacidad_maxima, activo, estado) VALUES ($1, $2, $3, $4, $5) RETURNING espacio_id",
+    [
+      "Cancha",
+      3,
+      10,
+      false,
+      "Mantenimiento",
+    ],
+  ],
+  [
+    "client",
+    "DELETE FROM espacios_disciplinas WHERE espacio_id = $1",
+    [
+      12,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO espacios_disciplinas (espacio_id, disciplina_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    [
+      12,
+      3,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO espacios_disciplinas (espacio_id, disciplina_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    [
+      12,
+      4,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "crear_espacio",
+      "espacios",
+      "Espacio creado: Cancha",
+      "::ffff:127.0.0.1",
+      12,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO espacios (nombre, disciplina_id, capacidad_maxima, activo, estado) VALUES ($1, $2, $3, $4, $5) RETURNING espacio_id",
+    [
+      "Alberca",
+      7,
+      5,
+      true,
+      "Activo",
+    ],
+  ],
+  [
+    "client",
+    "DELETE FROM espacios_disciplinas WHERE espacio_id = $1",
+    [
+      12,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO espacios_disciplinas (espacio_id, disciplina_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    [
+      12,
+      7,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "crear_espacio",
+      "espacios",
+      "Espacio creado: Alberca",
+      "::ffff:127.0.0.1",
+      12,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO espacios (nombre, disciplina_id, capacidad_maxima, activo, estado) VALUES ($1, $2, $3, $4, $5) RETURNING espacio_id",
+    [
+      "Salón",
+      null,
+      5,
+      true,
+      "Activo",
+    ],
+  ],
+  [
+    "client",
+    "DELETE FROM espacios_disciplinas WHERE espacio_id = $1",
+    [
+      12,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "crear_espacio",
+      "espacios",
+      "Espacio creado: Salón",
+      "::ffff:127.0.0.1",
+      12,
+    ],
+  ],
+]
+`;
+
+exports[`POST / y PUT /:id crea: validación, 42P01 en espacios_disciplinas se ignora, error → ROLLBACK, conexión y sin body 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO espacios (nombre, disciplina_id, capacidad_maxima, activo, estado) VALUES ($1, $2, $3, $4, $5) RETURNING espacio_id",
+    [
+      "A",
+      2,
+      1,
+      true,
+      "Activo",
+    ],
+  ],
+  [
+    "client",
+    "DELETE FROM espacios_disciplinas WHERE espacio_id = $1",
+    [
+      12,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "crear_espacio",
+      "espacios",
+      "Espacio creado: A",
+      "::ffff:127.0.0.1",
+      12,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "INSERT INTO espacios (nombre, disciplina_id, capacidad_maxima, activo, estado) VALUES ($1, $2, $3, $4, $5) RETURNING espacio_id",
+    [
+      "A",
+      2,
+      1,
+      true,
+      "Activo",
+    ],
+  ],
+  [
+    "client",
+    "DELETE FROM espacios_disciplinas WHERE espacio_id = $1",
+    [
+      12,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO espacios_disciplinas (espacio_id, disciplina_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    [
+      12,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;

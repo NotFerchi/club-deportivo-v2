@@ -1,0 +1,386 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`errores de infraestructura error de BD → ROLLBACK + 500; conexión → errorHandler 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 AND estado = 'Confirmada'",
+    [
+      4,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND socio_id = $2 AND fecha = $3",
+    [
+      4,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO asistencia (sesion_id, socio_id, fecha, presente) VALUES ($1, $2, $3, TRUE) RETURNING asistencia_id",
+    [
+      4,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`socio con reservación confirmada → asistencia (fecha MX por defecto) 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 AND estado = 'Confirmada'",
+    [
+      4,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND socio_id = $2 AND fecha = $3",
+    [
+      4,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO asistencia (sesion_id, socio_id, fecha, presente) VALUES ($1, $2, $3, TRUE) RETURNING asistencia_id",
+    [
+      4,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "SELECT COALESCE( NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), ''), s.numero_socio, CONCAT('Socio ', s.socio_id) ) AS nombre FROM socios s LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`socio sesión inexistente, clase llena, duplicado, socio_id inválido → ROLLBACK 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 AND estado = 'Confirmada'",
+    [
+      4,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "SELECT sp.cupo_maximo, sp.hora_inicio, sp.hora_fin, (SELECT COUNT(*) FROM reservaciones WHERE sesion_id = $1 AND fecha_reserva = $2 AND estado = 'Confirmada') AS inscritos FROM sesiones_programadas sp WHERE sp.sesion_id = $1",
+    [
+      4,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 AND estado = 'Confirmada'",
+    [
+      4,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "SELECT sp.cupo_maximo, sp.hora_inicio, sp.hora_fin, (SELECT COUNT(*) FROM reservaciones WHERE sesion_id = $1 AND fecha_reserva = $2 AND estado = 'Confirmada') AS inscritos FROM sesiones_programadas sp WHERE sp.sesion_id = $1",
+    [
+      4,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 AND estado = 'Confirmada'",
+    [
+      4,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND socio_id = $2 AND fecha = $3",
+    [
+      4,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`socio sin reservación → inscribe y registra; fecha del body; nombre por defecto 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 AND estado = 'Confirmada'",
+    [
+      4,
+      10,
+      "2026-10-02",
+    ],
+  ],
+  [
+    "client",
+    "SELECT sp.cupo_maximo, sp.hora_inicio, sp.hora_fin, (SELECT COUNT(*) FROM reservaciones WHERE sesion_id = $1 AND fecha_reserva = $2 AND estado = 'Confirmada') AS inscritos FROM sesiones_programadas sp WHERE sp.sesion_id = $1",
+    [
+      4,
+      "2026-10-02",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO reservaciones (sesion_id, socio_id, visita_id, fecha_reserva, hora_inicio, hora_fin, estado) VALUES ($1, $2, NULL, $5, $3, $4, 'Confirmada')",
+    [
+      4,
+      10,
+      "08:00",
+      "09:00",
+      "2026-10-02",
+    ],
+  ],
+  [
+    "client",
+    "SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND socio_id = $2 AND fecha = $3",
+    [
+      4,
+      10,
+      "2026-10-02",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO asistencia (sesion_id, socio_id, fecha, presente) VALUES ($1, $2, $3, TRUE) RETURNING asistencia_id",
+    [
+      4,
+      10,
+      "2026-10-02",
+    ],
+  ],
+  [
+    "client",
+    "SELECT COALESCE( NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno, ' ', COALESCE(u.apellido_materno, ''))), ''), s.numero_socio, CONCAT('Socio ', s.socio_id) ) AS nombre FROM socios s LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id WHERE s.socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`visita duplicado, no encontrada, visita_id inválido → ROLLBACK 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND visita_id = $2 AND fecha = CURRENT_DATE",
+    [
+      4,
+      20,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND visita_id = $2 AND fecha = CURRENT_DATE",
+    [
+      4,
+      20,
+    ],
+  ],
+  [
+    "client",
+    "SELECT nombre_completo FROM visitas WHERE visita_id = $1",
+    [
+      20,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`visita registra (sin expira_en y con expira_en futuro) 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND visita_id = $2 AND fecha = CURRENT_DATE",
+    [
+      4,
+      20,
+    ],
+  ],
+  [
+    "client",
+    "SELECT nombre_completo FROM visitas WHERE visita_id = $1",
+    [
+      20,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO asistencia (sesion_id, visita_id, fecha, presente) VALUES ($1, $2, CURRENT_DATE, TRUE) RETURNING asistencia_id",
+    [
+      4,
+      20,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND visita_id = $2 AND fecha = CURRENT_DATE",
+    [
+      4,
+      20,
+    ],
+  ],
+  [
+    "client",
+    "SELECT nombre_completo FROM visitas WHERE visita_id = $1",
+    [
+      20,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO asistencia (sesion_id, visita_id, fecha, presente) VALUES ($1, $2, CURRENT_DATE, TRUE) RETURNING asistencia_id",
+    [
+      4,
+      20,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;

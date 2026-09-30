@@ -1,0 +1,363 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`/api/disciplinas DELETE /:id elimina, en uso, 404, 500 1`] = `
+[
+  [
+    "pool",
+    "SELECT COUNT(*) FROM espacios WHERE disciplina_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "DELETE FROM disciplinas WHERE disciplina_id = $1 RETURNING disciplina_id",
+    [
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "eliminar_disciplina",
+      "disciplinas",
+      "Disciplina eliminada",
+      "10.0.0.1",
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM espacios WHERE disciplina_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM espacios WHERE disciplina_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM espacios WHERE disciplina_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "DELETE FROM disciplinas WHERE disciplina_id = $1 RETURNING disciplina_id",
+    [
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`/api/disciplinas GET / y GET /:id (200, 404, 500) 1`] = `
+[
+  [
+    "pool",
+    "SELECT disciplina_id, nombre FROM disciplinas ORDER BY nombre",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT disciplina_id, nombre FROM disciplinas WHERE disciplina_id = $1",
+    [
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT disciplina_id, nombre FROM disciplinas WHERE disciplina_id = $1",
+    [
+      "abc",
+    ],
+  ],
+]
+`;
+
+exports[`/api/disciplinas POST / crea y audita (IP de x-forwarded-for); auditoría fallida no afecta 1`] = `
+[
+  [
+    "pool",
+    "INSERT INTO disciplinas (nombre) VALUES ($1) RETURNING disciplina_id",
+    [
+      "Pádel",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "crear_disciplina",
+      "disciplinas",
+      "Disciplina creada: Pádel",
+      "10.0.0.1",
+      8,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO disciplinas (nombre) VALUES ($1) RETURNING disciplina_id",
+    [
+      "Yoga",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "crear_disciplina",
+      "disciplinas",
+      "Disciplina creada: Yoga",
+      "10.0.0.9",
+      8,
+    ],
+  ],
+]
+`;
+
+exports[`/api/disciplinas PUT /:id actualiza, 404, 23505, 500, validación y sin body 1`] = `
+[
+  [
+    "pool",
+    "UPDATE disciplinas SET nombre = $1 WHERE disciplina_id = $2 RETURNING disciplina_id",
+    [
+      "Tenis 2",
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "actualizar_disciplina",
+      "disciplinas",
+      "Disciplina actualizada: Tenis 2",
+      "10.0.0.1",
+      "1",
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE disciplinas SET nombre = $1 WHERE disciplina_id = $2 RETURNING disciplina_id",
+    [
+      "X",
+      "1",
+    ],
+  ],
+]
+`;
+
+exports[`/api/logs GET / con filtros por defecto y todos los filtros 1`] = `
+[
+  [
+    "pool",
+    "SELECT l.log_id, l.usuario_id, u.nombres || ' ' || u.apellido_paterno as usuario_nombre, u.username as usuario_email, l.accion, l.tabla_afectada, l.detalles, l.fecha, TO_CHAR(l.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD"T"HH24:MI:SS') as fecha_local, l.ip_origen FROM logs_sistema l LEFT JOIN usuarios u ON l.usuario_id = u.usuario_id WHERE 1=1 ORDER BY l.fecha DESC LIMIT $1 OFFSET $2",
+    [
+      100,
+      0,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT l.log_id, l.usuario_id, u.nombres || ' ' || u.apellido_paterno as usuario_nombre, u.username as usuario_email, l.accion, l.tabla_afectada, l.detalles, l.fecha, TO_CHAR(l.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD"T"HH24:MI:SS') as fecha_local, l.ip_origen FROM logs_sistema l LEFT JOIN usuarios u ON l.usuario_id = u.usuario_id WHERE 1=1 AND l.tabla_afectada = $1 AND l.usuario_id = $2 AND l.fecha >= $3 AND l.fecha <= $4 ORDER BY l.fecha DESC LIMIT $5 OFFSET $6",
+    [
+      "socios",
+      "3",
+      "2026-09-01",
+      "2026-09-30",
+      "5",
+      "10",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT l.log_id, l.usuario_id, u.nombres || ' ' || u.apellido_paterno as usuario_nombre, u.username as usuario_email, l.accion, l.tabla_afectada, l.detalles, l.fecha, TO_CHAR(l.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD"T"HH24:MI:SS') as fecha_local, l.ip_origen FROM logs_sistema l LEFT JOIN usuarios u ON l.usuario_id = u.usuario_id WHERE 1=1 AND l.fecha <= $1 ORDER BY l.fecha DESC LIMIT $2 OFFSET $3",
+    [
+      "2026-09-30",
+      100,
+      0,
+    ],
+  ],
+]
+`;
+
+exports[`/api/logs GET /tabla/:tabla y /estadisticas 1`] = `
+[
+  [
+    "pool",
+    "SELECT l.log_id, l.usuario_id, u.nombres || ' ' || u.apellido_paterno as usuario_nombre, l.accion, l.detalles, l.fecha, TO_CHAR(l.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD"T"HH24:MI:SS') as fecha_local, l.ip_origen FROM logs_sistema l LEFT JOIN usuarios u ON l.usuario_id = u.usuario_id WHERE l.tabla_afectada = $1 ORDER BY l.fecha DESC LIMIT 100",
+    [
+      "socios",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT accion, COUNT(*) as total FROM logs_sistema GROUP BY accion ORDER BY total DESC LIMIT 10",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT DATE(fecha) as dia, COUNT(*) as total FROM logs_sistema WHERE fecha >= NOW() - INTERVAL '7 days' GROUP BY DATE(fecha) ORDER BY dia DESC",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT tabla_afectada, COUNT(*) as total FROM logs_sistema WHERE tabla_afectada IS NOT NULL GROUP BY tabla_afectada ORDER BY total DESC",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT COUNT(*) FROM logs_sistema",
+    [],
+  ],
+]
+`;
+
+exports[`/api/logs POST / registra (con y sin body) 1`] = `
+[
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "x",
+      "t",
+      "{"a":1}",
+      "10.0.0.1",
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)",
+    [
+      3,
+      "y",
+      null,
+      "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+      "::ffff:127.0.0.1",
+      null,
+    ],
+  ],
+]
+`;
+
+exports[`/api/sesiones GET / sin y con filtros; GET /dia/:dia 1`] = `
+[
+  [
+    "pool",
+    "SELECT sp.sesion_id, sp.espacio_id, sp.disciplina_id, sp.instructor_id, sp.dia_semana, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, d.nombre as disciplina, e.nombre as espacio, (SELECT COUNT(*) FROM inscripciones_clases WHERE sesion_id = sp.sesion_id AND estado = 'Confirmada') as inscritos_actuales, COALESCE(NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 'Por asignar') as instructor, u.foto_perfil as instructor_foto FROM sesiones_programadas sp JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id JOIN espacios e ON sp.espacio_id = e.espacio_id LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id WHERE e.activo = true ORDER BY sp.dia_semana, sp.hora_inicio",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT sp.sesion_id, sp.espacio_id, sp.disciplina_id, sp.instructor_id, sp.dia_semana, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, d.nombre as disciplina, e.nombre as espacio, (SELECT COUNT(*) FROM inscripciones_clases WHERE sesion_id = sp.sesion_id AND estado = 'Confirmada') as inscritos_actuales, COALESCE(NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 'Por asignar') as instructor, u.foto_perfil as instructor_foto FROM sesiones_programadas sp JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id JOIN espacios e ON sp.espacio_id = e.espacio_id LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id WHERE e.activo = true AND d.nombre ILIKE $1 AND sp.dia_semana = $2 AND (u.nombres ILIKE $3 OR u.apellido_paterno ILIKE $3 OR CONCAT(u.nombres, ' ', u.apellido_paterno) ILIKE $3) ORDER BY sp.dia_semana, sp.hora_inicio",
+    [
+      "%ten%",
+      "2",
+      "%Ana%",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT sp.sesion_id, sp.espacio_id, sp.disciplina_id, sp.instructor_id, sp.dia_semana, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, d.nombre as disciplina, e.nombre as espacio, (SELECT COUNT(*) FROM inscripciones_clases WHERE sesion_id = sp.sesion_id AND estado = 'Confirmada') as inscritos_actuales, COALESCE(NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 'Por asignar') as instructor, u.foto_perfil as instructor_foto FROM sesiones_programadas sp JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id JOIN espacios e ON sp.espacio_id = e.espacio_id LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id WHERE e.activo = true AND (u.nombres ILIKE $1 OR u.apellido_paterno ILIKE $1 OR CONCAT(u.nombres, ' ', u.apellido_paterno) ILIKE $1) ORDER BY sp.dia_semana, sp.hora_inicio",
+    [
+      "%Luis%",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT sp.sesion_id, sp.hora_inicio, sp.hora_fin, sp.cupo_maximo, d.nombre as disciplina, e.nombre as espacio, i.nombre as instructor, COALESCE(r.total_reservas, 0) as cupo_actual FROM sesiones_programadas sp JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id JOIN espacios e ON sp.espacio_id = e.espacio_id LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id LEFT JOIN ( SELECT sesion_id, COUNT(*) as total_reservas FROM reservaciones WHERE estado = 'Confirmada' GROUP BY sesion_id ) r ON sp.sesion_id = r.sesion_id WHERE sp.dia_semana = $1 AND e.activo = true ORDER BY sp.hora_inicio",
+    [
+      "3",
+    ],
+  ],
+]
+`;
+
+exports[`/api/sesiones POST / crea, conflicto, 500 y sin body 1`] = `
+[
+  [
+    "pool",
+    "SELECT sesion_id FROM sesiones_programadas WHERE espacio_id = $1 AND dia_semana = $2 AND (hora_inicio, hora_fin) OVERLAPS ($3::time, $4::time)",
+    [
+      2,
+      4,
+      "08:00",
+      "09:00",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO sesiones_programadas (disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING sesion_id",
+    [
+      1,
+      2,
+      3,
+      4,
+      "08:00",
+      "09:00",
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT sesion_id FROM sesiones_programadas WHERE espacio_id = $1 AND dia_semana = $2 AND (hora_inicio, hora_fin) OVERLAPS ($3::time, $4::time)",
+    [
+      2,
+      undefined,
+      undefined,
+      undefined,
+    ],
+  ],
+]
+`;
+
+exports[`/api/sesiones PUT /:id y DELETE /:id (sin validar existencia) 1`] = `
+[
+  [
+    "pool",
+    "UPDATE sesiones_programadas SET disciplina_id = $1, espacio_id = $2, instructor_id = $3, dia_semana = $4, hora_inicio = $5, hora_fin = $6, cupo_maximo = $7, activo = $8 WHERE sesion_id = $9",
+    [
+      1,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      false,
+      "7",
+    ],
+  ],
+  [
+    "pool",
+    "DELETE FROM sesiones_programadas WHERE sesion_id = $1",
+    [
+      "7",
+    ],
+  ],
+]
+`;
+
+exports[`GET /api/roles lista y error 1`] = `
+[
+  [
+    "pool",
+    "SELECT rol_id, nombre FROM roles WHERE nombre != 'socio' ORDER BY rol_id",
+    [],
+  ],
+]
+`;

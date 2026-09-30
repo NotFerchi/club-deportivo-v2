@@ -1,0 +1,745 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PATCH /salida/:registro_id 404, 409, error → 500 y fallo de conexión → errorHandler 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /salida/:registro_id con exceso → sanción 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE registro_ludoteca SET hora_salida = NOW() AT TIME ZONE 'America/Mexico_City' WHERE registro_id = $1 RETURNING hora_salida, ROUND(EXTRACT(EPOCH FROM (hora_salida - hora_entrada)) / 60)::int AS duracion_minutos",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, origen, motivo, estado, registro_ludoteca_id) VALUES ($1, 'Ludoteca', $2, 'Activo', $3)",
+    [
+      10,
+      "Exceso de estancia: 15 min sobre el límite de 2 horas",
+      5,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /salida/:registro_id dentro del límite 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE registro_ludoteca SET hora_salida = NOW() AT TIME ZONE 'America/Mexico_City' WHERE registro_id = $1 RETURNING hora_salida, ROUND(EXTRACT(EPOCH FROM (hora_salida - hora_entrada)) / 60)::int AS duracion_minutos",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /socio/salida/:registro_id 400, 403 sin socio, 404, 403 ajeno, 409, 500 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /socio/salida/:registro_id salida propia con exceso → sanción, sin audit 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE registro_ludoteca SET hora_salida = NOW() AT TIME ZONE 'America/Mexico_City' WHERE registro_id = $1 RETURNING hora_salida, ROUND(EXTRACT(EPOCH FROM (hora_salida - hora_entrada)) / 60)::int AS duracion_minutos",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, origen, motivo, estado, registro_ludoteca_id) VALUES ($1, 'Ludoteca', $2, 'Activo', $3)",
+    [
+      10,
+      "Exceso de estancia: 80 min sobre el límite de 2 horas",
+      5,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST / (alias con socio_id / nombre_nino) registra la entrada y audita 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones) VALUES ($1, $2, $3, NOW() AT TIME ZONE 'America/Mexico_City', $4) RETURNING registro_id, socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, observaciones",
+    [
+      10,
+      "Leo",
+      "2021-09-20",
+      "alergia",
+    ],
+  ],
+]
+`;
+
+exports[`POST /acceso-qr con registro activo → salida (con y sin exceso) 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT registro_id, nombre_hijo, hora_entrada FROM registro_ludoteca WHERE socio_padre_id = $1 AND hora_salida IS NULL ORDER BY hora_entrada DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "UPDATE registro_ludoteca SET hora_salida = NOW() AT TIME ZONE 'America/Mexico_City' WHERE registro_id = $1 RETURNING hora_salida, ROUND(EXTRACT(EPOCH FROM (hora_salida - hora_entrada)) / 60)::int AS duracion_minutos",
+    [
+      44,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "pool",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT registro_id, nombre_hijo, hora_entrada FROM registro_ludoteca WHERE socio_padre_id = $1 AND hora_salida IS NULL ORDER BY hora_entrada DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "UPDATE registro_ludoteca SET hora_salida = NOW() AT TIME ZONE 'America/Mexico_City' WHERE registro_id = $1 RETURNING hora_salida, ROUND(EXTRACT(EPOCH FROM (hora_salida - hora_entrada)) / 60)::int AS duracion_minutos",
+    [
+      44,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, origen, motivo, estado, registro_ludoteca_id) VALUES ($1, 'Ludoteca', $2, 'Activo', $3)",
+    [
+      10,
+      "Exceso de estancia: 30 min sobre el límite de 2 horas",
+      44,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`POST /acceso-qr sin registro activo: pide datos, valida y registra entrada 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT registro_id, nombre_hijo, hora_entrada FROM registro_ludoteca WHERE socio_padre_id = $1 AND hora_salida IS NULL ORDER BY hora_entrada DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT registro_id, nombre_hijo, hora_entrada FROM registro_ludoteca WHERE socio_padre_id = $1 AND hora_salida IS NULL ORDER BY hora_entrada DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT registro_id, nombre_hijo, hora_entrada FROM registro_ludoteca WHERE socio_padre_id = $1 AND hora_salida IS NULL ORDER BY hora_entrada DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones) VALUES ($1, $2, $3, NOW() AT TIME ZONE 'America/Mexico_City', $4) RETURNING registro_id, nombre_hijo, hora_entrada, TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, observaciones",
+    [
+      10,
+      "Leo",
+      "2021-09-20",
+      "x",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT registro_id, nombre_hijo, hora_entrada FROM registro_ludoteca WHERE socio_padre_id = $1 AND hora_salida IS NULL ORDER BY hora_entrada DESC LIMIT 1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones) VALUES ($1, $2, $3, NOW() AT TIME ZONE 'America/Mexico_City', $4) RETURNING registro_id, nombre_hijo, hora_entrada, TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, observaciones",
+    [
+      10,
+      "Leo",
+      "2021-09-20",
+      null,
+    ],
+  ],
+]
+`;
+
+exports[`POST /acceso-qr validaciones del QR y del socio 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id, activo FROM socios WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+]
+`;
+
+exports[`POST /entrada registra la entrada y audita 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE socio_id = $1",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones) VALUES ($1, $2, $3, NOW() AT TIME ZONE 'America/Mexico_City', $4) RETURNING registro_id, socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, observaciones",
+    [
+      10,
+      "Leo",
+      "2021-09-20",
+      "alergia",
+    ],
+  ],
+]
+`;
+
+exports[`POST /socio/entrada validaciones, 403 sin socio, 409 niño activo, alta y error 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(nombre_hijo) = LOWER($2) AND hora_salida IS NULL",
+    [
+      10,
+      "Leo",
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(nombre_hijo) = LOWER($2) AND hora_salida IS NULL",
+    [
+      10,
+      "Leo",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones) VALUES ($1, $2, $3, NOW() AT TIME ZONE 'America/Mexico_City', $4) RETURNING registro_id, socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, observaciones",
+    [
+      10,
+      "Leo",
+      "2021-09-20",
+      null,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(nombre_hijo) = LOWER($2) AND hora_salida IS NULL",
+    [
+      10,
+      "Leo",
+    ],
+  ],
+  [
+    "pool",
+    "INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones) VALUES ($1, $2, $3, NOW() AT TIME ZONE 'America/Mexico_City', $4) RETURNING registro_id, socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, observaciones",
+    [
+      10,
+      "Leo",
+      "2021-09-20",
+      null,
+    ],
+  ],
+]
+`;
+
+exports[`PUT /:id/salida (alias) 404, 409, error → 500 y fallo de conexión → errorHandler 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PUT /:id/salida (alias) con exceso → sanción 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE registro_ludoteca SET hora_salida = NOW() AT TIME ZONE 'America/Mexico_City' WHERE registro_id = $1 RETURNING hora_salida, ROUND(EXTRACT(EPOCH FROM (hora_salida - hora_entrada)) / 60)::int AS duracion_minutos",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO sanciones (socio_id, origen, motivo, estado, registro_ludoteca_id) VALUES ($1, 'Ludoteca', $2, 'Activo', $3)",
+    [
+      10,
+      "Exceso de estancia: 15 min sobre el límite de 2 horas",
+      5,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PUT /:id/salida (alias) dentro del límite 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT registro_id, socio_padre_id, hora_entrada, hora_salida FROM registro_ludoteca WHERE registro_id = $1 FOR UPDATE",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE registro_ludoteca SET hora_salida = NOW() AT TIME ZONE 'America/Mexico_City' WHERE registro_id = $1 RETURNING hora_salida, ROUND(EXTRACT(EPOCH FROM (hora_salida - hora_entrada)) / 60)::int AS duracion_minutos",
+    [
+      5,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`lecturas GET /activos; error → 500 con mensaje 1`] = `
+[
+  [
+    "pool",
+    "SELECT rl.registro_id, rl.nombre_hijo, rl.nombre_hijo AS nombre_nino, rl.fecha_nacimiento, rl.hora_entrada, rl.hora_salida, TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, TO_CHAR(rl.hora_salida, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_salida_local, rl.socio_padre_id, DATE_PART('year', AGE(CURRENT_DATE, rl.fecha_nacimiento))::int AS edad, GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'America/Mexico_City') - rl.hora_entrada)))::int, 0) AS segundos_transcurridos, GREATEST(FLOOR(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'America/Mexico_City') - rl.hora_entrada)) / 60)::int, 0) AS minutos_transcurridos, u.nombres, u.apellido_paterno, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS nombre_padre, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS tutor_nombre, rl.observaciones FROM registro_ludoteca rl JOIN socios s ON rl.socio_padre_id = s.socio_id JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE rl.hora_salida IS NULL ORDER BY rl.hora_entrada ASC",
+    [],
+  ],
+]
+`;
+
+exports[`lecturas GET /historial?dias=-3 → no-store 1`] = `
+[
+  [
+    "pool",
+    "SELECT rl.registro_id, rl.socio_padre_id, rl.nombre_hijo, rl.nombre_hijo AS nombre_nino, rl.fecha_nacimiento, rl.hora_entrada, rl.hora_salida, TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, TO_CHAR(rl.hora_salida, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_salida_local, DATE_PART('year', AGE(CURRENT_DATE, rl.fecha_nacimiento))::int AS edad, u.nombres, u.apellido_paterno, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS nombre_padre, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS tutor_nombre, rl.observaciones FROM registro_ludoteca rl JOIN socios s ON rl.socio_padre_id = s.socio_id JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE rl.hora_entrada >= (NOW() AT TIME ZONE 'America/Mexico_City') - ($1::text || ' days')::interval ORDER BY rl.hora_entrada DESC LIMIT 100",
+    [
+      7,
+    ],
+  ],
+]
+`;
+
+exports[`lecturas GET /historial?dias=30 → no-store 1`] = `
+[
+  [
+    "pool",
+    "SELECT rl.registro_id, rl.socio_padre_id, rl.nombre_hijo, rl.nombre_hijo AS nombre_nino, rl.fecha_nacimiento, rl.hora_entrada, rl.hora_salida, TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, TO_CHAR(rl.hora_salida, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_salida_local, DATE_PART('year', AGE(CURRENT_DATE, rl.fecha_nacimiento))::int AS edad, u.nombres, u.apellido_paterno, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS nombre_padre, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS tutor_nombre, rl.observaciones FROM registro_ludoteca rl JOIN socios s ON rl.socio_padre_id = s.socio_id JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE rl.hora_entrada >= (NOW() AT TIME ZONE 'America/Mexico_City') - ($1::text || ' days')::interval ORDER BY rl.hora_entrada DESC LIMIT 100",
+    [
+      30,
+    ],
+  ],
+]
+`;
+
+exports[`lecturas GET /historial?dias=abc → no-store 1`] = `
+[
+  [
+    "pool",
+    "SELECT rl.registro_id, rl.socio_padre_id, rl.nombre_hijo, rl.nombre_hijo AS nombre_nino, rl.fecha_nacimiento, rl.hora_entrada, rl.hora_salida, TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, TO_CHAR(rl.hora_salida, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_salida_local, DATE_PART('year', AGE(CURRENT_DATE, rl.fecha_nacimiento))::int AS edad, u.nombres, u.apellido_paterno, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS nombre_padre, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS tutor_nombre, rl.observaciones FROM registro_ludoteca rl JOIN socios s ON rl.socio_padre_id = s.socio_id JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE rl.hora_entrada >= (NOW() AT TIME ZONE 'America/Mexico_City') - ($1::text || ' days')::interval ORDER BY rl.hora_entrada DESC LIMIT 100",
+    [
+      7,
+    ],
+  ],
+]
+`;
+
+exports[`lecturas GET /historial?dias=undefined → no-store 1`] = `
+[
+  [
+    "pool",
+    "SELECT rl.registro_id, rl.socio_padre_id, rl.nombre_hijo, rl.nombre_hijo AS nombre_nino, rl.fecha_nacimiento, rl.hora_entrada, rl.hora_salida, TO_CHAR(rl.hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, TO_CHAR(rl.hora_salida, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_salida_local, DATE_PART('year', AGE(CURRENT_DATE, rl.fecha_nacimiento))::int AS edad, u.nombres, u.apellido_paterno, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS nombre_padre, TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) AS tutor_nombre, rl.observaciones FROM registro_ludoteca rl JOIN socios s ON rl.socio_padre_id = s.socio_id JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE rl.hora_entrada >= (NOW() AT TIME ZONE 'America/Mexico_City') - ($1::text || ' days')::interval ORDER BY rl.hora_entrada DESC LIMIT 100",
+    [
+      7,
+    ],
+  ],
+]
+`;
+
+exports[`lecturas GET /mis-registros: con socio, sin socio → [], error → 500 1`] = `
+[
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT registro_id, nombre_hijo, fecha_nacimiento, TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada, TO_CHAR(hora_salida, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_salida, CASE WHEN hora_salida IS NULL THEN 'activo' ELSE 'finalizado' END as estado, ROUND(EXTRACT(EPOCH FROM (COALESCE(hora_salida, NOW() AT TIME ZONE 'America/Mexico_City') - hora_entrada)) / 60) as minutos_transcurridos FROM registro_ludoteca WHERE socio_padre_id = $1 ORDER BY hora_entrada DESC LIMIT 10",
+    [
+      10,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT socio_id FROM socios WHERE usuario_id = $1",
+    [
+      7,
+    ],
+  ],
+]
+`;

@@ -46,6 +46,7 @@ const mockRes = () => {
 const rows = (list) => ({ rows: list, rowCount: list.length });
 
 let db;
+let client;
 let consoleSpies;
 
 const defaultDb = () => ({
@@ -60,6 +61,8 @@ const defaultDb = () => ({
 
 function routeQuery(sql) {
   const q = String(sql).replace(/\s+/g, ' ');
+  if (q.includes('SELECT pg_advisory_xact_lock($1)')) return rows([]);
+  if (q === 'BEGIN' || q === 'COMMIT' || q === 'ROLLBACK') return rows([]);
   if (q.includes('FROM sesiones_programadas sp JOIN espacios e')) return rows(db.sesion);
   if (q.includes('OVERLAPS')) return rows(db.choque);
   if (q.includes('FROM reservaciones WHERE socio_id')) return rows(db.reservaConflicto);
@@ -74,14 +77,16 @@ function routeQuery(sql) {
   throw new Error(`Query no esperada en test: ${q}`);
 }
 
-const findCall = (fragment) =>
-  pool.query.mock.calls.find(([sql]) => String(sql).replace(/\s+/g, ' ').includes(fragment));
+const findCall = (mockFn, fragment) =>
+  mockFn.mock.calls.find(([sql]) => String(sql).replace(/\s+/g, ' ').includes(fragment));
 
 const inscribirReq = (body = { sesionId: 1, socioId: 10 }) => ({ body });
 
 beforeEach(() => {
   db = defaultDb();
   pool.query.mockImplementation(async (sql) => routeQuery(sql));
+  client = { query: jest.fn(async (sql) => routeQuery(sql)), release: jest.fn() };
+  pool.connect.mockResolvedValue(client);
   consoleSpies = [
     jest.spyOn(console, 'error').mockImplementation(() => {}),
     jest.spyOn(console, 'warn').mockImplementation(() => {})
@@ -99,8 +104,10 @@ describe('inscribir', () => {
 
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ message: 'Inscripción exitosa', inscripcion_id: 30 });
-    const [, params] = findCall('INSERT INTO inscripciones_clases');
+    const [, params] = findCall(client.query, 'INSERT INTO inscripciones_clases');
     expect(params).toEqual([1, 10]);
+    expect(client.query).toHaveBeenCalledWith('COMMIT');
+    expect(client.release).toHaveBeenCalled();
   });
 
   it('faltan datos → 400 (vía router)', async () => {
@@ -141,7 +148,7 @@ describe('inscribir', () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: 'Tienes una reserva de cancha activa en ese horario.' });
-    expect(findCall('INSERT INTO inscripciones_clases')).toBeUndefined();
+    expect(pool.connect).not.toHaveBeenCalled();
   });
 
   it('clase de otro día no consulta reservas', async () => {
@@ -150,7 +157,7 @@ describe('inscribir', () => {
     await inscripcionesController.inscribir(inscribirReq(), res);
 
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(findCall('FROM reservaciones')).toBeUndefined();
+    expect(findCall(pool.query, 'FROM reservaciones')).toBeUndefined();
   });
 
   it('si falla la verificación de reservas, solo avisa y continúa → 201', async () => {
@@ -173,11 +180,12 @@ describe('inscribir', () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: 'Ya estás inscrito en esta clase' });
-    expect(findCall('INSERT INTO inscripciones_clases')).toBeUndefined();
+    expect(findCall(client.query, 'INSERT INTO inscripciones_clases')).toBeUndefined();
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
   });
 
   it('inscripción duplicada detectada por la BD (23505) → 400', async () => {
-    pool.query.mockImplementation(async (sql) => {
+    client.query.mockImplementation(async (sql) => {
       if (String(sql).includes('INSERT INTO inscripciones_clases')) {
         const err = new Error('duplicate key');
         err.code = '23505';
@@ -190,6 +198,7 @@ describe('inscribir', () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: 'Ya estás inscrito en esta clase' });
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
   });
 
   it('reactiva inscripción cancelada → 201 sin revisar cupo', async () => {
@@ -203,9 +212,10 @@ describe('inscribir', () => {
       message: 'Inscripción reactivada exitosamente',
       inscripcion_id: 20
     });
-    const [, params] = findCall("SET estado = 'Confirmada'");
+    const [, params] = findCall(client.query, "SET estado = 'Confirmada'");
     expect(params).toEqual([20]);
-    expect(findCall('COUNT(*)')).toBeUndefined();
+    expect(findCall(client.query, 'COUNT(*)')).toBeUndefined();
+    expect(client.query).toHaveBeenCalledWith('COMMIT');
   });
 
   it('clase llena → 400', async () => {
@@ -215,7 +225,23 @@ describe('inscribir', () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: 'La clase está llena' });
-    expect(findCall('INSERT INTO inscripciones_clases')).toBeUndefined();
+    expect(findCall(client.query, 'INSERT INTO inscripciones_clases')).toBeUndefined();
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+  });
+
+  it('bug #41: toma el advisory lock de la sesión ANTES de contar cupos e insertar', async () => {
+    const res = mockRes();
+    await inscripcionesController.inscribir(inscribirReq(), res);
+
+    const callOrder = client.query.mock.calls.map(([sql]) => String(sql).replace(/\s+/g, ' '));
+    const beginIdx = callOrder.indexOf('BEGIN');
+    const lockIdx = callOrder.findIndex((sql) => sql.includes('pg_advisory_xact_lock'));
+    const insertIdx = callOrder.findIndex((sql) => sql.includes('INSERT INTO inscripciones_clases'));
+
+    expect(beginIdx).toBeGreaterThanOrEqual(0);
+    expect(lockIdx).toBeGreaterThan(beginIdx);
+    expect(insertIdx).toBeGreaterThan(lockIdx);
+    expect(client.query.mock.calls[lockIdx][1]).toEqual([1]);
   });
 
   it('error inesperado de BD → 500 genérico', async () => {

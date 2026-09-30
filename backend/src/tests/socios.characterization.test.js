@@ -38,6 +38,7 @@ let consoleSpies;
 function routeQuery(sql) {
   const q = norm(sql);
   if (q === 'BEGIN' || q === 'COMMIT' || q === 'ROLLBACK') return rows([]);
+  if (q.includes('SELECT pg_advisory_xact_lock($1)')) return rows([]);
   if (q.includes('FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id LEFT JOIN')) return rows(db.lista);
   if (q.includes('FROM socios s JOIN usuarios u ON s.usuario_id = u.usuario_id WHERE s.socio_id'))
     return rows(db.detalle);

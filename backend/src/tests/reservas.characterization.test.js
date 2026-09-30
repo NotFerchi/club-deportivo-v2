@@ -81,6 +81,7 @@ const defaultDb = () => ({
 function routeQuery(sql) {
   const q = String(sql).replace(/\s+/g, ' ');
   if (q === 'BEGIN' || q === 'COMMIT' || q === 'ROLLBACK') return rows([]);
+  if (q.includes('SELECT pg_advisory_xact_lock($1)')) return rows([]);
   if (q.includes('UPDATE reservaciones r SET estado = $1, no_show = TRUE')) return rows(db.noShowsVencidos);
   if (q.includes('FROM sanciones s')) return rows(db.sancionActiva);
   if (q.includes('FROM sanciones WHERE socio_id')) return rows([]);
@@ -135,15 +136,19 @@ afterEach(() => consoleSpies.forEach((spy) => spy.mockRestore()));
 // ── createReserva ────────────────────────────────────────────────────────────
 
 describe('createReserva', () => {
-  it('crea una reserva válida → 201', async () => {
+  it('crea una reserva válida → 201 (con lock por espacio y COMMIT)', async () => {
     const res = mockRes();
     await reservasController.createReserva({ body: { ...validBody } }, res);
 
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ ok: true, id: 99, message: 'Reserva creada correctamente' });
 
-    const [, params] = findCall(pool.query, 'INSERT INTO reservaciones');
+    const [, lockParams] = findCall(client.query, 'SELECT pg_advisory_xact_lock($1)');
+    expect(lockParams).toEqual([1]);
+    const [, params] = findCall(client.query, 'INSERT INTO reservaciones');
     expect(params).toEqual([1, 10, '2026-09-30', '10:00', '11:00', 'confirmada']);
+    expect(client.query).toHaveBeenCalledWith('COMMIT');
+    expect(client.release).toHaveBeenCalled();
     expect(logAudit).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ accion: 'crear_reserva', registro_id: 99 })
@@ -158,8 +163,34 @@ describe('createReserva', () => {
     );
 
     expect(res.status).toHaveBeenCalledWith(201);
-    const [, params] = findCall(pool.query, 'INSERT INTO reservaciones');
+    const [, params] = findCall(client.query, 'INSERT INTO reservaciones');
     expect(params.slice(2, 5)).toEqual(['2026-09-30', '10:00', '11:00']);
+  });
+
+  it('bug #3: toma el advisory lock del espacio ANTES de validar disponibilidad', async () => {
+    const res = mockRes();
+    await reservasController.createReserva({ body: { ...validBody } }, res);
+
+    const callOrder = client.query.mock.calls.map(([sql]) => String(sql).replace(/\s+/g, ' '));
+    const beginIdx = callOrder.indexOf('BEGIN');
+    const lockIdx = callOrder.findIndex((sql) => sql.includes('pg_advisory_xact_lock'));
+    const insertIdx = callOrder.findIndex((sql) => sql.includes('INSERT INTO reservaciones'));
+
+    expect(beginIdx).toBeGreaterThanOrEqual(0);
+    expect(lockIdx).toBeGreaterThan(beginIdx);
+    expect(insertIdx).toBeGreaterThan(lockIdx);
+    expect(client.query.mock.calls[lockIdx][1]).toEqual([1]);
+  });
+
+  it('bug #3: validación fallida → ROLLBACK y no inserta (el lock se libera al terminar la transacción)', async () => {
+    db.solapamientoEspacio = [{ reserva_id: 7 }];
+    const res = mockRes();
+    await reservasController.createReserva({ body: { ...validBody } }, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+    expect(client.release).toHaveBeenCalled();
+    expect(findCall(client.query, 'INSERT INTO reservaciones')).toBeUndefined();
   });
 
   it('faltan campos obligatorios → 400 (vía router)', async () => {
@@ -183,7 +214,7 @@ describe('createReserva', () => {
       error: 'El espacio ya esta reservado en ese horario',
       errors: ['El espacio ya esta reservado en ese horario']
     });
-    expect(findCall(pool.query, 'INSERT INTO reservaciones')).toBeUndefined();
+    expect(findCall(client.query, 'INSERT INTO reservaciones')).toBeUndefined();
   });
 
   it('socio con reserva duplicada en ese horario → 400', async () => {

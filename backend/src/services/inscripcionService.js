@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
+const { connectOrEscalate } = require('./escalate');
 const { getTableColumns } = require('../utils/adminRules');
 const { getMexicoDateISO } = require('../utils/mexicoDate');
 
@@ -92,58 +93,80 @@ async function verificarChoqueConReservas(socioId, { dia_semana, hora_inicio, ho
 /**
  * Inscribe al socio en la sesión, o reactiva su inscripción cancelada.
  * Devuelve { reactivada, inscripcion_id }.
+ *
+ * Usa un advisory lock transaccional por sesión (bug #41: el cupo se
+ * revisaba con un SELECT COUNT(*) y luego, sin transacción ni bloqueo, se
+ * hacía el INSERT. Dos inscripciones concurrentes cerca del límite podían
+ * pasar ambas la validación de cupo antes de que cualquiera insertara,
+ * dejando la clase con más inscritos que cupo_maximo). El lock serializa
+ * por sesion_id: la segunda solicitud espera el COMMIT/ROLLBACK de la
+ * primera y su propio conteo ya refleja la inscripción recién creada.
  */
 async function inscribir(sesionId, socioId) {
   const sesion = await obtenerSesionDisponible(sesionId);
   await verificarChoqueConClases(socioId, sesion);
   await verificarChoqueConReservas(socioId, sesion);
 
-  // Verificar si ya existe un registro para este socio y sesión
-  const existente = await pool.query(
-    `SELECT inscripcion_id, estado, fecha_inscripcion
-     FROM inscripciones_clases
-     WHERE sesion_id = $1 AND socio_id = $2`,
-    [sesionId, socioId]
-  );
+  const client = await connectOrEscalate(pool);
 
-  if (existente.rows.length > 0) {
-    const registro = existente.rows[0];
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [Number(sesionId)]);
 
-    if (registro.estado === 'Confirmada') {
-      throw new ServiceError(400, { error: 'Ya estás inscrito en esta clase' });
-    } else if (registro.estado === 'Cancelada') {
-      // Reactivar sin revisar cupo (comportamiento heredado)
-      const reactivate = await pool.query(
-        `UPDATE inscripciones_clases
-         SET estado = 'Confirmada',
-             fecha_inscripcion = NOW()
-         WHERE inscripcion_id = $1
-         RETURNING inscripcion_id`,
-        [registro.inscripcion_id]
-      );
-      return { reactivada: true, inscripcion_id: reactivate.rows[0].inscripcion_id };
+    // Verificar si ya existe un registro para este socio y sesión
+    const existente = await client.query(
+      `SELECT inscripcion_id, estado, fecha_inscripcion
+       FROM inscripciones_clases
+       WHERE sesion_id = $1 AND socio_id = $2`,
+      [sesionId, socioId]
+    );
+
+    if (existente.rows.length > 0) {
+      const registro = existente.rows[0];
+
+      if (registro.estado === 'Confirmada') {
+        throw new ServiceError(400, { error: 'Ya estás inscrito en esta clase' });
+      } else if (registro.estado === 'Cancelada') {
+        // Reactivar sin revisar cupo (comportamiento heredado)
+        const reactivate = await client.query(
+          `UPDATE inscripciones_clases
+           SET estado = 'Confirmada',
+               fecha_inscripcion = NOW()
+           WHERE inscripcion_id = $1
+           RETURNING inscripcion_id`,
+          [registro.inscripcion_id]
+        );
+        await client.query('COMMIT');
+        return { reactivada: true, inscripcion_id: reactivate.rows[0].inscripcion_id };
+      }
     }
+
+    // Verificar cupos disponibles
+    const conteo = await client.query(
+      `SELECT COUNT(*) as total FROM inscripciones_clases
+       WHERE sesion_id = $1 AND estado = 'Confirmada'`,
+      [sesionId]
+    );
+
+    const inscritos = parseInt(conteo.rows[0].total);
+    if (inscritos >= sesion.cupo_maximo) {
+      throw new ServiceError(400, { error: 'La clase está llena' });
+    }
+
+    const result = await client.query(
+      `INSERT INTO inscripciones_clases (sesion_id, socio_id, estado)
+       VALUES ($1, $2, 'Confirmada')
+       RETURNING inscripcion_id`,
+      [sesionId, socioId]
+    );
+    await client.query('COMMIT');
+    return { reactivada: false, inscripcion_id: result.rows[0].inscripcion_id };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
-
-  // Verificar cupos disponibles
-  const conteo = await pool.query(
-    `SELECT COUNT(*) as total FROM inscripciones_clases
-     WHERE sesion_id = $1 AND estado = 'Confirmada'`,
-    [sesionId]
-  );
-
-  const inscritos = parseInt(conteo.rows[0].total);
-  if (inscritos >= sesion.cupo_maximo) {
-    throw new ServiceError(400, { error: 'La clase está llena' });
-  }
-
-  const result = await pool.query(
-    `INSERT INTO inscripciones_clases (sesion_id, socio_id, estado)
-     VALUES ($1, $2, 'Confirmada')
-     RETURNING inscripcion_id`,
-    [sesionId, socioId]
-  );
-  return { reactivada: false, inscripcion_id: result.rows[0].inscripcion_id };
 }
 
 async function cancelarInscripcion(sesionId, socioId) {

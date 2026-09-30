@@ -91,11 +91,10 @@ async function crearInstructor(body) {
 async function actualizarInstructor(id, body) {
   requireBodyOrEscalate(body);
   const { especialidad, activo } = body;
-  await pool.query(`UPDATE instructores SET especialidad = $1, activo = $2 WHERE instructor_id = $3`, [
-    especialidad || null,
-    activo,
-    id
-  ]);
+  await pool.query(
+    `UPDATE instructores SET especialidad = $1, activo = COALESCE($2, activo) WHERE instructor_id = $3`,
+    [especialidad || null, activo, id]
+  );
 }
 
 async function eliminarInstructor(id) {

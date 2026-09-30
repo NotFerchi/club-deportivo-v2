@@ -49,6 +49,7 @@ function route(q) {
   if (db.fallaEn && q.includes(db.fallaEn)) throw new Error('boom');
   if (['BEGIN', 'COMMIT', 'ROLLBACK', 'SAVEPOINT before_qr_pase', 'ROLLBACK TO SAVEPOINT before_qr_pase'].includes(q))
     return rows([]);
+  if (q === 'SELECT pg_advisory_xact_lock($1)') return rows([]);
 
   // Cierre automático de visitas vencidas
   if (q.startsWith('UPDATE pases SET hora_salida = (NOW()')) return rows(db.cerradas);

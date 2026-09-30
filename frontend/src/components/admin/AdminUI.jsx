@@ -64,15 +64,6 @@ export function EmptyState({ icon: Icon, title, action }) {
   );
 }
 
-export function InlineIcon({ icon: Icon, children, className = '' }) {
-  return (
-    <span className={`inline-icon ${className}`}>
-      {Icon && <Icon size={14} />}
-      {children}
-    </span>
-  );
-}
-
 export function LoadingState({ message = 'Cargando...' }) {
   return (
     <div className="admin-state-panel">

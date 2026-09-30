@@ -4,14 +4,25 @@ const socioController = require('../controllers/socioController');
 const sancionesController = require('../controllers/sancionesController');
 const qrController = require('../controllers/qrController');
 const { verifyToken, checkRole } = require('../middleware/auth.middleware');
+const { requirePositiveInt } = require('../middleware/validators');
 
-const adminRoles  = ['admin', 'gerente'];
-const staffRoles  = ['admin', 'gerente', 'recepcion', 'coordinador'];
+const adminRoles = ['admin', 'gerente'];
+const staffRoles = ['admin', 'gerente', 'recepcion', 'coordinador'];
 
 // Lectura — cualquier autenticado
 router.get('/', verifyToken, socioController.getSocios);
-router.get('/:socio_id/qr', verifyToken, qrController.obtenerQrActivoSocio);
-router.get('/:socio_id/sanciones', verifyToken, sancionesController.getHistorialCompletoSocio);
+router.get(
+  '/:socio_id/qr',
+  verifyToken,
+  requirePositiveInt('socio_id', { body: { error: 'socio_id debe ser un entero positivo' } }),
+  qrController.obtenerQrActivoSocio
+);
+router.get(
+  '/:socio_id/sanciones',
+  verifyToken,
+  requirePositiveInt('socio_id', { body: { error: 'socio_id debe ser un entero valido' } }),
+  sancionesController.getHistorialCompletoSocio
+);
 router.get('/:id', verifyToken, socioController.getSocioById);
 
 // Escritura — staff (recepcion y coordinador pueden crear/editar, solo admin/gerente pueden eliminar)

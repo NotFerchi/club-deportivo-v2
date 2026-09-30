@@ -1,0 +1,804 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PATCH /api/encuentros/:id/cancha asigna (recortada) y 404 1`] = `
+[
+  [
+    "pool",
+    "UPDATE encuentros_torneo SET cancha_asignada = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, cancha_asignada",
+    [
+      "C2",
+      100,
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE encuentros_torneo SET cancha_asignada = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, cancha_asignada",
+    [
+      "7",
+      100,
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE encuentros_torneo SET cancha_asignada = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, cancha_asignada",
+    [
+      "C2",
+      100,
+    ],
+  ],
+]
+`;
+
+exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / sin participantes → ROLLBACK 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/encuentros/:id/resultado edición con cambio de ganador → reemplaza al ganador anterior en su slot 1`] = `
+{
+  "encuentro": {
+    "cancha_asignada": null,
+    "encuentro_id": 100,
+    "estado": "finalizado",
+    "ganador_id": 12,
+    "marcador_1": 1,
+    "marcador_2": 4,
+    "ronda": 1,
+  },
+  "ganador_id": 12,
+  "message": "Resultado actualizado correctamente",
+  "ok": true,
+  "siguiente_encuentro": {
+    "campo": "participante_2_id",
+    "encuentro_id": 200,
+    "ganador": 12,
+    "ronda": 2,
+  },
+}
+`;
+
+exports[`PATCH /api/encuentros/:id/resultado edición con cambio de ganador → reemplaza al ganador anterior en su slot 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET marcador_1 = $1, marcador_2 = $2, ganador_id = $3, estado = 'finalizado', cancha_asignada = COALESCE($5, cancha_asignada) WHERE encuentro_id = $4 RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada",
+    [
+      1,
+      4,
+      12,
+      100,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND (participante_1_id = $3 OR participante_2_id = $3) LIMIT 1 FOR UPDATE",
+    [
+      4,
+      2,
+      11,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET participante_2_id = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, ronda, participante_1_id, participante_2_id",
+    [
+      12,
+      200,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND estado != 'finalizado'",
+    [
+      4,
+      1,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET estado = 'programado' WHERE torneo_id = $1 AND ronda = $2 AND estado = 'pendiente'",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/encuentros/:id/resultado edición: slot anterior en p1 / sin slot / mismo ganador / sin ganador previo 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET marcador_1 = $1, marcador_2 = $2, ganador_id = $3, estado = 'finalizado', cancha_asignada = COALESCE($5, cancha_asignada) WHERE encuentro_id = $4 RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada",
+    [
+      1,
+      4,
+      12,
+      100,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND (participante_1_id = $3 OR participante_2_id = $3) LIMIT 1 FOR UPDATE",
+    [
+      4,
+      2,
+      11,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, ronda, participante_1_id, participante_2_id",
+    [
+      12,
+      200,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND estado != 'finalizado'",
+    [
+      4,
+      1,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET estado = 'programado' WHERE torneo_id = $1 AND ronda = $2 AND estado = 'pendiente'",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET marcador_1 = $1, marcador_2 = $2, ganador_id = $3, estado = 'finalizado', cancha_asignada = COALESCE($5, cancha_asignada) WHERE encuentro_id = $4 RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada",
+    [
+      1,
+      4,
+      12,
+      100,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND (participante_1_id = $3 OR participante_2_id = $3) LIMIT 1 FOR UPDATE",
+    [
+      4,
+      2,
+      11,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND estado != 'finalizado'",
+    [
+      4,
+      1,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET estado = 'programado' WHERE torneo_id = $1 AND ronda = $2 AND estado = 'pendiente'",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET marcador_1 = $1, marcador_2 = $2, ganador_id = $3, estado = 'finalizado', cancha_asignada = COALESCE($5, cancha_asignada) WHERE encuentro_id = $4 RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada",
+    [
+      5,
+      4,
+      11,
+      100,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND estado != 'finalizado'",
+    [
+      4,
+      1,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET estado = 'programado' WHERE torneo_id = $1 AND ronda = $2 AND estado = 'pendiente'",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET marcador_1 = $1, marcador_2 = $2, ganador_id = $3, estado = 'finalizado', cancha_asignada = COALESCE($5, cancha_asignada) WHERE encuentro_id = $4 RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada",
+    [
+      1,
+      4,
+      12,
+      100,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND estado != 'finalizado'",
+    [
+      4,
+      1,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET estado = 'programado' WHERE torneo_id = $1 AND ronda = $2 AND estado = 'pendiente'",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/encuentros/:id/resultado error de BD → ROLLBACK + 500; conexión → errorHandler; sin body → errorHandler 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET marcador_1 = $1, marcador_2 = $2, ganador_id = $3, estado = 'finalizado', cancha_asignada = COALESCE($5, cancha_asignada) WHERE encuentro_id = $4 RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada",
+    [
+      1,
+      0,
+      11,
+      100,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, ronda, participante_1_id, participante_2_id",
+    [
+      11,
+      201,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND estado != 'finalizado'",
+    [
+      4,
+      1,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/encuentros/:id/resultado registro nuevo sin slot siguiente (final) 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET marcador_1 = $1, marcador_2 = $2, ganador_id = $3, estado = 'finalizado', cancha_asignada = COALESCE($5, cancha_asignada) WHERE encuentro_id = $4 RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada",
+    [
+      1,
+      0,
+      11,
+      100,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND estado != 'finalizado'",
+    [
+      4,
+      1,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET estado = 'programado' WHERE torneo_id = $1 AND ronda = $2 AND estado = 'pendiente'",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/encuentros/:id/resultado registro nuevo: gana p1, ocupa slot libre (p1) y activa la siguiente ronda 1`] = `
+{
+  "encuentro": {
+    "cancha_asignada": "C1",
+    "encuentro_id": 100,
+    "estado": "finalizado",
+    "ganador_id": 11,
+    "marcador_1": 3,
+    "marcador_2": 1,
+    "ronda": 1,
+  },
+  "ganador_id": 11,
+  "message": "Resultado registrado correctamente",
+  "ok": true,
+  "siguiente_encuentro": {
+    "campo": "participante_1_id",
+    "encuentro_id": 201,
+    "ganador": 11,
+    "ronda": 2,
+  },
+}
+`;
+
+exports[`PATCH /api/encuentros/:id/resultado registro nuevo: gana p1, ocupa slot libre (p1) y activa la siguiente ronda 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET marcador_1 = $1, marcador_2 = $2, ganador_id = $3, estado = 'finalizado', cancha_asignada = COALESCE($5, cancha_asignada) WHERE encuentro_id = $4 RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada",
+    [
+      3,
+      1,
+      11,
+      100,
+      "C1",
+    ],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, ronda, participante_1_id, participante_2_id",
+    [
+      11,
+      201,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND estado != 'finalizado'",
+    [
+      4,
+      1,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET estado = 'programado' WHERE torneo_id = $1 AND ronda = $2 AND estado = 'pendiente'",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PATCH /api/encuentros/:id/resultado registro nuevo: gana p2, slot con p1 ocupado → p2; ronda con pendientes; cancha vacía → null 1`] = `
+{
+  "encuentro": {
+    "cancha_asignada": null,
+    "encuentro_id": 100,
+    "estado": "finalizado",
+    "ganador_id": 12,
+    "marcador_1": 0,
+    "marcador_2": 2,
+    "ronda": 1,
+  },
+  "ganador_id": 12,
+  "message": "Resultado registrado correctamente",
+  "ok": true,
+  "siguiente_encuentro": {
+    "campo": "participante_2_id",
+    "encuentro_id": 201,
+    "ganador": 12,
+    "ronda": 2,
+  },
+}
+`;
+
+exports[`PATCH /api/encuentros/:id/resultado registro nuevo: gana p2, slot con p1 ocupado → p2; ronda con pendientes; cancha vacía → null 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET marcador_1 = $1, marcador_2 = $2, ganador_id = $3, estado = 'finalizado', cancha_asignada = COALESCE($5, cancha_asignada) WHERE encuentro_id = $4 RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada",
+    [
+      0,
+      2,
+      12,
+      100,
+      null,
+    ],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
+    [
+      4,
+      2,
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET participante_2_id = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, ronda, participante_1_id, participante_2_id",
+    [
+      12,
+      201,
+    ],
+  ],
+  [
+    "client",
+    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND estado != 'finalizado'",
+    [
+      4,
+      1,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;
+
+exports[`PUT /api/encuentros/:id (sin verifyToken) 404 / no pendiente / participantes de otro torneo / error / conexión / sin body 1`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, estado FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, estado FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, estado FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "SELECT participante_id, torneo_id FROM participantes_torneo WHERE torneo_id = $1 AND participante_id = ANY($2::int[])",
+    [
+      4,
+      [
+        11,
+        12,
+      ],
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+]
+`;
+
+exports[`PUT /api/encuentros/:id (sin verifyToken) actualiza participantes 1`] = `
+{
+  "encuentro": {
+    "encuentro_id": 100,
+    "estado": "pendiente",
+    "participante_1_id": 11,
+    "participante_2_id": 12,
+    "torneo_id": 4,
+  },
+  "message": "Encuentro actualizado correctamente",
+  "ok": true,
+}
+`;
+
+exports[`PUT /api/encuentros/:id (sin verifyToken) actualiza participantes 2`] = `
+[
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT encuentro_id, torneo_id, estado FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "SELECT participante_id, torneo_id FROM participantes_torneo WHERE torneo_id = $1 AND participante_id = ANY($2::int[])",
+    [
+      4,
+      [
+        11,
+        12,
+      ],
+    ],
+  ],
+  [
+    "client",
+    "UPDATE encuentros_torneo SET participante_1_id = $1, participante_2_id = $2 WHERE encuentro_id = $3 RETURNING encuentro_id, torneo_id, participante_1_id, participante_2_id, estado",
+    [
+      11,
+      12,
+      100,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+]
+`;

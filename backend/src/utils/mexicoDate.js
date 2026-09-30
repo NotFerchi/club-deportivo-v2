@@ -16,9 +16,7 @@ function getMexicoParts(date = new Date()) {
     hourCycle: 'h23'
   });
 
-  return Object.fromEntries(
-    formatter.formatToParts(date).map(part => [part.type, part.value])
-  );
+  return Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
 }
 
 function getMexicoDateISO(date = new Date()) {
@@ -31,16 +29,14 @@ function getMexicoTimeISO(date = new Date()) {
   return `${parts.hour}:${parts.minute}`;
 }
 
-function getMexicoDayOfWeek(date = new Date()) {
-  return new Intl.DateTimeFormat('es-MX', {
-    timeZone: TIME_ZONE,
-    weekday: 'long'
-  }).format(date);
+/** Fecha de hoy en México (YYYY-MM-DD) vía toLocaleDateString; usada por recepción. */
+function getMexicoTodayLocale() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: TIME_ZONE });
 }
 
 module.exports = {
   getMexicoDateISO,
+  getMexicoTodayLocale,
   getMexicoTimeISO,
-  getMexicoDayOfWeek,
   TIME_ZONE
 };

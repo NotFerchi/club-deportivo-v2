@@ -76,14 +76,6 @@ async function getTableColumns(tableName) {
   return columns;
 }
 
-function clearTableColumnsCache(tableName) {
-  if (tableName) {
-    tableColumnsCache.delete(tableName);
-  } else {
-    tableColumnsCache.clear();
-  }
-}
-
 async function getReservaEstadoLabels() {
   if (reservaEstadosCache) return reservaEstadosCache;
 
@@ -124,7 +116,6 @@ async function resolveReservaEstado(value) {
 
 module.exports = {
   addDaysISO,
-  clearTableColumnsCache,
   getDiaSemana,
   getTableColumns,
   gravedadDias,

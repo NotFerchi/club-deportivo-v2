@@ -18,11 +18,32 @@ const mockRes = () => {
 const mockReq = (query = {}) => ({ query });
 
 /**
+ * Las validaciones de entrada (desde/hasta/tipo) viven en la ruta (middleware/validators):
+ * ejecuta la cadena de GET /metricas sin verifyToken/checkRole, y después el controlador.
+ */
+const accesoRoutes = require('../routes/acceso.routes');
+const metricasChain = accesoRoutes.stack
+  .find((layer) => layer.route?.path === '/metricas')
+  .route.stack.slice(2)
+  .map((layer) => layer.handle);
+
+async function runMetricas(req, res) {
+  for (const handler of metricasChain) {
+    let siguiente = false;
+    await handler(req, res, () => {
+      siguiente = true;
+    });
+    if (!siguiente) return;
+  }
+}
+
+/**
  * Registra las 4 respuestas que emite pool.query en el orden en que Promise.all
  * las consume: totales, horarios_pico, accesos_por_dia, top_socios.
  */
 const mockPoolQueries = ({ totales, horariosPico, accesosDia, topSocios }) => {
-  pool.query = jest.fn()
+  pool.query = jest
+    .fn()
     .mockResolvedValueOnce({ rows: [totales] })
     .mockResolvedValueOnce({ rows: horariosPico })
     .mockResolvedValueOnce({ rows: accesosDia })
@@ -31,13 +52,11 @@ const mockPoolQueries = ({ totales, horariosPico, accesosDia, topSocios }) => {
 
 const emptyTotales = { total_accesos: '0', total_entradas: '0', total_salidas: '0' };
 
-const mockPoolEmpty = () =>
-  mockPoolQueries({ totales: emptyTotales, horariosPico: [], accesosDia: [], topSocios: [] });
+const mockPoolEmpty = () => mockPoolQueries({ totales: emptyTotales, horariosPico: [], accesosDia: [], topSocios: [] });
 
 // ── suite ─────────────────────────────────────────────────────────────────────
 
 describe('GET /api/acceso/metricas', () => {
-
   beforeEach(() => jest.clearAllMocks());
 
   // ── 1-3. Autorización por rol ──────────────────────────────────────────────
@@ -96,7 +115,7 @@ describe('GET /api/acceso/metricas', () => {
       const req = mockReq({ hasta: '2024-01-07' });
       const res = mockRes();
 
-      await accesoMetricasController.getMetricas(req, res);
+      await runMetricas(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
@@ -105,7 +124,7 @@ describe('GET /api/acceso/metricas', () => {
       const req = mockReq({ desde: '2024-01-01' });
       const res = mockRes();
 
-      await accesoMetricasController.getMetricas(req, res);
+      await runMetricas(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
@@ -114,7 +133,7 @@ describe('GET /api/acceso/metricas', () => {
       const req = mockReq({ desde: 'not-a-date', hasta: '2024-01-07' });
       const res = mockRes();
 
-      await accesoMetricasController.getMetricas(req, res);
+      await runMetricas(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
@@ -167,7 +186,7 @@ describe('GET /api/acceso/metricas', () => {
       const req = mockReq({ desde: '2024-01-01', hasta: '2024-01-31', tipo: 'otro' });
       const res = mockRes();
 
-      await accesoMetricasController.getMetricas(req, res);
+      await runMetricas(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
@@ -313,5 +332,4 @@ describe('GET /api/acceso/metricas', () => {
       expect(body.promedio_diario).toBe(1);
     });
   });
-
 });

@@ -68,12 +68,13 @@ async function sesionesPorDia(dia) {
                     sp.cupo_maximo,
                     d.nombre as disciplina,
                     e.nombre as espacio,
-                    i.nombre as instructor,
+                    COALESCE(NULLIF(TRIM(CONCAT(u.nombres, ' ', u.apellido_paterno)), ''), 'Por asignar') as instructor,
                     COALESCE(r.total_reservas, 0) as cupo_actual
                 FROM sesiones_programadas sp
                 JOIN disciplinas d ON sp.disciplina_id = d.disciplina_id
                 JOIN espacios e ON sp.espacio_id = e.espacio_id
                 LEFT JOIN instructores i ON sp.instructor_id = i.instructor_id
+                LEFT JOIN usuarios u ON i.usuario_id = u.usuario_id
                 LEFT JOIN (
                     SELECT sesion_id, COUNT(*) as total_reservas
                     FROM reservaciones

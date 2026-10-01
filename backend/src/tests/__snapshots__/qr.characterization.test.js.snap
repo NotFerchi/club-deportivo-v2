@@ -369,7 +369,7 @@ exports[`POST /api/qr/identificar-socio identifica al socio con sus sanciones ac
   ],
   [
     "pool",
-    "SELECT COUNT(*) AS total FROM sanciones WHERE socio_id = $1 AND estado = 'Activo'",
+    "SELECT COUNT(*) AS total FROM sanciones WHERE socio_id = $1 AND LOWER(estado::text) IN ('activo', 'activa')",
     [
       10,
     ],
@@ -402,7 +402,7 @@ exports[`POST /api/qr/identificar-socio validaciones y errores 1`] = `
   ],
   [
     "pool",
-    "SELECT COUNT(*) AS total FROM sanciones WHERE socio_id = $1 AND estado = 'Activo'",
+    "SELECT COUNT(*) AS total FROM sanciones WHERE socio_id = $1 AND LOWER(estado::text) IN ('activo', 'activa')",
     [
       10,
     ],
@@ -416,7 +416,7 @@ exports[`POST /api/qr/identificar-socio validaciones y errores 1`] = `
   ],
   [
     "pool",
-    "SELECT COUNT(*) AS total FROM sanciones WHERE socio_id = $1 AND estado = 'Activo'",
+    "SELECT COUNT(*) AS total FROM sanciones WHERE socio_id = $1 AND LOWER(estado::text) IN ('activo', 'activa')",
     [
       10,
     ],

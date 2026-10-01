@@ -1368,6 +1368,11 @@ exports[`PUT /visitas/:id validaciones, edición, 404, legacy y errores 1`] = `
   ],
   [
     "client",
+    "SAVEPOINT before_actualizar_pase",
+    [],
+  ],
+  [
+    "client",
     "UPDATE pases SET nombre_completo = COALESCE($1, nombre_completo), telefono = COALESCE($2, telefono), correo = $3, identificacion = $4, observaciones = $5, tipo_pase = COALESCE($6, tipo_pase), socio_id = $7 WHERE pase_id = $8 RETURNING pase_id",
     [
       "Ana",
@@ -1388,6 +1393,11 @@ exports[`PUT /visitas/:id validaciones, edición, 404, legacy y errores 1`] = `
   [
     "client",
     "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SAVEPOINT before_actualizar_pase",
     [],
   ],
   [
@@ -1416,6 +1426,11 @@ exports[`PUT /visitas/:id validaciones, edición, 404, legacy y errores 1`] = `
   ],
   [
     "client",
+    "SAVEPOINT before_actualizar_pase",
+    [],
+  ],
+  [
+    "client",
     "UPDATE pases SET nombre_completo = COALESCE($1, nombre_completo), telefono = COALESCE($2, telefono), correo = $3, identificacion = $4, observaciones = $5, tipo_pase = COALESCE($6, tipo_pase), socio_id = $7 WHERE pase_id = $8 RETURNING pase_id",
     [
       "Ana",
@@ -1440,6 +1455,11 @@ exports[`PUT /visitas/:id validaciones, edición, 404, legacy y errores 1`] = `
   ],
   [
     "client",
+    "SAVEPOINT before_actualizar_pase",
+    [],
+  ],
+  [
+    "client",
     "UPDATE pases SET nombre_completo = COALESCE($1, nombre_completo), telefono = COALESCE($2, telefono), correo = $3, identificacion = $4, observaciones = $5, tipo_pase = COALESCE($6, tipo_pase), socio_id = $7 WHERE pase_id = $8 RETURNING pase_id",
     [
       "Ana",
@@ -1451,6 +1471,11 @@ exports[`PUT /visitas/:id validaciones, edición, 404, legacy y errores 1`] = `
       null,
       "8",
     ],
+  ],
+  [
+    "client",
+    "ROLLBACK TO SAVEPOINT before_actualizar_pase",
+    [],
   ],
   [
     "client",
@@ -1584,7 +1609,7 @@ exports[`pase de lista GET /clases: hoy, fecha dada (domingo), inválida, error 
 ]
 `;
 
-exports[`pase de lista POST /asistencia/manual: 400, 404, 409 no-show y el fallo heredado (ReferenceError → 500) 1`] = `
+exports[`pase de lista POST /asistencia/manual: 400, 404, 409 no-show, 409 caducada y registro exitoso 1`] = `
 [
   [
     "client",
@@ -1659,7 +1684,89 @@ exports[`pase de lista POST /asistencia/manual: 400, 404, 409 no-show y el fallo
   ],
   [
     "client",
-    "ROLLBACK",
+    "UPDATE reservaciones SET estado = $1, no_show = TRUE WHERE reserva_id = $2",
+    [
+      "No-Show",
+      9,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id, estado::text as estado, hora_fin, no_show FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 ORDER BY reserva_id DESC LIMIT 1 FOR UPDATE",
+    [
+      3,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND socio_id = $2 AND fecha = $3",
+    [
+      3,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "INSERT INTO asistencia ( sesion_id, socio_id, fecha, presente, registro ) VALUES ($1, $2, $3, $4, NOW())",
+    [
+      3,
+      10,
+      "2026-09-30",
+      true,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT reserva_id, estado::text as estado, hora_fin, no_show FROM reservaciones WHERE sesion_id = $1 AND socio_id = $2 AND fecha_reserva = $3 ORDER BY reserva_id DESC LIMIT 1 FOR UPDATE",
+    [
+      3,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "SELECT asistencia_id FROM asistencia WHERE sesion_id = $1 AND socio_id = $2 AND fecha = $3",
+    [
+      3,
+      10,
+      "2026-09-30",
+    ],
+  ],
+  [
+    "client",
+    "UPDATE asistencia SET presente = $1, registro = NOW() WHERE asistencia_id = $2",
+    [
+      true,
+      55,
+    ],
+  ],
+  [
+    "client",
+    "COMMIT",
     [],
   ],
 ]

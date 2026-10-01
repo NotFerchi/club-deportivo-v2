@@ -16,6 +16,8 @@ jest.mock('../utils/adminRules', () => ({
   resolveReservaEstado: jest.fn(async () => 'No-Show')
 }));
 
+jest.mock('../utils/emailService', () => ({ sendQrVisita: jest.fn() }));
+
 let mockUser;
 jest.mock('../middleware/auth.middleware', () => ({
   verifyToken: (req, res, next) => {
@@ -29,6 +31,7 @@ const express = require('express');
 const request = require('supertest');
 const pool = require('../config/database');
 const { logAudit } = require('../utils/auditLogger');
+const { sendQrVisita } = require('../utils/emailService');
 const { recordQueries } = require('./helpers/queryLog');
 
 const app = express();
@@ -41,13 +44,22 @@ const faltaPases = () => Object.assign(new Error('relation "pases" does not exis
 
 let db;
 let log;
-let client;
 let consoleSpies;
 
 function route(q) {
   if (db.pasesFaltante && /\b(FROM|INTO|UPDATE) pases\b/.test(q)) throw faltaPases();
   if (db.fallaEn && q.includes(db.fallaEn)) throw new Error('boom');
-  if (['BEGIN', 'COMMIT', 'ROLLBACK', 'SAVEPOINT before_qr_pase', 'ROLLBACK TO SAVEPOINT before_qr_pase'].includes(q))
+  if (
+    [
+      'BEGIN',
+      'COMMIT',
+      'ROLLBACK',
+      'SAVEPOINT before_qr_pase',
+      'ROLLBACK TO SAVEPOINT before_qr_pase',
+      'SAVEPOINT before_actualizar_pase',
+      'ROLLBACK TO SAVEPOINT before_actualizar_pase'
+    ].includes(q)
+  )
     return rows([]);
 
   // Cierre automático de visitas vencidas
@@ -113,6 +125,10 @@ function route(q) {
   if (q.startsWith('SELECT r.reserva_id, r.estado::text as reserva_estado')) return rows(db.alumnos);
   if (q.startsWith('SELECT reserva_id, estado::text as estado, hora_fin, no_show FROM reservaciones'))
     return rows(db.reservaAsistencia);
+  if (q.startsWith('UPDATE reservaciones SET estado')) return rows([]);
+  if (q.startsWith('SELECT asistencia_id FROM asistencia')) return rows(db.asistenciaExistente);
+  if (q.startsWith('INSERT INTO asistencia')) return rows([{ asistencia_id: 900 }]);
+  if (q.startsWith('UPDATE asistencia SET presente')) return rows([]);
 
   throw new Error(`Query no esperada en test: ${q}`);
 }
@@ -165,9 +181,10 @@ beforeEach(() => {
     ludotecaSalida: [{ registro_id: 1 }],
     clases: [{ sesion_id: 1 }],
     alumnos: [{ reserva_id: 1 }],
-    reservaAsistencia: [{ reserva_id: 9, estado: 'Confirmada', hora_fin: '23:00:00', no_show: false }]
+    reservaAsistencia: [{ reserva_id: 9, estado: 'Confirmada', hora_fin: '23:00:00', no_show: false }],
+    asistenciaExistente: []
   };
-  ({ log, client } = recordQueries(pool, route));
+  ({ log } = recordQueries(pool, route));
   consoleSpies = ['log', 'error', 'warn'].map((m) => jest.spyOn(console, m).mockImplementation(() => {}));
 });
 
@@ -692,7 +709,7 @@ describe('pase de lista', () => {
     expect(res.body).toEqual({ error: 'Error al obtener alumnos' });
   });
 
-  it('POST /asistencia/manual: 400, 404, 409 no-show y el fallo heredado (ReferenceError → 500)', async () => {
+  it('POST /asistencia/manual: 400, 404, 409 no-show, 409 caducada y registro exitoso', async () => {
     const body = { sesionId: 3, socioId: 10, fecha: '2026-09-30' };
     let res = await post('/asistencia/manual', { sesionId: 3 });
     expect(res.status).toBe(400);
@@ -715,12 +732,26 @@ describe('pase de lista', () => {
       });
     }
 
-    // Bug heredado: getMexicoDateISO no está importado → siempre 500 con una reserva válida.
-    db.reservaAsistencia = [{ reserva_id: 9, estado: 'Confirmada', hora_fin: '23:00:00', no_show: false }];
+    // Reloj fijado en 2026-09-30 12:00 hora México — una hora_fin anterior cierra la reserva sola.
+    db.reservaAsistencia = [{ reserva_id: 9, estado: 'Confirmada', hora_fin: '08:00:00', no_show: false }];
     res = await post('/asistencia/manual', body);
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'Error al registrar asistencia' });
-    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({
+      error: 'La reserva ya caduco sin pase de lista. Se marco automaticamente como No Show.'
+    });
+
+    // Reserva vigente y sin asistencia previa → se inserta.
+    db.reservaAsistencia = [{ reserva_id: 9, estado: 'Confirmada', hora_fin: '23:00:00', no_show: false }];
+    db.asistenciaExistente = [];
+    res = await post('/asistencia/manual', body);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, message: 'Asistencia registrada correctamente' });
+
+    // Ya existía asistencia para ese socio/sesión/fecha → se actualiza en vez de insertar.
+    db.asistenciaExistente = [{ asistencia_id: 55 }];
+    res = await post('/asistencia/manual', body);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, message: 'Asistencia registrada correctamente' });
     expect(log).toMatchSnapshot();
 
     pool.connect.mockRejectedValueOnce(new Error('connection refused'));
@@ -732,7 +763,9 @@ describe('pase de lista', () => {
 // ── Envío de QR por correo ───────────────────────────────────────────────────
 
 describe('POST /visitas/:id/enviar-qr', () => {
-  it('validaciones y el fallo heredado (sendQrVisita no importado → 503)', async () => {
+  afterEach(() => sendQrVisita.mockReset());
+
+  it('validaciones, envío exitoso y error controlado del servicio de correo', async () => {
     let res = await post('/visitas/1/enviar-qr', { correo: 'malo' });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Correo electrónico inválido' });
@@ -741,8 +774,26 @@ describe('POST /visitas/:id/enviar-qr', () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Imagen QR requerida' });
 
+    // Éxito: el servicio de correo entrega el QR.
+    sendQrVisita.mockResolvedValueOnce(undefined);
+    res = await post('/visitas/1/enviar-qr', { correo: 'a@b.mx', qr_image: 'data:x' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, message: 'QR enviado a a@b.mx' });
+    expect(sendQrVisita).toHaveBeenCalledWith({
+      to: 'a@b.mx',
+      nombre: 'Visitante',
+      qrBase64: 'data:x',
+      expiraEn: null
+    });
+
+    // Error controlado: servicio de correo no configurado (GMAIL_USER/GMAIL_APP_PASSWORD faltantes).
+    sendQrVisita.mockRejectedValueOnce(
+      new Error('Servicio de correo no configurado. Agrega GMAIL_USER y GMAIL_APP_PASSWORD al archivo .env')
+    );
     res = await post('/visitas/1/enviar-qr', { correo: 'a@b.mx', qr_image: 'data:x' });
     expect(res.status).toBe(503);
-    expect(res.body).toEqual({ error: 'sendQrVisita is not defined' });
+    expect(res.body).toEqual({
+      error: 'Servicio de correo no configurado. Agrega GMAIL_USER y GMAIL_APP_PASSWORD al archivo .env'
+    });
   });
 });

@@ -111,6 +111,19 @@ function overlaps(slotStart, slotEnd, rangeStart, rangeEnd) {
   return String(rangeStart).slice(0, 5) < slotEnd && String(rangeEnd).slice(0, 5) > slotStart;
 }
 
+/**
+ * Normaliza una fecha a 'YYYY-MM-DD'. El driver de pg devuelve las columnas
+ * `date` como objetos Date (medianoche UTC), mientras que el resto del
+ * reporte trabaja con fechas en texto ISO — comparar ambos formatos
+ * directamente (bug #34) hacía que la clave de reservaciones nunca
+ * coincidiera con la de las fechas del rango, y todo aparecía "sin
+ * actividad" aunque sí hubiera reservaciones.
+ */
+function toISODate(value) {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
 async function getLowActivityRows(desde, hasta) {
   const [spacesResult, reservationsResult, sessionsResult] = await Promise.all([
     pool.query(`SELECT espacio_id, nombre FROM espacios WHERE COALESCE(activo, true) = true ORDER BY nombre ASC`),
@@ -137,7 +150,7 @@ async function getLowActivityRows(desde, hasta) {
       const start = `${String(hour).padStart(2, '0')}:00`;
       const end = `${String(hour + 1).padStart(2, '0')}:00`;
       if (overlaps(start, end, row.hora_inicio, row.hora_fin)) {
-        reservationKeys.add(`${row.espacio_id}|${row.fecha_reserva}|${start}`);
+        reservationKeys.add(`${row.espacio_id}|${toISODate(row.fecha_reserva)}|${start}`);
       }
     }
   });

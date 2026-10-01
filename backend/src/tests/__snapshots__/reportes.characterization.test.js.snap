@@ -10743,7 +10743,7 @@ exports[`GET /api/reportes/demografico xlsx (por defecto) → contenido, estilos
 
 exports[`GET /api/reportes/ocupacion pdf con datos vacíos 1`] = `"c0e9cb275976040b9794bdf3c2c3489e3314df8bd7504c5d90f22f0e1a1205d7"`;
 
-exports[`GET /api/reportes/ocupacion pdf → bytes idénticos 1`] = `"2456606c5c58c0bc5a2d04d32902b50224cc307765389368482482889ca8e0e7"`;
+exports[`GET /api/reportes/ocupacion pdf → bytes idénticos 1`] = `"303db1bd8df425eac836f69257428d737bcb1310f4863bd272522026a516acb8"`;
 
 exports[`GET /api/reportes/ocupacion pdf → bytes idénticos 2`] = `
 [
@@ -17107,7 +17107,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C19",
-              "07:00",
+              "09:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -17149,7 +17149,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D19",
-              "08:00",
+              "10:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -17323,7 +17323,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C20",
-              "08:00",
+              "10:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -17365,7 +17365,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D20",
-              "09:00",
+              "11:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -17539,7 +17539,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C21",
-              "09:00",
+              "11:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -17581,7 +17581,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D21",
-              "10:00",
+              "12:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -17755,7 +17755,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C22",
-              "10:00",
+              "12:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -17797,7 +17797,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D22",
-              "11:00",
+              "13:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -17971,7 +17971,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C23",
-              "11:00",
+              "13:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -18013,7 +18013,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D23",
-              "12:00",
+              "14:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -18187,7 +18187,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C24",
-              "12:00",
+              "14:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -18229,7 +18229,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D24",
-              "13:00",
+              "15:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -18403,7 +18403,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C25",
-              "13:00",
+              "15:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -18445,7 +18445,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D25",
-              "14:00",
+              "16:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -18619,7 +18619,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C26",
-              "14:00",
+              "16:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -18661,7 +18661,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D26",
-              "15:00",
+              "17:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -18835,7 +18835,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C27",
-              "15:00",
+              "17:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -18877,7 +18877,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D27",
-              "16:00",
+              "18:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -19051,7 +19051,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C28",
-              "16:00",
+              "18:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -19093,7 +19093,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D28",
-              "17:00",
+              "19:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -19267,7 +19267,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C29",
-              "17:00",
+              "19:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -19309,7 +19309,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D29",
-              "18:00",
+              "20:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -19483,7 +19483,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C30",
-              "18:00",
+              "20:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -19525,7 +19525,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D30",
-              "19:00",
+              "21:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -19699,7 +19699,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C31",
-              "19:00",
+              "21:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -19741,7 +19741,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D31",
-              "20:00",
+              "22:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -19873,7 +19873,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "B32",
-              "Martes",
+              "Miercoles",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20089,7 +20089,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "B33",
-              "Martes",
+              "Miercoles",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20263,7 +20263,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
           "celdas": [
             [
               "A34",
-              "Alberca",
+              "Cancha 1",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20305,7 +20305,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "B34",
-              "Miercoles",
+              "Lunes",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20347,7 +20347,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C34",
-              "20:00",
+              "21:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20389,7 +20389,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D34",
-              "21:00",
+              "22:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20479,7 +20479,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
           "celdas": [
             [
               "A35",
-              "Alberca",
+              "Cancha 1",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20521,7 +20521,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "B35",
-              "Miercoles",
+              "Martes",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20563,7 +20563,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C35",
-              "21:00",
+              "06:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20605,7 +20605,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D35",
-              "22:00",
+              "07:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20737,7 +20737,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "B36",
-              "Lunes",
+              "Martes",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20779,7 +20779,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C36",
-              "21:00",
+              "07:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20821,7 +20821,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D36",
-              "22:00",
+              "08:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -20995,7 +20995,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C37",
-              "06:00",
+              "08:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -21037,7 +21037,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D37",
-              "07:00",
+              "09:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -21211,7 +21211,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C38",
-              "07:00",
+              "09:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -21253,7 +21253,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D38",
-              "08:00",
+              "10:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -21427,7 +21427,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C39",
-              "08:00",
+              "10:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -21469,7 +21469,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D39",
-              "09:00",
+              "11:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -21643,7 +21643,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C40",
-              "09:00",
+              "11:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -21685,7 +21685,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D40",
-              "10:00",
+              "12:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -21859,7 +21859,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C41",
-              "10:00",
+              "12:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -21901,7 +21901,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D41",
-              "11:00",
+              "13:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -22075,7 +22075,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C42",
-              "11:00",
+              "13:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -22117,7 +22117,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D42",
-              "12:00",
+              "14:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -22291,7 +22291,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C43",
-              "12:00",
+              "14:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -22333,7 +22333,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D43",
-              "13:00",
+              "15:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -22507,7 +22507,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C44",
-              "13:00",
+              "15:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -22549,7 +22549,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D44",
-              "14:00",
+              "16:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -22723,7 +22723,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C45",
-              "14:00",
+              "16:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -22765,7 +22765,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D45",
-              "15:00",
+              "17:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -22939,7 +22939,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C46",
-              "15:00",
+              "17:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -22981,7 +22981,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D46",
-              "16:00",
+              "18:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -23155,7 +23155,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C47",
-              "16:00",
+              "18:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -23197,7 +23197,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D47",
-              "17:00",
+              "19:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -23371,7 +23371,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C48",
-              "17:00",
+              "19:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -23413,7 +23413,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D48",
-              "18:00",
+              "20:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -23587,7 +23587,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C49",
-              "18:00",
+              "20:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -23629,7 +23629,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D49",
-              "19:00",
+              "21:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -23803,7 +23803,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C50",
-              "19:00",
+              "21:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -23845,7 +23845,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D50",
-              "20:00",
+              "22:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -23977,7 +23977,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "B51",
-              "Martes",
+              "Miercoles",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24019,7 +24019,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C51",
-              "20:00",
+              "06:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24061,7 +24061,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D51",
-              "21:00",
+              "07:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24193,7 +24193,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "B52",
-              "Martes",
+              "Miercoles",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24235,7 +24235,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C52",
-              "21:00",
+              "07:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24277,7 +24277,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D52",
-              "22:00",
+              "08:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24451,7 +24451,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C53",
-              "06:00",
+              "08:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24493,7 +24493,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D53",
-              "07:00",
+              "09:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24667,7 +24667,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C54",
-              "07:00",
+              "09:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24709,7 +24709,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D54",
-              "08:00",
+              "10:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24883,7 +24883,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C55",
-              "08:00",
+              "10:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -24925,7 +24925,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D55",
-              "09:00",
+              "11:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -25099,7 +25099,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C56",
-              "09:00",
+              "11:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -25141,7 +25141,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D56",
-              "10:00",
+              "12:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -25315,7 +25315,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C57",
-              "10:00",
+              "12:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -25357,7 +25357,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D57",
-              "11:00",
+              "13:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -25531,7 +25531,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C58",
-              "11:00",
+              "13:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -25573,7 +25573,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D58",
-              "12:00",
+              "14:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -25747,7 +25747,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C59",
-              "12:00",
+              "14:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -25789,7 +25789,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D59",
-              "13:00",
+              "15:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -25963,7 +25963,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C60",
-              "13:00",
+              "15:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -26005,7 +26005,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D60",
-              "14:00",
+              "16:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -26179,7 +26179,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C61",
-              "14:00",
+              "16:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -26221,7 +26221,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D61",
-              "15:00",
+              "17:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -26395,7 +26395,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C62",
-              "15:00",
+              "17:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -26437,7 +26437,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D62",
-              "16:00",
+              "18:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -26611,7 +26611,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C63",
-              "16:00",
+              "18:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -26653,7 +26653,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D63",
-              "17:00",
+              "19:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -26827,7 +26827,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C64",
-              "17:00",
+              "19:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -26869,7 +26869,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D64",
-              "18:00",
+              "20:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -27043,7 +27043,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C65",
-              "18:00",
+              "20:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -27085,7 +27085,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D65",
-              "19:00",
+              "21:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -27259,7 +27259,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "C66",
-              "19:00",
+              "21:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -27301,7 +27301,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
             ],
             [
               "D66",
-              "20:00",
+              "22:00",
               {
                 "alignment": {
                   "vertical": "middle",
@@ -27386,438 +27386,6 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
           ],
           "fila": 66,
         },
-        {
-          "alto": 18,
-          "celdas": [
-            [
-              "A67",
-              "Cancha 1",
-              {
-                "alignment": {
-                  "vertical": "middle",
-                },
-                "border": {
-                  "bottom": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "left": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "right": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                },
-                "fill": {
-                  "fgColor": {
-                    "argb": "FFFFFFFF",
-                  },
-                  "pattern": "solid",
-                  "type": "pattern",
-                },
-                "font": {
-                  "color": {
-                    "argb": "FF1E293B",
-                  },
-                  "size": 10,
-                },
-              },
-            ],
-            [
-              "B67",
-              "Miercoles",
-              {
-                "alignment": {
-                  "vertical": "middle",
-                },
-                "border": {
-                  "bottom": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "left": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "right": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                },
-                "fill": {
-                  "fgColor": {
-                    "argb": "FFFFFFFF",
-                  },
-                  "pattern": "solid",
-                  "type": "pattern",
-                },
-                "font": {
-                  "color": {
-                    "argb": "FF1E293B",
-                  },
-                  "size": 10,
-                },
-              },
-            ],
-            [
-              "C67",
-              "20:00",
-              {
-                "alignment": {
-                  "vertical": "middle",
-                },
-                "border": {
-                  "bottom": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "left": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "right": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                },
-                "fill": {
-                  "fgColor": {
-                    "argb": "FFFFFFFF",
-                  },
-                  "pattern": "solid",
-                  "type": "pattern",
-                },
-                "font": {
-                  "color": {
-                    "argb": "FF1E293B",
-                  },
-                  "size": 10,
-                },
-              },
-            ],
-            [
-              "D67",
-              "21:00",
-              {
-                "alignment": {
-                  "vertical": "middle",
-                },
-                "border": {
-                  "bottom": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "left": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "right": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                },
-                "fill": {
-                  "fgColor": {
-                    "argb": "FFFFFFFF",
-                  },
-                  "pattern": "solid",
-                  "type": "pattern",
-                },
-                "font": {
-                  "color": {
-                    "argb": "FF1E293B",
-                  },
-                  "size": 10,
-                },
-              },
-            ],
-            [
-              "E67",
-              "Sin actividad",
-              {
-                "alignment": {
-                  "vertical": "middle",
-                },
-                "border": {
-                  "bottom": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "left": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "right": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                },
-                "fill": {
-                  "fgColor": {
-                    "argb": "FFFFFFFF",
-                  },
-                  "pattern": "solid",
-                  "type": "pattern",
-                },
-                "font": {
-                  "color": {
-                    "argb": "FF1E293B",
-                  },
-                  "size": 10,
-                },
-              },
-            ],
-          ],
-          "fila": 67,
-        },
-        {
-          "alto": 18,
-          "celdas": [
-            [
-              "A68",
-              "Cancha 1",
-              {
-                "alignment": {
-                  "vertical": "middle",
-                },
-                "border": {
-                  "bottom": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "left": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "right": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                },
-                "fill": {
-                  "fgColor": {
-                    "argb": "FFF1F5F9",
-                  },
-                  "pattern": "solid",
-                  "type": "pattern",
-                },
-                "font": {
-                  "color": {
-                    "argb": "FF1E293B",
-                  },
-                  "size": 10,
-                },
-              },
-            ],
-            [
-              "B68",
-              "Miercoles",
-              {
-                "alignment": {
-                  "vertical": "middle",
-                },
-                "border": {
-                  "bottom": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "left": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "right": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                },
-                "fill": {
-                  "fgColor": {
-                    "argb": "FFF1F5F9",
-                  },
-                  "pattern": "solid",
-                  "type": "pattern",
-                },
-                "font": {
-                  "color": {
-                    "argb": "FF1E293B",
-                  },
-                  "size": 10,
-                },
-              },
-            ],
-            [
-              "C68",
-              "21:00",
-              {
-                "alignment": {
-                  "vertical": "middle",
-                },
-                "border": {
-                  "bottom": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "left": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "right": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                },
-                "fill": {
-                  "fgColor": {
-                    "argb": "FFF1F5F9",
-                  },
-                  "pattern": "solid",
-                  "type": "pattern",
-                },
-                "font": {
-                  "color": {
-                    "argb": "FF1E293B",
-                  },
-                  "size": 10,
-                },
-              },
-            ],
-            [
-              "D68",
-              "22:00",
-              {
-                "alignment": {
-                  "vertical": "middle",
-                },
-                "border": {
-                  "bottom": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "left": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "right": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                },
-                "fill": {
-                  "fgColor": {
-                    "argb": "FFF1F5F9",
-                  },
-                  "pattern": "solid",
-                  "type": "pattern",
-                },
-                "font": {
-                  "color": {
-                    "argb": "FF1E293B",
-                  },
-                  "size": 10,
-                },
-              },
-            ],
-            [
-              "E68",
-              "Sin actividad",
-              {
-                "alignment": {
-                  "vertical": "middle",
-                },
-                "border": {
-                  "bottom": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "left": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                  "right": {
-                    "color": {
-                      "argb": "FFE2E8F0",
-                    },
-                    "style": "hair",
-                  },
-                },
-                "fill": {
-                  "fgColor": {
-                    "argb": "FFF1F5F9",
-                  },
-                  "pattern": "solid",
-                  "type": "pattern",
-                },
-                "font": {
-                  "color": {
-                    "argb": "FF1E293B",
-                  },
-                  "size": 10,
-                },
-              },
-            ],
-          ],
-          "fila": 68,
-        },
       ],
       "nombre": "Horas con baja actividad por Es",
       "vistas": [
@@ -27840,7 +27408,7 @@ exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y
 }
 `;
 
-exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y bytes 2`] = `"fa9ad9c36a7a38d3d082dd451eeb9c76dd6a2f150f6f0ff4ad62a6be3acdfbed"`;
+exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y bytes 2`] = `"ffafef4fc6e54a561eb075072712b8965c0157bb95b6502f1d3728c7d548d03c"`;
 
 exports[`GET /api/reportes/ocupacion xlsx (por defecto) → contenido, estilos y bytes 3`] = `
 [

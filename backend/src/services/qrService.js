@@ -297,8 +297,10 @@ function socioIdDesdeQr(codigoQr) {
 }
 
 /**
- * Datos del socio para el control de acceso. Nota: solo cuenta sanciones con
- * estado exactamente 'Activo' (ver fuera de alcance).
+ * Datos del socio para el control de acceso.
+ * Cuenta sanciones con estado 'activa'/'activo' (insensible a mayúsculas y
+ * género — bug #27 corregido el 2026-09-29: la comparación exacta contra
+ * 'Activo' nunca coincidía porque las sanciones se crean con estado 'Activa').
  */
 async function identificarSocio(socioId) {
   const result = await pool.query(
@@ -328,7 +330,7 @@ async function identificarSocio(socioId) {
   const sancionesResult = await pool.query(
     `SELECT COUNT(*) AS total
          FROM sanciones
-         WHERE socio_id = $1 AND estado = 'Activo'`,
+         WHERE socio_id = $1 AND LOWER(estado::text) IN ('activo', 'activa')`,
     [socioId]
   );
   const sancionesActivas = parseInt(sancionesResult.rows[0].total) || 0;

@@ -270,6 +270,7 @@ async function actualizarVisita(id, body) {
     let updated = false;
 
     try {
+      await client.query('SAVEPOINT before_actualizar_pase');
       const result = await client.query(
         `UPDATE pases SET
                         nombre_completo = COALESCE($1, nombre_completo),
@@ -286,7 +287,9 @@ async function actualizarVisita(id, body) {
       updated = result.rows.length > 0;
     } catch (e) {
       if (!isMissingPasesTable(e)) throw e;
-      // Nota: en PostgreSQL la transacción ya quedó abortada (ver fuera de alcance).
+      // La transacción queda abortada tras el error; se libera con el SAVEPOINT
+      // para poder intentar el respaldo legacy en la misma transacción.
+      await client.query('ROLLBACK TO SAVEPOINT before_actualizar_pase');
       const result = await client.query(
         `UPDATE visitas SET
                         nombre_completo = COALESCE($1, nombre_completo),

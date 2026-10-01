@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle, Calendar, CheckCircle, Clock, DoorOpen, Download,
-  Eye, LogOut, Mail, Pencil, Printer, QrCode, RefreshCw, UserPlus, Users, X
+  Eye, LogOut, Mail, Pencil, Printer, QrCode, RefreshCw, UserPlus, Users
 } from 'lucide-react';
 import { adminApi } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
 import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput, StatCard } from '../../../components/admin/AdminUI';
+import { Button, Input, Modal, Table } from '../../../components/ui';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
 const MX_TIMEZONE = 'America/Mexico_City';
@@ -355,6 +356,38 @@ function RecepcionVisitas() {
     { label: 'Pases de un Día', value: kpis.pasesDia, Icon: Calendar, tone: 'amber' }
   ];
 
+  const historialColumns = [
+    { key: 'visitante', header: 'Visitante', render: registro => <strong>{getVisitanteNombre(registro)}</strong> },
+    {
+      key: 'tipo',
+      header: 'Tipo',
+      render: registro => (
+        <span className={registro.tipo_pase === 'dia' ? 'badge-warning' : 'badge-success'}>
+          {registro.tipo_pase === 'dia' ? 'Pase de un día' : 'Visita'}
+        </span>
+      ),
+    },
+    { key: 'anfitrion', header: 'Anfitrión', render: registro => getAnfitrionNombre(registro) || '-' },
+    { key: 'entrada', header: 'Entrada', render: registro => formatDateTime(registro.hora_entrada) },
+    { key: 'salida', header: 'Salida', render: registro => (registro.hora_salida ? formatDateTime(registro.hora_salida) : '-') },
+    {
+      key: 'estado',
+      header: 'Estado',
+      render: registro => (
+        <span className={registro.hora_salida ? 'badge-warning' : 'badge-success'}>{registro.hora_salida ? 'Finalizada' : 'Activa'}</span>
+      ),
+    },
+    {
+      key: 'acciones',
+      header: '',
+      render: registro => (
+        <button onClick={() => setViewingVisita(registro)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} title="Ver detalle">
+          <Eye size={13} />
+        </button>
+      ),
+    },
+  ];
+
   if (loading) return <LoadingState message="Cargando recepcion..." />;
   if (loadError) return <ErrorState message={loadError} onRetry={fetchData} />;
 
@@ -374,12 +407,12 @@ function RecepcionVisitas() {
         actions={(
           <>
             <SearchInput value={filtro} onChange={setFiltro} placeholder="Buscar visitante o anfitrión" />
-            <button className="btn-outline" onClick={cerrarVencidas} disabled={closingVisits}>
+            <Button variant="secondary" onClick={cerrarVencidas} disabled={closingVisits}>
               <RefreshCw size={16} className={closingVisits ? 'icon-spin' : ''} /> {closingVisits ? 'Cerrando...' : 'Cerrar vencidas'}
-            </button>
-            <button className="btn-primary" onClick={() => setShowModal(true)}>
+            </Button>
+            <Button onClick={() => setShowModal(true)}>
               <UserPlus size={16} /> Nueva Visita
-            </button>
+            </Button>
           </>
         )}
       />
@@ -434,16 +467,15 @@ function RecepcionVisitas() {
                 </div>
               </div>
               <div className="espacio-footer">
-                <button onClick={() => setViewingVisita(visita)} className="btn-secondary" title="Ver detalle">
+                <Button variant="secondary" onClick={() => setViewingVisita(visita)} title="Ver detalle">
                   <Eye size={14} /> Detalle
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => registrarSalida(visita.visita_id || visita.pase_id)}
-                  className="btn-primary"
                   disabled={savingExit === (visita.visita_id || visita.pase_id)}
                 >
                   <LogOut size={14} /> {savingExit === (visita.visita_id || visita.pase_id) ? 'Guardando...' : 'Registrar salida'}
-                </button>
+                </Button>
               </div>
             </article>
           ))}
@@ -452,463 +484,398 @@ function RecepcionVisitas() {
 
       <div>
         <h5 className="chart-title-row"><Clock size={18} /> Historial de visitas (últimos 7 días)</h5>
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Visitante</th>
-                <th>Tipo</th>
-                <th>Anfitrión</th>
-                <th>Entrada</th>
-                <th>Salida</th>
-                <th>Estado</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {historialFiltrado.map(registro => (
-                <tr key={registro.visita_id || registro.pase_id}>
-                  <td><strong>{getVisitanteNombre(registro)}</strong></td>
-                  <td>
-                    <span className={registro.tipo_pase === 'dia' ? 'badge-warning' : 'badge-success'}>
-                      {registro.tipo_pase === 'dia' ? 'Pase de un día' : 'Visita'}
-                    </span>
-                  </td>
-                  <td>{getAnfitrionNombre(registro) || '-'}</td>
-                  <td>{formatDateTime(registro.hora_entrada)}</td>
-                  <td>{registro.hora_salida ? formatDateTime(registro.hora_salida) : '-'}</td>
-                  <td><span className={registro.hora_salida ? 'badge-warning' : 'badge-success'}>{registro.hora_salida ? 'Finalizada' : 'Activa'}</span></td>
-                  <td>
-                    <button onClick={() => setViewingVisita(registro)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} title="Ver detalle">
-                      <Eye size={13} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {historialFiltrado.length === 0 && (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>No hay registros para mostrar.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={historialColumns}
+          data={historialFiltrado}
+          getRowKey={registro => registro.visita_id || registro.pase_id}
+          emptyMessage="No hay registros para mostrar."
+        />
       </div>
 
       {/* QR Modal */}
-      {qrModal.open && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 420, textAlign: 'center' }}>
-            <div className="modal-header">
-              <h3>QR de Acceso Generado</h3>
-              <button onClick={() => setQrModal(prev => ({ ...prev, open: false }))} className="close-modal"><X size={24} /></button>
-            </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <p style={{ margin: 0, fontWeight: 600, fontSize: 16, color: '#1e3a5f' }}>{qrModal.nombre}</p>
-              <img ref={qrPrintRef} src={qrModal.qrImage} alt="QR de acceso" style={{ width: 220, height: 220, border: '4px solid #dbeafe', borderRadius: 12 }} />
-              <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                Válido hasta: {qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: MX_TIMEZONE }) : '24 horas'}
-              </p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <button onClick={handlePrintQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Printer size={15} /> Imprimir
-                </button>
-                <button onClick={handleDownloadQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Download size={15} /> Descargar
-                </button>
-                <button onClick={handleEmailQr} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }} disabled={!qrModal.correo}>
-                  <Mail size={15} /> Enviar por correo
-                </button>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => { setQrModal(prev => ({ ...prev, open: false })); showToast('Visita registrada correctamente'); }} className="btn-primary">
-                Cerrar
-              </button>
-            </div>
+      <Modal
+        isOpen={qrModal.open}
+        onClose={() => setQrModal(prev => ({ ...prev, open: false }))}
+        portal={false}
+        maxWidth={420}
+        title="QR de Acceso Generado"
+        footer={(
+          <Button onClick={() => { setQrModal(prev => ({ ...prev, open: false })); showToast('Visita registrada correctamente'); }}>
+            Cerrar
+          </Button>
+        )}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+          <p style={{ margin: 0, fontWeight: 600, fontSize: 16, color: '#1e3a5f' }}>{qrModal.nombre}</p>
+          <img ref={qrPrintRef} src={qrModal.qrImage} alt="QR de acceso" style={{ width: 220, height: 220, border: '4px solid #dbeafe', borderRadius: 12 }} />
+          <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+            Válido hasta: {qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: MX_TIMEZONE }) : '24 horas'}
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Button variant="secondary" onClick={handlePrintQr}>
+              <Printer size={15} /> Imprimir
+            </Button>
+            <Button variant="secondary" onClick={handleDownloadQr}>
+              <Download size={15} /> Descargar
+            </Button>
+            <Button variant="secondary" onClick={handleEmailQr} disabled={!qrModal.correo}>
+              <Mail size={15} /> Enviar por correo
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Detail Modal */}
       {viewingVisita && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 520 }}>
-            <div className="modal-header">
-              <h3>Detalle de Visita</h3>
-              <button onClick={() => setViewingVisita(null)} className="close-modal"><X size={24} /></button>
-            </div>
-            <div className="modal-body">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Visitante</label>
-                  <p style={{ margin: 0, fontWeight: 600 }}>{getVisitanteNombre(viewingVisita)}</p>
-                </div>
-                <div className="form-group">
-                  <label>Tipo de pase</label>
-                  <span className={viewingVisita.tipo_pase === 'dia' ? 'badge-warning' : 'badge-success'}>
-                    {viewingVisita.tipo_pase === 'dia' ? 'Pase de un día' : 'Visita'}
-                  </span>
-                </div>
-                <div className="form-group">
-                  <label>Teléfono</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.telefono || '-'}</p>
-                </div>
-                <div className="form-group">
-                  <label>Correo</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.correo || '-'}</p>
-                </div>
-                <div className="form-group">
-                  <label>Identificación</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.identificacion || '-'}</p>
-                </div>
-                <div className="form-group">
-                  <label>Mayor de 16 años</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.mayor_16 === false ? 'No' : 'Sí'}</p>
-                </div>
-                <div className="form-group">
-                  <label>Socio anfitrión</label>
-                  <p style={{ margin: 0 }}>{getAnfitrionNombre(viewingVisita) || 'Sin socio asociado'}</p>
-                </div>
-                <div className="form-group">
-                  <label>Número de socio</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.numero_socio || '-'}</p>
-                </div>
-                <div className="form-group">
-                  <label>Entrada</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.hora_entrada ? formatDateTime(viewingVisita.hora_entrada) : '-'}</p>
-                </div>
-                <div className="form-group">
-                  <label>Salida</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.hora_salida ? formatDateTime(viewingVisita.hora_salida) : 'Aún dentro del club'}</p>
-                </div>
-                <div className="form-group">
-                  <label>Estado</label>
-                  <span className={viewingVisita.hora_salida ? 'badge-warning' : 'badge-success'}>
-                    {viewingVisita.hora_salida ? 'Finalizada' : 'Activa'}
-                  </span>
-                </div>
-                <div className="form-group form-group-full">
-                  <label>Observaciones</label>
-                  <p style={{ margin: 0 }}>{viewingVisita.observaciones || viewingVisita.motivo || 'Sin observaciones'}</p>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setViewingVisita(null)} className="btn-outline">Cerrar</button>
-              <button onClick={() => openEdit(viewingVisita)} className="btn-secondary">
+        <Modal
+          isOpen
+          onClose={() => setViewingVisita(null)}
+          portal={false}
+          maxWidth={520}
+          title="Detalle de Visita"
+          footer={(
+            <>
+              <Button variant="secondary" onClick={() => setViewingVisita(null)}>Cerrar</Button>
+              <Button variant="secondary" onClick={() => openEdit(viewingVisita)}>
                 <Pencil size={14} /> Editar
-              </button>
+              </Button>
               {!viewingVisita.hora_salida && (
                 <>
-                  <button
-                    onClick={() => verQr(viewingVisita)}
-                    className="btn-secondary"
-                    disabled={loadingQr}
-                  >
+                  <Button variant="secondary" onClick={() => verQr(viewingVisita)} disabled={loadingQr}>
                     <QrCode size={14} /> {loadingQr ? 'Cargando...' : 'Ver QR'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => { registrarSalida(viewingVisita.visita_id || viewingVisita.pase_id); setViewingVisita(null); }}
-                    className="btn-primary"
                     disabled={savingExit === (viewingVisita.visita_id || viewingVisita.pase_id)}
                   >
                     <LogOut size={14} /> Registrar salida
-                  </button>
+                  </Button>
                 </>
               )}
+            </>
+          )}
+        >
+          <div className="form-row">
+            <div className="form-group">
+              <label>Visitante</label>
+              <p style={{ margin: 0, fontWeight: 600 }}>{getVisitanteNombre(viewingVisita)}</p>
+            </div>
+            <div className="form-group">
+              <label>Tipo de pase</label>
+              <span className={viewingVisita.tipo_pase === 'dia' ? 'badge-warning' : 'badge-success'}>
+                {viewingVisita.tipo_pase === 'dia' ? 'Pase de un día' : 'Visita'}
+              </span>
+            </div>
+            <div className="form-group">
+              <label>Teléfono</label>
+              <p style={{ margin: 0 }}>{viewingVisita.telefono || '-'}</p>
+            </div>
+            <div className="form-group">
+              <label>Correo</label>
+              <p style={{ margin: 0 }}>{viewingVisita.correo || '-'}</p>
+            </div>
+            <div className="form-group">
+              <label>Identificación</label>
+              <p style={{ margin: 0 }}>{viewingVisita.identificacion || '-'}</p>
+            </div>
+            <div className="form-group">
+              <label>Mayor de 16 años</label>
+              <p style={{ margin: 0 }}>{viewingVisita.mayor_16 === false ? 'No' : 'Sí'}</p>
+            </div>
+            <div className="form-group">
+              <label>Socio anfitrión</label>
+              <p style={{ margin: 0 }}>{getAnfitrionNombre(viewingVisita) || 'Sin socio asociado'}</p>
+            </div>
+            <div className="form-group">
+              <label>Número de socio</label>
+              <p style={{ margin: 0 }}>{viewingVisita.numero_socio || '-'}</p>
+            </div>
+            <div className="form-group">
+              <label>Entrada</label>
+              <p style={{ margin: 0 }}>{viewingVisita.hora_entrada ? formatDateTime(viewingVisita.hora_entrada) : '-'}</p>
+            </div>
+            <div className="form-group">
+              <label>Salida</label>
+              <p style={{ margin: 0 }}>{viewingVisita.hora_salida ? formatDateTime(viewingVisita.hora_salida) : 'Aún dentro del club'}</p>
+            </div>
+            <div className="form-group">
+              <label>Estado</label>
+              <span className={viewingVisita.hora_salida ? 'badge-warning' : 'badge-success'}>
+                {viewingVisita.hora_salida ? 'Finalizada' : 'Activa'}
+              </span>
+            </div>
+            <div className="form-group form-group-full">
+              <label>Observaciones</label>
+              <p style={{ margin: 0 }}>{viewingVisita.observaciones || viewingVisita.motivo || 'Sin observaciones'}</p>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Edit Modal */}
-      {editingVisita && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 600 }}>
-            <div className="modal-header">
-              <div>
-                <h3>Editar Visita</h3>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>Corrige los datos del pase si hubo un error al registrar.</p>
-              </div>
-              <button onClick={() => setEditingVisita(null)} className="close-modal"><X size={24} /></button>
+      <Modal
+        isOpen={Boolean(editingVisita)}
+        onClose={() => setEditingVisita(null)}
+        portal={false}
+        maxWidth={600}
+        title="Editar Visita"
+        subtitle="Corrige los datos del pase si hubo un error al registrar."
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setEditingVisita(null)}>Cancelar</Button>
+            <Button type="submit" form="editar-visita-form" disabled={isEditing}>
+              {isEditing ? 'Guardando...' : 'Guardar cambios'}
+            </Button>
+          </>
+        )}
+      >
+        <form id="editar-visita-form" onSubmit={submitEdit}>
+          <div className="form-row">
+            <Input
+              className="form-group-full"
+              label="Nombre completo"
+              type="text"
+              value={editData.nombre_completo}
+              onChange={e => setEditData(prev => ({ ...prev, nombre_completo: e.target.value }))}
+              required
+            />
+            <Input
+              label="Teléfono"
+              type="text"
+              value={editData.telefono}
+              onChange={e => setEditData(prev => ({ ...prev, telefono: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+            />
+            <Input
+              label="Correo electrónico"
+              type="email"
+              value={editData.correo}
+              onChange={e => setEditData(prev => ({ ...prev, correo: e.target.value }))}
+            />
+            <Input
+              label="Identificación"
+              type="text"
+              value={editData.identificacion}
+              onChange={e => setEditData(prev => ({ ...prev, identificacion: e.target.value }))}
+            />
+            <div className="form-group">
+              <label>Tipo de pase</label>
+              <select
+                value={editData.tipo_pase}
+                onChange={e => {
+                  const next = e.target.value;
+                  setEditData(prev => ({ ...prev, tipo_pase: next, socio_id: next === 'visita' ? prev.socio_id : '' }));
+                  if (next !== 'visita') setEditSocioTerm('');
+                }}
+              >
+                <option value="visita">Visita (con socio)</option>
+                <option value="dia">Pase de un día</option>
+              </select>
             </div>
-            <form onSubmit={submitEdit}>
-              <div className="modal-body">
-                <div className="form-row">
-                  <div className="form-group form-group-full">
-                    <label className="required">Nombre completo</label>
-                    <input
-                      type="text"
-                      value={editData.nombre_completo}
-                      onChange={e => setEditData(prev => ({ ...prev, nombre_completo: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Teléfono</label>
-                    <input
-                      type="text"
-                      value={editData.telefono}
-                      onChange={e => setEditData(prev => ({ ...prev, telefono: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Correo electrónico</label>
-                    <input
-                      type="email"
-                      value={editData.correo}
-                      onChange={e => setEditData(prev => ({ ...prev, correo: e.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Identificación</label>
-                    <input
-                      type="text"
-                      value={editData.identificacion}
-                      onChange={e => setEditData(prev => ({ ...prev, identificacion: e.target.value }))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Tipo de pase</label>
-                    <select
-                      value={editData.tipo_pase}
-                      onChange={e => {
-                        const next = e.target.value;
-                        setEditData(prev => ({ ...prev, tipo_pase: next, socio_id: next === 'visita' ? prev.socio_id : '' }));
-                        if (next !== 'visita') setEditSocioTerm('');
-                      }}
-                    >
-                      <option value="visita">Visita (con socio)</option>
-                      <option value="dia">Pase de un día</option>
-                    </select>
-                  </div>
 
-                  {editData.tipo_pase === 'visita' && (
-                    <div className="form-group form-group-full">
-                      <label>Socio anfitrión</label>
-                      <input
-                        type="text"
-                        value={editSocioTerm}
-                        onChange={e => {
-                          setEditSocioTerm(e.target.value);
-                          if (editData.socio_id) setEditData(prev => ({ ...prev, socio_id: '' }));
+            {editData.tipo_pase === 'visita' && (
+              <div className="form-group form-group-full">
+                <Input
+                  label="Socio anfitrión"
+                  type="text"
+                  value={editSocioTerm}
+                  onChange={e => {
+                    setEditSocioTerm(e.target.value);
+                    if (editData.socio_id) setEditData(prev => ({ ...prev, socio_id: '' }));
+                  }}
+                  placeholder="Buscar por nombre, correo o número de socio"
+                />
+                <div className="recepcion-socio-results">
+                  {filteredSociosEdit.length > 0 ? filteredSociosEdit.slice(0, 8).map(socio => {
+                    const isSelected = String(editData.socio_id) === String(socio.socio_id);
+                    const socioNombre = [socio.nombres, socio.apellido_paterno, socio.apellido_materno].filter(Boolean).join(' ');
+                    return (
+                      <button
+                        key={socio.socio_id}
+                        type="button"
+                        className={`recepcion-socio-option${isSelected ? ' selected' : ''}`}
+                        onClick={() => {
+                          setEditData(prev => ({ ...prev, socio_id: socio.socio_id }));
+                          setEditSocioTerm(socioNombre);
                         }}
-                        placeholder="Buscar por nombre, correo o número de socio"
-                      />
-                      <div className="recepcion-socio-results">
-                        {filteredSociosEdit.length > 0 ? filteredSociosEdit.slice(0, 8).map(socio => {
-                          const isSelected = String(editData.socio_id) === String(socio.socio_id);
-                          const socioNombre = [socio.nombres, socio.apellido_paterno, socio.apellido_materno].filter(Boolean).join(' ');
-                          return (
-                            <button
-                              key={socio.socio_id}
-                              type="button"
-                              className={`recepcion-socio-option${isSelected ? ' selected' : ''}`}
-                              onClick={() => {
-                                setEditData(prev => ({ ...prev, socio_id: socio.socio_id }));
-                                setEditSocioTerm(socioNombre);
-                              }}
-                            >
-                              <div style={{ fontWeight: 700, color: '#0f172a' }}>{socioNombre}</div>
-                              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                                {socio.numero_socio || 'Sin número'} • {socio.email || 'Sin correo'} • {socio.tipo_socio || socio.tipo || 'Socio'}
-                              </div>
-                            </button>
-                          );
-                        }) : (
-                          <div className="recepcion-socio-empty">No hay socios que coincidan.</div>
-                        )}
-                      </div>
-                    </div>
+                      >
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{socioNombre}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                          {socio.numero_socio || 'Sin número'} • {socio.email || 'Sin correo'} • {socio.tipo_socio || socio.tipo || 'Socio'}
+                        </div>
+                      </button>
+                    );
+                  }) : (
+                    <div className="recepcion-socio-empty">No hay socios que coincidan.</div>
                   )}
-
-                  <div className="form-group form-group-full">
-                    <label>Observaciones</label>
-                    <textarea
-                      rows="3"
-                      value={editData.observaciones}
-                      onChange={e => setEditData(prev => ({ ...prev, observaciones: e.target.value }))}
-                    />
-                  </div>
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" onClick={() => setEditingVisita(null)} className="btn-outline">Cancelar</button>
-                <button type="submit" className="btn-primary" disabled={isEditing}>
-                  {isEditing ? 'Guardando...' : 'Guardar cambios'}
-                </button>
-              </div>
-            </form>
+            )}
+
+            <div className="form-group form-group-full">
+              <label>Observaciones</label>
+              <textarea
+                rows="3"
+                value={editData.observaciones}
+                onChange={e => setEditData(prev => ({ ...prev, observaciones: e.target.value }))}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* New Visit Modal */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content recepcion-pass-modal">
-            <div className="modal-header">
-              <div>
-                <h3>Registrar Nuevo Pase</h3>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-                  Registra visitas con socio anfitrión o pases de un día sin anfitrión.
-                </p>
+      <Modal
+        isOpen={showModal}
+        onClose={resetModalState}
+        portal={false}
+        maxWidth={760}
+        title="Registrar Nuevo Pase"
+        subtitle="Registra visitas con socio anfitrión o pases de un día sin anfitrión."
+        footer={(
+          <>
+            <Button variant="secondary" onClick={resetModalState}>Cancelar</Button>
+            <Button type="submit" form="nuevo-pase-form" disabled={isSubmitting}>
+              {isSubmitting ? 'Registrando...' : (
+                <><QrCode size={15} /> Registrar y generar QR</>
+              )}
+            </Button>
+          </>
+        )}
+      >
+        <form id="nuevo-pase-form" onSubmit={registrarVisita}>
+          <div className="recepcion-modal-highlight">
+            <div className="form-row">
+              <div className="form-group">
+                <label className="required">Tipo de Pase</label>
+                <select
+                  value={formData.tipo_pase}
+                  onChange={e => {
+                    const next = e.target.value;
+                    setFormData(prev => ({ ...prev, tipo_pase: next, socio_id: next === 'visita' ? prev.socio_id : '' }));
+                    if (next !== 'visita') setSocioSelectorTerm('');
+                  }}
+                >
+                  <option value="visita">Visita (con socio)</option>
+                  <option value="dia">Pase de un día</option>
+                </select>
               </div>
-              <button onClick={resetModalState} className="close-modal"><X size={24} /></button>
+              <div className="form-group">
+                <label>Edad</label>
+                <select
+                  value={formData.mayor_16 ? 'si' : 'no'}
+                  onChange={e => {
+                    const isAdult = e.target.value === 'si';
+                    setFormData(prev => ({ ...prev, mayor_16: isAdult, confirmacion_tutor: isAdult ? false : prev.confirmacion_tutor }));
+                  }}
+                >
+                  <option value="si">Mayor de 16 años</option>
+                  <option value="no">Menor de 16 años</option>
+                </select>
+              </div>
             </div>
-
-            <form onSubmit={registrarVisita}>
-              <div className="modal-body">
-                <div className="recepcion-modal-highlight">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="required">Tipo de Pase</label>
-                      <select
-                        value={formData.tipo_pase}
-                        onChange={e => {
-                          const next = e.target.value;
-                          setFormData(prev => ({ ...prev, tipo_pase: next, socio_id: next === 'visita' ? prev.socio_id : '' }));
-                          if (next !== 'visita') setSocioSelectorTerm('');
-                        }}
-                      >
-                        <option value="visita">Visita (con socio)</option>
-                        <option value="dia">Pase de un día</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Edad</label>
-                      <select
-                        value={formData.mayor_16 ? 'si' : 'no'}
-                        onChange={e => {
-                          const isAdult = e.target.value === 'si';
-                          setFormData(prev => ({ ...prev, mayor_16: isAdult, confirmacion_tutor: isAdult ? false : prev.confirmacion_tutor }));
-                        }}
-                      >
-                        <option value="si">Mayor de 16 años</option>
-                        <option value="no">Menor de 16 años</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {!formData.mayor_16 && (
-                  <div className="form-alert form-alert-warning">
-                    <strong>Importante para menores de 16 años:</strong> debe ingresar con tutor y permanecer con él en todo momento.
-                    <label className="recepcion-checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={formData.confirmacion_tutor}
-                        onChange={e => setFormData(prev => ({ ...prev, confirmacion_tutor: e.target.checked }))}
-                      />
-                      <span>Confirmo que se respetará esta restricción.</span>
-                    </label>
-                  </div>
-                )}
-
-                <div className="form-row">
-                  <div className="form-group form-group-full">
-                    <label className="required">Nombre completo</label>
-                    <input
-                      type="text"
-                      value={formData.nombre_completo}
-                      onChange={e => setFormData(prev => ({ ...prev, nombre_completo: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Identificación</label>
-                    <input
-                      type="text"
-                      value={formData.identificacion}
-                      onChange={e => setFormData(prev => ({ ...prev, identificacion: e.target.value }))}
-                      placeholder="INE, pasaporte, licencia, etc."
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Correo electrónico</label>
-                    <input
-                      type="email"
-                      value={formData.correo}
-                      onChange={e => setFormData(prev => ({ ...prev, correo: e.target.value }))}
-                      placeholder="Opcional"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="required">Teléfono</label>
-                    <input
-                      type="text"
-                      value={formData.telefono}
-                      onChange={e => setFormData(prev => ({ ...prev, telefono: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
-                      required
-                    />
-                  </div>
-
-                  {formData.tipo_pase === 'visita' && (
-                    <div className="form-group form-group-full">
-                      <label className="required">Socio asociado</label>
-                      <input
-                        type="text"
-                        value={socioSelectorTerm}
-                        onChange={e => {
-                          setSocioSelectorTerm(e.target.value);
-                          if (formData.socio_id) setFormData(prev => ({ ...prev, socio_id: '' }));
-                        }}
-                        placeholder="Buscar por nombre, correo o número de socio"
-                      />
-                      <div className="recepcion-socio-results">
-                        {filteredSocios.length > 0 ? filteredSocios.slice(0, 8).map(socio => {
-                          const isSelected = String(formData.socio_id) === String(socio.socio_id);
-                          const socioNombre = [socio.nombres, socio.apellido_paterno, socio.apellido_materno].filter(Boolean).join(' ').trim();
-                          return (
-                            <button
-                              key={socio.socio_id}
-                              type="button"
-                              className={`recepcion-socio-option${isSelected ? ' selected' : ''}`}
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, socio_id: socio.socio_id }));
-                                setSocioSelectorTerm(socioNombre);
-                              }}
-                            >
-                              <div style={{ fontWeight: 700, color: '#0f172a' }}>{socioNombre}</div>
-                              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                                {socio.numero_socio || 'Sin número'} • {socio.email || 'Sin correo'} • {socio.tipo_socio || socio.tipo || 'Socio'}
-                              </div>
-                            </button>
-                          );
-                        }) : (
-                          <div className="recepcion-socio-empty">No hay socios que coincidan.</div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="form-group form-group-full">
-                    <label>Motivo / Observaciones</label>
-                    <textarea
-                      rows="3"
-                      value={formData.observaciones}
-                      onChange={e => setFormData(prev => ({ ...prev, observaciones: e.target.value }))}
-                      placeholder="Opcional"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-alert">
-                  <strong>Nota:</strong> si es visita debes asociarla a un socio activo; si es pase de un día no requiere anfitrión. Al guardar se genera el QR de acceso.
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" onClick={resetModalState} className="btn-outline">Cancelar</button>
-                <button type="submit" className="btn-primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Registrando...' : (
-                    <><QrCode size={15} style={{ display: 'inline', marginRight: 6 }} />Registrar y generar QR</>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+
+          {!formData.mayor_16 && (
+            <div className="form-alert form-alert-warning">
+              <strong>Importante para menores de 16 años:</strong> debe ingresar con tutor y permanecer con él en todo momento.
+              <label className="recepcion-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={formData.confirmacion_tutor}
+                  onChange={e => setFormData(prev => ({ ...prev, confirmacion_tutor: e.target.checked }))}
+                />
+                <span>Confirmo que se respetará esta restricción.</span>
+              </label>
+            </div>
+          )}
+
+          <div className="form-row">
+            <Input
+              className="form-group-full"
+              label="Nombre completo"
+              type="text"
+              value={formData.nombre_completo}
+              onChange={e => setFormData(prev => ({ ...prev, nombre_completo: e.target.value }))}
+              required
+            />
+            <Input
+              label="Identificación"
+              type="text"
+              value={formData.identificacion}
+              onChange={e => setFormData(prev => ({ ...prev, identificacion: e.target.value }))}
+              placeholder="INE, pasaporte, licencia, etc."
+            />
+            <Input
+              label="Correo electrónico"
+              type="email"
+              value={formData.correo}
+              onChange={e => setFormData(prev => ({ ...prev, correo: e.target.value }))}
+              placeholder="Opcional"
+            />
+            <Input
+              label="Teléfono"
+              type="text"
+              value={formData.telefono}
+              onChange={e => setFormData(prev => ({ ...prev, telefono: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+              required
+            />
+
+            {formData.tipo_pase === 'visita' && (
+              <div className="form-group form-group-full">
+                <Input
+                  markRequired
+                  label="Socio asociado"
+                  type="text"
+                  value={socioSelectorTerm}
+                  onChange={e => {
+                    setSocioSelectorTerm(e.target.value);
+                    if (formData.socio_id) setFormData(prev => ({ ...prev, socio_id: '' }));
+                  }}
+                  placeholder="Buscar por nombre, correo o número de socio"
+                />
+                <div className="recepcion-socio-results">
+                  {filteredSocios.length > 0 ? filteredSocios.slice(0, 8).map(socio => {
+                    const isSelected = String(formData.socio_id) === String(socio.socio_id);
+                    const socioNombre = [socio.nombres, socio.apellido_paterno, socio.apellido_materno].filter(Boolean).join(' ').trim();
+                    return (
+                      <button
+                        key={socio.socio_id}
+                        type="button"
+                        className={`recepcion-socio-option${isSelected ? ' selected' : ''}`}
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, socio_id: socio.socio_id }));
+                          setSocioSelectorTerm(socioNombre);
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{socioNombre}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                          {socio.numero_socio || 'Sin número'} • {socio.email || 'Sin correo'} • {socio.tipo_socio || socio.tipo || 'Socio'}
+                        </div>
+                      </button>
+                    );
+                  }) : (
+                    <div className="recepcion-socio-empty">No hay socios que coincidan.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="form-group form-group-full">
+              <label>Motivo / Observaciones</label>
+              <textarea
+                rows="3"
+                value={formData.observaciones}
+                onChange={e => setFormData(prev => ({ ...prev, observaciones: e.target.value }))}
+                placeholder="Opcional"
+              />
+            </div>
+          </div>
+
+          <div className="form-alert">
+            <strong>Nota:</strong> si es visita debes asociarla a un socio activo; si es pase de un día no requiere anfitrión. Al guardar se genera el QR de acceso.
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

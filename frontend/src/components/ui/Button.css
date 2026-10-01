@@ -1,0 +1,64 @@
+/* Button — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-8);
+    padding: var(--space-10) var(--space-16);
+    border: 0;
+    border-radius: var(--ui-radius-md);
+    font: var(--font-label-button);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.ui-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* primary */
+.ui-button--primary {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+}
+
+.ui-button--primary:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+}
+
+/* secondary — el borde es interior (inset) como en Figma, sin alterar el tamaño */
+.ui-button--secondary {
+    background: var(--color-bg-surface);
+    color: var(--color-text-secondary);
+    box-shadow: inset 0 0 0 1px var(--color-border-strong);
+}
+
+.ui-button--secondary:hover:not(:disabled) {
+    background: var(--color-bg-subtle);
+    color: var(--color-text-primary);
+}
+
+/* error */
+.ui-button--error {
+    background: var(--color-feedback-danger-solid);
+    color: var(--color-text-inverse);
+}
+
+.ui-button--error:hover:not(:disabled) {
+    background: var(--color-feedback-danger-solid-hover);
+}
+
+.ui-button--error:focus-visible {
+    outline-color: var(--color-feedback-danger-solid);
+}
+
+/* disabled — igual para todas las variantes */
+.ui-button:disabled {
+    background: var(--color-bg-subtle);
+    color: var(--color-text-disabled);
+    box-shadow: inset 0 0 0 1px var(--color-border-default);
+    cursor: not-allowed;
+}

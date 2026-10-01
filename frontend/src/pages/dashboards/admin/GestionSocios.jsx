@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, CheckCircle, Download, Edit2, Eye, QrCode, RotateCcw, Trash2, Upload, UserPlus, Users, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Download, Edit2, Eye, QrCode, RotateCcw, Trash2, Upload, UserPlus, Users } from 'lucide-react';
 import { adminApi, apiRequest, API_BASE_URL } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
+import { Button, Input, Modal, Table } from '../../../components/ui';
 import { getFullName, getSocioNumero, getSocioTipo, isActiveValue, normalizeText, toDateInputValue } from '../../../utils/adminData';
 
 const initialFormData = {
@@ -83,6 +84,26 @@ function buildImportPayload(row, headers) {
     password: getImportValue(row, headers, ['password', 'contrasena'])
   };
 }
+
+function getEstadoSocio(socio) {
+  const activo = isActiveValue(socio.activo);
+  const label = activo
+    ? 'Activo'
+    : String(socio.activo || '').toLowerCase() === 'suspendido'
+      ? 'Suspendido'
+      : 'Baja';
+  const badge = activo
+    ? 'badge-success'
+    : label === 'Suspendido'
+      ? 'badge-warning'
+      : 'badge-neutral';
+  return { activo, label, badge };
+}
+
+const IMPORT_ERROR_COLUMNS = [
+  { key: 'fila', header: 'Fila', width: 60 },
+  { key: 'motivo', header: 'Motivo' },
+];
 
 function GestionSocios({ readOnly = false }) {
   const [socios, setSocios] = useState([]);
@@ -369,6 +390,111 @@ function GestionSocios({ readOnly = false }) {
 
   if (loading) return <div className="chart-box"><p>Cargando socios...</p></div>;
 
+  const columns = [
+    {
+      key: 'numero',
+      header: 'No. Socio',
+      render: socio => <span className="socio-numero">{getSocioNumero(socio) || '-'}</span>,
+    },
+    {
+      key: 'nombre',
+      header: 'Nombre Completo',
+      render: socio => (
+        <>
+          <strong className="socio-nombre">{getFullName(socio)}</strong>
+          <br />
+          <span className="socio-email">{socio.email}</span>
+        </>
+      ),
+    },
+    {
+      key: 'tipo',
+      header: 'Tipo',
+      render: (socio) => {
+        const tipo = getSocioTipo(socio);
+        return (
+          <span className={tipo === 'accionista' ? 'badge-accionista' : 'badge-rentista'}>
+            {tipo === 'accionista' ? 'Accionista' : 'Rentista'}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'estado',
+      header: 'Estado',
+      render: (socio) => {
+        const { label, badge } = getEstadoSocio(socio);
+        return <span className={badge}>{label}</span>;
+      },
+    },
+    { key: 'telefono', header: 'Teléfono', render: socio => socio.telefono || '-' },
+    {
+      key: 'parentesco',
+      header: 'Parentesco',
+      render: socio => socio.parentesco || <span style={{ color: 'var(--color-text-disabled)' }}>-</span>,
+    },
+    {
+      key: 'sanciones',
+      header: 'Sanciones',
+      render: (socio) => {
+        const numSanciones = socio.num_sanciones ?? 0;
+        return (
+          <span className={numSanciones > 0 ? 'sanciones-count active' : 'sanciones-count'}>
+            {numSanciones}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'acciones',
+      header: '',
+      render: (socio) => {
+        const { activo } = getEstadoSocio(socio);
+        return (
+          <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+            <button onClick={() => setViewingSocio(socio)} className="btn-icon" style={{ color: '#6366f1' }} title="Ver detalle">
+              <Eye size={15} />
+            </button>
+            {activo && (
+              <button
+                onClick={() => handleGenerarQr(socio)}
+                className="btn-icon"
+                style={{ color: '#0891b2' }}
+                title="Generar / Regenerar QR"
+                disabled={generandoQrId === socio.socio_id}
+              >
+                {generandoQrId === socio.socio_id
+                  ? <span style={{ width: 13, height: 13, border: '2px solid #94a3b8', borderTopColor: '#0891b2', borderRadius: '50%', animation: 'inst-spin 0.7s linear infinite', display: 'inline-block' }} />
+                  : <QrCode size={15} />
+                }
+              </button>
+            )}
+            {!readOnly && (
+              <button onClick={() => handleEdit(socio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar">
+                <Edit2 size={15} />
+              </button>
+            )}
+            {!readOnly && activo && (
+              <button onClick={() => handleDelete(socio.socio_id)} className="btn-icon" style={{ color: '#ef4444' }} title="Inactivar">
+                <Trash2 size={15} />
+              </button>
+            )}
+            {!readOnly && !activo && (
+              <>
+                <button onClick={() => handleReactivate(socio)} className="btn-icon" style={{ color: '#10b981' }} title="Reactivar">
+                  <RotateCcw size={15} />
+                </button>
+                <button onClick={() => handlePermanentDelete(socio.socio_id)} className="btn-icon" style={{ color: '#b91c1c' }} title="Eliminar">
+                  <Trash2 size={15} />
+                </button>
+              </>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="chart-box">
       <ModuleHeader
@@ -387,22 +513,22 @@ function GestionSocios({ readOnly = false }) {
               style={{ display: 'none' }}
             />
             {!readOnly && (
-              <button className="btn-outline" onClick={() => fileInputRef.current?.click()} disabled={fileState.status === 'loading'}>
+              <Button variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={fileState.status === 'loading'}>
                 <Download size={16} /> Importar
-              </button>
+              </Button>
             )}
             {!readOnly && (
-              <button className="btn-outline" onClick={adminApi.descargarTemplateSocios} disabled={fileState.status === 'loading'}>
+              <Button variant="secondary" onClick={adminApi.descargarTemplateSocios} disabled={fileState.status === 'loading'}>
                 <Upload size={16} /> Plantilla
-              </button>
+              </Button>
             )}
-            <button className="btn-outline" onClick={exportSocios}>
+            <Button variant="secondary" onClick={exportSocios}>
               <Upload size={16} /> Exportar
-            </button>
+            </Button>
             {!readOnly && (
-              <button className="btn-primary" onClick={openCreateModal}>
+              <Button onClick={openCreateModal}>
                 <UserPlus size={16} /> Nuevo Socio
-              </button>
+              </Button>
             )}
           </>
         )}
@@ -434,297 +560,136 @@ function GestionSocios({ readOnly = false }) {
         </FilterSelect>
       </div>
 
-      <div className="table-wrapper">
-        <table className="data-table socios-table">
-          <thead>
-            <tr>
-              <th>No. Socio</th>
-              <th>Nombre Completo</th>
-              <th>Tipo</th>
-              <th>Estado</th>
-              <th>Teléfono</th>
-              <th>Parentesco</th>
-              <th>Sanciones</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSocios.map(socio => {
-              const tipo = getSocioTipo(socio);
-              const activo = isActiveValue(socio.activo);
-              const estadoLabel = activo
-                ? 'Activo'
-                : String(socio.activo || '').toLowerCase() === 'suspendido'
-                  ? 'Suspendido'
-                  : 'Baja';
-              const estadoBadge = activo
-                ? 'badge-success'
-                : estadoLabel === 'Suspendido'
-                  ? 'badge-warning'
-                  : 'badge-neutral';
-              const numSanciones = socio.num_sanciones ?? 0;
+      <Table
+        className="socios-table"
+        columns={columns}
+        data={filteredSocios}
+        getRowKey={socio => socio.socio_id}
+        emptyMessage="No hay socios con los filtros actuales."
+      />
 
-              return (
-                <tr key={socio.socio_id}>
-                  <td>
-                    <span className="socio-numero">{getSocioNumero(socio) || '-'}</span>
-                  </td>
-                  <td>
-                    <strong className="socio-nombre">{getFullName(socio)}</strong>
-                    <br />
-                    <span className="socio-email">{socio.email}</span>
-                  </td>
-                  <td>
-                    <span className={tipo === 'accionista' ? 'badge-accionista' : 'badge-rentista'}>
-                      {tipo === 'accionista' ? 'Accionista' : 'Rentista'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={estadoBadge}>{estadoLabel}</span>
-                  </td>
-                  <td>{socio.telefono || '-'}</td>
-                  <td>{socio.parentesco || <span style={{ color: '#94a3b8' }}>-</span>}</td>
-                  <td>
-                    <span className={numSanciones > 0 ? 'sanciones-count active' : 'sanciones-count'}>
-                      {numSanciones}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                      <button onClick={() => setViewingSocio(socio)} className="btn-icon" style={{ color: '#6366f1' }} title="Ver detalle">
-                        <Eye size={15} />
-                      </button>
-                      {activo && (
-                        <button
-                          onClick={() => handleGenerarQr(socio)}
-                          className="btn-icon"
-                          style={{ color: '#0891b2' }}
-                          title="Generar / Regenerar QR"
-                          disabled={generandoQrId === socio.socio_id}
-                        >
-                          {generandoQrId === socio.socio_id
-                            ? <span style={{ width: 13, height: 13, border: '2px solid #94a3b8', borderTopColor: '#0891b2', borderRadius: '50%', animation: 'inst-spin 0.7s linear infinite', display: 'inline-block' }} />
-                            : <QrCode size={15} />
-                          }
-                        </button>
-                      )}
-                      {!readOnly && (
-                        <button onClick={() => handleEdit(socio)} className="btn-icon" style={{ color: '#3b82f6' }} title="Editar">
-                          <Edit2 size={15} />
-                        </button>
-                      )}
-                      {!readOnly && activo && (
-                        <button onClick={() => handleDelete(socio.socio_id)} className="btn-icon" style={{ color: '#ef4444' }} title="Inactivar">
-                          <Trash2 size={15} />
-                        </button>
-                      )}
-                      {!readOnly && !activo && (
-                        <>
-                          <button onClick={() => handleReactivate(socio)} className="btn-icon" style={{ color: '#10b981' }} title="Reactivar">
-                            <RotateCcw size={15} />
-                          </button>
-                          <button onClick={() => handlePermanentDelete(socio.socio_id)} className="btn-icon" style={{ color: '#b91c1c' }} title="Eliminar">
-                            <Trash2 size={15} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {filteredSocios.length === 0 && (
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
-                  No hay socios con los filtros actuales.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '760px' }}>
-            <div className="modal-header">
-              <h3>{editingSocio ? 'Editar Socio' : 'Nuevo Socio'}</h3>
-              <button onClick={() => setShowModal(false)} className="close-modal"><X size={24} /></button>
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingSocio ? 'Editar Socio' : 'Nuevo Socio'}
+        maxWidth="760px"
+        portal={false}
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>Cancelar</Button>
+            <Button type="submit" form="socio-form">Guardar Socio</Button>
+          </>
+        )}
+      >
+        <form id="socio-form" onSubmit={handleSubmit}>
+          <div className="form-row">
+            <Input markRequired label="Nombres" value={formData.nombres} onChange={event => updateForm('nombres', event.target.value)} error={formErrors.nombres} />
+            <Input markRequired label="Apellido paterno" value={formData.apellidoPaterno} onChange={event => updateForm('apellidoPaterno', event.target.value)} error={formErrors.apellidoPaterno} />
+            <Input label="Apellido materno" value={formData.apellidoMaterno} onChange={event => updateForm('apellidoMaterno', event.target.value)} />
+            <Input markRequired label="Email" type="email" value={formData.email} onChange={event => updateForm('email', event.target.value)} error={formErrors.email} />
+            <Input label="Teléfono" value={formData.telefono} onChange={event => updateForm('telefono', event.target.value.replace(/\D/g, '').slice(0, 10))} error={formErrors.telefono} />
+            <Input markRequired label="CURP" value={formData.curp} onChange={event => updateForm('curp', event.target.value.toUpperCase().slice(0, 18))} error={formErrors.curp} />
+            <Input label="Fecha nacimiento" type="date" value={formData.fechaNacimiento} onChange={event => updateForm('fechaNacimiento', event.target.value)} error={formErrors.fechaNacimiento} />
+            <div className="form-group">
+              <label>Género</label>
+              <select value={formData.genero} onChange={event => updateForm('genero', event.target.value)}>
+                <option value="">Seleccione</option>
+                <option>Masculino</option>
+                <option>Femenino</option>
+                <option>No especificado</option>
+              </select>
             </div>
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="required">Nombres</label>
-                    <input value={formData.nombres} onChange={event => updateForm('nombres', event.target.value)} style={getInputStyles('nombres')} />
-                    {formErrors.nombres && <p className="field-error">{formErrors.nombres}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label className="required">Apellido paterno</label>
-                    <input value={formData.apellidoPaterno} onChange={event => updateForm('apellidoPaterno', event.target.value)} style={getInputStyles('apellidoPaterno')} />
-                    {formErrors.apellidoPaterno && <p className="field-error">{formErrors.apellidoPaterno}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label>Apellido materno</label>
-                    <input value={formData.apellidoMaterno} onChange={event => updateForm('apellidoMaterno', event.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label className="required">Email</label>
-                    <input type="email" value={formData.email} onChange={event => updateForm('email', event.target.value)} style={getInputStyles('email')} />
-                    {formErrors.email && <p className="field-error">{formErrors.email}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label>Teléfono</label>
-                    <input value={formData.telefono} onChange={event => updateForm('telefono', event.target.value.replace(/\D/g, '').slice(0, 10))} style={getInputStyles('telefono')} />
-                    {formErrors.telefono && <p className="field-error">{formErrors.telefono}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label className="required">CURP</label>
-                    <input value={formData.curp} onChange={event => updateForm('curp', event.target.value.toUpperCase().slice(0, 18))} style={getInputStyles('curp')} />
-                    {formErrors.curp && <p className="field-error">{formErrors.curp}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label>Fecha nacimiento</label>
-                    <input type="date" value={formData.fechaNacimiento} onChange={event => updateForm('fechaNacimiento', event.target.value)} style={getInputStyles('fechaNacimiento')} />
-                    {formErrors.fechaNacimiento && <p className="field-error">{formErrors.fechaNacimiento}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label>Género</label>
-                    <select value={formData.genero} onChange={event => updateForm('genero', event.target.value)}>
-                      <option value="">Seleccione</option>
-                      <option>Masculino</option>
-                      <option>Femenino</option>
-                      <option>No especificado</option>
-                    </select>
-                  </div>
-                  <div className="form-group form-group-full">
-                    <label className="required">Dirección</label>
-                    <input value={formData.direccion} onChange={event => updateForm('direccion', event.target.value)} style={getInputStyles('direccion')} />
-                    {formErrors.direccion && <p className="field-error">{formErrors.direccion}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label className="required">Tipo de socio</label>
-                    <select value={formData.tipo_socio} onChange={event => updateForm('tipo_socio', event.target.value)} style={getInputStyles('tipo_socio')}>
-                      <option value="rentista">Rentista</option>
-                      <option value="accionista">Accionista</option>
-                    </select>
-                    {formErrors.tipo_socio && <p className="field-error">{formErrors.tipo_socio}</p>}
-                  </div>
-                  <div className="form-group">
-                    <label>{editingSocio ? 'Contraseña (opcional)' : 'Contraseña'}</label>
-                    <input type="password" value={formData.password} onChange={event => updateForm('password', event.target.value)} style={getInputStyles('password')} />
-                    {formErrors.password && <p className="field-error">{formErrors.password}</p>}
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-outline">Cancelar</button>
-                <button type="submit" className="btn-primary">Guardar Socio</button>
-              </div>
-            </form>
+            <Input markRequired className="form-group-full" label="Dirección" value={formData.direccion} onChange={event => updateForm('direccion', event.target.value)} error={formErrors.direccion} />
+            <div className="form-group">
+              <label className="required">Tipo de socio</label>
+              <select value={formData.tipo_socio} onChange={event => updateForm('tipo_socio', event.target.value)} style={getInputStyles('tipo_socio')}>
+                <option value="rentista">Rentista</option>
+                <option value="accionista">Accionista</option>
+              </select>
+              {formErrors.tipo_socio && <p className="field-error">{formErrors.tipo_socio}</p>}
+            </div>
+            <Input label={editingSocio ? 'Contraseña (opcional)' : 'Contraseña'} type="password" value={formData.password} onChange={event => updateForm('password', event.target.value)} error={formErrors.password} />
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* ── MODAL QR ── */}
       {qrModal && (
-        <div className="modal-overlay" onClick={() => setQrModal(null)}>
-          <div className="modal-content" style={{ maxWidth: 360, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <h3 style={{ margin: 0 }}>Código QR del Socio</h3>
-                <p style={{ margin: '3px 0 0', fontSize: 12, color: '#64748b' }}>
-                  {getFullName(qrModal.socio)} · #{getSocioNumero(qrModal.socio) || qrModal.socio.socio_id}
-                </p>
-              </div>
-              <button onClick={() => setQrModal(null)} className="close-modal"><X size={20} /></button>
-            </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
-              <div style={{ background: '#f8faff', border: '2px solid #e2e8f0', borderRadius: 16, padding: '1rem', display: 'inline-flex' }}>
-                <img src={qrModal.qr_image} alt="QR Socio" style={{ width: 200, height: 200, display: 'block' }} />
-              </div>
-              <p style={{ margin: 0, fontSize: 12, color: '#64748b', maxWidth: 260, lineHeight: 1.5 }}>
-                Escanea este código en los lectores del club para registrar visitas y asistencias.
-              </p>
-            </div>
-            <div className="modal-footer" style={{ justifyContent: 'center', gap: '0.75rem' }}>
-              <button className="btn-outline" onClick={() => setQrModal(null)}>Cerrar</button>
-              <button
-                className="btn-primary"
-                onClick={() => handleDescargarQr(qrModal.qr_image, getFullName(qrModal.socio))}
-              >
+        <Modal
+          isOpen
+          onClose={() => setQrModal(null)}
+          closeOnOverlayClick
+          portal={false}
+          maxWidth={360}
+          title="Código QR del Socio"
+          subtitle={`${getFullName(qrModal.socio)} · #${getSocioNumero(qrModal.socio) || qrModal.socio.socio_id}`}
+          footer={(
+            <>
+              <Button variant="secondary" onClick={() => setQrModal(null)}>Cerrar</Button>
+              <Button onClick={() => handleDescargarQr(qrModal.qr_image, getFullName(qrModal.socio))}>
                 <Download size={15} /> Descargar QR
-              </button>
+              </Button>
+            </>
+          )}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}>
+            <div style={{ background: '#f8faff', border: '2px solid #e2e8f0', borderRadius: 16, padding: '1rem', display: 'inline-flex' }}>
+              <img src={qrModal.qr_image} alt="QR Socio" style={{ width: 200, height: 200, display: 'block' }} />
             </div>
+            <p style={{ margin: 0, fontSize: 12, color: '#64748b', maxWidth: 260, lineHeight: 1.5 }}>
+              Escanea este código en los lectores del club para registrar visitas y asistencias.
+            </p>
           </div>
-        </div>
+        </Modal>
       )}
 
       {importResult && (
-        <div className="modal-overlay" onClick={() => setImportResult(null)}>
-          <div className="modal-content" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <h3 style={{ margin: 0 }}>Resultado de importación</h3>
-                <p style={{ margin: '3px 0 0', fontSize: 12, color: '#64748b' }}>
-                  Resumen del archivo procesado
-                </p>
-              </div>
-              <button onClick={() => setImportResult(null)} className="close-modal"><X size={20} /></button>
+        <Modal
+          isOpen
+          onClose={() => setImportResult(null)}
+          closeOnOverlayClick
+          portal={false}
+          maxWidth={520}
+          title="Resultado de importación"
+          subtitle="Resumen del archivo procesado"
+          footer={<Button onClick={() => setImportResult(null)}>Cerrar</Button>}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+            <div style={{ background: '#f1f5f9', borderRadius: 10, padding: '0.75rem 1rem', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Procesados</p>
+              <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 700, color: '#1e293b' }}>{importResult.total_procesados ?? 0}</p>
             </div>
-            <div className="modal-body" style={{ padding: '1.25rem 1.5rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ background: '#f1f5f9', borderRadius: 10, padding: '0.75rem 1rem', textAlign: 'center' }}>
-                  <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Procesados</p>
-                  <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 700, color: '#1e293b' }}>{importResult.total_procesados ?? 0}</p>
-                </div>
-                <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '0.75rem 1rem', textAlign: 'center' }}>
-                  <p style={{ margin: 0, fontSize: 11, color: '#16a34a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nuevos</p>
-                  <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 700, color: '#16a34a' }}>{importResult.nuevos ?? 0}</p>
-                </div>
-                <div style={{ background: '#eff6ff', borderRadius: 10, padding: '0.75rem 1rem', textAlign: 'center' }}>
-                  <p style={{ margin: 0, fontSize: 11, color: '#2563eb', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actualizados</p>
-                  <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 700, color: '#2563eb' }}>{importResult.actualizados ?? 0}</p>
-                </div>
-              </div>
-
-              {Array.isArray(importResult.errores) && importResult.errores.length > 0 ? (
-                <div>
-                  <p style={{ margin: '0 0 0.5rem', fontSize: 13, fontWeight: 600, color: '#dc2626' }}>
-                    <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                    Errores ({importResult.errores.length})
-                  </p>
-                  <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #fecaca', borderRadius: 8, background: '#fff5f5' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                      <thead>
-                        <tr style={{ background: '#fee2e2' }}>
-                          <th style={{ padding: '6px 10px', textAlign: 'left', color: '#7f1d1d', fontWeight: 600, width: 60 }}>Fila</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'left', color: '#7f1d1d', fontWeight: 600 }}>Motivo</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {importResult.errores.map((err, i) => (
-                          <tr key={i} style={{ borderTop: '1px solid #fecaca' }}>
-                            <td style={{ padding: '5px 10px', color: '#b91c1c', fontWeight: 600 }}>{err.fila}</td>
-                            <td style={{ padding: '5px 10px', color: '#7f1d1d' }}>{err.motivo}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.75rem 1rem' }}>
-                  <CheckCircle size={16} style={{ color: '#16a34a', flexShrink: 0 }} />
-                  <p style={{ margin: 0, fontSize: 13, color: '#15803d' }}>Importación completada sin errores.</p>
-                </div>
-              )}
+            <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '0.75rem 1rem', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: 11, color: '#16a34a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nuevos</p>
+              <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 700, color: '#16a34a' }}>{importResult.nuevos ?? 0}</p>
             </div>
-            <div className="modal-footer">
-              <button className="btn-primary" onClick={() => setImportResult(null)}>Cerrar</button>
+            <div style={{ background: '#eff6ff', borderRadius: 10, padding: '0.75rem 1rem', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: 11, color: '#2563eb', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actualizados</p>
+              <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 700, color: '#2563eb' }}>{importResult.actualizados ?? 0}</p>
             </div>
           </div>
-        </div>
+
+          {Array.isArray(importResult.errores) && importResult.errores.length > 0 ? (
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontSize: 13, fontWeight: 600, color: '#dc2626' }}>
+                <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                Errores ({importResult.errores.length})
+              </p>
+              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                <Table
+                  columns={IMPORT_ERROR_COLUMNS}
+                  data={importResult.errores}
+                  getRowKey={(err, i) => i}
+                />
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.75rem 1rem' }}>
+              <CheckCircle size={16} style={{ color: '#16a34a', flexShrink: 0 }} />
+              <p style={{ margin: 0, fontSize: 13, color: '#15803d' }}>Importación completada sin errores.</p>
+            </div>
+          )}
+        </Modal>
       )}
 
       {viewingSocio && (() => {
@@ -747,35 +712,33 @@ function GestionSocios({ readOnly = false }) {
           { label: 'Registro', value: s.fecha_registro ? new Date(String(s.fecha_registro).split('T')[0] + 'T00:00:00').toLocaleDateString('es-MX') : '-' },
         ];
         return (
-          <div className="modal-overlay">
-            <div className="modal-content" style={{ maxWidth: '600px' }}>
-              <div className="modal-header">
-                <div>
-                  <h3>{getFullName(s)}</h3>
-                  <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Ficha completa del socio</p>
-                </div>
-                <button onClick={() => setViewingSocio(null)} className="close-modal"><X size={24} /></button>
-              </div>
-              <div className="modal-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem' }}>
-                  {fields.map(f => (
-                    <div key={f.label} style={f.full ? { gridColumn: '1 / -1' } : {}}>
-                      <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 14, color: '#1e293b', fontWeight: 500 }}>{String(f.value)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" onClick={() => setViewingSocio(null)} className="btn-outline">Cerrar</button>
+          <Modal
+            isOpen
+            onClose={() => setViewingSocio(null)}
+            portal={false}
+            maxWidth="600px"
+            title={getFullName(s)}
+            subtitle="Ficha completa del socio"
+            footer={(
+              <>
+                <Button variant="secondary" onClick={() => setViewingSocio(null)}>Cerrar</Button>
                 {!readOnly && (
-                  <button type="button" onClick={() => { setViewingSocio(null); handleEdit(s); }} className="btn-primary">
+                  <Button onClick={() => { setViewingSocio(null); handleEdit(s); }}>
                     <Edit2 size={15} /> Editar
-                  </button>
+                  </Button>
                 )}
-              </div>
+              </>
+            )}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem' }}>
+              {fields.map(f => (
+                <div key={f.label} style={f.full ? { gridColumn: '1 / -1' } : {}}>
+                  <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 14, color: '#1e293b', fontWeight: 500 }}>{String(f.value)}</p>
+                </div>
+              ))}
             </div>
-          </div>
+          </Modal>
         );
       })()}
     </div>

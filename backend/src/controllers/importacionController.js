@@ -13,22 +13,10 @@ const descargarTemplate = async (req, res) => {
 
 // ── SCRUM-135: POST /api/importacion/socios ──────────────────────────────────
 // req.file requerido: validado en la ruta.
+// 200 importado · 400 archivo/columnas inválidos · 422 reporte de filas (nada se guardó).
 const importarSocios = async (req, res) => {
-  let filas;
   try {
-    filas = await importacionService.leerFilasExcel(req.file.buffer);
-  } catch {
-    return res.status(400).json({ error: 'No se pudo leer el archivo Excel' });
-  }
-
-  const errorArchivo = importacionService.validarFilas(filas);
-  if (errorArchivo) {
-    return res.status(400).json({ error: errorArchivo });
-  }
-
-  try {
-    const { nuevos, actualizados, errores } = await importacionService.importarFilas(filas);
-    return res.json({ total_procesados: filas.length, nuevos, actualizados, errores });
+    return res.json(await importacionService.importarSocios(req.file.buffer));
   } catch (error) {
     // Solo ServiceError; los fallos escalados (conexión) llegan al errorHandler.
     if (error instanceof ServiceError) return res.status(error.status).json(error.body);

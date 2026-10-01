@@ -16,7 +16,25 @@ const archivoRequerido = validateInput((req) =>
   req.file ? null : [400, { error: 'Se requiere un archivo .xlsx (field: archivo)' }]
 );
 
-const upload = multer({ storage: multer.memoryStorage() });
+const MAX_MB = 5;
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_MB * 1024 * 1024, files: 1 },
+  // Otro tipo de archivo se descarta → req.file vacío → archivoRequerido responde 400.
+  fileFilter: (req, file, cb) => cb(null, /\.xlsx$/i.test(file.originalname))
+});
+
+// Errores de multer (tamaño, campo inesperado) → 400 en vez de llegar al errorHandler (500).
+const subirExcel = (req, res, next) =>
+  upload.single('archivo')(req, res, (err) => {
+    if (!err) return next();
+    if (!(err instanceof multer.MulterError)) return next(err);
+    const error =
+      err.code === 'LIMIT_FILE_SIZE'
+        ? `El archivo excede el tamaño máximo de ${MAX_MB} MB`
+        : 'Se requiere un único archivo .xlsx (field: archivo)';
+    return res.status(400).json({ error });
+  });
 
 // SCRUM-134 — Template descargable
 router.get(
@@ -32,7 +50,7 @@ router.post(
   '/socios',
   verifyToken,
   checkRole(['admin', 'gerente']),
-  upload.single('archivo'),
+  subirExcel,
   archivoRequerido,
   importacionController.importarSocios
 );

@@ -48,7 +48,8 @@ async function xlsx(filas, headers = HEADERS) {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Datos');
   ws.addRow(headers);
-  filas.forEach((f) => ws.addRow(headers.map((h) => (f[h] === undefined ? null : f[h]))));
+  // Cada fila es un objeto { header: valor } o un arreglo de celdas en el orden de `headers`.
+  filas.forEach((f) => ws.addRow(Array.isArray(f) ? f : headers.map((h) => (f[h] === undefined ? null : f[h]))));
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
@@ -89,7 +90,12 @@ function routeQuery(sql, params = []) {
   if (q.startsWith('UPDATE usuarios SET nombres=$1')) return rows([]);
   if (q.startsWith('UPDATE socios SET tipo=$1')) return rows([]);
   if (q.startsWith('INSERT INTO usuarios')) {
-    if (db.usernamesQueFallan.includes(params[0])) throw new Error('duplicate key value violates unique constraint');
+    if (db.usernamesQueFallan.includes(params[0])) {
+      throw Object.assign(new Error('duplicate key value violates unique constraint'), {
+        code: '23505',
+        constraint: 'usuarios_username_key'
+      });
+    }
     return rows([{ usuario_id: nextUsuarioId++ }]);
   }
   if (q.includes('SELECT COUNT(*) FROM socios s WHERE s.accion_id = $1')) return rows([{ count: db.miembrosEnAccion }]);
@@ -219,14 +225,41 @@ describe('GET /template', () => {
   });
 });
 
-// ── Importación: validaciones previas ────────────────────────────────────────
+// ── Importación ──────────────────────────────────────────────────────────────
 
-describe('POST /socios — validaciones', () => {
+/** Fila válida mínima; `extra` sobrescribe columnas. */
+const fila = (extra = {}) => ({
+  Numero_Accion: '2047',
+  Tipo_Accion: 'Individual',
+  Estatus_Accion: 'Rentada',
+  Rol: 'Titular',
+  Nombre_Completo: 'Sandra Torres',
+  Email: 'sandra@mail.mx',
+  ...extra
+});
+
+const paramsUsuario = (p) => [p[0], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9]];
+
+describe('POST /socios — archivo y encabezados', () => {
   it('sin archivo → 400', async () => {
     const res = await request(app).post('/api/importacion/socios');
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Se requiere un archivo .xlsx (field: archivo)' });
+  });
+
+  it('extensión distinta de .xlsx → 400 sin leer el archivo', async () => {
+    const res = await importar(await xlsx([fila()]), 'socios.csv');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Se requiere un archivo .xlsx (field: archivo)' });
+  });
+
+  it('archivo de más de 5 MB → 400', async () => {
+    const res = await importar(Buffer.alloc(5 * 1024 * 1024 + 1));
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'El archivo excede el tamaño máximo de 5 MB' });
   });
 
   it('archivo que no es Excel → 400', async () => {
@@ -243,21 +276,150 @@ describe('POST /socios — validaciones', () => {
     expect(res.body).toEqual({ error: 'El archivo no tiene filas de datos' });
   });
 
-  it('faltan columnas mínimas → 400 con la lista', async () => {
+  it('faltan columnas obligatorias → 400 con la lista, sin tocar la BD', async () => {
     const res = await importar(
       await xlsx([{ Numero_Accion: '1', Nombre_Completo: 'X' }], ['Numero_Accion', 'Nombre_Completo'])
     );
 
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Faltan columnas requeridas: Rol, Email' });
+    expect(res.body).toEqual({
+      error: 'Faltan columnas obligatorias: Tipo_Accion, Estatus_Accion, Rol, Email',
+      columnas_faltantes: ['Tipo_Accion', 'Estatus_Accion', 'Rol', 'Email'],
+      columnas_encontradas: ['Numero_Accion', 'Nombre_Completo']
+    });
     expect(pool.connect).not.toHaveBeenCalled();
   });
 
+  it('columna repetida (aunque cambie mayúsculas) → 400', async () => {
+    const headers = [...Object.keys(fila()), 'EMAIL'];
+    const res = await importar(await xlsx([[...Object.values(fila()), 'otro@mail.mx']], headers));
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Columnas repetidas: Email', columnas_repetidas: ['Email'] });
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it('columnas en desorden, con acentos/mayúsculas/alias y una columna extra → importa', async () => {
+    const headers = [
+      'CORREO',
+      'Comentarios',
+      'Nombre Completo',
+      'rol',
+      'Estatus Acción',
+      'tipo-accion',
+      'Número Acción'
+    ];
+    const res = await importar(
+      await xlsx([['luis@club.mx', 'ignorar', 'Luis Pérez', 'Titular', 'Propia', 'Familiar', '808']], headers)
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ total_procesados: 1, nuevos: 1, actualizados: 0, errores: [] });
+    expect(paramsUsuario(calls('INSERT INTO usuarios')[0][1])).toEqual([
+      'luis@club.mx',
+      5,
+      'Luis',
+      'Pérez',
+      '',
+      null,
+      null,
+      null,
+      null
+    ]);
+    expect(calls('INSERT INTO socios')[0][1]).toEqual([
+      100,
+      900,
+      'Accionista',
+      'Familiar',
+      true,
+      'SOC-808-T',
+      null,
+      null
+    ]);
+    expect(client.query).toHaveBeenCalledWith('COMMIT');
+  });
+});
+
+describe('POST /socios — validación por fila (no se inserta nada)', () => {
+  it('datos nulos o inválidos → 422 con el reporte de cada celda y sin abrir transacción', async () => {
+    const filas = [
+      fila(),
+      fila({
+        Tipo_Accion: 'Mensual',
+        Fecha_Nacimiento: '2023-02-30',
+        Email: 'no-es-email',
+        Telefono_Celular: '12345'
+      }),
+      fila({ Numero_Accion: null, Rol: 'Miembro', Nombre_Completo: 'Solo', Genero: 'X', Email: 'x@club.mx' })
+    ];
+    const res = await importar(await xlsx(filas));
+
+    expect(res.status).toBe(422);
+    expect(res.body).toEqual({
+      error: 'Se encontraron 8 error(es); no se importó ningún registro',
+      total_procesados: 3,
+      nuevos: 0,
+      actualizados: 0,
+      errores: [
+        { fila: 3, columna: 'Tipo_Accion', valor: 'Mensual', motivo: 'Valor no válido. Usa: Individual, Familiar' },
+        {
+          fila: 3,
+          columna: 'Fecha_Nacimiento',
+          valor: '2023-02-30',
+          motivo: 'Fecha no válida. Usa YYYY-MM-DD o DD/MM/YYYY'
+        },
+        { fila: 3, columna: 'Email', valor: 'no-es-email', motivo: 'Email no válido (nombre@dominio, máx. 50)' },
+        { fila: 3, columna: 'Telefono_Celular', valor: '12345', motivo: 'Debe tener 10 dígitos' },
+        { fila: 4, columna: 'Numero_Accion', valor: '', motivo: 'Es obligatorio' },
+        { fila: 4, columna: 'Nombre_Completo', valor: 'Solo', motivo: 'Debe incluir al menos nombre y apellido' },
+        { fila: 4, columna: 'Genero', valor: 'X', motivo: 'Valor no válido. Usa: Masculino, Femenino' },
+        { fila: 4, columna: 'Parentesco', valor: '', motivo: 'Es obligatorio para Miembros' }
+      ]
+    });
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it('fecha futura → fuera de rango', async () => {
+    const futura = `${ANIO + 1}-01-01`;
+    const res = await importar(await xlsx([fila({ Fecha_Nacimiento: futura })]));
+
+    expect(res.status).toBe(422);
+    expect(res.body.errores).toEqual([
+      { fila: 2, columna: 'Fecha_Nacimiento', valor: futura, motivo: 'Fecha fuera de rango (1900 a hoy)' }
+    ]);
+  });
+
+  it('consistencia entre filas: email repetido, dos titulares y modalidad distinta en la misma acción', async () => {
+    const filas = [
+      fila({ Numero_Accion: '500', Tipo_Accion: 'Familiar', Estatus_Accion: 'Propia', Email: 'a@x.mx' }),
+      fila({ Numero_Accion: '500', Tipo_Accion: 'Familiar', Estatus_Accion: 'Propia', Email: 'b@x.mx' }),
+      fila({ Numero_Accion: '500', Estatus_Accion: 'Propia', Rol: 'Miembro', Parentesco: 'Hijo', Email: 'A@X.MX' })
+    ];
+    const res = await importar(await xlsx(filas));
+
+    expect(res.status).toBe(422);
+    expect(res.body.errores).toEqual([
+      { fila: 3, columna: 'Rol', valor: 'Titular', motivo: 'La acción 500 ya tiene titular en la fila 2' },
+      { fila: 4, columna: 'Email', valor: 'a@x.mx', motivo: 'Email repetido en el archivo (fila 2)' },
+      { fila: 4, columna: 'Tipo_Accion', valor: 'Individual', motivo: 'No coincide con la fila 2 de la acción 500' }
+    ]);
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it('una fila vacía intermedia no corre la numeración del reporte', async () => {
+    const vacia = HEADERS.map(() => '  ');
+    const res = await importar(await xlsx([fila(), vacia, fila({ Email: 'malo' })]));
+
+    expect(res.status).toBe(422);
+    expect(res.body.total_procesados).toBe(2);
+    expect(res.body.errores.map((e) => e.fila)).toEqual([4]);
+  });
+});
+
+describe('POST /socios — transacción', () => {
   it('sin rol socio → 500 con mensaje de transacción y ROLLBACK', async () => {
     db.rol = [];
-    const res = await importar(
-      await xlsx([{ Numero_Accion: '1', Rol: 'Titular', Nombre_Completo: 'X', Email: 'x@y.mx' }])
-    );
+    const res = await importar(await xlsx([fila()]));
 
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: 'Error en la transacción: Rol socio no encontrado en la BD' });
@@ -267,50 +429,50 @@ describe('POST /socios — validaciones', () => {
 
   it('falla la conexión → responde el errorHandler global', async () => {
     pool.connect.mockRejectedValueOnce(new Error('connection refused'));
-    const res = await importar(
-      await xlsx([{ Numero_Accion: '1', Rol: 'Titular', Nombre_Completo: 'X', Email: 'x@y.mx' }])
-    );
+    const res = await importar(await xlsx([fila()]));
 
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ ok: false, error: 'Error interno del servidor' });
   });
-});
 
-// ── Importación: sincronización ──────────────────────────────────────────────
-
-describe('POST /socios — sincronización', () => {
-  it('email duplicado con espacio interno: el original no omite esas filas (regex del mensaje)', async () => {
+  it('una fila falla en la BD → 422, ROLLBACK de toda la importación y se revisan todas las filas', async () => {
+    db.usernamesQueFallan = ['falla@club.mx'];
     const filas = [
-      { Numero_Accion: '7', Rol: 'Titular', Nombre_Completo: 'Uno', Email: 'a b@club.mx' },
-      { Numero_Accion: '7', Rol: 'Miembro', Nombre_Completo: 'Dos', Email: 'A B@club.mx' }
+      fila(),
+      fila({ Numero_Accion: '4040', Email: 'falla@club.mx' }),
+      fila({ Numero_Accion: '5050', Email: 'carla@club.mx' })
     ];
     const res = await importar(await xlsx(filas));
 
-    expect(res.body.errores).toEqual([
-      { fila: 3, motivo: 'Email duplicado en el archivo: a b@club.mx (ya aparece en fila 2)' }
-    ]);
-    expect(res.body.nuevos).toBe(2);
+    expect(res.status).toBe(422);
+    expect(res.body).toEqual({
+      error: 'Se encontraron 1 error(es); no se importó ningún registro',
+      total_procesados: 3,
+      nuevos: 0,
+      actualizados: 0,
+      errores: [{ fila: 3, columna: null, valor: '', motivo: 'El email ya está registrado en otra acción' }]
+    });
+    expect(calls('INSERT INTO usuarios')).toHaveLength(3);
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK TO SAVEPOINT sp_fila');
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+    expect(client.query).not.toHaveBeenCalledWith('COMMIT');
+    expect(client.release).toHaveBeenCalled();
   });
 
-  it('procesa cada tipo de fila y reporta nuevos, actualizados y errores', async () => {
+  it('archivo válido: sanea formatos, crea/actualiza cada tipo de fila y hace COMMIT', async () => {
     db.accionesPorConflicto = { 3030: 33 };
-    db.usernamesQueFallan = ['falla@club.mx'];
     const filas = [
-      // fila 2: acción nueva, titular, fecha ISO, 3+ palabras en el nombre
-      {
-        Numero_Accion: '2047',
-        Tipo_Accion: 'Individual',
-        Estatus_Accion: 'Rentada',
-        Rol: 'Titular',
-        Nombre_Completo: 'Sandra Luz Torres Sánchez',
+      // fila 2: acción nueva, titular, 3+ palabras, espacios y mayúsculas a sanear
+      fila({
+        Nombre_Completo: '  Sandra  Luz Torres Sánchez ',
         Genero: 'Femenino',
         Fecha_Nacimiento: '1990-11-03',
         Domicilio: ' Calle Hidalgo 88 ',
         Email: ' Sandra@Mail.MX ',
-        Telefono_Celular: '4439998877'
-      },
-      // fila 3: acción existente, usuario existente → actualización; 2 palabras
-      {
+        Telefono_Celular: '443-999-88 77'
+      }),
+      // fila 3: acción existente, usuario existente → actualización; fecha como celda de fecha
+      fila({
         Numero_Accion: 1013,
         Tipo_Accion: 'Familiar',
         Estatus_Accion: 'Propia',
@@ -319,53 +481,36 @@ describe('POST /socios — sincronización', () => {
         Fecha_Nacimiento: new Date(Date.UTC(1978, 8, 25)),
         Parentesco: 'Esposa',
         Email: 'ana@club.mx',
-        Telefono_Particular: '4430000000'
-      },
-      // fila 4: acción existente, miembro nuevo → numero M{count+1}; 1 palabra; fecha serial de Excel
-      {
-        Numero_Accion: '1013',
+        Telefono_Particular: 4430000000
+      }),
+      // fila 4: miembro nuevo (M{count+1}); celdas con fórmula, rich text, hipervínculo y serial de fecha
+      fila({
+        Numero_Accion: { formula: '"10"&"13"', result: '1013' },
+        Tipo_Accion: 'FAMILIAR',
+        Estatus_Accion: 'propia',
         Rol: 'miembro',
-        Nombre_Completo: 'Beto',
+        Nombre_Completo: { richText: [{ text: 'Beto ' }, { text: 'Ruiz' }] },
+        Genero: 'm',
         Fecha_Nacimiento: 36526,
-        Email: 'beto@club.mx'
-      },
-      // fila 5: sin Numero_Accion
-      { Rol: 'Titular', Nombre_Completo: 'Sin Accion', Email: 'sin@club.mx' },
-      // fila 6: sin Email
-      { Numero_Accion: '5', Rol: 'Titular', Nombre_Completo: 'Sin Email' },
-      // fila 7 y 8: email duplicado en el archivo (se omiten ambas)
-      { Numero_Accion: '6', Rol: 'Titular', Nombre_Completo: 'Dup Uno', Email: 'dup@club.mx' },
-      { Numero_Accion: '6', Rol: 'Miembro', Nombre_Completo: 'Dup Dos', Email: 'DUP@club.mx' },
-      // fila 9: acción nueva que ya existe por conflicto; fecha inválida → null
-      {
+        Parentesco: 'Hijo',
+        Email: { text: 'Beto@Club.mx', hyperlink: 'mailto:beto@club.mx' }
+      }),
+      // fila 5: acción que ya existe por conflicto; fecha DD/MM/YYYY
+      fila({
         Numero_Accion: '3030',
-        Rol: 'Titular',
         Nombre_Completo: 'Carla Ruiz',
         Fecha_Nacimiento: '03/11/1990',
         Email: 'carla@club.mx'
-      },
-      // fila 10: error de BD al insertar el usuario → rollback al savepoint
-      { Numero_Accion: '4040', Rol: 'Titular', Nombre_Completo: 'Falla Aqui', Email: 'falla@club.mx' }
+      })
     ];
 
     const res = await importar(await xlsx(filas));
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({
-      total_procesados: 9,
-      nuevos: 3,
-      actualizados: 1,
-      errores: [
-        { fila: 8, motivo: 'Email duplicado en el archivo: dup@club.mx (ya aparece en fila 7)' },
-        { fila: 5, motivo: 'Numero_Accion vacío' },
-        { fila: 6, motivo: 'Email vacío' },
-        { fila: 10, motivo: 'duplicate key value violates unique constraint' }
-      ]
-    });
+    expect(res.body).toEqual({ total_procesados: 4, nuevos: 3, actualizados: 1, errores: [] });
 
-    // Usuarios insertados: sandra, beto, carla (falla@ lanzó error)
     const insertUsuarios = calls('INSERT INTO usuarios').map(([, p]) => p);
-    expect(insertUsuarios.map((p) => [p[0], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9]])).toEqual([
+    expect(insertUsuarios.map(paramsUsuario)).toEqual([
       [
         'sandra@mail.mx',
         5,
@@ -377,21 +522,18 @@ describe('POST /socios — sincronización', () => {
         '4439998877',
         'Calle Hidalgo 88'
       ],
-      ['beto@club.mx', 5, 'Beto', '', '', null, '2000-01-01', null, null],
-      ['carla@club.mx', 5, 'Carla', 'Ruiz', '', null, null, null, null],
-      ['falla@club.mx', 5, 'Falla', 'Aqui', '', null, null, null, null]
+      ['beto@club.mx', 5, 'Beto', 'Ruiz', '', 'Masculino', '2000-01-01', null, null],
+      ['carla@club.mx', 5, 'Carla', 'Ruiz', '', null, '1990-11-03', null, null]
     ]);
     expect(bcrypt.compareSync(`Club2047${ANIO}`, insertUsuarios[0][1])).toBe(true);
     expect(bcrypt.compareSync(`Club1013${ANIO}`, insertUsuarios[1][1])).toBe(true);
 
-    // Socios insertados
     expect(calls('INSERT INTO socios').map(([, p]) => p)).toEqual([
       [100, 900, 'Rentista', 'Individual', true, 'SOC-2047-T', null, null],
-      [101, 11, 'Rentista', 'Individual', false, 'SOC-1013-M3', null, null],
+      [101, 11, 'Accionista', 'Familiar', false, 'SOC-1013-M3', null, 'Hijo'],
       [102, 33, 'Rentista', 'Individual', true, 'SOC-3030-T', null, null]
     ]);
 
-    // Actualización del usuario existente
     expect(calls('UPDATE usuarios SET nombres=$1')[0][1]).toEqual([
       'Ana',
       'López',
@@ -411,9 +553,8 @@ describe('POST /socios — sincronización', () => {
       21
     ]);
 
-    // Savepoints: uno por fila procesada; rollback al savepoint solo en la fila que falló
-    expect(calls('SAVEPOINT sp_fila').filter(([sql]) => sql === 'SAVEPOINT sp_fila')).toHaveLength(5);
-    expect(client.query).toHaveBeenCalledWith('ROLLBACK TO SAVEPOINT sp_fila');
+    expect(calls('SAVEPOINT sp_fila').filter(([sql]) => sql === 'SAVEPOINT sp_fila')).toHaveLength(4);
+    expect(client.query).not.toHaveBeenCalledWith('ROLLBACK TO SAVEPOINT sp_fila');
     expect(client.query).toHaveBeenCalledWith('COMMIT');
     expect(client.release).toHaveBeenCalled();
   });

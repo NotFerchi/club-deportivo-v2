@@ -102,6 +102,8 @@ function getEstadoSocio(socio) {
 
 const IMPORT_ERROR_COLUMNS = [
   { key: 'fila', header: 'Fila', width: 60 },
+  { key: 'columna', header: 'Columna', render: (err) => err.columna || '—' },
+  { key: 'valor', header: 'Valor', render: (err) => err.valor || '—' },
   { key: 'motivo', header: 'Motivo' },
 ];
 
@@ -382,7 +384,13 @@ function GestionSocios({ readOnly = false }) {
       setFileState({ status: 'idle', message: '' });
       setImportResult(result);
     } catch (error) {
-      setFileState({ status: 'error', message: error.message || 'No se pudo importar el archivo.' });
+      // 422: el archivo tiene filas con errores y no se guardó nada → mostrar el reporte.
+      if (Array.isArray(error.data?.errores)) {
+        setFileState({ status: 'idle', message: '' });
+        setImportResult({ ...error.data, rechazada: true });
+      } else {
+        setFileState({ status: 'error', message: error.message || 'No se pudo importar el archivo.' });
+      }
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -649,9 +657,9 @@ function GestionSocios({ readOnly = false }) {
           onClose={() => setImportResult(null)}
           closeOnOverlayClick
           portal={false}
-          maxWidth={520}
-          title="Resultado de importación"
-          subtitle="Resumen del archivo procesado"
+          maxWidth={importResult.rechazada ? 720 : 520}
+          title={importResult.rechazada ? 'Importación rechazada' : 'Resultado de importación'}
+          subtitle={importResult.rechazada ? 'No se guardó ningún registro. Corrige el archivo y vuelve a subirlo.' : 'Resumen del archivo procesado'}
           footer={<Button onClick={() => setImportResult(null)}>Cerrar</Button>}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
@@ -675,7 +683,7 @@ function GestionSocios({ readOnly = false }) {
                 <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
                 Errores ({importResult.errores.length})
               </p>
-              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+              <div style={{ maxHeight: 280, overflowY: 'auto' }}>
                 <Table
                   columns={IMPORT_ERROR_COLUMNS}
                   data={importResult.errores}

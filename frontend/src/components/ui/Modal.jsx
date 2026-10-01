@@ -43,11 +43,26 @@ function getFocusable(container) {
  *   isOpen   - muestra u oculta el modal
  *   onClose  - acción de la X y de Escape
  *   title    - título del header
+ *   subtitle - texto secundario bajo el título; opcional
  *   footer   - contenido del footer (normalmente Button secondary + primary); opcional
  *   maxWidth - ancho máximo del diálogo (default 480px, como en Figma)
  *   className - clase extra del diálogo; opcional
+ *   closeOnOverlayClick - true cierra también con clic en el fondo (default false)
+ *   portal   - false renderiza en el lugar en vez de en document.body, para heredar
+ *              estilos con ámbito (p. ej. `.dashboard-root …`); default true
  */
-export function Modal({ isOpen, onClose, title, footer, maxWidth, className, children }) {
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
+  footer,
+  maxWidth,
+  className,
+  closeOnOverlayClick = false,
+  portal = true,
+  children,
+}) {
   const titleId = useId();
   const dialogRef = useRef(null);
   // onClose va en un ref para que el efecto dependa solo de isOpen: si el padre
@@ -117,8 +132,12 @@ export function Modal({ isOpen, onClose, title, footer, maxWidth, className, chi
 
   const classes = ['ui-modal', className].filter(Boolean).join(' ');
 
-  return createPortal(
-    <div className="ui-modal-overlay">
+  const handleOverlayClick = (event) => {
+    if (closeOnOverlayClick && event.target === event.currentTarget) onClose?.();
+  };
+
+  const content = (
+    <div className="ui-modal-overlay" onClick={handleOverlayClick}>
       <div
         ref={dialogRef}
         tabIndex={-1}
@@ -129,7 +148,12 @@ export function Modal({ isOpen, onClose, title, footer, maxWidth, className, chi
         aria-labelledby={title ? titleId : undefined}
       >
         <header className="ui-modal__header">
-          {title && <h3 id={titleId} className="ui-modal__title">{title}</h3>}
+          {(title || subtitle) && (
+            <div className="ui-modal__heading">
+              {title && <h3 id={titleId} className="ui-modal__title">{title}</h3>}
+              {subtitle && <p className="ui-modal__subtitle">{subtitle}</p>}
+            </div>
+          )}
           <button type="button" className="ui-modal__close" onClick={onClose} aria-label="Cerrar">
             <X size={20} />
           </button>
@@ -137,9 +161,10 @@ export function Modal({ isOpen, onClose, title, footer, maxWidth, className, chi
         <div className="ui-modal__body">{children}</div>
         {footer && <footer className="ui-modal__footer">{footer}</footer>}
       </div>
-    </div>,
-    document.body,
+    </div>
   );
+
+  return portal ? createPortal(content, document.body) : content;
 }
 
 export default Modal;

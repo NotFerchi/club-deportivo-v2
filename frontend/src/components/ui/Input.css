@@ -1,4 +1,6 @@
-/* Input — solo tokens semánticos (src/styles/tokens.css) */
+/* Input — solo tokens semánticos (src/styles/tokens.css)
+   Los selectores del campo van como `.ui-input .ui-input__field` (0,2,0) para
+   ganar a `.dashboard-root input` (0,1,1) de css/Dashboard.css. */
 
 .ui-input {
     display: flex;
@@ -11,7 +13,7 @@
     color: var(--color-text-secondary);
 }
 
-.ui-input__field {
+.ui-input .ui-input__field {
     width: 100%;
     padding: var(--space-10) var(--space-12);
     border: 1px solid var(--color-border-strong);
@@ -22,12 +24,12 @@
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.ui-input__field::placeholder {
+.ui-input .ui-input__field::placeholder {
     color: var(--color-text-muted);
 }
 
 /* focus — borde de 2px (Figma) sin mover el layout: 1px de borde + 1px de sombra */
-.ui-input__field:focus {
+.ui-input .ui-input__field:focus {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 0 1px var(--color-primary);
@@ -59,13 +61,17 @@
     color: var(--color-text-disabled);
 }
 
-.ui-input__field:disabled {
+.ui-input .ui-input__field:disabled {
     border-color: var(--color-border-default);
     background: var(--color-bg-subtle);
     color: var(--color-text-disabled);
     cursor: not-allowed;
 }
 
-.ui-input__field:disabled::placeholder {
+.ui-input .ui-input__field:disabled::placeholder {
     color: var(--color-text-disabled);
+}
+
+.ui-input__required {
+    color: var(--color-feedback-danger-text);
 }

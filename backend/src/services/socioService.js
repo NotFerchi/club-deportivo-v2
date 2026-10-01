@@ -5,6 +5,12 @@ const { requireBodyOrEscalate } = require('./escalate');
 const { enTransaccion } = require('./transaction');
 const { validarCURP } = require('../utils/validacionCurp');
 
+// Lock advisory fijo y arbitrario para serializar la asignación de
+// numero_socio entre crearSocio y crearSocioRecepcion (bug #13/#21: el
+// siguiente numero_socio se calculaba con MAX+1 sin ningún bloqueo, así que
+// dos altas concurrentes podían calcular el mismo número antes de que
+// cualquiera insertara, generando numero_socio duplicados).
+const NUMERO_SOCIO_LOCK_KEY = 918273645;
 const normalizeTipoSocio = (tipo, tipoSocio) => {
   const value = String(tipo || tipoSocio || 'Rentista').toLowerCase();
   return value === 'accionista' ? 'Accionista' : 'Rentista';
@@ -147,6 +153,7 @@ async function crearSocio(body) {
     const passwordHash = bcrypt.hashSync(password, 10);
     let numeroSocioFinal = numero_socio;
     if (!numeroSocioFinal) {
+      await client.query('SELECT pg_advisory_xact_lock($1)', [NUMERO_SOCIO_LOCK_KEY]);
       const numeroResult = await client.query(`
         SELECT COALESCE(MAX(CAST(NULLIF(REGEXP_REPLACE(numero_socio, '\\D', '', 'g'), '') AS INTEGER)), 0) + 1 as siguiente
         FROM socios
@@ -401,6 +408,7 @@ async function crearSocioRecepcion(body) {
       );
       const usuarioId = userResult.rows[0].usuario_id;
 
+      await client.query('SELECT pg_advisory_xact_lock($1)', [NUMERO_SOCIO_LOCK_KEY]);
       const numSocioResult = await client.query(`
                 SELECT COALESCE(MAX(CAST(SUBSTRING(numero_socio FROM 5) AS INTEGER)), 0) + 1
                 FROM socios

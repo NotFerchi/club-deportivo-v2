@@ -219,7 +219,7 @@ async function actualizarUsuario(id, datos) {
            genero = $8,
            direccion = $9,
            rol_id = $10,
-           activo = $11,
+           activo = COALESCE($11, activo),
            password_hash = crypt($12, gen_salt('bf'))
        WHERE usuario_id = $13`,
       [
@@ -251,7 +251,7 @@ async function actualizarUsuario(id, datos) {
            genero = $8,
            direccion = $9,
            rol_id = $10,
-           activo = $11
+           activo = COALESCE($11, activo)
        WHERE usuario_id = $12`,
       [
         nombres,

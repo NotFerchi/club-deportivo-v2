@@ -1962,6 +1962,13 @@ exports[`socios POST /socios: correo existente, alta, error y casos fuera del tr
   ],
   [
     "client",
+    "SELECT pg_advisory_xact_lock($1)",
+    [
+      918273645,
+    ],
+  ],
+  [
+    "client",
     "SELECT COALESCE(MAX(CAST(SUBSTRING(numero_socio FROM 5) AS INTEGER)), 0) + 1 FROM socios",
     [],
   ],

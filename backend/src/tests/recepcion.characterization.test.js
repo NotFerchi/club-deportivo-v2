@@ -61,6 +61,7 @@ function route(q) {
     ].includes(q)
   )
     return rows([]);
+  if (q === 'SELECT pg_advisory_xact_lock($1)') return rows([]);
 
   // Cierre automático de visitas vencidas
   if (q.startsWith('UPDATE pases SET hora_salida = (NOW()')) return rows(db.cerradas);

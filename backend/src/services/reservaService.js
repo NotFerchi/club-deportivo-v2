@@ -367,20 +367,44 @@ async function obtenerReserva(id) {
 }
 
 /** Crea la reserva y devuelve su id. */
+/**
+ * Crea la reserva y devuelve su id.
+ *
+ * Usa un advisory lock transaccional por espacio (bug #3: dos solicitudes
+ * concurrentes para el mismo espacio/horario podían pasar ambas la
+ * validación de disponibilidad antes de que cualquiera insertara, creando
+ * una reserva doble). El lock serializa: la segunda solicitud espera a que
+ * la primera haga COMMIT o ROLLBACK, y para entonces su propia validación ya
+ * ve la reserva recién creada (READ COMMITTED) y la rechaza correctamente.
+ * pg_advisory_xact_lock se libera solo al terminar la transacción.
+ */
 async function crearReserva({ espacio_id, socio_id, fecha, hora_inicio, hora_fin, estado }) {
-  const errors = await validateReserva({ espacio_id, socio_id, fecha, hora_inicio, hora_fin });
-  if (errors.length > 0) throw validationError(errors);
+  const client = await connectOrEscalate(pool);
 
-  const estadoDb = await resolveReservaEstado(estado || 'confirmada');
-  const result = await pool.query(
-    `INSERT INTO reservaciones (espacio_id, socio_id, fecha_reserva, hora_inicio, hora_fin, estado)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING reserva_id`,
-    [espacio_id, socio_id, normalizeDate(fecha), normalizeTime(hora_inicio), normalizeTime(hora_fin), estadoDb]
-  );
-  return result.rows[0].reserva_id;
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [Number(espacio_id)]);
+
+    const errors = await validateReserva({ espacio_id, socio_id, fecha, hora_inicio, hora_fin });
+    if (errors.length > 0) throw validationError(errors);
+
+    const estadoDb = await resolveReservaEstado(estado || 'confirmada');
+    const result = await client.query(
+      `INSERT INTO reservaciones (espacio_id, socio_id, fecha_reserva, hora_inicio, hora_fin, estado)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING reserva_id`,
+      [espacio_id, socio_id, normalizeDate(fecha), normalizeTime(hora_inicio), normalizeTime(hora_fin), estadoDb]
+    );
+
+    await client.query('COMMIT');
+    return result.rows[0].reserva_id;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
-
 /** Actualiza la reserva en una transacción y devuelve el estado normalizado final. */
 async function actualizarReserva(id, datos) {
   const client = await connectOrEscalate(pool);

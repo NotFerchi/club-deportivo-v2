@@ -1,0 +1,91 @@
+/* Table / TableRow — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-table {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--ui-radius-lg);
+    font-family: var(--font-sans);
+}
+
+.ui-table__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ui-table__cell {
+    padding: var(--space-12) var(--space-16);
+    border-bottom: 1px solid var(--color-border-default);
+    text-align: left;
+    vertical-align: middle;
+    font: var(--font-body-sm);
+    color: var(--color-text-secondary);
+}
+
+/* primera columna destacada (Figma: Label/SM, text/primary) */
+.ui-table__row .ui-table__cell:first-child {
+    font: var(--font-label-sm);
+    color: var(--color-text-primary);
+}
+
+/* header */
+.ui-table__row--header {
+    background: var(--color-bg-subtle);
+}
+
+.ui-table__row--header .ui-table__cell,
+.ui-table__row--header .ui-table__cell:first-child {
+    font: var(--font-overline);
+    letter-spacing: var(--tracking-overline);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+/* filas */
+.ui-table__row {
+    background: var(--color-bg-surface);
+    transition: background-color 0.15s;
+}
+
+tbody .ui-table__row:hover {
+    background: var(--color-bg-app);
+}
+
+tbody .ui-table__row:last-child .ui-table__cell {
+    border-bottom: 0;
+}
+
+.ui-table__row--clickable {
+    cursor: pointer;
+}
+
+/* estado vacío */
+.ui-table__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-48) var(--space-24);
+    text-align: center;
+}
+
+.ui-table__empty-icon {
+    display: inline-flex;
+    padding: var(--space-12);
+    border-radius: var(--ui-radius-full);
+    background: var(--color-bg-app);
+    color: var(--color-icon-muted);
+}
+
+.ui-table__empty-title {
+    margin: 0;
+    font: var(--font-heading-h4);
+    color: var(--color-text-primary);
+}
+
+.ui-table__empty-message {
+    margin: 0;
+    font: var(--font-body-sm);
+    color: var(--color-text-muted);
+}

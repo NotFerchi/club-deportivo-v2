@@ -1,0 +1,180 @@
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS — Club Deportivo V2
+   Fuente de verdad: Figma "Club-Deportivo-V2 — UI Kit" (página Tokens).
+   Colecciones: Primitives · Semantic · Spacing · Radius + estilos de
+   texto y de efecto.
+
+   Regla: los componentes de components/ui/ usan SOLO la capa semántica
+   (--color-*, --space-*, --ui-radius-*, --ui-shadow-*, --font-*).
+   Las primitivas existen solo para definir los alias.
+
+   Nota: radios y sombras llevan prefijo --ui- porque css/main.css e
+   css/instructor.css ya definen --radius-sm/md/lg y --shadow-sm/md/lg
+   con otros valores y se cargan después.
+   Fuentes: Plus Jakarta Sans y Playfair Display se cargan en index.html.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    /* ─── PRIMITIVES ─────────────────────────────────────────── */
+    /* slate/* */
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+    --white: #ffffff; /* base/white */
+
+    /* brand/* */
+    --navy-900: #0f2146; /* brand/navy */
+    --sky-500: #0ea5e9;  /* brand/primary */
+    --sky-600: #0284c7;  /* brand/primary-hover */
+    --cyan-500: #06b6d4; /* brand/cyan */
+
+    --green-100: #dcfce7;
+    --green-200: #bbf7d0;
+    --green-500: #22c55e;
+    --green-700: #15803d;
+
+    --amber-100: #fef3c7;
+    --amber-200: #fde68a;
+    --amber-500: #f59e0b;
+    --amber-700: #b45309;
+
+    --red-100: #fee2e2;
+    --red-200: #fecaca;
+    --red-500: #ef4444;
+    --red-700: #b91c1c;
+
+    --blue-100: #dbeafe;
+    --blue-200: #bfdbfe;
+    --blue-500: #3b82f6;
+    --blue-700: #1d4ed8;
+
+    --violet-100: #ede9fe;
+    --violet-200: #ddd6fe;
+    --violet-500: #8b5cf6;
+    --violet-700: #6d28d9;
+
+    --orange-100: #ffedd5;
+    --orange-200: #fed7aa;
+    --orange-500: #f97316;
+    --orange-700: #c2410c;
+
+    /* ─── SEMANTIC · COLOR ───────────────────────────────────── */
+    /* TODO: contraste blanco sobre sky-500 ≈ 2.8:1, no cumple WCAG AA para
+       texto normal (4.5:1). Revisar (p. ej. sky-600/700) antes de producción. */
+    --color-primary: var(--sky-500);
+    --color-primary-hover: var(--sky-600);
+    --color-accent: var(--cyan-500);
+    --color-brand-navy: var(--navy-900);
+
+    --color-text-primary: var(--slate-900);
+    --color-text-secondary: var(--slate-600);
+    --color-text-muted: var(--slate-500);
+    --color-text-disabled: var(--slate-400);
+    --color-text-inverse: var(--white);
+
+    --color-icon-default: var(--slate-500);
+    --color-icon-muted: var(--slate-400);
+
+    --color-bg-app: var(--slate-100);
+    --color-bg-surface: var(--white);
+    --color-bg-subtle: var(--slate-50);
+    --color-bg-sidebar: var(--slate-900);
+
+    --color-border-default: var(--slate-200);
+    --color-border-strong: var(--slate-300);
+
+    --color-feedback-success-bg: var(--green-100);
+    --color-feedback-success-text: var(--green-700);
+    --color-feedback-success-border: var(--green-200);
+    --color-feedback-success-solid: var(--green-500);
+
+    --color-feedback-warning-bg: var(--amber-100);
+    --color-feedback-warning-text: var(--amber-700);
+    --color-feedback-warning-border: var(--amber-200);
+    --color-feedback-warning-solid: var(--amber-500);
+
+    --color-feedback-danger-bg: var(--red-100);
+    --color-feedback-danger-text: var(--red-700);
+    --color-feedback-danger-border: var(--red-200);
+    --color-feedback-danger-solid: var(--red-500);
+    --color-feedback-danger-solid-hover: var(--red-700);
+
+    --color-feedback-info-bg: var(--blue-100);
+    --color-feedback-info-text: var(--blue-700);
+    --color-feedback-info-border: var(--blue-200);
+    --color-feedback-info-solid: var(--blue-500);
+
+    --color-tag-purple-bg: var(--violet-100);
+    --color-tag-purple-text: var(--violet-700);
+    --color-tag-orange-bg: var(--orange-100);
+    --color-tag-orange-text: var(--orange-700);
+
+    /* Solo en código (no existe en Figma): fondo del modal = slate-900 al 48 % */
+    --color-overlay: rgb(15 23 42 / 0.48);
+
+    /* ─── SPACING ────────────────────────────────────────────── */
+    --space-0: 0px;
+    --space-2: 2px;
+    --space-4: 4px;
+    --space-6: 6px;
+    --space-8: 8px;
+    --space-10: 10px;
+    --space-12: 12px;
+    --space-16: 16px;
+    --space-20: 20px;
+    --space-24: 24px;
+    --space-32: 32px;
+    --space-48: 48px;
+    --space-56: 56px;
+    --space-80: 80px;
+
+    /* ─── RADIUS ─────────────────────────────────────────────── */
+    --ui-radius-none: 0px;
+    --ui-radius-xs: 4px;
+    --ui-radius-sm: 6px;
+    --ui-radius-md: 8px;
+    --ui-radius-lg: 12px;
+    --ui-radius-xl: 16px;
+    --ui-radius-2xl: 24px;
+    --ui-radius-full: 999px;
+
+    /* ─── SHADOWS (estilos de efecto) ────────────────────────── */
+    --ui-shadow-xs: 0 2px 8px rgb(0 0 0 / 0.04);
+    --ui-shadow-sm: 0 2px 12px rgb(0 0 0 / 0.06);
+    --ui-shadow-md: 0 4px 12px rgb(0 0 0 / 0.08);
+    --ui-shadow-lg: 0 8px 24px rgb(0 0 0 / 0.10);
+    --ui-shadow-xl: 0 24px 56px rgb(0 0 0 / 0.16);
+
+    /* ─── TYPOGRAPHY (estilos de texto) ──────────────────────── */
+    --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-serif: 'Playfair Display', Georgia, serif;
+
+    /* font: weight size/line-height family */
+    --font-display-hero: 800 78px/1.02 var(--font-sans);
+    --font-display-section: 800 46px/1.08 var(--font-sans);
+    --font-heading-h1: 800 34px/1.2 var(--font-sans);
+    --font-heading-h2: 800 24px/1.2 var(--font-sans);
+    --font-heading-h3: 800 20px/1.2 var(--font-sans);
+    --font-heading-h4: 800 16px/1.3 var(--font-sans);
+    --font-serif-title: 700 28px/1.2 var(--font-serif);
+    --font-body-lg: 400 15px/1.6 var(--font-sans);
+    --font-body-md: 400 14px/1.5 var(--font-sans);
+    --font-body-sm: 400 13px/1.5 var(--font-sans);
+    --font-label-button: 700 14px/1.4 var(--font-sans);
+    --font-label-sm: 600 12px/1.4 var(--font-sans);
+    --font-caption: 600 11px/1.4 var(--font-sans);
+    --font-overline: 700 10px/1.4 var(--font-sans); /* + uppercase */
+
+    --tracking-display-hero: -3px;
+    --tracking-display-section: -2px;
+    --tracking-heading-h1: -1px;
+    --tracking-heading-h2: -0.5px;
+    --tracking-overline: 0.5px;
+}

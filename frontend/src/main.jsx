@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import './styles/tokens.css'      // ← design tokens (antes que todo)
 import '../css/index.css'         // ← PRIMERO los globales
 import '../css/Dashboard.css' // ← DESPUÉS los de dashboard
 

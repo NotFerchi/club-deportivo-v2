@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
@@ -16,6 +16,10 @@ import Ludoteca from './pages/dashboards/socio/Ludoteca'
 import Sanciones from './pages/dashboards/socio/Sanciones'
 import Torneos from './pages/dashboards/socio/Torneos'
 import Espacios from './pages/Espacios'
+
+// Playground del UI Kit: solo en desarrollo. En build de producción
+// import.meta.env.DEV es false y la página no entra en el bundle.
+const UIKitPlayground = import.meta.env.DEV ? lazy(() => import('./pages/UIKitPlayground')) : null
 
 function getStoredRol() {
   try {
@@ -101,6 +105,10 @@ function App() {
           <Route path="/sanciones" element={<ProtectedRoute allowedRoles={['socio']}><Sanciones /></ProtectedRoute>} />
           <Route path="/torneos" element={<ProtectedRoute allowedRoles={['socio']}><Torneos /></ProtectedRoute>} />
           <Route path="/components/socio-layout" element={<SocioLayout />} />
+
+          {import.meta.env.DEV && (
+            <Route path="/ui-kit" element={<Suspense fallback={null}><UIKitPlayground /></Suspense>} />
+          )}
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

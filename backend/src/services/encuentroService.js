@@ -1,10 +1,28 @@
-const pool = require('../config/database');
 const ServiceError = require('./serviceError');
 const { enTransaccion } = require('./transaction');
+const { admiteAsignarCancha, admiteResultados } = require('./torneoEstados');
 
 const ROLES_ARBITRAJE = ['instructor', 'admin', 'gerente', 'coordinador'];
 
 const fail = (status, error) => new ServiceError(status, { ok: false, error });
+
+/**
+ * Estado del torneo del encuentro, con su fila bloqueada (FOR SHARE) antes que la del encuentro:
+ * el mismo orden que cerrar, confirmar, finalizar y cancelar, que no pueden cambiar el estado
+ * mientras tanto. 404 si el encuentro no existe.
+ */
+async function estadoDelTorneo(client, encuentroId) {
+  const { rows, rowCount } = await client.query(
+    `SELECT t.estado
+       FROM encuentros_torneo e
+       JOIN torneos t ON t.torneo_id = e.torneo_id
+       WHERE e.encuentro_id = $1
+       FOR SHARE OF t`,
+    [encuentroId]
+  );
+  if (rowCount === 0) throw fail(404, 'Encuentro no encontrado');
+  return rows[0].estado;
+}
 
 /** Coloca al ganador en la siguiente ronda (slot del ganador anterior al editar, o slot libre). */
 async function avanzarGanador(client, { enc, ganadorId, ganadorAnterior, allowEdit, siguienteRonda }) {
@@ -64,7 +82,10 @@ async function avanzarGanador(client, { enc, ganadorId, ganadorAnterior, allowEd
   return null;
 }
 
-/** Registra (o edita con allowEdit) el marcador, avanza al ganador y activa la siguiente ronda. */
+/**
+ * Registra (o edita con allowEdit) el marcador, avanza al ganador y activa la siguiente ronda.
+ * Solo con el torneo En_curso; allowEdit solo sobre encuentros ya finalizados.
+ */
 async function registrarResultado(user, encuentroIdParam, body) {
   const rolUsuario = user?.rol;
   if (!rolUsuario || !ROLES_ARBITRAJE.includes(rolUsuario)) {
@@ -80,6 +101,11 @@ async function registrarResultado(user, encuentroIdParam, body) {
   const cancha = body.cancha_asignada !== undefined ? String(body.cancha_asignada).trim() || null : undefined;
 
   return enTransaccion(async (client) => {
+    const estadoTorneo = await estadoDelTorneo(client, encuentroId);
+    if (!admiteResultados(estadoTorneo)) {
+      throw fail(409, `Solo se pueden registrar resultados con el torneo en curso (estado actual: ${estadoTorneo})`);
+    }
+
     const { rows, rowCount } = await client.query(
       `SELECT encuentro_id, torneo_id, ronda, estado,
                 participante_1_id, participante_2_id, ganador_id
@@ -93,6 +119,10 @@ async function registrarResultado(user, encuentroIdParam, body) {
 
     const enc = rows[0];
     const ganadorAnterior = enc.ganador_id;
+
+    if (allowEdit && enc.estado !== 'finalizado') {
+      throw fail(409, 'Solo se puede editar el resultado de un encuentro finalizado');
+    }
 
     if (enc.estado === 'finalizado' && !allowEdit) {
       throw fail(409, 'No se puede editar un encuentro ya finalizado');
@@ -162,18 +192,27 @@ async function registrarResultado(user, encuentroIdParam, body) {
   });
 }
 
-/** encuentro_id positivo y cancha no vacía: validados en la ruta. */
+/** encuentro_id positivo y cancha no vacía: validados en la ruta. Solo con el bracket generado y sin terminar. */
 async function asignarCancha(encuentroIdParam, body) {
   const encuentroId = Number(encuentroIdParam);
   const cancha = String(body.cancha_asignada || '').trim();
 
-  const { rows, rowCount } = await pool.query(
-    `UPDATE encuentros_torneo SET cancha_asignada = $1 WHERE encuentro_id = $2
-         RETURNING encuentro_id, cancha_asignada`,
-    [cancha, encuentroId]
-  );
-  if (rowCount === 0) throw fail(404, 'Encuentro no encontrado');
-  return rows[0];
+  return enTransaccion(async (client) => {
+    const estadoTorneo = await estadoDelTorneo(client, encuentroId);
+    if (!admiteAsignarCancha(estadoTorneo)) {
+      throw fail(
+        409,
+        `Solo se puede asignar cancha con las inscripciones cerradas o el torneo en curso (estado actual: ${estadoTorneo})`
+      );
+    }
+
+    const { rows } = await client.query(
+      `UPDATE encuentros_torneo SET cancha_asignada = $1 WHERE encuentro_id = $2
+           RETURNING encuentro_id, cancha_asignada`,
+      [cancha, encuentroId]
+    );
+    return rows[0];
+  });
 }
 
 module.exports = { registrarResultado, asignarCancha };

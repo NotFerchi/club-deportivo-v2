@@ -39,7 +39,6 @@ function TournamentBracket({
     disciplina_id: '',
     fecha_inicio: '',
     fecha_fin: '',
-    estado: 'Abierto',
     categoria_id: '',
     tipo_torneo: 'Individual'
   });
@@ -172,7 +171,6 @@ function TournamentBracket({
       disciplina_id: '',
       fecha_inicio: '',
       fecha_fin: '',
-      estado: 'Abierto',
       categoria_id: '',
       tipo_torneo: 'Individual'
     });
@@ -187,7 +185,6 @@ function TournamentBracket({
       disciplina_id: String(torneo.disciplina_id || ''),
       fecha_inicio: torneo.fecha_inicio ? String(torneo.fecha_inicio).split('T')[0] : '',
       fecha_fin: torneo.fecha_fin ? String(torneo.fecha_fin).split('T')[0] : '',
-      estado: torneo.estado || 'Abierto',
       categoria_id: torneo.categoria_id ? String(torneo.categoria_id) : '',
       tipo_torneo: torneo.tipo_torneo || 'Individual'
     });
@@ -220,7 +217,6 @@ function TournamentBracket({
         disciplina_id: Number(formTorneo.disciplina_id),
         fecha_inicio: formTorneo.fecha_inicio || null,
         fecha_fin: formTorneo.fecha_fin || null,
-        estado: formTorneo.estado,
         categoria_id: formTorneo.categoria_id ? Number(formTorneo.categoria_id) : null,
         tipo_torneo: formTorneo.tipo_torneo || 'Individual'
       };
@@ -554,6 +550,7 @@ function TournamentBracket({
                       <MatchEditPanel
                         key={selectedEncuentro.encuentro_id}
                         encuentro={selectedEncuentro}
+                        torneoEstado={selectedTorneo.estado}
                         onClose={() => setSelectedEncuentroId(null)}
                         onSaved={() => setSelectedTorneo((prev) => ({ ...prev }))}
                         readOnly={readOnly}
@@ -768,33 +765,6 @@ function TournamentBracket({
                     Define la categoría para todos los participantes de este torneo.
                   </p>
                 </div>
-                {editingTorneo && (
-                  <div>
-                    <label
-                      style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}
-                    >
-                      Estado
-                    </label>
-                    <select
-                      value={formTorneo.estado}
-                      onChange={(e) => setFormTorneo((p) => ({ ...p, estado: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: 8,
-                        border: '1px solid #cbd5e1',
-                        fontSize: 14,
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      {DEFAULT_ESTADO_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
               <div
                 style={{

@@ -48,7 +48,7 @@ function route(q) {
   if (q.startsWith('SELECT t.torneo_id, t.nombre, t.disciplina_id')) return rows(db.torneos);
   if (q.startsWith('SELECT disciplina_id FROM disciplinas')) return rows(db.disciplina);
   if (q.startsWith('INSERT INTO torneos')) return rows([{ torneo_id: 9 }]);
-  if (q.startsWith('UPDATE torneos SET disciplina_id')) return rows(db.torneoActualizado);
+  if (q.startsWith('UPDATE torneos SET disciplina_id')) return rows([]);
   if (q.startsWith('SELECT pt.participante_id, pt.torneo_id')) return rows(db.participantes);
   if (q.startsWith('SELECT * FROM socios')) return rows(db.socio);
   if (q.startsWith('SELECT * FROM visitas')) return rows(db.visita);
@@ -60,12 +60,16 @@ function route(q) {
   if (q === 'SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1') return rows(db.ids);
   if (q.startsWith('INSERT INTO participantes_torneo')) return rows([{ participante_id: 31 }]);
   if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE') return rows(db.torneoLock);
-  if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1') return rows(db.torneoEstado);
+  if (q === 'SELECT estado, categoria_id FROM torneos WHERE torneo_id = $1 FOR UPDATE') return rows(db.torneoInfo);
+  if (q.startsWith('SELECT estado, disciplina_id, tipo_torneo, categoria_id FROM torneos'))
+    return rows(db.torneoEditable);
+  if (q === 'SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1 LIMIT 1') return rows(db.hayEncuentros);
+  if (q.startsWith('SELECT 1 FROM encuentros_torneo WHERE $1 IN')) return rows(db.enBracket);
+  if (q.startsWith('SELECT ganador_id FROM encuentros_torneo')) return rows(db.final);
   if (q.startsWith('INSERT INTO encuentros_torneo')) return rows([]);
   if (q.startsWith('SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo'))
     return rows(db.byeSlot);
   if (q.startsWith('UPDATE encuentros_torneo SET participante_')) return rows([]);
-  if (q.startsWith("UPDATE torneos SET estado = 'Cancelado'")) return rows(db.cancelado);
   if (q.startsWith('UPDATE torneos SET estado')) return rows([]);
   if (q.startsWith('UPDATE encuentros_torneo SET estado')) return rows([]);
   if (q.startsWith('SELECT t.torneo_id, t.nombre, t.estado, d.nombre AS disciplina')) return rows(db.reporteTorneo);
@@ -74,7 +78,6 @@ function route(q) {
   if (q.startsWith('SELECT categoria_id, nombre FROM categorias_torneo')) return rows(db.categorias);
   if (q.startsWith('SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo')) return rows(db.socioPropio);
   if (q.startsWith('SELECT socio_id FROM socios WHERE usuario_id = $1')) return rows(db.socioMis);
-  if (q.startsWith('SELECT torneo_id, estado, categoria_id FROM torneos')) return rows(db.torneoInfo);
   if (q.startsWith('DELETE FROM participantes_torneo')) return rows(db.borrado);
   if (q.startsWith('SELECT pt.participante_id, t.torneo_id')) return rows(db.mis);
   if (q.startsWith('SELECT torneo_id FROM torneos')) return rows(db.torneoExiste);
@@ -88,7 +91,7 @@ beforeEach(() => {
     falla: null,
     torneos: [{ torneo_id: 1, nombre: 'Copa' }],
     disciplina: [{ disciplina_id: 2 }],
-    torneoActualizado: [{ torneo_id: 4 }],
+    torneoEditable: [{ estado: 'Abierto', disciplina_id: 2, tipo_torneo: 'Individual', categoria_id: 3 }],
     participantes: [
       { participante_id: 1, nombre_participante: 'Ana' },
       { participante_id: 2, nombre_participante: 'Beto' }
@@ -101,8 +104,9 @@ beforeEach(() => {
     ids: [11, 12, 13, 14, 15].map((participante_id) => ({ participante_id })),
     byeSlot: [{ encuentro_id: 500, participante_1_id: null, participante_2_id: null }],
     torneoLock: [{ estado: 'Abierto' }],
-    torneoEstado: [{ estado: 'Abierto' }],
-    cancelado: [{ torneo_id: 4 }],
+    hayEncuentros: [],
+    enBracket: [],
+    final: [{ ganador_id: 11 }],
     reporteTorneo: [{ torneo_id: 4, nombre: 'Copa', estado: 'En_curso', disciplina: 'Tenis' }],
     reporteEncuentros: [
       {
@@ -241,6 +245,16 @@ describe('POST /api/torneos', () => {
     expect(log).toMatchSnapshot();
   });
 
+  it.each(['Cerrado', 'Finalizado', 'En_curso', 'Lo que sea'])(
+    'estado %j en el body se ignora: el torneo nace Abierto (B-02)',
+    async (estado) => {
+      const res = await request(app).post('/api/torneos').send({ nombre: 'Copa', disciplina_id: 2, estado });
+      expect(res.status).toBe(201);
+      const insert = log.find(([, sql]) => sql.startsWith('INSERT INTO torneos'));
+      expect(insert[2][4]).toBe('Abierto');
+    }
+  );
+
   it.each([
     [{ disciplina_id: 2 }, 'El nombre es requerido'],
     [{ nombre: '   ', disciplina_id: 2 }, 'El nombre es requerido'],
@@ -321,11 +335,12 @@ describe('PUT /api/torneos/:torneo_id', () => {
   });
 
   it('no existe → 404; errores pg', async () => {
-    db.torneoActualizado = [];
+    db.torneoEditable = [];
     let res = await request(app).put('/api/torneos/4').send({ nombre: 'Copa', disciplina_id: 2 });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Torneo no encontrado' });
 
+    db.torneoEditable = [{ estado: 'Abierto', disciplina_id: 2, tipo_torneo: 'Individual', categoria_id: null }];
     for (const [code, status, error] of [
       ['23514', 400, 'La fecha de fin no puede ser menor que la fecha de inicio'],
       ['23503', 400, 'La disciplina no existe'],
@@ -339,6 +354,51 @@ describe('PUT /api/torneos/:torneo_id', () => {
       expect(res.body).toEqual({ error });
     }
   });
+
+  it.each([
+    ['Abierto', 'Inscripciones_cerradas'],
+    ['Abierto', 'Finalizado'],
+    ['Finalizado', 'Abierto'],
+    ['Cancelado', 'En_curso']
+  ])('torneo %s con estado %s en el body → 400 sin UPDATE (B-02)', async (actual, estado) => {
+    db.torneoEditable = [{ estado: actual, disciplina_id: 2, tipo_torneo: 'Individual', categoria_id: 3 }];
+    const res = await request(app)
+      .put('/api/torneos/4')
+      .send({ nombre: 'Copa', disciplina_id: 2, categoria_id: 3, estado });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'El estado se cambia con las acciones del torneo' });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE torneos'))).toBe(false);
+    expect(log.at(-1)[1]).toBe('ROLLBACK');
+  });
+
+  it.each(['Inscripciones_cerradas', 'En_curso', 'Finalizado', 'Cancelado'])(
+    'torneo %s: nombre y fechas sí; disciplina, tipo y categoría → 409 (B-02)',
+    async (actual) => {
+      db.torneoEditable = [{ estado: actual, disciplina_id: 2, tipo_torneo: 'Individual', categoria_id: 3 }];
+      const base = { nombre: 'Copa 2', disciplina_id: 2, categoria_id: 3, estado: actual };
+
+      let res = await request(app)
+        .put('/api/torneos/4')
+        .send({ ...base, fecha_inicio: '2026-10-01', fecha_fin: '2026-10-05', tipo_torneo: 'Individual' });
+      expect(res.status).toBe(200);
+
+      for (const cambio of [
+        { disciplina_id: 5 },
+        { tipo_torneo: 'Equipos' },
+        { categoria_id: 4 },
+        { categoria_id: null }
+      ]) {
+        res = await request(app)
+          .put('/api/torneos/4')
+          .send({ ...base, ...cambio });
+        expect(res.status).toBe(409);
+        expect(res.body).toEqual({
+          error: 'Con las inscripciones cerradas no se puede cambiar la disciplina, el tipo de torneo ni la categoría'
+        });
+      }
+      expect(log.filter(([, sql]) => sql.startsWith('UPDATE torneos'))).toHaveLength(1);
+    }
+  );
 
   it('sin body → errorHandler global (incluso con id inválido)', async () => {
     const res = await request(app).put('/api/torneos/abc');
@@ -455,6 +515,28 @@ describe('POST /api/torneos/:torneo_id/inscribir', () => {
     expect(res.body).toEqual({ error });
   });
 
+  it('torneo inexistente → 404 (B-04)', async () => {
+    db.torneoLock = [];
+    const res = await inscribir({ nombre_externo: 'Juan', categoria_id: 3 });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Torneo no encontrado' });
+  });
+
+  it.each(['Inscripciones_cerradas', 'En_curso', 'Finalizado', 'Cancelado'])(
+    'torneo %s → 409 sin INSERT, con la fila del torneo bloqueada (B-04, B-18)',
+    async (estado) => {
+      db.torneoLock = [{ estado }];
+      const res = await inscribir({ nombre_externo: 'Juan', categoria_id: 3 });
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({ error: 'El torneo no está abierto para inscripciones' });
+      expect(log.map(([, sql]) => sql)).toEqual([
+        'BEGIN',
+        'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE',
+        'ROLLBACK'
+      ]);
+    }
+  );
+
   it('sin body → errorHandler global', async () => {
     const res = await request(app).post('/api/torneos/4/inscribir');
     expect(res.status).toBe(500);
@@ -497,7 +579,7 @@ describe('PATCH /api/torneos/:torneo_id/cerrar-inscripciones', () => {
     db.torneoLock = [{ estado: 'En_curso' }];
     res = await cerrar();
     expect(res.status).toBe(409);
-    expect(res.body).toEqual({ error: 'El torneo no está abierto para cerrar inscripciones' });
+    expect(res.body).toEqual({ error: 'No se permite cerrar las inscripciones: el torneo está en estado "En curso"' });
 
     db.torneoLock = [{ estado: 'Abierto' }];
     db.ids = db.ids.slice(0, 3);
@@ -506,6 +588,31 @@ describe('PATCH /api/torneos/:torneo_id/cerrar-inscripciones', () => {
     expect(res.body).toEqual({ error: 'Se requieren mínimo 4 participantes' });
     expect(client.release).toHaveBeenCalledTimes(3);
     expect(log).toMatchSnapshot();
+  });
+
+  it('cerrar dos veces → la segunda da 409 y no genera otro bracket (B-03)', async () => {
+    let res = await cerrar();
+    expect(res.status).toBe(200);
+    const inserts = log.filter(([, sql]) => sql.startsWith('INSERT INTO encuentros_torneo')).length;
+
+    db.torneoLock = [{ estado: 'Inscripciones_cerradas' }];
+    res = await cerrar();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Las inscripciones del torneo ya están cerradas' });
+    expect(log.filter(([, sql]) => sql.startsWith('INSERT INTO encuentros_torneo'))).toHaveLength(inserts);
+  });
+
+  it('torneo Abierto que ya tiene encuentros → 409 sin leer participantes ni insertar (B-03)', async () => {
+    db.hayEncuentros = [{ '?column?': 1 }];
+    const res = await cerrar();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'El torneo ya tiene un bracket generado' });
+    expect(log.map(([, sql]) => sql)).toEqual([
+      'BEGIN',
+      'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE',
+      'SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1 LIMIT 1',
+      'ROLLBACK'
+    ]);
   });
 
   it('error de BD → ROLLBACK + 500; fallo de conexión → errorHandler', async () => {
@@ -528,12 +635,35 @@ describe('PATCH /api/torneos/:torneo_id/cerrar-inscripciones', () => {
 describe('PATCH /api/torneos/:torneo_id/confirmar-bracket', () => {
   const confirmar = (id = '4') => request(app).patch(`/api/torneos/${id}/confirmar-bracket`);
 
-  it('confirma (cualquier estado distinto de En_curso)', async () => {
+  it('confirma solo desde Inscripciones_cerradas y con encuentros (B-02)', async () => {
     db.torneoLock = [{ estado: 'Inscripciones_cerradas' }];
+    db.hayEncuentros = [{ '?column?': 1 }];
     const res = await confirmar();
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ message: 'Bracket confirmado' });
     expect(log).toMatchSnapshot();
+  });
+
+  it.each([
+    ['Abierto', 'No se permite confirmar el bracket: el torneo está en estado "Abierto"'],
+    ['En_curso', 'El torneo ya está en curso'],
+    ['Finalizado', 'El torneo ya está finalizado'],
+    ['Cancelado', 'El torneo ya está cancelado']
+  ])('desde %s → 409 sin cambiar nada (B-02)', async (estado, error) => {
+    db.torneoLock = [{ estado }];
+    db.hayEncuentros = [{ '?column?': 1 }];
+    const res = await confirmar();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
+  });
+
+  it('Inscripciones_cerradas sin encuentros → 409 (B-02)', async () => {
+    db.torneoLock = [{ estado: 'Inscripciones_cerradas' }];
+    const res = await confirmar();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'El torneo no tiene bracket generado' });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
   });
 
   it('400 / 404 / 409 / 500 / conexión', async () => {
@@ -549,10 +679,11 @@ describe('PATCH /api/torneos/:torneo_id/confirmar-bracket', () => {
     db.torneoLock = [{ estado: 'En_curso' }];
     res = await confirmar();
     expect(res.status).toBe(409);
-    expect(res.body).toEqual({ error: 'El bracket ya está confirmado' });
+    expect(res.body).toEqual({ error: 'El torneo ya está en curso' });
 
-    db.torneoLock = [{ estado: 'Abierto' }];
-    db.falla = { sql: "UPDATE torneos SET estado = 'En_curso'" };
+    db.torneoLock = [{ estado: 'Inscripciones_cerradas' }];
+    db.hayEncuentros = [{ '?column?': 1 }];
+    db.falla = { sql: 'UPDATE torneos SET estado' };
     res = await confirmar();
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: 'Error al confirmar bracket' });
@@ -636,10 +767,12 @@ describe('POST /api/torneos/:torneo_id/inscribir-me', () => {
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Torneo no encontrado' });
 
-    db.torneoInfo = [{ torneo_id: 4, estado: 'Cerrado', categoria_id: 3 }];
-    res = await inscribirme();
-    expect(res.status).toBe(409);
-    expect(res.body).toEqual({ error: 'El torneo no está abierto para inscripciones' });
+    for (const estado of ['Cerrado', 'Inscripciones_cerradas', 'En_curso', 'Finalizado', 'Cancelado']) {
+      db.torneoInfo = [{ torneo_id: 4, estado, categoria_id: 3 }];
+      res = await inscribirme();
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({ error: 'El torneo no está abierto para inscripciones' });
+    }
 
     db.torneoInfo = [{ torneo_id: 4, estado: 'Abierto', categoria_id: null }];
     res = await inscribirme();
@@ -683,17 +816,17 @@ describe('DELETE /api/torneos/:torneo_id/participantes/:participante_id', () => 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'IDs inválidos' });
 
-    db.torneoEstado = [];
+    db.torneoLock = [];
     res = await desinscribir();
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Torneo no encontrado' });
 
-    db.torneoEstado = [{ estado: 'En_curso' }];
+    db.torneoLock = [{ estado: 'En_curso' }];
     res = await desinscribir();
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ error: 'No se puede desinscribir participantes una vez cerradas las inscripciones' });
 
-    db.torneoEstado = [{ estado: 'Abierto' }];
+    db.torneoLock = [{ estado: 'Abierto' }];
     db.borrado = [];
     res = await desinscribir();
     expect(res.status).toBe(404);
@@ -703,6 +836,15 @@ describe('DELETE /api/torneos/:torneo_id/participantes/:participante_id', () => 
     res = await desinscribir();
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: 'Error al desinscribir participante' });
+  });
+
+  it('participante que ya está en el bracket → 409 sin DELETE (B-03)', async () => {
+    db.enBracket = [{ '?column?': 1 }];
+    const res = await desinscribir();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'El participante ya está en el bracket' });
+    expect(log.some(([, sql]) => sql.startsWith('DELETE'))).toBe(false);
+    expect(log.at(-1)[1]).toBe('ROLLBACK');
   });
 });
 
@@ -800,6 +942,30 @@ describe('PATCH /api/torneos/:torneo_id/finalizar', () => {
     expect(res.body).toEqual(ERROR_HANDLER);
     expect(ultimoError()).toBe('ERROR');
   });
+
+  it.each([
+    ['Abierto', 'No se permite finalizar: el torneo está en estado "Abierto"'],
+    ['Inscripciones_cerradas', 'No se permite finalizar: el torneo está en estado "Inscripciones cerradas"'],
+    ['Cancelado', 'El torneo ya está cancelado']
+  ])('desde %s → 409 sin cambiar nada (B-02)', async (estado, error) => {
+    db.torneoLock = [{ estado }];
+    const res = await finalizar();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
+  });
+
+  it.each([
+    ['la final no tiene ganador', [{ ganador_id: null }]],
+    ['el torneo no tiene encuentros', []]
+  ])('sin campeón (%s) → 409 (B-11)', async (_, final) => {
+    db.torneoLock = [{ estado: 'En_curso' }];
+    db.final = final;
+    const res = await finalizar();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'La final todavía no tiene ganador' });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
+  });
 });
 
 // ── PATCH /:torneo_id/cancelar ───────────────────────────────────────────────
@@ -814,23 +980,35 @@ describe('PATCH /api/torneos/:torneo_id/cancelar', () => {
     expect(log).toMatchSnapshot();
   });
 
+  it.each(['Abierto', 'Inscripciones_cerradas', 'En_curso'])('desde %s → 200 (B-02)', async (estado) => {
+    db.torneoLock = [{ estado }];
+    const res = await cancelar();
+    expect(res.status).toBe(200);
+    expect(log.find(([, sql]) => sql.startsWith('UPDATE torneos SET estado'))[2]).toEqual(['Cancelado', 4]);
+  });
+
   it('400 / 404 / 409 con estado en minúsculas / 500', async () => {
     let res = await cancelar('x');
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'torneo_id debe ser un entero válido' });
 
-    db.cancelado = [];
-    db.torneoEstado = [];
+    db.torneoLock = [];
     res = await cancelar();
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Torneo no encontrado' });
 
-    db.torneoEstado = [{ estado: 'Finalizado' }];
+    db.torneoLock = [{ estado: 'Finalizado' }];
     res = await cancelar();
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ error: 'El torneo ya está finalizado' });
+
+    db.torneoLock = [{ estado: 'Cancelado' }];
+    res = await cancelar();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'El torneo ya está cancelado' });
     expect(log).toMatchSnapshot();
 
+    db.torneoLock = [{ estado: 'Abierto' }];
     db.falla = { sql: 'UPDATE torneos' };
     res = await cancelar();
     expect(res.status).toBe(500);

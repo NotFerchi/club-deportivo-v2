@@ -3,9 +3,11 @@ import { Clock, Edit2, Loader2, MapPin, Save, X } from 'lucide-react';
 import { API_BASE_URL } from '../../services/api';
 import { normalizeEstado, formatTime, getParticipantName, isWinner } from './torneoUtils';
 
-function MatchEditPanel({ encuentro, onClose, onSaved, readOnly, espacios = [] }) {
+function MatchEditPanel({ encuentro, torneoEstado, onClose, onSaved, readOnly, espacios = [] }) {
   const est = normalizeEstado(encuentro.estado);
   const done = est === 'finalizado';
+  // El backend solo acepta resultados con el torneo En_curso
+  const admiteResultados = torneoEstado === 'En_curso';
   const p1 = encuentro.participante_1 || {};
   const p2 = encuentro.participante_2 || {};
   const w1 = isWinner(encuentro, p1);
@@ -26,7 +28,7 @@ function MatchEditPanel({ encuentro, onClose, onSaved, readOnly, espacios = [] }
     setError('');
   }, [encuentro.encuentro_id, encuentro.estado, encuentro.marcador_1, encuentro.marcador_2, encuentro.cancha_asignada]);
 
-  const showInputs = !readOnly && (est === 'programado' || editMode);
+  const showInputs = !readOnly && admiteResultados && (est === 'programado' || editMode);
   const ambosListos = getParticipantName(p1) !== 'Por definir' && getParticipantName(p2) !== 'Por definir';
   const canSaveResult = showInputs && ambosListos;
   const canchaChanged = cancha.trim() !== (encuentro.cancha_asignada || '').trim();
@@ -263,7 +265,7 @@ function MatchEditPanel({ encuentro, onClose, onSaved, readOnly, espacios = [] }
       {/* Buttons */}
       {!readOnly && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {done && !editMode && (
+          {done && !editMode && admiteResultados && (
             <button
               onClick={() => {
                 setEditMode(true);

@@ -1,8 +1,15 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
 const { enTransaccion } = require('./transaction');
+const { bloquearTorneo } = require('./torneoComun');
+const { ESTADOS, validarTransicion } = require('./torneoEstados');
 
 const MINIMO_PARTICIPANTES = 4;
+
+async function tieneEncuentros(client, torneoId) {
+  const { rowCount } = await client.query('SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1 LIMIT 1', [torneoId]);
+  return rowCount > 0;
+}
 
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -21,19 +28,19 @@ function siguientePotenciaDeDos(numero) {
 }
 
 /**
- * Cierra inscripciones y genera el bracket: ronda 1 (cruces + byes) y todas las
- * rondas futuras vacías para que los ganadores tengan a dónde avanzar.
+ * Abierto → Inscripciones_cerradas. Genera el bracket: ronda 1 (cruces + byes) y todas
+ * las rondas futuras vacías para que los ganadores tengan a dónde avanzar.
+ * La fila del torneo queda bloqueada antes de leer la lista de participantes.
  */
 async function cerrarInscripciones(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   await enTransaccion(async (client) => {
-    const torneo = await client.query('SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE', [torneoId]);
+    const torneo = await bloquearTorneo(client, torneoId);
+    validarTransicion(torneo.estado, ESTADOS.INSCRIPCIONES_CERRADAS);
 
-    if (torneo.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
-
-    if (torneo.rows[0].estado !== 'Abierto') {
-      throw new ServiceError(409, { error: 'El torneo no está abierto para cerrar inscripciones' });
+    if (await tieneEncuentros(client, torneoId)) {
+      throw new ServiceError(409, { error: 'El torneo ya tiene un bracket generado' });
     }
 
     const participantes = await client.query('SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1', [
@@ -120,21 +127,23 @@ async function cerrarInscripciones(torneoIdParam) {
       }
     }
 
-    await client.query("UPDATE torneos SET estado = 'Inscripciones_cerradas' WHERE torneo_id = $1", [torneoId]);
+    await client.query('UPDATE torneos SET estado = $1 WHERE torneo_id = $2', [
+      ESTADOS.INSCRIPCIONES_CERRADAS,
+      torneoId
+    ]);
   });
 }
 
-/** Confirma el bracket: programa la ronda 1 y pone el torneo En_curso. */
+/** Inscripciones_cerradas → En_curso: programa la ronda 1. Exige que el bracket exista. */
 async function confirmarBracket(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   await enTransaccion(async (client) => {
-    const torneo = await client.query('SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE', [torneoId]);
+    const torneo = await bloquearTorneo(client, torneoId);
+    validarTransicion(torneo.estado, ESTADOS.EN_CURSO);
 
-    if (torneo.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
-
-    if (torneo.rows[0].estado === 'En_curso') {
-      throw new ServiceError(409, { error: 'El bracket ya está confirmado' });
+    if (!(await tieneEncuentros(client, torneoId))) {
+      throw new ServiceError(409, { error: 'El torneo no tiene bracket generado' });
     }
 
     await client.query(
@@ -144,7 +153,7 @@ async function confirmarBracket(torneoIdParam) {
       [torneoId]
     );
 
-    await client.query("UPDATE torneos SET estado = 'En_curso' WHERE torneo_id = $1", [torneoId]);
+    await client.query('UPDATE torneos SET estado = $1 WHERE torneo_id = $2', [ESTADOS.EN_CURSO, torneoId]);
   });
 }
 

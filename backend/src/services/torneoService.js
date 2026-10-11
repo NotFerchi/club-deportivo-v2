@@ -1,9 +1,20 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
 const { enTransaccion } = require('./transaction');
-const { ERROR_DISCIPLINA_NO_EXISTE, esEnteroValido, normalizarFechaOpcional, tieneValor } = require('./torneoComun');
+const {
+  ERROR_DISCIPLINA_NO_EXISTE,
+  bloquearTorneo,
+  esEnteroValido,
+  normalizarFechaOpcional,
+  tieneValor
+} = require('./torneoComun');
+const { ESTADOS, admiteInscripciones, validarTransicion } = require('./torneoEstados');
 
 const badRequest = (error) => new ServiceError(400, { error });
+
+const ERROR_ESTADO_NO_EDITABLE = 'El estado se cambia con las acciones del torneo';
+const ERROR_TORNEO_BLOQUEADO =
+  'Con las inscripciones cerradas no se puede cambiar la disciplina, el tipo de torneo ni la categoría';
 
 // ── Consulta ─────────────────────────────────────────────────────────────────
 
@@ -137,9 +148,9 @@ async function obtenerReporte(torneoIdParam) {
 
 // ── Alta / edición ───────────────────────────────────────────────────────────
 
-/** Body validado en la ruta (nombre no vacío, disciplina_id entero). */
+/** Body validado en la ruta (nombre no vacío, disciplina_id entero). Todo torneo nace Abierto: `estado` se ignora. */
 async function crearTorneo(body) {
-  const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo } = body;
+  const { nombre, disciplina_id, fecha_inicio, fecha_fin, categoria_id, tipo_torneo } = body;
   const disciplinaId = Number(disciplina_id);
 
   const disciplina = await pool.query('SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1', [disciplinaId]);
@@ -157,7 +168,7 @@ async function crearTorneo(body) {
       nombre.trim(),
       normalizarFechaOpcional(fecha_inicio),
       normalizarFechaOpcional(fecha_fin),
-      estado || 'Abierto',
+      ESTADOS.ABIERTO,
       categoriaId,
       tipo_torneo || 'Individual'
     ]
@@ -166,7 +177,11 @@ async function crearTorneo(body) {
   return result.rows[0].torneo_id;
 }
 
-/** torneo_id y body validados en la ruta (nombre no vacío, disciplina_id entero). */
+/**
+ * torneo_id y body validados en la ruta (nombre no vacío, disciplina_id entero).
+ * El estado no se edita aquí (400 si el body trae otro), y con las inscripciones
+ * cerradas solo cambian el nombre y las fechas (409 si cambia disciplina, tipo o categoría).
+ */
 async function actualizarTorneo(torneoIdParam, body) {
   const torneoId = Number(torneoIdParam);
   const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo } = body;
@@ -174,47 +189,51 @@ async function actualizarTorneo(torneoIdParam, body) {
 
   const categoriaId = tieneValor(categoria_id) ? esEnteroValido(categoria_id) : null;
 
-  const result = await pool.query(
-    `UPDATE torneos
+  await enTransaccion(async (client) => {
+    const actual = await bloquearTorneo(client, torneoId, 'estado, disciplina_id, tipo_torneo, categoria_id');
+
+    if (tieneValor(estado) && estado !== actual.estado) throw badRequest(ERROR_ESTADO_NO_EDITABLE);
+
+    if (!admiteInscripciones(actual.estado)) {
+      const cambiaTipo = Boolean(tipo_torneo) && tipo_torneo !== actual.tipo_torneo;
+      if (disciplinaId !== actual.disciplina_id || cambiaTipo || categoriaId !== actual.categoria_id) {
+        throw new ServiceError(409, { error: ERROR_TORNEO_BLOQUEADO });
+      }
+    }
+
+    await client.query(
+      `UPDATE torneos
          SET disciplina_id = $1,
              nombre        = $2,
              fecha_inicio  = $3,
              fecha_fin     = $4,
-             estado        = COALESCE($5, estado),
-             categoria_id  = $6,
-             tipo_torneo   = COALESCE($7, tipo_torneo)
-         WHERE torneo_id = $8
-         RETURNING torneo_id`,
-    [
-      disciplinaId,
-      nombre.trim(),
-      normalizarFechaOpcional(fecha_inicio),
-      normalizarFechaOpcional(fecha_fin),
-      estado || null,
-      categoriaId,
-      tipo_torneo || null,
-      torneoId
-    ]
-  );
-
-  if (result.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
+             categoria_id  = $5,
+             tipo_torneo   = COALESCE($6, tipo_torneo)
+         WHERE torneo_id = $7`,
+      [
+        disciplinaId,
+        nombre.trim(),
+        normalizarFechaOpcional(fecha_inicio),
+        normalizarFechaOpcional(fecha_fin),
+        categoriaId,
+        tipo_torneo || null,
+        torneoId
+      ]
+    );
+  });
 
   return torneoId;
 }
 
 // ── Cambios de estado ────────────────────────────────────────────────────────
 
+/** En_curso → Finalizado: sin encuentros pendientes y con ganador en la final. */
 async function finalizarTorneo(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   await enTransaccion(async (client) => {
-    const torneo = await client.query('SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE', [torneoId]);
-
-    if (torneo.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
-
-    if (torneo.rows[0].estado === 'Finalizado') {
-      throw new ServiceError(409, { error: 'El torneo ya está finalizado' });
-    }
+    const torneo = await bloquearTorneo(client, torneoId);
+    validarTransicion(torneo.estado, ESTADOS.FINALIZADO);
 
     // Verificar que todos los encuentros estén finalizados
     const pendientes = await client.query(
@@ -228,25 +247,33 @@ async function finalizarTorneo(torneoIdParam) {
       throw new ServiceError(409, { error: `Aún hay ${pendientes.rows[0].total} encuentros sin finalizar` });
     }
 
-    await client.query("UPDATE torneos SET estado = 'Finalizado' WHERE torneo_id = $1", [torneoId]);
+    // La final es el encuentro de la última ronda; sin su ganador el torneo no tiene campeón
+    const final = await client.query(
+      `SELECT ganador_id FROM encuentros_torneo
+       WHERE torneo_id = $1
+       ORDER BY ronda DESC NULLS LAST, encuentro_id DESC
+       LIMIT 1`,
+      [torneoId]
+    );
+
+    if (final.rowCount === 0 || final.rows[0].ganador_id === null) {
+      throw new ServiceError(409, { error: 'La final todavía no tiene ganador' });
+    }
+
+    await client.query('UPDATE torneos SET estado = $1 WHERE torneo_id = $2', [ESTADOS.FINALIZADO, torneoId]);
   });
 }
 
+/** Cualquier estado no final → Cancelado. */
 async function cancelarTorneo(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
-  const result = await pool.query(
-    `UPDATE torneos SET estado = 'Cancelado'
-         WHERE torneo_id = $1 AND estado NOT IN ('Cancelado', 'Finalizado')
-         RETURNING torneo_id`,
-    [torneoId]
-  );
+  await enTransaccion(async (client) => {
+    const torneo = await bloquearTorneo(client, torneoId);
+    validarTransicion(torneo.estado, ESTADOS.CANCELADO);
 
-  if (result.rowCount === 0) {
-    const exists = await pool.query('SELECT estado FROM torneos WHERE torneo_id = $1', [torneoId]);
-    if (exists.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
-    throw new ServiceError(409, { error: `El torneo ya está ${exists.rows[0].estado.toLowerCase()}` });
-  }
+    await client.query('UPDATE torneos SET estado = $1 WHERE torneo_id = $2', [ESTADOS.CANCELADO, torneoId]);
+  });
 }
 
 module.exports = {

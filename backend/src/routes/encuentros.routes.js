@@ -5,8 +5,6 @@ const verifyToken = require('../middleware/verifyToken');
 const checkRole = require('../middleware/checkRole');
 const validar = require('../middleware/torneoValidators');
 
-router.put('/:encuentro_id', validar.actualizarEncuentro, encuentrosController.updateEncuentro);
-
 router.patch(
   '/:encuentro_id/resultado',
   verifyToken,

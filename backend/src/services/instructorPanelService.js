@@ -1,4 +1,4 @@
-// Panel del instructor: clases del día, alumnos, asistencia, métricas, inscripción rápida y torneos.
+// Panel del instructor: clases del día, alumnos, asistencia, métricas e inscripción rápida.
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
 const { getMexicoDateISO } = require('../utils/mexicoDate');
@@ -435,39 +435,6 @@ async function inscribirEnClase({ sesion_id, socio_id, visita_id, fecha }) {
   return result.rows[0].reserva_id;
 }
 
-// ── Torneos (vista del instructor) ───────────────────────────────────────────
-
-async function listarTorneos() {
-  const result = await pool.query(`
-                SELECT t.torneo_id, t.nombre, t.fecha_inicio, t.fecha_fin,
-                       d.nombre as disciplina,
-                       COUNT(p.participante_id) as total_participantes
-                FROM torneos t
-                JOIN disciplinas d ON t.disciplina_id = d.disciplina_id
-                LEFT JOIN participantes_torneo p ON p.torneo_id = t.torneo_id
-                GROUP BY t.torneo_id, t.nombre, t.fecha_inicio, t.fecha_fin, d.nombre
-                ORDER BY t.fecha_inicio DESC
-            `);
-  return result.rows;
-}
-
-async function encuentrosDeTorneo(torneoId) {
-  const result = await pool.query(
-    `
-                SELECT * FROM encuentros_torneo
-                WHERE torneo_id = $1
-                ORDER BY ronda, encuentro_id
-            `,
-    [torneoId]
-  );
-  return result.rows;
-}
-
-/** Guarda el nombre del ganador en la columna de texto `ganador` (flujo heredado). */
-async function registrarGanador(encuentroId, ganador) {
-  await pool.query(`UPDATE encuentros_torneo SET ganador = $1 WHERE encuentro_id = $2`, [ganador, encuentroId]);
-}
-
 module.exports = {
   clasesPorFecha,
   alumnosPorClase,
@@ -477,8 +444,5 @@ module.exports = {
   inscritosPorSesion,
   registrarAsistencia,
   metricas,
-  inscribirEnClase,
-  listarTorneos,
-  encuentrosDeTorneo,
-  registrarGanador
+  inscribirEnClase
 };

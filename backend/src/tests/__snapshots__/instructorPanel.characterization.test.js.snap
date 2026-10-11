@@ -377,28 +377,3 @@ exports[`POST /clases/inscribir ya inscrito, sancionado, sin sesión, sin cupo, 
   ],
 ]
 `;
-
-exports[`torneos del panel lista torneos, encuentros y registra ganador 1`] = `
-[
-  [
-    "pool",
-    "SELECT t.torneo_id, t.nombre, t.fecha_inicio, t.fecha_fin, d.nombre as disciplina, COUNT(p.participante_id) as total_participantes FROM torneos t JOIN disciplinas d ON t.disciplina_id = d.disciplina_id LEFT JOIN participantes_torneo p ON p.torneo_id = t.torneo_id GROUP BY t.torneo_id, t.nombre, t.fecha_inicio, t.fecha_fin, d.nombre ORDER BY t.fecha_inicio DESC",
-    [],
-  ],
-  [
-    "pool",
-    "SELECT * FROM encuentros_torneo WHERE torneo_id = $1 ORDER BY ronda, encuentro_id",
-    [
-      "1",
-    ],
-  ],
-  [
-    "pool",
-    "UPDATE encuentros_torneo SET ganador = $1 WHERE encuentro_id = $2",
-    [
-      "Ana",
-      "3",
-    ],
-  ],
-]
-`;

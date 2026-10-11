@@ -81,22 +81,6 @@ const instructorController = {
     }
   },
 
-  getTorneos: async (req, res) => {
-    try {
-      res.json(await panel.listarTorneos());
-    } catch (error) {
-      handleError(res, error, null, 'Error al obtener torneos');
-    }
-  },
-
-  getEncuentros: async (req, res) => {
-    try {
-      res.json(await panel.encuentrosDeTorneo(req.params.torneoId));
-    } catch (error) {
-      handleError(res, error, null, 'Error al obtener encuentros');
-    }
-  },
-
   inscribirSocioClase: async (req, res) => {
     try {
       // Campos requeridos: validados en la ruta
@@ -104,16 +88,6 @@ const instructorController = {
       res.status(201).json({ ok: true, reserva_id: reservaId });
     } catch (error) {
       handleError(res, error, 'inscribirSocioClase', 'Error al inscribir socio');
-    }
-  },
-
-  registrarGanador: async (req, res) => {
-    const { ganador } = req.body;
-    try {
-      await panel.registrarGanador(req.params.encuentroId, ganador);
-      res.json({ message: 'Ganador registrado correctamente' });
-    } catch (error) {
-      handleError(res, error, null, 'Error al registrar ganador');
     }
   }
 };

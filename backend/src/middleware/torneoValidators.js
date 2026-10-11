@@ -91,19 +91,6 @@ const asignarCancha = validateInput((req) => {
   return null;
 });
 
-/** PUT /:encuentro_id: body (antes que el id), id entero, participantes enteros y distintos. */
-const actualizarEncuentro = validateInput((req) => {
-  const { participante_1_id, participante_2_id } = req.body;
-  const p1 = Number(participante_1_id);
-  const p2 = Number(participante_2_id);
-  if (!Number.isInteger(Number(req.params.encuentro_id))) return badOk('encuentro_id debe ser un entero valido');
-  if (!Number.isInteger(p1) || !Number.isInteger(p2)) {
-    return badOk('participante_1_id y participante_2_id deben ser enteros validos');
-  }
-  if (p1 === p2) return badOk('Los participantes deben ser distintos');
-  return null;
-});
-
 module.exports = {
   torneoId,
   torneoIdConAcento,
@@ -113,6 +100,5 @@ module.exports = {
   inscribirParticipante,
   desinscribir,
   registrarResultado,
-  asignarCancha,
-  actualizarEncuentro
+  asignarCancha
 };

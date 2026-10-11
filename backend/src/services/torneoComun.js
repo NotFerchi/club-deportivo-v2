@@ -1,4 +1,5 @@
 // Mensajes y helpers compartidos por los servicios de torneos (torneo, participante, bracket).
+const ServiceError = require('./serviceError');
 
 const ERROR_DISCIPLINA_NO_EXISTE = 'La disciplina no existe';
 const ERROR_FECHAS_TORNEO = 'La fecha de fin no puede ser menor que la fecha de inicio';
@@ -21,6 +22,18 @@ function esEnteroValido(valor) {
   return Number.isInteger(numero) ? numero : null;
 }
 
+/**
+ * Dentro de una transacción: bloquea la fila del torneo (FOR UPDATE) y devuelve `columnas`.
+ * Serializa los cambios de estado con las inscripciones y los resultados. 404 si no existe.
+ */
+async function bloquearTorneo(client, torneoId, columnas = 'estado') {
+  const { rows, rowCount } = await client.query(`SELECT ${columnas} FROM torneos WHERE torneo_id = $1 FOR UPDATE`, [
+    torneoId
+  ]);
+  if (rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
+  return rows[0];
+}
+
 module.exports = {
   ERROR_DISCIPLINA_NO_EXISTE,
   ERROR_FECHAS_TORNEO,
@@ -31,5 +44,6 @@ module.exports = {
   ERROR_PARTICIPANTE_DUPLICADO,
   normalizarFechaOpcional,
   tieneValor,
-  esEnteroValido
+  esEnteroValido,
+  bloquearTorneo
 };

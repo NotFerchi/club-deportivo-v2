@@ -3,7 +3,19 @@
 exports[`PATCH /api/encuentros/:id/cancha asigna (recortada) y 404 1`] = `
 [
   [
-    "pool",
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
     "UPDATE encuentros_torneo SET cancha_asignada = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, cancha_asignada",
     [
       "C2",
@@ -11,7 +23,24 @@ exports[`PATCH /api/encuentros/:id/cancha asigna (recortada) y 404 1`] = `
     ],
   ],
   [
-    "pool",
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
     "UPDATE encuentros_torneo SET cancha_asignada = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, cancha_asignada",
     [
       "7",
@@ -19,12 +48,26 @@ exports[`PATCH /api/encuentros/:id/cancha asigna (recortada) y 404 1`] = `
     ],
   ],
   [
-    "pool",
-    "UPDATE encuentros_torneo SET cancha_asignada = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, cancha_asignada",
+    "client",
+    "COMMIT",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
     [
-      "C2",
       100,
     ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
   ],
 ]
 `;
@@ -38,6 +81,30 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
+    "ROLLBACK",
+    [],
+  ],
+  [
+    "client",
+    "BEGIN",
+    [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
     "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
@@ -55,6 +122,13 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
     "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
@@ -72,6 +146,13 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
     "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
@@ -86,6 +167,13 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
     "client",
     "BEGIN",
     [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
   ],
   [
     "client",
@@ -131,6 +219,13 @@ exports[`PATCH /api/encuentros/:id/resultado edición con cambio de ganador → 
     "client",
     "BEGIN",
     [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
   ],
   [
     "client",
@@ -191,12 +286,19 @@ exports[`PATCH /api/encuentros/:id/resultado edición con cambio de ganador → 
 ]
 `;
 
-exports[`PATCH /api/encuentros/:id/resultado edición: slot anterior en p1 / sin slot / mismo ganador / sin ganador previo 1`] = `
+exports[`PATCH /api/encuentros/:id/resultado edición: slot anterior en p1 / sin slot / mismo ganador; allowEdit en pendiente → 409 (B-11) 1`] = `
 [
   [
     "client",
     "BEGIN",
     [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
   ],
   [
     "client",
@@ -261,6 +363,13 @@ exports[`PATCH /api/encuentros/:id/resultado edición: slot anterior en p1 / sin
   ],
   [
     "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
     "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
@@ -314,6 +423,13 @@ exports[`PATCH /api/encuentros/:id/resultado edición: slot anterior en p1 / sin
   ],
   [
     "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
     "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
@@ -358,6 +474,13 @@ exports[`PATCH /api/encuentros/:id/resultado edición: slot anterior en p1 / sin
   ],
   [
     "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
+  ],
+  [
+    "client",
     "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
@@ -365,34 +488,7 @@ exports[`PATCH /api/encuentros/:id/resultado edición: slot anterior en p1 / sin
   ],
   [
     "client",
-    "UPDATE encuentros_torneo SET marcador_1 = $1, marcador_2 = $2, ganador_id = $3, estado = 'finalizado', cancha_asignada = COALESCE($5, cancha_asignada) WHERE encuentro_id = $4 RETURNING encuentro_id, ronda, marcador_1, marcador_2, ganador_id, estado, cancha_asignada",
-    [
-      1,
-      4,
-      12,
-      100,
-      null,
-    ],
-  ],
-  [
-    "client",
-    "SELECT COUNT(*) as total FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = $2 AND estado != 'finalizado'",
-    [
-      4,
-      1,
-    ],
-  ],
-  [
-    "client",
-    "UPDATE encuentros_torneo SET estado = 'programado' WHERE torneo_id = $1 AND ronda = $2 AND estado = 'pendiente'",
-    [
-      4,
-      2,
-    ],
-  ],
-  [
-    "client",
-    "COMMIT",
+    "ROLLBACK",
     [],
   ],
 ]
@@ -404,6 +500,13 @@ exports[`PATCH /api/encuentros/:id/resultado error de BD → ROLLBACK + 500; con
     "client",
     "BEGIN",
     [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
   ],
   [
     "client",
@@ -461,6 +564,13 @@ exports[`PATCH /api/encuentros/:id/resultado registro nuevo sin slot siguiente (
     "client",
     "BEGIN",
     [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
   ],
   [
     "client",
@@ -541,6 +651,13 @@ exports[`PATCH /api/encuentros/:id/resultado registro nuevo: gana p1, ocupa slot
     "client",
     "BEGIN",
     [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
   ],
   [
     "client",
@@ -629,6 +746,13 @@ exports[`PATCH /api/encuentros/:id/resultado registro nuevo: gana p2, slot con p
     "client",
     "BEGIN",
     [],
+  ],
+  [
+    "client",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    [
+      100,
+    ],
   ],
   [
     "client",

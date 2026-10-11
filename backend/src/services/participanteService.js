@@ -1,10 +1,13 @@
 const pool = require('../config/database');
 const ServiceError = require('./serviceError');
+const { enTransaccion } = require('./transaction');
+const { admiteInscripciones } = require('./torneoEstados');
 const {
   ERROR_CATEGORIA_NO_EXISTE,
   ERROR_PARTICIPANTE_DUPLICADO,
   ERROR_SOCIO_NO_VALIDO,
   ERROR_VISITA_NO_VALIDA,
+  bloquearTorneo,
   esEnteroValido,
   tieneValor
 } = require('./torneoComun');
@@ -12,6 +15,8 @@ const {
 const MINIMO_PARTICIPANTES = 4;
 
 const badRequest = (error) => new ServiceError(400, { error });
+
+const ERROR_TORNEO_NO_ABIERTO = 'El torneo no está abierto para inscripciones';
 
 // ── Consulta ─────────────────────────────────────────────────────────────────
 
@@ -94,6 +99,7 @@ async function misParticipaciones(user) {
 /**
  * Inscripción por staff: exactamente uno de socio_id, visita_id o nombre_externo
  * (validado en la ruta junto con torneo_id). Lo que depende de la BD se valida aquí.
+ * Con la fila del torneo bloqueada: 404 si no existe y 409 si no está Abierto.
  */
 async function inscribirParticipante(torneoIdParam, body) {
   const { socio_id, visita_id, nombre_externo, categoria_id, equipo_id } = body;
@@ -107,113 +113,128 @@ async function inscribirParticipante(torneoIdParam, body) {
   const socioId = socioPresente ? esEnteroValido(socio_id) : null;
   const visitaId = visitaPresente ? esEnteroValido(visita_id) : null;
 
-  if (socioPresente) {
-    if (socioId === null) throw badRequest(ERROR_SOCIO_NO_VALIDO);
-    const socio = await pool.query('SELECT * FROM socios WHERE socio_id = $1 AND activo IS NOT FALSE', [socioId]);
-    if (socio.rowCount === 0) throw badRequest(ERROR_SOCIO_NO_VALIDO);
-  }
+  return enTransaccion(async (client) => {
+    const torneo = await bloquearTorneo(client, torneoId);
+    if (!admiteInscripciones(torneo.estado)) throw new ServiceError(409, { error: ERROR_TORNEO_NO_ABIERTO });
 
-  if (visitaPresente) {
-    if (visitaId === null) throw badRequest(ERROR_VISITA_NO_VALIDA);
-    const visita = await pool.query('SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE', [visitaId]);
-    if (visita.rowCount === 0) throw badRequest(ERROR_VISITA_NO_VALIDA);
-  }
-
-  const categoriaId = esEnteroValido(categoria_id);
-  if (categoriaId === null) throw badRequest(ERROR_CATEGORIA_NO_EXISTE);
-
-  const categoria = await pool.query('SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1', [
-    categoriaId
-  ]);
-  if (categoria.rowCount === 0) throw badRequest(ERROR_CATEGORIA_NO_EXISTE);
-
-  if (socioPresente || visitaPresente) {
-    const participanteExistente = await pool.query(
-      `SELECT participante_id FROM participantes_torneo
-           WHERE torneo_id = $1 AND (socio_id = $2 OR visita_id = $3)
-           LIMIT 1`,
-      [torneoId, socioId, visitaId]
-    );
-    if (participanteExistente.rowCount > 0) {
-      throw new ServiceError(409, { error: ERROR_PARTICIPANTE_DUPLICADO });
+    if (socioPresente) {
+      if (socioId === null) throw badRequest(ERROR_SOCIO_NO_VALIDO);
+      const socio = await client.query('SELECT * FROM socios WHERE socio_id = $1 AND activo IS NOT FALSE', [socioId]);
+      if (socio.rowCount === 0) throw badRequest(ERROR_SOCIO_NO_VALIDO);
     }
-  }
 
-  const equipoId = tieneValor(equipo_id) ? esEnteroValido(equipo_id) : null;
-  if (tieneValor(equipo_id) && equipoId === null) throw badRequest('equipo_id debe ser un entero valido');
+    if (visitaPresente) {
+      if (visitaId === null) throw badRequest(ERROR_VISITA_NO_VALIDA);
+      const visita = await client.query('SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE', [visitaId]);
+      if (visita.rowCount === 0) throw badRequest(ERROR_VISITA_NO_VALIDA);
+    }
 
-  const result = await pool.query(
-    `INSERT INTO participantes_torneo (torneo_id, socio_id, visita_id, nombre_externo, equipo_id, categoria_id)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING participante_id`,
-    [torneoId, socioId, visitaId, externoPresente ? nombreExternoNormalizado : null, equipoId, categoriaId]
-  );
+    const categoriaId = esEnteroValido(categoria_id);
+    if (categoriaId === null) throw badRequest(ERROR_CATEGORIA_NO_EXISTE);
 
-  return result.rows[0].participante_id;
+    const categoria = await client.query('SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1', [
+      categoriaId
+    ]);
+    if (categoria.rowCount === 0) throw badRequest(ERROR_CATEGORIA_NO_EXISTE);
+
+    if (socioPresente || visitaPresente) {
+      const participanteExistente = await client.query(
+        `SELECT participante_id FROM participantes_torneo
+             WHERE torneo_id = $1 AND (socio_id = $2 OR visita_id = $3)
+             LIMIT 1`,
+        [torneoId, socioId, visitaId]
+      );
+      if (participanteExistente.rowCount > 0) {
+        throw new ServiceError(409, { error: ERROR_PARTICIPANTE_DUPLICADO });
+      }
+    }
+
+    const equipoId = tieneValor(equipo_id) ? esEnteroValido(equipo_id) : null;
+    if (tieneValor(equipo_id) && equipoId === null) throw badRequest('equipo_id debe ser un entero valido');
+
+    const result = await client.query(
+      `INSERT INTO participantes_torneo (torneo_id, socio_id, visita_id, nombre_externo, equipo_id, categoria_id)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING participante_id`,
+      [torneoId, socioId, visitaId, externoPresente ? nombreExternoNormalizado : null, equipoId, categoriaId]
+    );
+
+    return result.rows[0].participante_id;
+  });
 }
 
 /**
  * Auto-inscripción del socio autenticado (sin requerir rol staff).
  * La categoría la decide el administrador al crear el torneo (torneo.categoria_id).
+ * Con la fila del torneo bloqueada: 404 si no existe y 409 si no está Abierto.
  */
 async function inscribirSocioPropio(torneoIdParam, user) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
-  // Obtener socio_id a partir del usuario autenticado (no se confía en el body)
-  const socioResult = await pool.query('SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE', [
-    user.usuario_id
-  ]);
-  if (socioResult.rowCount === 0) throw badRequest(ERROR_SOCIO_NO_VALIDO);
-  const socioId = socioResult.rows[0].socio_id;
+  return enTransaccion(async (client) => {
+    // El torneo debe existir y estar abierto; se obtiene su categoria_id
+    const torneo = await bloquearTorneo(client, torneoId, 'estado, categoria_id');
+    if (!admiteInscripciones(torneo.estado)) throw new ServiceError(409, { error: ERROR_TORNEO_NO_ABIERTO });
 
-  // El torneo debe existir y estar abierto; se obtiene su categoria_id
-  const torneo = await pool.query('SELECT torneo_id, estado, categoria_id FROM torneos WHERE torneo_id = $1', [
-    torneoId
-  ]);
-  if (torneo.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
-  if (torneo.rows[0].estado !== 'Abierto') {
-    throw new ServiceError(409, { error: 'El torneo no está abierto para inscripciones' });
-  }
+    // Obtener socio_id a partir del usuario autenticado (no se confía en el body)
+    const socioResult = await client.query(
+      'SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE',
+      [user.usuario_id]
+    );
+    if (socioResult.rowCount === 0) throw badRequest(ERROR_SOCIO_NO_VALIDO);
+    const socioId = socioResult.rows[0].socio_id;
 
-  // Usar la categoría del torneo; si no tiene, devolver error indicativo
-  const categoriaId = torneo.rows[0].categoria_id;
-  if (!categoriaId) throw badRequest('Este torneo no tiene categoría asignada. Contacta al administrador.');
+    // Usar la categoría del torneo; si no tiene, devolver error indicativo
+    const categoriaId = torneo.categoria_id;
+    if (!categoriaId) throw badRequest('Este torneo no tiene categoría asignada. Contacta al administrador.');
 
-  // Verificar que no esté ya inscrito
-  const existente = await pool.query(
-    'SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND socio_id = $2 LIMIT 1',
-    [torneoId, socioId]
-  );
-  if (existente.rowCount > 0) throw new ServiceError(409, { error: ERROR_PARTICIPANTE_DUPLICADO });
+    // Verificar que no esté ya inscrito
+    const existente = await client.query(
+      'SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND socio_id = $2 LIMIT 1',
+      [torneoId, socioId]
+    );
+    if (existente.rowCount > 0) throw new ServiceError(409, { error: ERROR_PARTICIPANTE_DUPLICADO });
 
-  const result = await pool.query(
-    `INSERT INTO participantes_torneo (torneo_id, socio_id, categoria_id)
-         VALUES ($1, $2, $3)
-         RETURNING participante_id`,
-    [torneoId, socioId, categoriaId]
-  );
+    const result = await client.query(
+      `INSERT INTO participantes_torneo (torneo_id, socio_id, categoria_id)
+           VALUES ($1, $2, $3)
+           RETURNING participante_id`,
+      [torneoId, socioId, categoriaId]
+    );
 
-  return result.rows[0].participante_id;
+    return result.rows[0].participante_id;
+  });
 }
 
-/** Desinscribe a un participante; solo mientras el torneo siga abierto. */
+/** Desinscribe a un participante; solo con el torneo Abierto y si aún no está en el bracket. */
 async function desinscribirParticipante(torneoIdParam, participanteIdParam) {
   // Ambos enteros: validado en la ruta
   const torneoId = Number(torneoIdParam);
   const participanteId = Number(participanteIdParam);
 
-  const torneo = await pool.query('SELECT estado FROM torneos WHERE torneo_id = $1', [torneoId]);
-  if (torneo.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
-  if (torneo.rows[0].estado !== 'Abierto') {
-    throw new ServiceError(409, { error: 'No se puede desinscribir participantes una vez cerradas las inscripciones' });
-  }
+  await enTransaccion(async (client) => {
+    const torneo = await bloquearTorneo(client, torneoId);
+    if (!admiteInscripciones(torneo.estado)) {
+      throw new ServiceError(409, {
+        error: 'No se puede desinscribir participantes una vez cerradas las inscripciones'
+      });
+    }
 
-  const result = await pool.query(
-    'DELETE FROM participantes_torneo WHERE participante_id = $1 AND torneo_id = $2 RETURNING participante_id',
-    [participanteId, torneoId]
-  );
+    const enBracket = await client.query(
+      `SELECT 1 FROM encuentros_torneo
+           WHERE $1 IN (participante_1_id, participante_2_id, ganador_id)
+           LIMIT 1`,
+      [participanteId]
+    );
+    if (enBracket.rowCount > 0) throw new ServiceError(409, { error: 'El participante ya está en el bracket' });
 
-  if (result.rowCount === 0) throw new ServiceError(404, { error: 'Participante no encontrado en este torneo' });
+    const result = await client.query(
+      'DELETE FROM participantes_torneo WHERE participante_id = $1 AND torneo_id = $2 RETURNING participante_id',
+      [participanteId, torneoId]
+    );
+
+    if (result.rowCount === 0) throw new ServiceError(404, { error: 'Participante no encontrado en este torneo' });
+  });
 }
 
 module.exports = {

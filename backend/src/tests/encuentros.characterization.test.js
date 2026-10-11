@@ -40,6 +40,7 @@ let consoleSpies;
 function route(q, params) {
   if (db.falla && q.startsWith(db.falla)) throw new Error('boom');
   if (q === 'BEGIN' || q === 'COMMIT' || q === 'ROLLBACK') return rows([]);
+  if (q.startsWith('SELECT t.estado FROM encuentros_torneo e JOIN torneos t')) return rows(db.torneo);
   if (q.startsWith('SELECT encuentro_id, torneo_id, ronda, estado')) return rows(db.enc);
   if (q.startsWith('UPDATE encuentros_torneo SET marcador_1')) {
     const [m1, m2, ganador, id, cancha] = params;
@@ -77,6 +78,7 @@ beforeEach(() => {
   mockUser = { usuario_id: 7, rol: 'instructor' };
   db = {
     falla: null,
+    torneo: [{ estado: 'En_curso' }],
     enc: [
       {
         encuentro_id: 100,
@@ -140,7 +142,7 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
     expect(log).toMatchSnapshot();
   });
 
-  it('edición: slot anterior en p1 / sin slot / mismo ganador / sin ganador previo', async () => {
+  it('edición: slot anterior en p1 / sin slot / mismo ganador; allowEdit en pendiente → 409 (B-11)', async () => {
     db.enc[0] = { ...db.enc[0], estado: 'finalizado', ganador_id: 11 };
     db.slotAnterior = [{ encuentro_id: 200, participante_1_id: 11, participante_2_id: 13 }];
     let res = await resultado({ marcador_1: 1, marcador_2: 4, allowEdit: true });
@@ -160,9 +162,46 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
 
     db.enc[0] = { ...db.enc[0], estado: 'pendiente', ganador_id: null };
     res = await resultado({ marcador_1: 1, marcador_2: 4, allowEdit: true });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ ok: false, error: 'Solo se puede editar el resultado de un encuentro finalizado' });
     expect(log).toMatchSnapshot();
   });
+
+  it.each(['pendiente', 'programado'])('allowEdit en un encuentro %s → 409 sin UPDATE (B-11)', async (estado) => {
+    db.enc[0] = { ...db.enc[0], estado, ganador_id: null };
+    const res = await resultado({ marcador_1: 2, marcador_2: 0, allowEdit: true });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ ok: false, error: 'Solo se puede editar el resultado de un encuentro finalizado' });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
+    expect(log.at(-1)[1]).toBe('ROLLBACK');
+  });
+
+  it.each(['Abierto', 'Inscripciones_cerradas', 'Finalizado', 'Cancelado'])(
+    'torneo %s → 409 al registrar y al editar, sin tocar el encuentro (B-12)',
+    async (estado) => {
+      db.torneo = [{ estado }];
+      const error = `Solo se pueden registrar resultados con el torneo en curso (estado actual: ${estado})`;
+
+      let res = await resultado({ marcador_1: 2, marcador_2: 1 });
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({ ok: false, error });
+
+      db.enc[0] = { ...db.enc[0], estado: 'finalizado', ganador_id: 11 };
+      res = await resultado({ marcador_1: 1, marcador_2: 2, allowEdit: true });
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({ ok: false, error });
+
+      // El torneo se bloquea (FOR SHARE) antes de leer el encuentro, y no se escribe nada
+      expect(log.map(([, sql]) => sql)).toEqual([
+        'BEGIN',
+        'SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t',
+        'ROLLBACK',
+        'BEGIN',
+        'SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t',
+        'ROLLBACK'
+      ]);
+    }
+  );
 
   it.each([
     [undefined, 403],
@@ -194,8 +233,14 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
   });
 
   it('404 / finalizado / no programado / sin participantes → ROLLBACK', async () => {
-    db.enc = [];
+    db.torneo = [];
     let res = await resultado({ marcador_1: 1, marcador_2: 0 });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ ok: false, error: 'Encuentro no encontrado' });
+
+    db.torneo = [{ estado: 'En_curso' }];
+    db.enc = [];
+    res = await resultado({ marcador_1: 1, marcador_2: 0 });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ ok: false, error: 'Encuentro no encontrado' });
 
@@ -218,7 +263,7 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
     res = await resultado({ marcador_1: 1, marcador_2: 0 });
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ ok: false, error: 'El encuentro aún no tiene ambos participantes asignados' });
-    expect(client.release).toHaveBeenCalledTimes(4);
+    expect(client.release).toHaveBeenCalledTimes(5);
     expect(log).toMatchSnapshot();
   });
 
@@ -256,11 +301,30 @@ describe('PATCH /api/encuentros/:id/cancha', () => {
     res = await cancha({ cancha_asignada: 7 });
     expect(res.status).toBe(200);
 
-    db.cancha = [];
+    db.torneo = [];
     res = await cancha({ cancha_asignada: 'C2' });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ ok: false, error: 'Encuentro no encontrado' });
     expect(log).toMatchSnapshot();
+  });
+
+  it.each([
+    ['Inscripciones_cerradas', 200],
+    ['En_curso', 200],
+    ['Abierto', 409],
+    ['Finalizado', 409],
+    ['Cancelado', 409]
+  ])('torneo %s → %i (B-12)', async (estado, status) => {
+    db.torneo = [{ estado }];
+    const res = await cancha({ cancha_asignada: 'C2' });
+    expect(res.status).toBe(status);
+    if (status === 409) {
+      expect(res.body).toEqual({
+        ok: false,
+        error: `Solo se puede asignar cancha con las inscripciones cerradas o el torneo en curso (estado actual: ${estado})`
+      });
+      expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
+    }
   });
 
   it('validaciones, error y sin body', async () => {

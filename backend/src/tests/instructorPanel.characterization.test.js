@@ -57,8 +57,6 @@ function route(q) {
   if (q.includes('COUNT(DISTINCT r.socio_id) as total')) return rows(db.totalAlumnos);
   if (q.includes("'Sin instructor') as instructor")) return rows(db.clasesGeneral);
   if (q.startsWith('WITH inscritos AS')) return rows(db.inscritos);
-  if (q.includes('as total_participantes')) return rows(db.torneos);
-  if (q.startsWith('SELECT * FROM encuentros_torneo')) return rows(db.encuentros);
   if (q.startsWith('SELECT reserva_id FROM reservaciones')) return rows(db.yaInscrito);
   if (q.startsWith('SELECT sancion_id FROM sanciones')) return rows(db.sancion);
   if (q.startsWith('SELECT sp.cupo_maximo, sp.hora_inicio')) return rows(db.sesion);
@@ -87,8 +85,6 @@ beforeEach(() => {
     totalAlumnos: [{ total: '12' }],
     clasesGeneral: [{ sesion_id: 3 }],
     inscritos: [{ inscripcion_id: '1' }],
-    torneos: [{ torneo_id: 1 }],
-    encuentros: [{ encuentro_id: 1 }],
     yaInscrito: [],
     sancion: [],
     sesion: [{ cupo_maximo: 10, hora_inicio: '08:00', hora_fin: '09:00', inscritos: '3' }]
@@ -309,37 +305,19 @@ describe('POST /clases/inscribir', () => {
   });
 });
 
-// ── Torneos ──────────────────────────────────────────────────────────────────
+// ── Torneos (eliminados, B-07) ───────────────────────────────────────────────
 
-describe('torneos del panel', () => {
-  it('lista torneos, encuentros y registra ganador', async () => {
-    let res = await request(app).get('/api/instructor/torneos');
-    expect(res.body).toEqual(db.torneos);
-
-    res = await request(app).get('/api/instructor/torneos/1/encuentros');
-    expect(res.body).toEqual(db.encuentros);
-
-    res = await request(app).put('/api/instructor/torneos/encuentro/3').send({ ganador: 'Ana' });
-    expect(res.body).toEqual({ message: 'Ganador registrado correctamente' });
-    expect(log).toMatchSnapshot();
-  });
-
-  it('errores con detalle (sin registrar en consola) y sin body', async () => {
-    db.falla = 'total_participantes';
-    let res = await request(app).get('/api/instructor/torneos');
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'Error al obtener torneos', detalle: 'boom total_participantes' });
-
-    db.falla = 'SELECT * FROM encuentros_torneo';
-    res = await request(app).get('/api/instructor/torneos/1/encuentros');
-    expect(res.body).toEqual({ error: 'Error al obtener encuentros', detalle: 'boom SELECT * FROM encuentros_torneo' });
-
-    db.falla = 'SET ganador';
-    res = await request(app).put('/api/instructor/torneos/encuentro/3').send({ ganador: 'Ana' });
-    expect(res.body).toEqual({ error: 'Error al registrar ganador', detalle: 'boom SET ganador' });
-    expect(consoleSpies[1]).not.toHaveBeenCalled();
-
-    res = await request(app).put('/api/instructor/torneos/encuentro/3');
-    expect(res.body).toEqual(ERROR_HANDLER);
+describe('torneos del panel (eliminados, B-07)', () => {
+  it.each([
+    ['get', '/api/instructor/torneos', undefined],
+    ['get', '/api/instructor/torneos/1/encuentros', undefined],
+    ['put', '/api/instructor/torneos/encuentro/3', { ganador: 'Ana' }],
+    ['put', '/api/instructor/torneos/encuentro/3', undefined]
+  ])('%s %s %j → 404 sin tocar la BD', async (method, url, body) => {
+    mockUser = { usuario_id: 7, rol: 'recepcion' };
+    const req = request(app)[method](url);
+    const res = await (body ? req.send(body) : req);
+    expect(res.status).toBe(404);
+    expect(log).toEqual([]);
   });
 });

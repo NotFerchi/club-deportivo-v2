@@ -70,8 +70,6 @@ function route(q, params) {
   if (q.startsWith('SELECT COUNT(*) as total')) return rows(db.pendRonda);
   if (q.startsWith('UPDATE encuentros_torneo SET estado')) return rows([]);
   if (q.startsWith('UPDATE encuentros_torneo SET cancha_asignada')) return rows(db.cancha);
-  if (q.startsWith('SELECT encuentro_id, torneo_id, estado')) return rows(db.encSimple);
-  if (q.startsWith('SELECT participante_id, torneo_id FROM participantes_torneo')) return rows(db.partsTorneo);
   throw new Error(`Query no esperada en test: ${q}`);
 }
 
@@ -93,12 +91,7 @@ beforeEach(() => {
     slotAnterior: [{ encuentro_id: 200, participante_1_id: 13, participante_2_id: 11 }],
     slotLibre: [{ encuentro_id: 201, participante_1_id: null, participante_2_id: null }],
     pendRonda: [{ total: '0' }],
-    cancha: [{ encuentro_id: 100, cancha_asignada: 'C2' }],
-    encSimple: [{ encuentro_id: 100, torneo_id: 4, estado: 'pendiente' }],
-    partsTorneo: [
-      { participante_id: 11, torneo_id: 4 },
-      { participante_id: 12, torneo_id: 4 }
-    ]
+    cancha: [{ encuentro_id: 100, cancha_asignada: 'C2' }]
   };
   ({ log, client } = recordQueries(pool, route));
   consoleSpies = ['log', 'error', 'warn'].map((m) => jest.spyOn(console, m).mockImplementation(() => {}));
@@ -295,63 +288,18 @@ describe('PATCH /api/encuentros/:id/cancha', () => {
   });
 });
 
-// ── PUT /:id ─────────────────────────────────────────────────────────────────
+// ── PUT /:id (eliminado, B-01) ───────────────────────────────────────────────
 
-describe('PUT /api/encuentros/:id (sin verifyToken)', () => {
-  const actualizar = (body, id = '100') => request(app).put(`/api/encuentros/${id}`).send(body);
-
-  it('actualiza participantes', async () => {
-    mockUser = undefined;
-    const res = await actualizar({ participante_1_id: '11', participante_2_id: 12 });
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchSnapshot();
-    expect(client.release).toHaveBeenCalledTimes(1);
-    expect(log).toMatchSnapshot();
-  });
-
+describe('PUT /api/encuentros/:id (eliminado, B-01)', () => {
   it.each([
-    ['x', { participante_1_id: 11, participante_2_id: 12 }, 'encuentro_id debe ser un entero valido'],
-    ['100', { participante_1_id: 11 }, 'participante_1_id y participante_2_id deben ser enteros validos'],
-    ['100', { participante_1_id: 11, participante_2_id: '11' }, 'Los participantes deben ser distintos']
-  ])('validación /%s %j → 400', async (id, body, error) => {
-    const res = await actualizar(body, id);
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ ok: false, error });
-    expect(pool.connect).not.toHaveBeenCalled();
-  });
-
-  it('404 / no pendiente / participantes de otro torneo / error / conexión / sin body', async () => {
-    db.encSimple = [];
-    let res = await actualizar({ participante_1_id: 11, participante_2_id: 12 });
+    ['con body', { participante_1_id: 11, participante_2_id: 12 }],
+    ['sin body', undefined]
+  ])('%s → 404 sin tocar la BD', async (_, body) => {
+    mockUser = undefined;
+    const put = request(app).put('/api/encuentros/100');
+    const res = await (body ? put.send(body) : put);
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ ok: false, error: 'Encuentro no encontrado' });
-
-    db.encSimple = [{ encuentro_id: 100, torneo_id: 4, estado: 'programado' }];
-    res = await actualizar({ participante_1_id: 11, participante_2_id: 12 });
-    expect(res.status).toBe(409);
-    expect(res.body).toEqual({ ok: false, error: 'No se puede modificar un encuentro que no esta pendiente' });
-
-    db.encSimple = [{ encuentro_id: 100, torneo_id: 4, estado: 'pendiente' }];
-    db.partsTorneo = db.partsTorneo.slice(0, 1);
-    res = await actualizar({ participante_1_id: 11, participante_2_id: 12 });
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ ok: false, error: 'Ambos participantes deben pertenecer al mismo torneo' });
-    expect(log).toMatchSnapshot();
-
-    db.falla = 'SELECT participante_id';
-    res = await actualizar({ participante_1_id: 11, participante_2_id: 12 });
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual(ERROR_500);
-    expect(ultimoError()).toBe('Error al actualizar encuentro:');
-
-    pool.connect.mockRejectedValueOnce(new Error('connection refused'));
-    res = await actualizar({ participante_1_id: 11, participante_2_id: 12 });
-    expect(res.body).toEqual(ERROR_HANDLER);
-    expect(ultimoError()).toBe('ERROR');
-
-    res = await request(app).put('/api/encuentros/100');
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual(ERROR_HANDLER);
-    expect(ultimoError()).toBe('ERROR');
+    expect(log).toEqual([]);
+    expect(pool.connect).not.toHaveBeenCalled();
   });
 });

@@ -25,15 +25,6 @@ const encuentrosController = {
     } catch (error) {
       return handleError(res, error, 'Error al asignar cancha:');
     }
-  },
-
-  updateEncuentro: async (req, res) => {
-    try {
-      const encuentro = await encuentroService.actualizarParticipantes(req.params.encuentro_id, req.body);
-      return res.json({ ok: true, message: 'Encuentro actualizado correctamente', encuentro });
-    } catch (error) {
-      return handleError(res, error, 'Error al actualizar encuentro:');
-    }
   }
 };
 

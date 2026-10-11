@@ -30,9 +30,4 @@ router.get('/metricas', instructorController.getMetricas);
 router.get('/clases-general', instructorController.getClasesGeneral);
 router.get('/sesiones/:sesionId/inscritos', instructorController.getInscritosPorSesion);
 
-// Torneos
-router.get('/torneos', instructorController.getTorneos);
-router.get('/torneos/:torneoId/encuentros', instructorController.getEncuentros);
-router.put('/torneos/encuentro/:encuentroId', instructorController.registrarGanador);
-
 module.exports = router;

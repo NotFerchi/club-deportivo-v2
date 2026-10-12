@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { CheckCircle, Lock, Loader2, Trophy, X } from 'lucide-react';
-import { API_BASE_URL } from '../../services/api';
+import { apiRequest } from '../../services/api';
 import { useNotification } from '../../context/NotificationContext';
+import { mensajeDeError } from './torneoUtils';
 
+// El padre lo monta con key={torneo_id}: el mensaje de un torneo no pasa a otro (B-24)
 function AccionesTorneo({ torneo, onActualizar, readOnly }) {
   const { showConfirm } = useNotification();
   const [cargando, setCargando] = useState(false);
@@ -12,20 +14,12 @@ function AccionesTorneo({ torneo, onActualizar, readOnly }) {
     setCargando(true);
     setMensaje(null);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/torneos/${torneo.torneo_id}/${endpoint}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setMensaje({ tipo: 'error', texto: data.error || 'Error' });
-        return;
-      }
-      setMensaje({ tipo: 'ok', texto: data.message || '✅ Listo' });
+      // apiRequest revisa res.ok y, con la sesión vencida, redirige al login (B-25)
+      const data = await apiRequest(`/torneos/${torneo.torneo_id}/${endpoint}`, { method: 'PATCH' });
+      setMensaje({ tipo: 'ok', texto: data?.message || '✅ Listo' });
       if (onActualizar) onActualizar();
-    } catch {
-      setMensaje({ tipo: 'error', texto: 'Error de conexión' });
+    } catch (err) {
+      setMensaje({ tipo: 'error', texto: mensajeDeError(err) });
     } finally {
       setCargando(false);
     }
@@ -156,8 +150,14 @@ function AccionesTorneo({ torneo, onActualizar, readOnly }) {
           </button>
         )}
         <button
-          onClick={() => {
-            if (window.confirm('¿Cancelar el torneo? Esta acción no se puede deshacer.')) llamar('cancelar');
+          onClick={async () => {
+            if (
+              await showConfirm('¿Cancelar el torneo? Esta acción no se puede deshacer.', {
+                danger: true,
+                confirmLabel: 'Cancelar torneo'
+              })
+            )
+              llamar('cancelar');
           }}
           disabled={cargando}
           style={{

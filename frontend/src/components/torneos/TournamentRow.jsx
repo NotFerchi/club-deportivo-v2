@@ -1,13 +1,8 @@
 import React from 'react';
+import { estadoTorneo } from './torneoUtils';
 
 function TournamentRow({ torneo, selected, onSelect }) {
-  const estadoColor =
-    {
-      Abierto: '#22c55e',
-      Inscripciones_cerradas: '#f59e0b',
-      En_curso: '#3b82f6',
-      Finalizado: '#64748b'
-    }[torneo.estado] || '#94a3b8';
+  const estado = estadoTorneo(torneo.estado);
 
   return (
     <button
@@ -25,14 +20,14 @@ function TournamentRow({ torneo, selected, onSelect }) {
           fontWeight: 700,
           padding: '2px 8px',
           borderRadius: '20px',
-          background: `${estadoColor}20`,
-          color: estadoColor,
+          background: estado.bg,
+          color: estado.color,
           whiteSpace: 'nowrap',
           alignSelf: 'flex-start',
           marginTop: '4px'
         }}
       >
-        {torneo.estado || 'Sin estado'}
+        {estado.label}
       </span>
     </button>
   );

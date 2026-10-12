@@ -1,7 +1,10 @@
+/* Estilos de la página de torneos del socio. SocioLayout importa todos los CSS del socio de forma
+   global: las clases genéricas que también usan otras páginas (pestañas, filtros, estados vacío y de
+   carga, botón de inscripción) van prefijadas con torneos- para no pisar Sanciones, Clases ni Ludoteca (B-27). */
 /* ==================== TORNEOS CSS ==================== */
 
 /* Tabs Container */
-.clases-tabs-container {
+.torneos-tabs-container {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 2rem;
@@ -11,7 +14,7 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.clases-tab-btn {
+.torneos-tab-btn {
     flex: 1;
     display: flex;
     align-items: center;
@@ -27,34 +30,34 @@
     transition: all 0.2s;
 }
 
-.clases-tab-btn:hover {
+.torneos-tab-btn:hover {
     background: #f1f5f9;
 }
 
 /* Fix: Remove border and background on hover for active tab */
-.clases-tab-btn.active:hover {
+.torneos-tab-btn.active:hover {
     background: var(--ds-navy) !important;
     color: white !important;
     box-shadow: none !important;
     border: none !important;
     outline: none !important;
 }
-.clases-tab-btn.active {
+.torneos-tab-btn.active {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
 }
 
 /* Fix: Active tab button text color for dark backgrounds */
-.clases-tab-btn.active {
+.torneos-tab-btn.active {
     color: white !important;
 }
-.clases-tab-btn.active svg {
+.torneos-tab-btn.active svg {
     color: white !important;
 }
 
 /* Filtros */
-.filtros-container {
+.torneos-filtros-container {
     display: flex;
     gap: 1rem;
     margin-bottom: 2rem;
@@ -64,13 +67,13 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.filtro-group {
+.torneos-filtro-group {
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
 
-.filtro-group label {
+.torneos-filtro-group label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -79,7 +82,7 @@
     font-weight: 500;
 }
 
-.filtro-group select {
+.torneos-filtro-group select {
     padding: 0.5rem 1rem;
     border: 1px solid var(--ds-border);
     border-radius: 8px;
@@ -90,7 +93,7 @@
     min-width: 150px;
 }
 
-.filtro-group select:focus {
+.torneos-filtro-group select:focus {
     outline: none;
     border-color: var(--ds-navy);
 }
@@ -282,7 +285,7 @@
     color: var(--ds-navy);
 }
 
-.btn-inscribirse {
+.torneos-btn-inscribirse {
     padding: 0.625rem 1.25rem;
     background: var(--ds-navy);
     border: none;
@@ -293,11 +296,11 @@
     transition: all 0.2s;
 }
 
-.btn-inscribirse:hover {
+.torneos-btn-inscribirse:hover {
     background: #1e3a5f;
 }
 
-.btn-inscribirse.disabled {
+.torneos-btn-inscribirse.disabled {
     background: #94a3b8;
     cursor: not-allowed;
 }
@@ -514,28 +517,28 @@
 }
 
 /* Empty state */
-.empty-state {
+.torneos-empty-state {
     text-align: center;
     padding: 3rem;
     color: var(--ds-text-light);
 }
 
-.empty-state svg {
+.torneos-empty-state svg {
     color: var(--ds-navy);
     margin-bottom: 1rem;
 }
 
-.empty-state h3 {
+.torneos-empty-state h3 {
     margin: 0 0 0.5rem 0;
     color: var(--ds-text);
 }
 
-.empty-state p {
+.torneos-empty-state p {
     margin: 0;
 }
 
 /* Loading state */
-.loading-state {
+.torneos-loading-state {
     text-align: center;
     padding: 3rem;
     color: var(--ds-text-light);
@@ -543,11 +546,11 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-    .clases-tabs-container {
+    .torneos-tabs-container {
         flex-direction: column;
     }
     
-    .filtros-container {
+    .torneos-filtros-container {
         flex-direction: column;
     }
     

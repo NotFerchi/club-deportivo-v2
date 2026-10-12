@@ -1,15 +1,10 @@
 import React from 'react';
 import { Calendar } from 'lucide-react';
-import { formatDate } from './torneoUtils';
+import { estadoTorneo, formatDate } from './torneoUtils';
 
 function DetalleTorneo({ torneo }) {
   if (!torneo) return null;
-  const estadoColor = {
-    Abierto: { color: '#15803d', bg: '#dcfce7' },
-    Inscripciones_cerradas: { color: '#b45309', bg: '#fef3c7' },
-    En_curso: { color: '#1d4ed8', bg: '#dbeafe' },
-    Finalizado: { color: '#475569', bg: '#f1f5f9' }
-  }[torneo.estado] || { color: '#475569', bg: '#f1f5f9' };
+  const estadoColor = estadoTorneo(torneo.estado);
 
   return (
     <div
@@ -49,7 +44,7 @@ function DetalleTorneo({ torneo }) {
             color: estadoColor.color
           }}
         >
-          {torneo.estado}
+          {estadoColor.label}
         </span>
       </div>
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>

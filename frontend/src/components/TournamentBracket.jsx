@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Edit2, Filter, Loader2, Plus, RotateCcw, Trash2, Trophy, UserPlus, Users, X } from 'lucide-react';
-import { apiRequest, unwrapList, API_BASE_URL } from '../services/api';
+import { apiRequest, unwrapList } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
-import { DEFAULT_ESTADO_OPTIONS, buildTorneosPath, getErrorMessage } from './torneos/torneoUtils';
+import { DEFAULT_ESTADO_OPTIONS, buildTorneosPath, mensajeDeError } from './torneos/torneoUtils';
+import ErrorReintentar from './torneos/ErrorReintentar';
 import EmptyState from './torneos/EmptyState';
 import TournamentRow from './torneos/TournamentRow';
 import AccionesTorneo from './torneos/AccionesTorneo';
@@ -50,6 +51,7 @@ function TournamentBracket({
   const [showParticipantes, setShowParticipantes] = useState(false);
   const [participantes, setParticipantes] = useState([]);
   const [loadingParticipantes, setLoadingParticipantes] = useState(false);
+  const [participantesError, setParticipantesError] = useState(false);
   const [categorias, setCategorias] = useState([]);
   const [desinscribiendoId, setDesinscribiendoId] = useState(null);
   const [torneoParticipantesActual, setTorneoParticipantesActual] = useState(null);
@@ -120,12 +122,10 @@ function TournamentBracket({
         return nextTorneos.find((t) => String(t.torneo_id) === String(current.torneo_id)) || null;
       });
     } catch (error) {
-      const message = getErrorMessage(error, 'No se pudieron cargar los torneos');
-      if (message) {
-        setTorneos([]);
-        setSelectedTorneo(null);
-        setTorneosError(message);
-      }
+      if (error?.name === 'AbortError') return;
+      setTorneos([]);
+      setSelectedTorneo(null);
+      setTorneosError(mensajeDeError(error, 'No se pudieron cargar los datos.'));
     } finally {
       setLoadingTorneos(false);
     }
@@ -151,11 +151,9 @@ function TournamentBracket({
         const payload = await apiRequest(`/torneos/${selectedTorneo.torneo_id}/bracket`, { signal: controller.signal });
         setBracket(unwrapList(payload, ['data', 'bracket']));
       } catch (error) {
-        const message = getErrorMessage(error, 'No se pudo cargar el bracket');
-        if (message) {
-          setBracket([]);
-          setBracketError(message);
-        }
+        if (error?.name === 'AbortError') return;
+        setBracket([]);
+        setBracketError(mensajeDeError(error, 'No se pudieron cargar los datos.'));
       } finally {
         setLoadingBracket(false);
       }
@@ -194,6 +192,13 @@ function TournamentBracket({
 
   // La categoría es obligatoria mientras se puede inscribir gente: torneo nuevo o Abierto (B-10)
   const categoriaRequerida = !editingTorneo || editingTorneo.estado === 'Abierto';
+  // Con las inscripciones cerradas el backend solo deja cambiar nombre y fechas (PR #9)
+  const estructuraBloqueada = Boolean(editingTorneo) && editingTorneo.estado !== 'Abierto';
+  const avisoBloqueo = estructuraBloqueada && (
+    <p style={{ margin: '4px 0 0', fontSize: 11, color: '#b45309' }}>
+      No se puede cambiar con las inscripciones cerradas
+    </p>
+  );
 
   const validateTorneoForm = () => {
     const errors = {};
@@ -215,7 +220,6 @@ function TournamentBracket({
     }
     setSavingTorneo(true);
     try {
-      const token = localStorage.getItem('token');
       const payload = {
         nombre: formTorneo.nombre.trim(),
         disciplina_id: Number(formTorneo.disciplina_id),
@@ -224,21 +228,15 @@ function TournamentBracket({
         categoria_id: formTorneo.categoria_id ? Number(formTorneo.categoria_id) : null,
         tipo_torneo: formTorneo.tipo_torneo || 'Individual'
       };
-      const url = editingTorneo ? `${API_BASE_URL}/torneos/${editingTorneo.torneo_id}` : `${API_BASE_URL}/torneos`;
-      const res = await fetch(url, {
+      // apiRequest revisa res.ok y, con la sesión vencida, redirige al login (B-25)
+      await apiRequest(editingTorneo ? `/torneos/${editingTorneo.torneo_id}` : '/torneos', {
         method: editingTorneo ? 'PUT' : 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setTorneoFormErrors({ general: data.error || 'Error al guardar' });
-        return;
-      }
       setShowTorneoModal(false);
       await cargarTorneos();
-    } catch {
-      setTorneoFormErrors({ general: 'Error de conexión' });
+    } catch (err) {
+      setTorneoFormErrors({ general: mensajeDeError(err) });
     } finally {
       setSavingTorneo(false);
     }
@@ -246,16 +244,14 @@ function TournamentBracket({
 
   const cargarParticipantes = async (torneo) => {
     setLoadingParticipantes(true);
+    setParticipantesError(false);
     setParticipantes([]);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/torneos/${torneo.torneo_id}/participantes`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      setParticipantes(data.participantes || data.data || []);
+      const data = await apiRequest(`/torneos/${torneo.torneo_id}/participantes`);
+      setParticipantes(unwrapList(data, ['participantes', 'data']));
     } catch {
-      setParticipantes([]);
+      // Sin datos no se puede afirmar que no hay inscritos: se muestra el error (B-25)
+      setParticipantesError(true);
     } finally {
       setLoadingParticipantes(false);
     }
@@ -278,20 +274,14 @@ function TournamentBracket({
       return;
     setDesinscribiendoId(participante.participante_id);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(
-        `${API_BASE_URL}/torneos/${torneoParticipantesActual.torneo_id}/participantes/${participante.participante_id}`,
-        { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+      await apiRequest(
+        `/torneos/${torneoParticipantesActual.torneo_id}/participantes/${participante.participante_id}`,
+        { method: 'DELETE' }
       );
-      const data = await res.json();
-      if (!res.ok) {
-        toast(data.error || 'Error al desinscribir', 'error');
-        return;
-      }
       await cargarParticipantes(torneoParticipantesActual);
       await cargarTorneos();
-    } catch {
-      toast('Error de conexión', 'error');
+    } catch (err) {
+      toast(mensajeDeError(err), 'error');
     } finally {
       setDesinscribiendoId(null);
     }
@@ -426,7 +416,7 @@ function TournamentBracket({
             </button>
           )}
           {loadingTorneos && <div className="tb-loading">Cargando...</div>}
-          {torneosError && <div className="tb-error">{torneosError}</div>}
+          {torneosError && <ErrorReintentar mensaje={torneosError} onReintentar={() => cargarTorneos()} />}
           {!loadingTorneos && !torneosError && torneos.length === 0 && (
             <EmptyState title="No hay torneos" message="Cuando existan torneos aparecerán aquí." />
           )}
@@ -500,7 +490,13 @@ function TournamentBracket({
               )}
 
               {/* Acciones */}
-              <AccionesTorneo torneo={selectedTorneo} onActualizar={handleTorneoActualizado} readOnly={readOnly} />
+              {/* key por torneo: el mensaje de una acción no pasa al siguiente torneo (B-24) */}
+              <AccionesTorneo
+                key={selectedTorneo.torneo_id}
+                torneo={selectedTorneo}
+                onActualizar={handleTorneoActualizado}
+                readOnly={readOnly}
+              />
 
               {/* Bracket */}
               <div
@@ -543,7 +539,12 @@ function TournamentBracket({
                   </div>
                 )}
                 {loadingBracket && <div className="tb-loading">Cargando bracket...</div>}
-                {bracketError && <div className="tb-error">{bracketError}</div>}
+                {bracketError && (
+                  <ErrorReintentar
+                    mensaje={bracketError}
+                    onReintentar={() => setSelectedTorneo((prev) => (prev ? { ...prev } : null))}
+                  />
+                )}
                 {!loadingBracket && !bracketError && !hasBracket && (
                   <EmptyState title="Sin bracket" message="Cierra las inscripciones para generar el bracket." />
                 )}
@@ -665,6 +666,7 @@ function TournamentBracket({
                   </label>
                   <select
                     value={formTorneo.disciplina_id}
+                    disabled={estructuraBloqueada}
                     onChange={(e) => setFormTorneo((p) => ({ ...p, disciplina_id: e.target.value }))}
                     style={{
                       width: '100%',
@@ -687,6 +689,7 @@ function TournamentBracket({
                       {torneoFormErrors.disciplina_id}
                     </p>
                   )}
+                  {avisoBloqueo}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
@@ -745,6 +748,7 @@ function TournamentBracket({
                       <button
                         key={opt.v}
                         type="button"
+                        disabled={estructuraBloqueada}
                         onClick={() => setFormTorneo((p) => ({ ...p, tipo_torneo: opt.v }))}
                         style={{
                           flex: 1,
@@ -755,13 +759,15 @@ function TournamentBracket({
                           background: formTorneo.tipo_torneo === opt.v ? '#eff6ff' : 'white',
                           color: formTorneo.tipo_torneo === opt.v ? '#1d4ed8' : '#475569',
                           fontWeight: formTorneo.tipo_torneo === opt.v ? 700 : 400,
-                          cursor: 'pointer'
+                          cursor: estructuraBloqueada ? 'not-allowed' : 'pointer',
+                          opacity: estructuraBloqueada && formTorneo.tipo_torneo !== opt.v ? 0.5 : 1
                         }}
                       >
                         {opt.l}
                       </button>
                     ))}
                   </div>
+                  {avisoBloqueo}
                 </div>
                 <div>
                   <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>
@@ -769,6 +775,7 @@ function TournamentBracket({
                   </label>
                   <select
                     value={formTorneo.categoria_id}
+                    disabled={estructuraBloqueada}
                     onChange={(e) => setFormTorneo((p) => ({ ...p, categoria_id: e.target.value }))}
                     style={{
                       width: '100%',
@@ -795,6 +802,7 @@ function TournamentBracket({
                   {torneoFormErrors.categoria_id && (
                     <p style={{ margin: '4px 0 0', color: '#ef4444', fontSize: 12 }}>{torneoFormErrors.categoria_id}</p>
                   )}
+                  {avisoBloqueo}
                   <p style={{ margin: '4px 0 0', fontSize: 11, color: '#94a3b8' }}>
                     Define la categoría para todos los participantes de este torneo.
                   </p>
@@ -912,7 +920,10 @@ function TournamentBracket({
             </div>
             <div style={{ overflowY: 'auto', flex: 1, padding: '1rem 1.5rem' }}>
               {loadingParticipantes && <p style={{ color: '#64748b', textAlign: 'center' }}>Cargando...</p>}
-              {!loadingParticipantes && participantes.length === 0 && (
+              {!loadingParticipantes && participantesError && (
+                <ErrorReintentar onReintentar={() => cargarParticipantes(torneoParticipantesActual)} />
+              )}
+              {!loadingParticipantes && !participantesError && participantes.length === 0 && (
                 <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem 0' }}>
                   No hay participantes inscritos aún.
                 </p>

@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, Edit2, Loader2, MapPin, Save, X } from 'lucide-react';
-import { API_BASE_URL } from '../../services/api';
-import { normalizeEstado, formatTime, getParticipantName, isBye, isWinner } from './torneoUtils';
+import { apiRequest } from '../../services/api';
+import { normalizeEstado, formatTime, getParticipantName, isBye, isWinner, mensajeDeError } from './torneoUtils';
 
 function MatchEditPanel({ encuentro, ronda, torneoEstado, onClose, onSaved, readOnly, espacios = [] }) {
   const est = normalizeEstado(encuentro.estado);
   const done = est === 'finalizado';
   // El backend solo acepta resultados con el torneo En_curso
   const admiteResultados = torneoEstado === 'En_curso';
+  // Y la cancha, con el bracket generado y sin terminar (B-20): se asigna antes de jugar el partido
+  const admiteCancha = torneoEstado === 'Inscripciones_cerradas' || torneoEstado === 'En_curso';
+  const puedeEditarCancha = !readOnly && admiteCancha && (est === 'programado' || est === 'pendiente');
   // Un bye (pase directo) no tiene marcador ni se edita
   const bye = isBye(encuentro, ronda);
   const p1 = encuentro.participante_1 || {};
@@ -54,32 +57,26 @@ function MatchEditPanel({ encuentro, ronda, torneoEstado, onClose, onSaved, read
     }
     setCargando(true);
     try {
-      const token = localStorage.getItem('token');
       const body = { marcador_1: n1, marcador_2: n2 };
       if (editMode) body.allowEdit = true;
       if (cancha.trim()) body.cancha_asignada = cancha.trim();
-      const res = await fetch(`${API_BASE_URL}/encuentros/${encuentro.encuentro_id}/resultado`, {
+      // apiRequest revisa res.ok y, con la sesión vencida, redirige al login (B-25)
+      await apiRequest(`/encuentros/${encuentro.encuentro_id}/resultado`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      const data = await res.json();
-      if (res.status === 409) {
+      setEditMode(false);
+      if (onSaved) onSaved();
+    } catch (err) {
+      if (err.status === 409) {
         // No se guardó nada: se sale de la edición y se explica por qué
         setEditMode(false);
         setM1(String(encuentro.marcador_1 ?? ''));
         setM2(String(encuentro.marcador_2 ?? ''));
-        setConflicto(data.error || 'No se pudo guardar el resultado');
+        setConflicto(err.message || 'No se pudo guardar el resultado');
         return;
       }
-      if (!res.ok) {
-        setError(data.error || 'Error al guardar');
-        return;
-      }
-      setEditMode(false);
-      if (onSaved) onSaved();
-    } catch {
-      setError('Error de conexión');
+      setError(mensajeDeError(err));
     } finally {
       setCargando(false);
     }
@@ -90,20 +87,13 @@ function MatchEditPanel({ encuentro, ronda, torneoEstado, onClose, onSaved, read
     setCargando(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/encuentros/${encuentro.encuentro_id}/cancha`, {
+      await apiRequest(`/encuentros/${encuentro.encuentro_id}/cancha`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ cancha_asignada: cancha.trim() })
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Error');
-        return;
-      }
       if (onSaved) onSaved();
-    } catch {
-      setError('Error de conexión');
+    } catch (err) {
+      setError(mensajeDeError(err));
     } finally {
       setCargando(false);
     }
@@ -218,8 +208,8 @@ function MatchEditPanel({ encuentro, ronda, torneoEstado, onClose, onSaved, read
         </span>
       </div>
 
-      {/* Cancha */}
-      {!readOnly ? (
+      {/* Cancha: editable solo donde el backend la acepta; si no, se muestra como texto */}
+      {puedeEditarCancha ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.75rem' }}>
           <MapPin size={14} color="#64748b" style={{ flexShrink: 0 }} />
           {espacios.length > 0 ? (
@@ -373,7 +363,8 @@ function MatchEditPanel({ encuentro, ronda, torneoEstado, onClose, onSaved, read
               )}
             </button>
           )}
-          {canchaChanged && cancha.trim() && !showInputs && (
+          {/* B-20: también en partidos programados, sin tener que registrar el resultado */}
+          {puedeEditarCancha && canchaChanged && cancha.trim() && (
             <button
               onClick={guardarCancha}
               disabled={cargando}

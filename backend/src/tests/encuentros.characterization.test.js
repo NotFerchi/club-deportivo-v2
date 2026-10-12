@@ -224,12 +224,31 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
       '100',
       { marcador_1: 2, marcador_2: '2' },
       'No se permiten empates. Corrige el marcador para determinar un ganador.'
-    ]
+    ],
+    // B-09: ids fuera de 1..2147483647
+    ...['abc', '-1', '99999999999'].map((id) => [
+      id,
+      { marcador_1: 1, marcador_2: 0 },
+      'encuentro_id debe ser un entero válido'
+    ]),
+    // B-08: cancha junto con el resultado, ya con trim
+    ['100', { marcador_1: 1, marcador_2: 0, cancha_asignada: 'c'.repeat(51) }, 'Máximo 50 caracteres'],
+    // Marcadores entre 0 y 999 (antes, uno mayor que int4 daba 500)
+    ['100', { marcador_1: 1000, marcador_2: 0 }, 'Los marcadores deben estar entre 0 y 999'],
+    ['100', { marcador_1: 0, marcador_2: 1000 }, 'Los marcadores deben estar entre 0 y 999'],
+    ['100', { marcador_1: 99999999999, marcador_2: 0 }, 'Los marcadores deben estar entre 0 y 999'],
+    ['100', { marcador_1: 1, marcador_2: '99999999999' }, 'Los marcadores deben estar entre 0 y 999']
   ])('validación /%s %j → 400', async (id, body, error) => {
     const res = await resultado(body, id);
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ ok: false, error });
     expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it('marcadores en el límite (999 y 0) → 200', async () => {
+    const res = await resultado({ marcador_1: 999, marcador_2: 0 });
+    expect(res.status).toBe(200);
+    expect(res.body.encuentro).toMatchObject({ marcador_1: 999, marcador_2: 0 });
   });
 
   it('404 / finalizado / no programado / sin participantes → ROLLBACK', async () => {
@@ -267,7 +286,19 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
     expect(log).toMatchSnapshot();
   });
 
-  it('error de BD → ROLLBACK + 500; conexión → errorHandler; sin body → errorHandler', async () => {
+  it('cancha de 50 caracteres (tras trim) junto con el resultado → 200', async () => {
+    const res = await resultado({ marcador_1: 1, marcador_2: 0, cancha_asignada: ` ${'c'.repeat(50)} ` });
+    expect(res.status).toBe(200);
+  });
+
+  it('sin body → 400 con el campo que falta (B-09)', async () => {
+    const res = await request(app).patch('/api/encuentros/100/resultado');
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ ok: false, error: 'marcador_1 y marcador_2 deben ser enteros no negativos' });
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it('error de BD → ROLLBACK + 500; conexión → errorHandler', async () => {
     db.falla = 'SELECT COUNT(*)';
     let res = await resultado({ marcador_1: 1, marcador_2: 0 });
     expect(res.status).toBe(500);
@@ -277,11 +308,6 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
 
     pool.connect.mockRejectedValueOnce(new Error('connection refused'));
     res = await resultado({ marcador_1: 1, marcador_2: 0 });
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual(ERROR_HANDLER);
-    expect(ultimoError()).toBe('ERROR');
-
-    res = await request(app).patch('/api/encuentros/100/resultado');
     expect(res.status).toBe(500);
     expect(res.body).toEqual(ERROR_HANDLER);
     expect(ultimoError()).toBe('ERROR');
@@ -327,7 +353,31 @@ describe('PATCH /api/encuentros/:id/cancha', () => {
     }
   });
 
-  it('validaciones, error y sin body', async () => {
+  it.each(['abc', '0', '-3', '1.5', '99999999999'])('encuentro_id %s → 400 sin consultar (B-09)', async (id) => {
+    const res = await cancha({ cancha_asignada: 'C2' }, id);
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ ok: false, error: 'encuentro_id inválido' });
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it('cancha de 50 caracteres (tras trim) → 200; de 51 → 400 (B-08)', async () => {
+    let res = await cancha({ cancha_asignada: `  ${'c'.repeat(50)}  ` });
+    expect(res.status).toBe(200);
+    expect(log.find(([, sql]) => sql.startsWith('UPDATE'))[2][0]).toHaveLength(50);
+
+    res = await cancha({ cancha_asignada: 'c'.repeat(51) });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ ok: false, error: 'Máximo 50 caracteres' });
+  });
+
+  it('sin body → 400 con el campo que falta (B-09)', async () => {
+    const res = await request(app).patch('/api/encuentros/100/cancha');
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ ok: false, error: 'cancha_asignada es requerida' });
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it('validaciones y error', async () => {
     let res = await cancha({ cancha_asignada: 'C2' }, '-3');
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ ok: false, error: 'encuentro_id inválido' });
@@ -344,11 +394,6 @@ describe('PATCH /api/encuentros/:id/cancha', () => {
     expect(res.status).toBe(500);
     expect(res.body).toEqual(ERROR_500);
     expect(ultimoError()).toBe('Error al asignar cancha:');
-
-    res = await request(app).patch('/api/encuentros/100/cancha');
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual(ERROR_HANDLER);
-    expect(ultimoError()).toBe('ERROR');
   });
 });
 

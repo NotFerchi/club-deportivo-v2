@@ -8,7 +8,8 @@ const {
   ERROR_SOCIO_NO_VALIDO,
   ERROR_VISITA_NO_VALIDA,
   bloquearTorneo,
-  esEnteroValido,
+  esIdValido,
+  normalizarNombre,
   tieneValor
 } = require('./torneoComun');
 
@@ -20,8 +21,12 @@ const ERROR_TORNEO_NO_ABIERTO = 'El torneo no está abierto para inscripciones';
 
 // ── Consulta ─────────────────────────────────────────────────────────────────
 
+/** Participantes del torneo; 404 si el torneo no existe. */
 async function listarParticipantes(torneoIdParam) {
-  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
+  const torneoId = Number(torneoIdParam); // id válido: validado en la ruta
+
+  const torneo = await pool.query('SELECT torneo_id FROM torneos WHERE torneo_id = $1', [torneoId]);
+  if (torneo.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
 
   const result = await pool.query(
     `SELECT
@@ -97,47 +102,41 @@ async function misParticipaciones(user) {
 // ── Inscripción ──────────────────────────────────────────────────────────────
 
 /**
- * Inscripción por staff: exactamente uno de socio_id, visita_id o nombre_externo
- * (validado en la ruta junto con torneo_id). Lo que depende de la BD se valida aquí.
- * Con la fila del torneo bloqueada: 404 si no existe y 409 si no está Abierto.
+ * Inscripción por staff. El formato (exactamente uno de socio_id, visita_id o nombre_externo,
+ * ids válidos, nombre_externo ≤ 150 y categoria_id requerido) se valida en la ruta; aquí,
+ * lo que depende de la BD. Con la fila del torneo bloqueada: 404 si no existe, 409 si no
+ * está Abierto y 409 si el socio, la visita o el externo (por nombre normalizado) ya está inscrito.
  */
 async function inscribirParticipante(torneoIdParam, body) {
   const { socio_id, visita_id, nombre_externo, categoria_id, equipo_id } = body;
-  const socioPresente = tieneValor(socio_id);
-  const visitaPresente = tieneValor(visita_id);
-  const nombreExternoNormalizado = typeof nombre_externo === 'string' ? nombre_externo.trim() : null;
-  const externoPresente = Boolean(nombreExternoNormalizado);
+  const socioId = tieneValor(socio_id) ? esIdValido(socio_id) : null;
+  const visitaId = tieneValor(visita_id) ? esIdValido(visita_id) : null;
+  const nombreExterno = typeof nombre_externo === 'string' && nombre_externo.trim() ? nombre_externo.trim() : null;
+  const categoriaId = esIdValido(categoria_id);
+  const equipoId = tieneValor(equipo_id) ? esIdValido(equipo_id) : null;
 
-  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
-
-  const socioId = socioPresente ? esEnteroValido(socio_id) : null;
-  const visitaId = visitaPresente ? esEnteroValido(visita_id) : null;
+  const torneoId = Number(torneoIdParam); // id válido: validado en la ruta
 
   return enTransaccion(async (client) => {
     const torneo = await bloquearTorneo(client, torneoId);
     if (!admiteInscripciones(torneo.estado)) throw new ServiceError(409, { error: ERROR_TORNEO_NO_ABIERTO });
 
-    if (socioPresente) {
-      if (socioId === null) throw badRequest(ERROR_SOCIO_NO_VALIDO);
+    if (socioId !== null) {
       const socio = await client.query('SELECT * FROM socios WHERE socio_id = $1 AND activo IS NOT FALSE', [socioId]);
       if (socio.rowCount === 0) throw badRequest(ERROR_SOCIO_NO_VALIDO);
     }
 
-    if (visitaPresente) {
-      if (visitaId === null) throw badRequest(ERROR_VISITA_NO_VALIDA);
+    if (visitaId !== null) {
       const visita = await client.query('SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE', [visitaId]);
       if (visita.rowCount === 0) throw badRequest(ERROR_VISITA_NO_VALIDA);
     }
-
-    const categoriaId = esEnteroValido(categoria_id);
-    if (categoriaId === null) throw badRequest(ERROR_CATEGORIA_NO_EXISTE);
 
     const categoria = await client.query('SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1', [
       categoriaId
     ]);
     if (categoria.rowCount === 0) throw badRequest(ERROR_CATEGORIA_NO_EXISTE);
 
-    if (socioPresente || visitaPresente) {
+    if (socioId !== null || visitaId !== null) {
       const participanteExistente = await client.query(
         `SELECT participante_id FROM participantes_torneo
              WHERE torneo_id = $1 AND (socio_id = $2 OR visita_id = $3)
@@ -149,14 +148,23 @@ async function inscribirParticipante(torneoIdParam, body) {
       }
     }
 
-    const equipoId = tieneValor(equipo_id) ? esEnteroValido(equipo_id) : null;
-    if (tieneValor(equipo_id) && equipoId === null) throw badRequest('equipo_id debe ser un entero valido');
+    if (nombreExterno !== null) {
+      // Se compara en JS para no depender del locale de la BD al pasar a minúsculas ("Á" → "á")
+      const externos = await client.query(
+        'SELECT nombre_externo FROM participantes_torneo WHERE torneo_id = $1 AND nombre_externo IS NOT NULL',
+        [torneoId]
+      );
+      const buscado = normalizarNombre(nombreExterno);
+      if (externos.rows.some((p) => normalizarNombre(p.nombre_externo) === buscado)) {
+        throw new ServiceError(409, { error: ERROR_PARTICIPANTE_DUPLICADO });
+      }
+    }
 
     const result = await client.query(
       `INSERT INTO participantes_torneo (torneo_id, socio_id, visita_id, nombre_externo, equipo_id, categoria_id)
            VALUES ($1, $2, $3, $4, $5, $6)
            RETURNING participante_id`,
-      [torneoId, socioId, visitaId, externoPresente ? nombreExternoNormalizado : null, equipoId, categoriaId]
+      [torneoId, socioId, visitaId, nombreExterno, equipoId, categoriaId]
     );
 
     return result.rows[0].participante_id;

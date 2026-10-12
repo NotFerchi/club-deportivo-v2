@@ -127,6 +127,7 @@ function InscribirModal({ torneo, socios, categorias, onClose, onInscribir }) {
                 </label>
                 <input
                   value={nombreExterno}
+                  maxLength={150}
                   onChange={(e) => setNombreExterno(e.target.value)}
                   style={{
                     width: '100%',

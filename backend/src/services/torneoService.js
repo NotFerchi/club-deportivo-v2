@@ -2,9 +2,10 @@ const pool = require('../config/database');
 const ServiceError = require('./serviceError');
 const { enTransaccion } = require('./transaction');
 const {
+  ERROR_CATEGORIA_NO_EXISTE,
   ERROR_DISCIPLINA_NO_EXISTE,
   bloquearTorneo,
-  esEnteroValido,
+  esIdValido,
   normalizarFechaOpcional,
   tieneValor
 } = require('./torneoComun');
@@ -148,16 +149,29 @@ async function obtenerReporte(torneoIdParam) {
 
 // ── Alta / edición ───────────────────────────────────────────────────────────
 
-/** Body validado en la ruta (nombre no vacío, disciplina_id entero). Todo torneo nace Abierto: `estado` se ignora. */
-async function crearTorneo(body) {
-  const { nombre, disciplina_id, fecha_inicio, fecha_fin, categoria_id, tipo_torneo } = body;
-  const disciplinaId = Number(disciplina_id);
-
-  const disciplina = await pool.query('SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1', [disciplinaId]);
-
+/** 400 si la disciplina o la categoría (cuando viene) no existen; `db` es el pool o el cliente de la transacción. */
+async function validarReferencias(db, disciplinaId, categoriaId) {
+  const disciplina = await db.query('SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1', [disciplinaId]);
   if (disciplina.rowCount === 0) throw badRequest(ERROR_DISCIPLINA_NO_EXISTE);
 
-  const categoriaId = tieneValor(categoria_id) ? esEnteroValido(categoria_id) : null;
+  if (categoriaId !== null) {
+    const categoria = await db.query('SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1', [
+      categoriaId
+    ]);
+    if (categoria.rowCount === 0) throw badRequest(ERROR_CATEGORIA_NO_EXISTE);
+  }
+}
+
+/**
+ * Body validado en la ruta (nombre, disciplina_id, categoria_id, tipo_torneo y fechas).
+ * Todo torneo nace Abierto: `estado` se ignora.
+ */
+async function crearTorneo(body) {
+  const { nombre, disciplina_id, fecha_inicio, fecha_fin, categoria_id, tipo_torneo } = body;
+  const disciplinaId = esIdValido(disciplina_id);
+  const categoriaId = tieneValor(categoria_id) ? esIdValido(categoria_id) : null;
+
+  await validarReferencias(pool, disciplinaId, categoriaId);
 
   const result = await pool.query(
     `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo)
@@ -178,16 +192,16 @@ async function crearTorneo(body) {
 }
 
 /**
- * torneo_id y body validados en la ruta (nombre no vacío, disciplina_id entero).
+ * torneo_id y body validados en la ruta (nombre, disciplina_id, categoria_id, tipo_torneo y fechas).
  * El estado no se edita aquí (400 si el body trae otro), y con las inscripciones
  * cerradas solo cambian el nombre y las fechas (409 si cambia disciplina, tipo o categoría).
  */
 async function actualizarTorneo(torneoIdParam, body) {
   const torneoId = Number(torneoIdParam);
   const { nombre, disciplina_id, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo } = body;
-  const disciplinaId = Number(disciplina_id);
+  const disciplinaId = esIdValido(disciplina_id);
 
-  const categoriaId = tieneValor(categoria_id) ? esEnteroValido(categoria_id) : null;
+  const categoriaId = tieneValor(categoria_id) ? esIdValido(categoria_id) : null;
 
   await enTransaccion(async (client) => {
     const actual = await bloquearTorneo(client, torneoId, 'estado, disciplina_id, tipo_torneo, categoria_id');
@@ -200,6 +214,8 @@ async function actualizarTorneo(torneoIdParam, body) {
         throw new ServiceError(409, { error: ERROR_TORNEO_BLOQUEADO });
       }
     }
+
+    await validarReferencias(client, disciplinaId, categoriaId);
 
     await client.query(
       `UPDATE torneos

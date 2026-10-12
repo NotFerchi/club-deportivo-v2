@@ -494,7 +494,7 @@ exports[`PATCH /api/encuentros/:id/resultado edición: slot anterior en p1 / sin
 ]
 `;
 
-exports[`PATCH /api/encuentros/:id/resultado error de BD → ROLLBACK + 500; conexión → errorHandler; sin body → errorHandler 1`] = `
+exports[`PATCH /api/encuentros/:id/resultado error de BD → ROLLBACK + 500; conexión → errorHandler 1`] = `
 [
   [
     "client",

@@ -231,6 +231,7 @@ function MatchEditPanel({ encuentro, torneoEstado, onClose, onSaved, readOnly, e
           ) : (
             <input
               value={cancha}
+              maxLength={50}
               onChange={(e) => setCancha(e.target.value)}
               placeholder="Asignar espacio"
               style={{

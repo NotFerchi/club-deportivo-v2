@@ -148,7 +148,21 @@ exports[`GET /api/torneos/:torneo_id/participantes lista con total y se_realiza 
 [
   [
     "pool",
+    "SELECT torneo_id FROM torneos WHERE torneo_id = $1",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
     "SELECT pt.participante_id, pt.torneo_id, pt.socio_id, pt.visita_id, pt.nombre_externo, pt.resultado_final, c.nombre AS categoria, COALESCE( NULLIF(TRIM(eq.nombre_equipo), ''), NULLIF(TRIM(CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, ''), ' ', COALESCE(u.apellido_materno, ''))), ''), NULLIF(TRIM(v.nombre_completo), ''), NULLIF(TRIM(pt.nombre_externo), ''), 'Participante sin nombre' ) AS nombre_participante, CASE WHEN pt.socio_id IS NOT NULL THEN 'Socio' WHEN pt.visita_id IS NOT NULL THEN 'Visita' ELSE 'Externo' END AS tipo_participante FROM participantes_torneo pt LEFT JOIN categorias_torneo c ON c.categoria_id = pt.categoria_id LEFT JOIN socios s ON s.socio_id = pt.socio_id LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id LEFT JOIN visitas v ON v.visita_id = pt.visita_id LEFT JOIN equipos eq ON eq.equipo_id = pt.equipo_id WHERE pt.torneo_id = $1 ORDER BY c.nombre, nombre_participante",
+    [
+      4,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT torneo_id FROM torneos WHERE torneo_id = $1",
     [
       4,
     ],
@@ -1342,6 +1356,13 @@ exports[`POST /api/torneos crea con valores por defecto y con todos los campos 1
   ],
   [
     "pool",
+    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    [
+      3,
+    ],
+  ],
+  [
+    "pool",
     "INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING torneo_id",
     [
       2,
@@ -1351,26 +1372,6 @@ exports[`POST /api/torneos crea con valores por defecto y con todos los campos 1
       "Abierto",
       3,
       "Equipos",
-    ],
-  ],
-  [
-    "pool",
-    "SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1",
-    [
-      2,
-    ],
-  ],
-  [
-    "pool",
-    "INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING torneo_id",
-    [
-      2,
-      "X",
-      null,
-      null,
-      "Abierto",
-      null,
-      "Individual",
     ],
   ],
 ]
@@ -1495,30 +1496,6 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio / visita / categoría no e
       4,
       null,
       20,
-    ],
-  ],
-  [
-    "client",
-    "ROLLBACK",
-    [],
-  ],
-  [
-    "client",
-    "BEGIN",
-    [],
-  ],
-  [
-    "client",
-    "SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE",
-    [
-      4,
-    ],
-  ],
-  [
-    "client",
-    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
-    [
-      3,
     ],
   ],
   [
@@ -1652,6 +1629,13 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio, visita y externo → 201 
     "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
     [
       3,
+    ],
+  ],
+  [
+    "client",
+    "SELECT nombre_externo FROM participantes_torneo WHERE torneo_id = $1 AND nombre_externo IS NOT NULL",
+    [
+      4,
     ],
   ],
   [
@@ -1923,6 +1907,13 @@ exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
   ],
   [
     "client",
+    "SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1",
+    [
+      2,
+    ],
+  ],
+  [
+    "client",
     "UPDATE torneos SET disciplina_id = $1, nombre = $2, fecha_inicio = $3, fecha_fin = $4, categoria_id = $5, tipo_torneo = COALESCE($6, tipo_torneo) WHERE torneo_id = $7",
     [
       2,
@@ -1949,6 +1940,20 @@ exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
     "SELECT estado, disciplina_id, tipo_torneo, categoria_id FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
+    ],
+  ],
+  [
+    "client",
+    "SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1",
+    [
+      2,
+    ],
+  ],
+  [
+    "client",
+    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    [
+      3,
     ],
   ],
   [
@@ -1959,38 +1964,8 @@ exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
       "Copa",
       "2026-10-01",
       "2026-10-05",
-      null,
+      3,
       "Equipos",
-      4,
-    ],
-  ],
-  [
-    "client",
-    "COMMIT",
-    [],
-  ],
-  [
-    "client",
-    "BEGIN",
-    [],
-  ],
-  [
-    "client",
-    "SELECT estado, disciplina_id, tipo_torneo, categoria_id FROM torneos WHERE torneo_id = $1 FOR UPDATE",
-    [
-      4,
-    ],
-  ],
-  [
-    "client",
-    "UPDATE torneos SET disciplina_id = $1, nombre = $2, fecha_inicio = $3, fecha_fin = $4, categoria_id = $5, tipo_torneo = COALESCE($6, tipo_torneo) WHERE torneo_id = $7",
-    [
-      0,
-      "Copa",
-      null,
-      null,
-      null,
-      null,
       4,
     ],
   ],

@@ -1,11 +1,27 @@
 // Utilidades compartidas por TournamentBracket y sus componentes.
 
-export const DEFAULT_ESTADO_OPTIONS = [
-  { value: 'Abierto', label: 'Abierto' },
-  { value: 'Inscripciones_cerradas', label: 'Inscripciones cerradas' },
-  { value: 'En_curso', label: 'En curso' },
-  { value: 'Finalizado', label: 'Finalizado' }
+// Estados del torneo: etiqueta legible y colores, en un solo lugar (B-23)
+export const ESTADOS_TORNEO = [
+  { value: 'Abierto', label: 'Abierto', color: '#15803d', bg: '#dcfce7' },
+  { value: 'Inscripciones_cerradas', label: 'Inscripciones cerradas', color: '#b45309', bg: '#fef3c7' },
+  { value: 'En_curso', label: 'En curso', color: '#1d4ed8', bg: '#dbeafe' },
+  { value: 'Finalizado', label: 'Finalizado', color: '#475569', bg: '#f1f5f9' },
+  { value: 'Cancelado', label: 'Cancelado', color: '#b91c1c', bg: '#fee2e2' }
 ];
+
+export const DEFAULT_ESTADO_OPTIONS = ESTADOS_TORNEO.map(({ value, label }) => ({ value, label }));
+
+/** Etiqueta y colores de un estado del torneo; un valor desconocido se muestra tal cual. */
+export function estadoTorneo(estado) {
+  return (
+    ESTADOS_TORNEO.find((e) => e.value === estado) || {
+      value: estado,
+      label: estado || 'Sin estado',
+      color: '#475569',
+      bg: '#f1f5f9'
+    }
+  );
+}
 
 const ESTADOS_ENCUENTRO = {
   pendiente: 'pendiente',
@@ -53,9 +69,12 @@ export function buildTorneosPath(filters) {
   return `/torneos${queryString ? `?${queryString}` : ''}`;
 }
 
-export function getErrorMessage(error, fallback) {
-  if (error?.name === 'AbortError') return '';
-  return error?.message || fallback;
+/**
+ * Mensaje de un error de apiRequest: el del backend si hubo respuesta (error.status);
+ * si no hubo respuesta (backend caído, sin red), "Error de conexión".
+ */
+export function mensajeDeError(error, fallback = 'Error de conexión') {
+  return error?.status ? error.message || fallback : fallback;
 }
 
 function normalizeText(value) {

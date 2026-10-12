@@ -7,6 +7,8 @@ import {
   AlertCircle, CheckCircle
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
+import { estadoTorneo } from '../../../components/torneos/torneoUtils'
+import ErrorReintentar from '../../../components/torneos/ErrorReintentar'
 import '../../../../css/socio/Torneos.css'
 
 const DISCIPLINAS_GRADIENT = {
@@ -33,6 +35,9 @@ function Torneos() {
   const [torneoSeleccionado, setTorneoSeleccionado] = useState(null)
   const [inscritosIds, setInscritosIds] = useState(new Set())
   const [feedback, setFeedback] = useState(null)
+  // B-25: si la carga falla se muestra un error con Reintentar, no "No hay torneos"
+  const [torneosError, setTorneosError] = useState(false)
+  const [misTorneosError, setMisTorneosError] = useState(false)
 
   useEffect(() => {
     fetchTorneos()
@@ -41,17 +46,20 @@ function Torneos() {
 
   const fetchTorneos = async () => {
     setLoading(true)
+    setTorneosError(false)
     try {
       const data = await apiRequest('/torneos')
       setTorneos(Array.isArray(data) ? data : [])
     } catch {
       setTorneos([])
+      setTorneosError(true)
     } finally {
       setLoading(false)
     }
   }
 
   const fetchMisParticipaciones = async () => {
+    setMisTorneosError(false)
     try {
       const data = await apiRequest('/torneos/mis-participaciones')
       const lista = Array.isArray(data) ? data : []
@@ -59,6 +67,7 @@ function Torneos() {
       setInscritosIds(new Set(lista.map(p => p.torneo_id)))
     } catch {
       setMisTorneos([])
+      setMisTorneosError(true)
     }
   }
 
@@ -96,21 +105,27 @@ function Torneos() {
     }
   }
 
+  // B-23: la etiqueta sale del mapa común de estados (torneoUtils); aquí solo el ícono y el estilo
+  const BADGE_ESTADO = {
+    Abierto: { Icono: Calendar, clase: 'abierto' },
+    Inscripciones_cerradas: { Icono: Users, clase: 'lleno' },
+    En_curso: { Icono: Trophy, clase: 'proximo' },
+    Finalizado: { Icono: Medal, fondo: '#64748b' },
+    Cancelado: { Icono: AlertCircle, fondo: '#b91c1c' }
+  }
+
   const getEstadoBadge = (estado) => {
-    switch (estado) {
-      case 'Abierto':
-        return <span className="badge-estado abierto"><Calendar size={14} /> Abierto</span>
-      case 'Inscripciones_cerradas':
-        return <span className="badge-estado lleno"><Users size={14} /> Cerrado</span>
-      case 'En_curso':
-        return <span className="badge-estado proximo"><Trophy size={14} /> En curso</span>
-      case 'Finalizado':
-        return <span className="badge-estado" style={{ background: '#64748b', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, position: 'absolute', top: '1rem', right: '1rem' }}>
-          <Medal size={14} /> Finalizado
-        </span>
-      default:
-        return null
-    }
+    const badge = BADGE_ESTADO[estado]
+    if (!badge) return null
+    const { Icono } = badge
+    return (
+      <span
+        className={`badge-estado ${badge.clase || ''}`}
+        style={badge.fondo ? { background: badge.fondo, color: 'white' } : undefined}
+      >
+        <Icono size={14} /> {estadoTorneo(estado).label}
+      </span>
+    )
   }
 
   const formatFecha = (fecha) => {
@@ -161,21 +176,21 @@ function Torneos() {
       )}
 
       {/* TABS */}
-      <div className="clases-tabs-container">
+      <div className="clases-tabs-container torneos-tabs-container">
         <button
-          className={`clases-tab-btn ${vista === 'proximos' ? 'active' : ''}`}
+          className={`clases-tab-btn torneos-tab-btn ${vista === 'proximos' ? 'active' : ''}`}
           onClick={() => setVista('proximos')}
         >
           <Trophy size={18} /> Torneos Disponibles
         </button>
         <button
-          className={`clases-tab-btn ${vista === 'mis-torneos' ? 'active' : ''}`}
+          className={`clases-tab-btn torneos-tab-btn ${vista === 'mis-torneos' ? 'active' : ''}`}
           onClick={() => setVista('mis-torneos')}
         >
           <Medal size={18} /> Mis Participaciones
         </button>
         <button
-          className={`clases-tab-btn ${vista === 'resultados' ? 'active' : ''}`}
+          className={`clases-tab-btn torneos-tab-btn ${vista === 'resultados' ? 'active' : ''}`}
           onClick={() => setVista('resultados')}
         >
           <Star size={18} /> Brackets y Resultados
@@ -185,8 +200,8 @@ function Torneos() {
       {/* VISTA: TORNEOS DISPONIBLES */}
       {vista === 'proximos' && (
         <div className="proximos-view">
-          <div className="filtros-container">
-            <div className="filtro-group">
+          <div className="filtros-container torneos-filtros-container">
+            <div className="filtro-group torneos-filtro-group">
               <label><Filter size={16} /> Disciplina</label>
               <select
                 value={filtros.disciplina}
@@ -199,9 +214,11 @@ function Torneos() {
           </div>
 
           {loading ? (
-            <div className="loading-state">Cargando torneos...</div>
+            <div className="loading-state torneos-loading-state">Cargando torneos...</div>
+          ) : torneosError ? (
+            <ErrorReintentar onReintentar={fetchTorneos} />
           ) : torneosAbiertos.length === 0 ? (
-            <div className="empty-state">
+            <div className="empty-state torneos-empty-state">
               <Trophy size={48} />
               <h3>No hay torneos abiertos</h3>
               <p>Revisa la pestaña de Brackets para ver torneos en curso</p>
@@ -274,7 +291,7 @@ function Torneos() {
                           </span>
                         ) : (
                           <button
-                            className="btn-inscribirse"
+                            className="btn-inscribirse torneos-btn-inscribirse"
                             onClick={() => handleInscribirse(torneo)}
                           >
                             Inscribirse
@@ -293,8 +310,10 @@ function Torneos() {
       {/* VISTA: MIS PARTICIPACIONES */}
       {vista === 'mis-torneos' && (
         <div className="mis-torneos-view">
-          {misTorneos.length === 0 ? (
-            <div className="empty-state">
+          {misTorneosError ? (
+            <ErrorReintentar onReintentar={fetchMisParticipaciones} />
+          ) : misTorneos.length === 0 ? (
+            <div className="empty-state torneos-empty-state">
               <Medal size={48} />
               <h3>No has participado en torneos</h3>
               <p>Explora los torneos disponibles para inscribirte</p>
@@ -305,16 +324,9 @@ function Torneos() {
                 <div key={torneo.participante_id} className="mi-torneo-card">
                   <div className="mi-torneo-header">
                     <span className="disciplina">{torneo.nombre_disciplina}</span>
-                    <span className={`estado ${torneo.estado === 'Finalizado' ? 'completado' : ''}`}
-                      style={torneo.estado !== 'Finalizado' ? {
-                        background: '#dbeafe', color: '#1e40af',
-                        padding: '0.25rem 0.6rem', borderRadius: '20px',
-                        fontSize: '0.75rem', fontWeight: 600
-                      } : {}}>
-                      {torneo.estado === 'Finalizado' ? 'Completado'
-                        : torneo.estado === 'En_curso' ? 'En curso'
-                        : torneo.estado === 'Inscripciones_cerradas' ? 'Iniciando'
-                        : torneo.estado}
+                    <span className="estado"
+                      style={{ background: estadoTorneo(torneo.estado).bg, color: estadoTorneo(torneo.estado).color }}>
+                      {estadoTorneo(torneo.estado).label}
                     </span>
                   </div>
                   <h3>{torneo.nombre}</h3>

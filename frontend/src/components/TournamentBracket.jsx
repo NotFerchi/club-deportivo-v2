@@ -619,6 +619,7 @@ function TournamentBracket({
                   </label>
                   <input
                     value={formTorneo.nombre}
+                    maxLength={150}
                     onChange={(e) => setFormTorneo((p) => ({ ...p, nombre: e.target.value }))}
                     style={{
                       width: '100%',

@@ -3,11 +3,7 @@ const participanteService = require('../services/participanteService');
 const bracketService = require('../services/bracketService');
 const ServiceError = require('../services/serviceError');
 const { isEscalated } = require('../services/escalate');
-const {
-  ERROR_DISCIPLINA_NO_EXISTE,
-  ERROR_FECHAS_TORNEO,
-  ERROR_PARTICIPANTE_DUPLICADO
-} = require('../services/torneoComun');
+const { ERROR_PARTICIPANTE_DUPLICADO } = require('../services/torneoComun');
 
 /**
  * Respuesta de error común: ServiceError → su status/cuerpo; errores escalados → errorHandler;
@@ -22,10 +18,11 @@ function handleError(res, error, logMessage, message, pgErrors = {}) {
   return res.status(500).json({ error: message });
 }
 
-// Errores de PostgreSQL al guardar un torneo (INSERT / UPDATE).
+// Errores de PostgreSQL al guardar un torneo (INSERT / UPDATE). Fechas, tipo, disciplina y categoría
+// se validan antes (ruta y servicio); 23514 y 23503 quedan solo como red de seguridad, con un mensaje neutro.
 const PG_ERRORES_TORNEO = {
-  23514: [400, ERROR_FECHAS_TORNEO],
-  23503: [400, ERROR_DISCIPLINA_NO_EXISTE],
+  23514: [400, 'Datos inválidos'],
+  23503: [400, 'Datos inválidos'],
   22007: [400, 'Formato de fecha invalido'],
   22008: [400, 'Formato de fecha invalido']
 };

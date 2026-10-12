@@ -9,6 +9,9 @@ const ERROR_VISITA_NO_VALIDA = 'Visita no encontrada o no vigente';
 const ERROR_CATEGORIA_NO_EXISTE = 'La categoría no existe';
 const ERROR_PARTICIPANTE_DUPLICADO = 'Este participante ya está inscrito en el torneo';
 
+// Mayor valor de una columna INTEGER (int4) de PostgreSQL.
+const MAX_INT4 = 2147483647;
+
 function normalizarFechaOpcional(fecha) {
   return fecha === undefined || fecha === '' ? null : fecha;
 }
@@ -17,9 +20,20 @@ function tieneValor(valor) {
   return valor !== undefined && valor !== null && valor !== '';
 }
 
-function esEnteroValido(valor) {
-  const numero = Number(valor);
-  return Number.isInteger(numero) ? numero : null;
+/**
+ * Id de la BD: entero entre 1 y 2147483647, como número o como texto de solo dígitos.
+ * Devuelve el número, o null si es '', texto, decimal, negativo, 0 o está fuera de int4.
+ */
+function esIdValido(valor) {
+  let numero = NaN;
+  if (typeof valor === 'number') numero = valor;
+  else if (typeof valor === 'string' && /^\s*\d+\s*$/.test(valor)) numero = Number(valor);
+  return Number.isInteger(numero) && numero >= 1 && numero <= MAX_INT4 ? numero : null;
+}
+
+/** Nombre para comparar duplicados: sin espacios en los extremos, internos colapsados y en minúsculas. */
+function normalizarNombre(nombre) {
+  return String(nombre).trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
 /**
@@ -44,6 +58,7 @@ module.exports = {
   ERROR_PARTICIPANTE_DUPLICADO,
   normalizarFechaOpcional,
   tieneValor,
-  esEnteroValido,
+  esIdValido,
+  normalizarNombre,
   bloquearTorneo
 };

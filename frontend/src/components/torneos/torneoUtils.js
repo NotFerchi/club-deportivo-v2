@@ -77,12 +77,6 @@ export function mensajeDeError(error, fallback = 'Error de conexión') {
   return error?.status ? error.message || fallback : fallback;
 }
 
-function normalizeText(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase();
-}
-
 export function getParticipantName(participante) {
   if (!participante) return 'Por definir';
   return (
@@ -101,15 +95,11 @@ export function getParticipantName(participante) {
   );
 }
 
+/** Ganador del encuentro: solo por ganador_id, nunca por nombre (B-17). */
 export function isWinner(encuentro, participante) {
   if (normalizeEstado(encuentro.estado) !== ESTADOS_ENCUENTRO.finalizado) return false;
-  if (encuentro.ganador_id && participante?.participante_id) {
-    return String(encuentro.ganador_id) === String(participante.participante_id);
-  }
-  return (
-    Boolean(encuentro.ganador_nombre) &&
-    normalizeText(encuentro.ganador_nombre) === normalizeText(getParticipantName(participante))
-  );
+  if (!encuentro.ganador_id || !participante?.participante_id) return false;
+  return String(encuentro.ganador_id) === String(participante.participante_id);
 }
 
 /** Bye (pase directo): encuentro de ronda 1, finalizado y con un solo participante. */

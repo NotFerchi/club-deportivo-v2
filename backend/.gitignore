@@ -3,3 +3,6 @@ node_modules
 .env
 
 /src/generated/prisma
+
+# URL del branch de prueba de Neon (paso 7): nunca subir
+.env.paso7

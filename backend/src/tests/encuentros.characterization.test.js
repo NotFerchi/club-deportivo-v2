@@ -294,7 +294,7 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
       'encuentro_id debe ser un entero válido'
     ]),
     // B-08: cancha junto con el resultado, ya con trim
-    ['100', { marcador_1: 1, marcador_2: 0, cancha_asignada: 'c'.repeat(51) }, 'Máximo 50 caracteres'],
+    ['100', { marcador_1: 1, marcador_2: 0, cancha_asignada: 'c'.repeat(101) }, 'Máximo 100 caracteres'],
     // Marcadores entre 0 y 999 (antes, uno mayor que int4 daba 500)
     ['100', { marcador_1: 1000, marcador_2: 0 }, 'Los marcadores deben estar entre 0 y 999'],
     ['100', { marcador_1: 0, marcador_2: 1000 }, 'Los marcadores deben estar entre 0 y 999'],
@@ -348,8 +348,8 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
     expect(log).toMatchSnapshot();
   });
 
-  it('cancha de 50 caracteres (tras trim) junto con el resultado → 200', async () => {
-    const res = await resultado({ marcador_1: 1, marcador_2: 0, cancha_asignada: ` ${'c'.repeat(50)} ` });
+  it('cancha de 100 caracteres (tras trim) junto con el resultado → 200', async () => {
+    const res = await resultado({ marcador_1: 1, marcador_2: 0, cancha_asignada: ` ${'c'.repeat(100)} ` });
     expect(res.status).toBe(200);
   });
 
@@ -422,14 +422,14 @@ describe('PATCH /api/encuentros/:id/cancha', () => {
     expect(pool.connect).not.toHaveBeenCalled();
   });
 
-  it('cancha de 50 caracteres (tras trim) → 200; de 51 → 400 (B-08)', async () => {
-    let res = await cancha({ cancha_asignada: `  ${'c'.repeat(50)}  ` });
+  it('cancha de 100 caracteres (tras trim) → 200; de 101 → 400 (B-08, B-17)', async () => {
+    let res = await cancha({ cancha_asignada: `  ${'c'.repeat(100)}  ` });
     expect(res.status).toBe(200);
-    expect(log.find(([, sql]) => sql.startsWith('UPDATE'))[2][0]).toHaveLength(50);
+    expect(log.find(([, sql]) => sql.startsWith('UPDATE'))[2][0]).toHaveLength(100);
 
-    res = await cancha({ cancha_asignada: 'c'.repeat(51) });
+    res = await cancha({ cancha_asignada: 'c'.repeat(101) });
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ ok: false, error: 'Máximo 50 caracteres' });
+    expect(res.body).toEqual({ ok: false, error: 'Máximo 100 caracteres' });
   });
 
   it('sin body → 400 con el campo que falta (B-09)', async () => {

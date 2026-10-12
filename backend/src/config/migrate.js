@@ -10,6 +10,8 @@ const pool = new Pool({
 
 const MIGRATIONS_DIR = path.join(__dirname, '../../migrations');
 const MIGRATION_TARGET = process.argv[2];
+// Migraciones de torneos en su orden real (ver migracionesTorneos.js)
+const MIGRACIONES_TORNEOS = require('./migracionesTorneos');
 
 async function runMigration(filePath) {
   const sql = fs.readFileSync(filePath, 'utf8');
@@ -26,7 +28,12 @@ async function runMigration(filePath) {
 
 async function main() {
   try {
-    if (MIGRATION_TARGET) {
+    if (MIGRATION_TARGET === 'torneos') {
+      // `npm run migrate -- torneos`: solo las de torneos, en su orden real
+      for (const file of MIGRACIONES_TORNEOS) {
+        await runMigration(path.join(MIGRATIONS_DIR, file));
+      }
+    } else if (MIGRATION_TARGET) {
       const filePath = path.join(MIGRATIONS_DIR, MIGRATION_TARGET);
       if (!fs.existsSync(filePath)) {
         console.error(`Archivo no encontrado: ${filePath}`);
@@ -34,10 +41,13 @@ async function main() {
       }
       await runMigration(filePath);
     } else {
-      const files = fs.readdirSync(MIGRATIONS_DIR)
-        .filter(f => f.endsWith('.sql'))
+      // El resto sigue en orden alfabético (su orden real queda pendiente: GEN-B05).
+      // Las de torneos van al final, después de schema.sql, en su orden real.
+      const files = fs
+        .readdirSync(MIGRATIONS_DIR)
+        .filter((f) => f.endsWith('.sql') && !MIGRACIONES_TORNEOS.includes(f))
         .sort();
-      for (const file of files) {
+      for (const file of [...files, ...MIGRACIONES_TORNEOS]) {
         await runMigration(path.join(MIGRATIONS_DIR, file));
       }
     }

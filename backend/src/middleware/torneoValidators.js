@@ -20,10 +20,10 @@ const badOk = (error) => [400, { ok: false, error }];
 const cuerpo = (req) => req.body ?? {};
 
 // Límites de las columnas: torneos.nombre VARCHAR(150), participantes_torneo.nombre_externo
-// VARCHAR(150) y encuentros_torneo.cancha_asignada VARCHAR(50).
+// VARCHAR(150) y encuentros_torneo.cancha_asignada VARCHAR(100) (ampliada en el paso de esquema, B-17).
 const MAX_NOMBRE_TORNEO = 150;
 const MAX_NOMBRE_EXTERNO = 150;
-const MAX_CANCHA = 50;
+const MAX_CANCHA = 100;
 const maximo = (limite) => `Máximo ${limite} caracteres`;
 
 const TIPOS_TORNEO = ['Individual', 'Equipos'];

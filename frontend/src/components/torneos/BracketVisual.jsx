@@ -26,17 +26,14 @@ function BracketVisual({ bracket, onMatchClick, selectedId }) {
   const lastRound = rounds[numR - 1];
   const finalMatch = lastRound?.encuentros?.[0];
   let champion = null;
+  // El campeón sale de ganador_id de la final (B-17), no de la columna de texto heredada
   if (finalMatch && normalizeEstado(finalMatch.estado) === 'finalizado') {
-    if (finalMatch.ganador_nombre) {
-      champion = finalMatch.ganador_nombre;
-    } else {
-      const p = isWinner(finalMatch, finalMatch.participante_1)
-        ? finalMatch.participante_1
-        : isWinner(finalMatch, finalMatch.participante_2)
-          ? finalMatch.participante_2
-          : null;
-      if (p) champion = getParticipantName(p);
-    }
+    const p = isWinner(finalMatch, finalMatch.participante_1)
+      ? finalMatch.participante_1
+      : isWinner(finalMatch, finalMatch.participante_2)
+        ? finalMatch.participante_2
+        : null;
+    if (p) champion = getParticipantName(p);
   }
 
   const trunc = (s, max = 15) => {

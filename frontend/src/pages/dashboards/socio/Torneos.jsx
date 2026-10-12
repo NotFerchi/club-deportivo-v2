@@ -262,6 +262,16 @@ function Torneos() {
                           }}>
                             <CheckCircle size={16} /> Inscrito
                           </span>
+                        ) : torneo.tipo_torneo === 'Equipos' || !torneo.categoria_id ? (
+                          // B-15 / B-10: el socio no puede inscribirse por su cuenta
+                          <span style={{
+                            maxWidth: '60%', textAlign: 'right', color: '#64748b',
+                            fontSize: '0.8rem', fontWeight: 600
+                          }}>
+                            {torneo.tipo_torneo === 'Equipos'
+                              ? 'Torneo por equipos: inscríbete con el staff'
+                              : 'Inscripción no disponible: el torneo no tiene categoría'}
+                          </span>
                         ) : (
                           <button
                             className="btn-inscribirse"

@@ -3,6 +3,7 @@ const ServiceError = require('./serviceError');
 const { enTransaccion } = require('./transaction');
 const {
   ERROR_CATEGORIA_NO_EXISTE,
+  ERROR_CATEGORIA_REQUERIDA,
   ERROR_DISCIPLINA_NO_EXISTE,
   bloquearTorneo,
   esIdValido,
@@ -16,6 +17,7 @@ const badRequest = (error) => new ServiceError(400, { error });
 const ERROR_ESTADO_NO_EDITABLE = 'El estado se cambia con las acciones del torneo';
 const ERROR_TORNEO_BLOQUEADO =
   'Con las inscripciones cerradas no se puede cambiar la disciplina, el tipo de torneo ni la categoría';
+const ERROR_CATEGORIA_CON_INSCRITOS = 'No se puede cambiar la categoría: el torneo ya tiene inscritos';
 
 // ── Consulta ─────────────────────────────────────────────────────────────────
 
@@ -193,8 +195,11 @@ async function crearTorneo(body) {
 
 /**
  * torneo_id y body validados en la ruta (nombre, disciplina_id, categoria_id, tipo_torneo y fechas).
- * El estado no se edita aquí (400 si el body trae otro), y con las inscripciones
- * cerradas solo cambian el nombre y las fechas (409 si cambia disciplina, tipo o categoría).
+ * El estado no se edita aquí (400 si el body trae otro). Con el torneo Abierto la categoría es
+ * obligatoria (B-10); con las inscripciones cerradas solo cambian el nombre y las fechas (409 si
+ * cambia disciplina, tipo o categoría), así que los torneos viejos sin categoría se pueden seguir editando.
+ * Todos los participantes son de la categoría del torneo: al asignarla a un torneo que no tenía, se
+ * aplica también a sus inscritos; cambiar una categoría ya asignada solo se permite sin inscritos (409).
  */
 async function actualizarTorneo(torneoIdParam, body) {
   const torneoId = Number(torneoIdParam);
@@ -208,6 +213,8 @@ async function actualizarTorneo(torneoIdParam, body) {
 
     if (tieneValor(estado) && estado !== actual.estado) throw badRequest(ERROR_ESTADO_NO_EDITABLE);
 
+    if (admiteInscripciones(actual.estado) && categoriaId === null) throw badRequest(ERROR_CATEGORIA_REQUERIDA);
+
     if (!admiteInscripciones(actual.estado)) {
       const cambiaTipo = Boolean(tipo_torneo) && tipo_torneo !== actual.tipo_torneo;
       if (disciplinaId !== actual.disciplina_id || cambiaTipo || categoriaId !== actual.categoria_id) {
@@ -216,6 +223,16 @@ async function actualizarTorneo(torneoIdParam, body) {
     }
 
     await validarReferencias(client, disciplinaId, categoriaId);
+
+    // Solo con el torneo Abierto puede cambiar la categoría (si no, ya respondió 409 arriba)
+    const cambiaCategoria = categoriaId !== actual.categoria_id;
+    if (cambiaCategoria && actual.categoria_id !== null) {
+      const inscritos = await client.query(
+        'SELECT COUNT(*)::int AS total FROM participantes_torneo WHERE torneo_id = $1',
+        [torneoId]
+      );
+      if (inscritos.rows[0].total > 0) throw new ServiceError(409, { error: ERROR_CATEGORIA_CON_INSCRITOS });
+    }
 
     await client.query(
       `UPDATE torneos
@@ -236,6 +253,14 @@ async function actualizarTorneo(torneoIdParam, body) {
         torneoId
       ]
     );
+
+    // Torneo sin categoría que recibe una: sus inscritos pasan a esa categoría
+    if (cambiaCategoria && actual.categoria_id === null) {
+      await client.query('UPDATE participantes_torneo SET categoria_id = $1 WHERE torneo_id = $2', [
+        categoriaId,
+        torneoId
+      ]);
+    }
   });
 
   return torneoId;

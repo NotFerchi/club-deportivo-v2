@@ -320,6 +320,12 @@ function TournamentBracket({
     return null;
   }, [bracket, selectedEncuentroId]);
 
+  // Ronda del encuentro seleccionado: MatchEditPanel la usa para reconocer los byes
+  const selectedRonda = useMemo(
+    () => bracket.find((r) => (r.encuentros || []).some((e) => e.encuentro_id === selectedEncuentroId))?.ronda ?? null,
+    [bracket, selectedEncuentroId]
+  );
+
   return (
     <section className="tb-shell">
       <header className="tb-header">
@@ -550,6 +556,7 @@ function TournamentBracket({
                       <MatchEditPanel
                         key={selectedEncuentro.encuentro_id}
                         encuentro={selectedEncuentro}
+                        ronda={selectedRonda}
                         torneoEstado={selectedTorneo.estado}
                         onClose={() => setSelectedEncuentroId(null)}
                         onSaved={() => setSelectedTorneo((prev) => ({ ...prev }))}

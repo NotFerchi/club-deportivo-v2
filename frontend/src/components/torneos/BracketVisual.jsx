@@ -1,5 +1,5 @@
 import React from 'react';
-import { normalizeEstado, getParticipantName, isWinner } from './torneoUtils';
+import { normalizeEstado, getParticipantName, isBye, isWinner } from './torneoUtils';
 
 const BV = { W: 148, PH: 26, SH: 18, CGAP: 48, LH: 24, PAD: 12, VG: 22 };
 BV.MH = BV.PH * 2 + BV.SH;
@@ -130,8 +130,10 @@ function BracketVisual({ bracket, onMatchClick, selectedId }) {
             const done = est === 'finalizado';
             const w1 = done && isWinner(enc, p1);
             const w2 = done && isWinner(enc, p2);
-            const p1n = trunc(getParticipantName(p1));
-            const p2n = trunc(getParticipantName(p2));
+            // Bye: sin rival ni marcador; el hueco vacío no se rotula "Por definir"
+            const bye = isBye(enc, r.ronda);
+            const p1n = bye && !p1.participante_id ? '' : trunc(getParticipantName(p1));
+            const p2n = bye && !p2.participante_id ? '' : trunc(getParticipantName(p2));
 
             const isSelected = enc.encuentro_id === selectedId;
             return (
@@ -204,7 +206,13 @@ function BracketVisual({ bracket, onMatchClick, selectedId }) {
                   fontWeight={700}
                   fill={done ? '#16a34a' : '#94a3b8'}
                 >
-                  {done ? `${enc.marcador_1 ?? '-'} — ${enc.marcador_2 ?? '-'}` : est === 'programado' ? 'vs' : '···'}
+                  {bye
+                    ? 'Pase directo'
+                    : done
+                      ? `${enc.marcador_1 ?? '-'} — ${enc.marcador_2 ?? '-'}`
+                      : est === 'programado'
+                        ? 'vs'
+                        : '···'}
                 </text>
                 {/* P2 name */}
                 <text

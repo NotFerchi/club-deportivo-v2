@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, Edit2, Loader2, MapPin, Save, X } from 'lucide-react';
 import { API_BASE_URL } from '../../services/api';
-import { normalizeEstado, formatTime, getParticipantName, isWinner } from './torneoUtils';
+import { normalizeEstado, formatTime, getParticipantName, isBye, isWinner } from './torneoUtils';
 
-function MatchEditPanel({ encuentro, torneoEstado, onClose, onSaved, readOnly, espacios = [] }) {
+function MatchEditPanel({ encuentro, ronda, torneoEstado, onClose, onSaved, readOnly, espacios = [] }) {
   const est = normalizeEstado(encuentro.estado);
   const done = est === 'finalizado';
   // El backend solo acepta resultados con el torneo En_curso
   const admiteResultados = torneoEstado === 'En_curso';
+  // Un bye (pase directo) no tiene marcador ni se edita
+  const bye = isBye(encuentro, ronda);
   const p1 = encuentro.participante_1 || {};
   const p2 = encuentro.participante_2 || {};
   const w1 = isWinner(encuentro, p1);
   const w2 = isWinner(encuentro, p2);
+  const nombre = (p) => (bye && !p.participante_id ? '' : getParticipantName(p));
 
   const [editMode, setEditMode] = useState(false);
   const [m1, setM1] = useState(String(encuentro.marcador_1 ?? ''));
@@ -19,6 +22,8 @@ function MatchEditPanel({ encuentro, torneoEstado, onClose, onSaved, readOnly, e
   const [cancha, setCancha] = useState(encuentro.cancha_asignada || '');
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+  // 409 al guardar el resultado (p. ej. el siguiente partido ya tiene resultado): se muestra destacado
+  const [conflicto, setConflicto] = useState('');
 
   useEffect(() => {
     setM1(String(encuentro.marcador_1 ?? ''));
@@ -26,15 +31,17 @@ function MatchEditPanel({ encuentro, torneoEstado, onClose, onSaved, readOnly, e
     setCancha(encuentro.cancha_asignada || '');
     setEditMode(false);
     setError('');
+    setConflicto('');
   }, [encuentro.encuentro_id, encuentro.estado, encuentro.marcador_1, encuentro.marcador_2, encuentro.cancha_asignada]);
 
-  const showInputs = !readOnly && admiteResultados && (est === 'programado' || editMode);
+  const showInputs = !readOnly && admiteResultados && !bye && (est === 'programado' || editMode);
   const ambosListos = getParticipantName(p1) !== 'Por definir' && getParticipantName(p2) !== 'Por definir';
   const canSaveResult = showInputs && ambosListos;
   const canchaChanged = cancha.trim() !== (encuentro.cancha_asignada || '').trim();
 
   const guardarResultado = async () => {
     setError('');
+    setConflicto('');
     const n1 = parseInt(m1, 10);
     const n2 = parseInt(m2, 10);
     if (!Number.isFinite(n1) || !Number.isFinite(n2) || n1 < 0 || n2 < 0) {
@@ -57,6 +64,14 @@ function MatchEditPanel({ encuentro, torneoEstado, onClose, onSaved, readOnly, e
         body: JSON.stringify(body)
       });
       const data = await res.json();
+      if (res.status === 409) {
+        // No se guardó nada: se sale de la edición y se explica por qué
+        setEditMode(false);
+        setM1(String(encuentro.marcador_1 ?? ''));
+        setM2(String(encuentro.marcador_2 ?? ''));
+        setConflicto(data.error || 'No se pudo guardar el resultado');
+        return;
+      }
       if (!res.ok) {
         setError(data.error || 'Error al guardar');
         return;
@@ -150,7 +165,7 @@ function MatchEditPanel({ encuentro, torneoEstado, onClose, onSaved, readOnly, e
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
         <span style={{ flex: '1 1 90px', fontWeight: w1 ? 800 : 600, color: w1 ? '#15803d' : '#1e293b', fontSize: 13 }}>
           {w1 && '🏆 '}
-          {getParticipantName(p1)}
+          {nombre(p1)}
         </span>
         {showInputs ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -186,7 +201,7 @@ function MatchEditPanel({ encuentro, torneoEstado, onClose, onSaved, readOnly, e
               border: `1px solid ${done ? '#bbf7d0' : '#e2e8f0'}`
             }}
           >
-            {done ? `${encuentro.marcador_1 ?? '-'} — ${encuentro.marcador_2 ?? '-'}` : 'VS'}
+            {bye ? 'Pase directo' : done ? `${encuentro.marcador_1 ?? '-'} — ${encuentro.marcador_2 ?? '-'}` : 'VS'}
           </div>
         )}
         <span
@@ -198,7 +213,7 @@ function MatchEditPanel({ encuentro, torneoEstado, onClose, onSaved, readOnly, e
             fontSize: 13
           }}
         >
-          {getParticipantName(p2)}
+          {nombre(p2)}
           {w2 && ' 🏆'}
         </span>
       </div>
@@ -261,12 +276,30 @@ function MatchEditPanel({ encuentro, torneoEstado, onClose, onSaved, readOnly, e
         </div>
       ) : null}
 
+      {conflicto && (
+        <div
+          role="alert"
+          style={{
+            background: '#fffbeb',
+            border: '1px solid #f59e0b',
+            borderRadius: 8,
+            padding: '8px 10px',
+            margin: '0 0 10px',
+            fontSize: 12,
+            color: '#92400e'
+          }}
+        >
+          <strong style={{ display: 'block', marginBottom: 2 }}>No se guardó el resultado</strong>
+          {conflicto}
+        </div>
+      )}
+
       {error && <p style={{ color: '#dc2626', fontSize: 11, fontWeight: 600, margin: '0 0 8px' }}>⚠ {error}</p>}
 
       {/* Buttons */}
       {!readOnly && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {done && !editMode && admiteResultados && (
+          {done && !editMode && admiteResultados && !bye && (
             <button
               onClick={() => {
                 setEditMode(true);

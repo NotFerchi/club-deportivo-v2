@@ -411,7 +411,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 4 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       2,
@@ -496,7 +496,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 5 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       2,
@@ -504,7 +504,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 5 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       2,
@@ -512,7 +512,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 5 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       3,
@@ -520,24 +520,10 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 5 participantes (ran
   ],
   [
     "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
-    ],
-  ],
-  [
-    "client",
-    "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
+    "UPDATE encuentros_torneo SET participante_2_id = $1 WHERE encuentro_id = $2",
     [
       11,
-      500,
-    ],
-  ],
-  [
-    "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
+      505,
     ],
   ],
   [
@@ -545,22 +531,15 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 5 participantes (ran
     "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
     [
       15,
-      500,
+      506,
     ],
   ],
   [
     "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
-    ],
-  ],
-  [
-    "client",
-    "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
+    "UPDATE encuentros_torneo SET participante_2_id = $1 WHERE encuentro_id = $2",
     [
       12,
-      500,
+      506,
     ],
   ],
   [
@@ -643,7 +622,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 6 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       2,
@@ -651,7 +630,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 6 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       2,
@@ -659,7 +638,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 6 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       3,
@@ -667,32 +646,18 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 6 participantes (ran
   ],
   [
     "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
-    ],
-  ],
-  [
-    "client",
     "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
     [
       14,
-      500,
+      506,
     ],
   ],
   [
     "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
-    ],
-  ],
-  [
-    "client",
-    "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
+    "UPDATE encuentros_torneo SET participante_2_id = $1 WHERE encuentro_id = $2",
     [
       15,
-      500,
+      506,
     ],
   ],
   [
@@ -806,7 +771,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       2,
@@ -814,7 +779,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       2,
@@ -822,7 +787,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       2,
@@ -830,7 +795,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       2,
@@ -838,7 +803,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       3,
@@ -846,7 +811,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       3,
@@ -854,7 +819,7 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
   ],
   [
     "client",
-    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente')",
+    "INSERT INTO encuentros_torneo (torneo_id, ronda, estado) VALUES ($1, $2, 'pendiente') RETURNING encuentro_id",
     [
       4,
       4,
@@ -862,24 +827,10 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
   ],
   [
     "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
-    ],
-  ],
-  [
-    "client",
-    "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
+    "UPDATE encuentros_torneo SET participante_2_id = $1 WHERE encuentro_id = $2",
     [
       14,
-      500,
-    ],
-  ],
-  [
-    "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
+      509,
     ],
   ],
   [
@@ -887,29 +838,15 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
     "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
     [
       15,
-      500,
+      510,
     ],
   ],
   [
     "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
-    ],
-  ],
-  [
-    "client",
-    "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
+    "UPDATE encuentros_torneo SET participante_2_id = $1 WHERE encuentro_id = $2",
     [
       16,
-      500,
-    ],
-  ],
-  [
-    "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
+      510,
     ],
   ],
   [
@@ -917,29 +854,15 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
     "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
     [
       17,
-      500,
+      511,
     ],
   ],
   [
     "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
-    ],
-  ],
-  [
-    "client",
-    "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
+    "UPDATE encuentros_torneo SET participante_2_id = $1 WHERE encuentro_id = $2",
     [
       18,
-      500,
-    ],
-  ],
-  [
-    "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
+      511,
     ],
   ],
   [
@@ -947,22 +870,15 @@ exports[`PATCH /api/torneos/:torneo_id/cerrar-inscripciones 9 participantes (ran
     "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
     [
       19,
-      500,
+      512,
     ],
   ],
   [
     "client",
-    "SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo WHERE torneo_id = $1 AND ronda = 2 AND (participante_1_id IS NULL OR participante_2_id IS NULL) ORDER BY encuentro_id ASC LIMIT 1 FOR UPDATE",
-    [
-      4,
-    ],
-  ],
-  [
-    "client",
-    "UPDATE encuentros_torneo SET participante_1_id = $1 WHERE encuentro_id = $2",
+    "UPDATE encuentros_torneo SET participante_2_id = $1 WHERE encuentro_id = $2",
     [
       11,
-      500,
+      512,
     ],
   ],
   [

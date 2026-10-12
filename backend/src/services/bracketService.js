@@ -3,6 +3,7 @@ const ServiceError = require('./serviceError');
 const { enTransaccion } = require('./transaction');
 const { bloquearTorneo } = require('./torneoComun');
 const { ESTADOS, validarTransicion } = require('./torneoEstados');
+const { destinoDelGanador } = require('./bracketPosicion');
 
 const MINIMO_PARTICIPANTES = 4;
 
@@ -29,7 +30,8 @@ function siguientePotenciaDeDos(numero) {
 
 /**
  * Abierto → Inscripciones_cerradas. Genera el bracket: ronda 1 (cruces + byes) y todas
- * las rondas futuras vacías para que los ganadores tengan a dónde avanzar.
+ * las rondas futuras vacías para que los ganadores tengan a dónde avanzar. Los ganadores
+ * de los byes se colocan en la ronda 2 con la regla de posición (bracketPosicion).
  * La fila del torneo queda bloqueada antes de leer la lista de participantes.
  */
 async function cerrarInscripciones(torneoIdParam) {
@@ -70,60 +72,50 @@ async function cerrarInscripciones(torneoIdParam) {
       encuentrosEnRonda++;
     }
 
-    // Ronda 1 — byes (pasan directo: ya están decididos, sin partido que jugar)
-    const byeGanadores = [];
+    // Ronda 1 — byes (pasan directo: ya están decididos, sin partido que jugar).
+    // Van después de los cruces, así que su posición en la ronda 1 es la del orden de inserción.
+    const byes = [];
     for (let i = totalConCruce; i < ids.length; i++) {
       await client.query(
         `INSERT INTO encuentros_torneo (torneo_id, participante_1_id, ronda, ganador_id, estado)
            VALUES ($1, $2, 1, $2, 'finalizado')`,
         [torneoId, ids[i]]
       );
+      byes.push({ ganadorId: ids[i], posicion: encuentrosEnRonda });
       encuentrosEnRonda++;
-      byeGanadores.push(ids[i]);
     }
 
-    // Rondas futuras — slots vacíos para que los ganadores tengan a dónde avanzar
+    // Rondas futuras — slots vacíos para que los ganadores tengan a dónde avanzar.
+    // Se guardan los ids de la ronda 2 en orden: su índice es su posición.
     const totalRondas = Math.log2(totalSlots);
     let encuentrosPrevios = encuentrosEnRonda;
+    const idsRonda2 = [];
 
     for (let ronda = 2; ronda <= totalRondas; ronda++) {
       const encuentrosEstaRonda = Math.ceil(encuentrosPrevios / 2);
       for (let i = 0; i < encuentrosEstaRonda; i++) {
-        await client.query(
+        const { rows } = await client.query(
           `INSERT INTO encuentros_torneo (torneo_id, ronda, estado)
-             VALUES ($1, $2, 'pendiente')`,
+             VALUES ($1, $2, 'pendiente')
+             RETURNING encuentro_id`,
           [torneoId, ronda]
         );
+        if (ronda === 2) idsRonda2.push(rows[0].encuentro_id);
       }
       encuentrosPrevios = encuentrosEstaRonda;
     }
 
     // Los byes ya quedaron 'finalizado' arriba y nunca pasan por registrarResultado
     // (no hay marcador que registrar), así que su ganador se coloca aquí mismo en
-    // su slot de la ronda 2 — antes esto nunca ocurría y esos avances se perdían
-    // (bug #29: los byes no activaban la ronda 2).
+    // el slot de la ronda 2 que marca la regla de posición (bug #29: los byes no
+    // activaban la ronda 2; B-16: antes se usaba el primer hueco libre).
     if (totalRondas >= 2) {
-      for (const ganadorId of byeGanadores) {
-        const { rows: slotRows } = await client.query(
-          `SELECT encuentro_id, participante_1_id, participante_2_id
-             FROM encuentros_torneo
-             WHERE torneo_id = $1
-               AND ronda     = 2
-               AND (participante_1_id IS NULL OR participante_2_id IS NULL)
-             ORDER BY encuentro_id ASC
-             LIMIT 1
-             FOR UPDATE`,
-          [torneoId]
-        );
-
-        if (slotRows.length > 0) {
-          const slot = slotRows[0];
-          const campo = slot.participante_1_id === null ? 'participante_1_id' : 'participante_2_id';
-          await client.query(`UPDATE encuentros_torneo SET ${campo} = $1 WHERE encuentro_id = $2`, [
-            ganadorId,
-            slot.encuentro_id
-          ]);
-        }
+      for (const { ganadorId, posicion } of byes) {
+        const destino = destinoDelGanador(posicion);
+        await client.query(`UPDATE encuentros_torneo SET ${destino.campo} = $1 WHERE encuentro_id = $2`, [
+          ganadorId,
+          idsRonda2[destino.posicion]
+        ]);
       }
     }
 

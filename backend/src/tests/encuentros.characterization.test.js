@@ -56,8 +56,9 @@ function route(q, params) {
       }
     ]);
   }
-  if (q.includes('AND (participante_1_id = $3 OR participante_2_id = $3)')) return rows(db.slotAnterior);
-  if (q.includes('AND (participante_1_id IS NULL OR participante_2_id IS NULL)')) return rows(db.slotLibre);
+  if (q.startsWith('SELECT COUNT(*) FILTER (WHERE encuentro_id < $3)')) return rows(db.posicion);
+  if (q.startsWith('SELECT encuentro_id, ronda, estado, participante_1_id, participante_2_id FROM encuentros_torneo'))
+    return rows(db.destino);
   if (q.startsWith('UPDATE encuentros_torneo SET participante_1_id = $1, participante_2_id = $2')) {
     const [p1, p2, id] = params;
     return rows([
@@ -90,8 +91,9 @@ beforeEach(() => {
         ganador_id: null
       }
     ],
-    slotAnterior: [{ encuentro_id: 200, participante_1_id: 13, participante_2_id: 11 }],
-    slotLibre: [{ encuentro_id: 201, participante_1_id: null, participante_2_id: null }],
+    // Posición del encuentro en su ronda y encuentro destino del ganador (regla ⌊i/2⌋, B-16)
+    posicion: [{ posicion: 0, total: 2 }],
+    destino: [{ encuentro_id: 201, ronda: 2, estado: 'pendiente', participante_1_id: null, participante_2_id: null }],
     pendRonda: [{ total: '0' }],
     cancha: [{ encuentro_id: 100, cancha_asignada: 'C2' }]
   };
@@ -109,7 +111,7 @@ const ultimoError = () => consoleSpies[1].mock.calls.at(-1)?.[0];
 describe('PATCH /api/encuentros/:id/resultado', () => {
   const resultado = (body, id = '100') => request(app).patch(`/api/encuentros/${id}/resultado`).send(body);
 
-  it('registro nuevo: gana p1, ocupa slot libre (p1) y activa la siguiente ronda', async () => {
+  it('registro nuevo: posición 0 → participante_1_id del destino ⌊0/2⌋ y activa la siguiente ronda (B-16)', async () => {
     const res = await resultado({ marcador_1: 3, marcador_2: '1', cancha_asignada: ' C1 ' });
     expect(res.status).toBe(200);
     expect(res.body).toMatchSnapshot();
@@ -117,54 +119,114 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
     expect(log).toMatchSnapshot();
   });
 
-  it('registro nuevo: gana p2, slot con p1 ocupado → p2; ronda con pendientes; cancha vacía → null', async () => {
-    db.slotLibre = [{ encuentro_id: 201, participante_1_id: 13, participante_2_id: null }];
+  it('registro nuevo: posición 1 → participante_2_id aunque el p1 del destino esté vacío; ronda con pendientes; cancha vacía → null (B-16)', async () => {
+    db.posicion = [{ posicion: 1, total: 2 }];
     db.pendRonda = [{ total: '2' }];
     const res = await resultado({ marcador_1: 0, marcador_2: 2, cancha_asignada: '   ' });
     expect(res.status).toBe(200);
+    expect(res.body.siguiente_encuentro).toEqual({
+      encuentro_id: 201,
+      ronda: 2,
+      campo: 'participante_2_id',
+      ganador: 12
+    });
     expect(res.body).toMatchSnapshot();
     expect(log).toMatchSnapshot();
   });
 
-  it('registro nuevo sin slot siguiente (final)', async () => {
-    db.slotLibre = [];
+  it('registro nuevo en la final (única de su ronda) → sin destino', async () => {
+    db.posicion = [{ posicion: 0, total: 1 }];
     const res = await resultado({ marcador_1: 1, marcador_2: 0 });
     expect(res.status).toBe(200);
     expect(res.body.siguiente_encuentro).toBeNull();
     expect(log).toMatchSnapshot();
   });
 
-  it('edición con cambio de ganador → reemplaza al ganador anterior en su slot', async () => {
+  it('edición con cambio de ganador → reemplaza al ganador anterior en el slot de la regla (B-05)', async () => {
     db.enc[0] = { ...db.enc[0], estado: 'finalizado', ganador_id: 11 };
+    db.destino = [{ ...db.destino[0], participante_1_id: 11, participante_2_id: 13 }];
     const res = await resultado({ marcador_1: 1, marcador_2: 4, allowEdit: true });
     expect(res.status).toBe(200);
-    expect(res.body).toMatchSnapshot();
-    expect(log).toMatchSnapshot();
-  });
-
-  it('edición: slot anterior en p1 / sin slot / mismo ganador; allowEdit en pendiente → 409 (B-11)', async () => {
-    db.enc[0] = { ...db.enc[0], estado: 'finalizado', ganador_id: 11 };
-    db.slotAnterior = [{ encuentro_id: 200, participante_1_id: 11, participante_2_id: 13 }];
-    let res = await resultado({ marcador_1: 1, marcador_2: 4, allowEdit: true });
     expect(res.body.siguiente_encuentro).toEqual({
-      encuentro_id: 200,
+      encuentro_id: 201,
       ronda: 2,
       campo: 'participante_1_id',
       ganador: 12
     });
+    expect(res.body).toMatchSnapshot();
+    expect(log).toMatchSnapshot();
+  });
 
-    db.slotAnterior = [];
-    res = await resultado({ marcador_1: 1, marcador_2: 4, allowEdit: true });
-    expect(res.body.siguiente_encuentro).toBeNull();
-
-    res = await resultado({ marcador_1: 5, marcador_2: 4, allowEdit: true });
+  it('edición con el mismo ganador → no toca el destino; allowEdit en pendiente → 409 (B-11)', async () => {
+    db.enc[0] = { ...db.enc[0], estado: 'finalizado', ganador_id: 11 };
+    db.destino = [{ ...db.destino[0], participante_1_id: 11 }];
+    let res = await resultado({ marcador_1: 5, marcador_2: 4, allowEdit: true });
+    expect(res.status).toBe(200);
     expect(res.body.message).toBe('Resultado actualizado correctamente');
+    expect(res.body.siguiente_encuentro).toEqual({
+      encuentro_id: 201,
+      ronda: 2,
+      participante_1_id: 11,
+      participante_2_id: null
+    });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE encuentros_torneo SET participante_'))).toBe(false);
 
     db.enc[0] = { ...db.enc[0], estado: 'pendiente', ganador_id: null };
     res = await resultado({ marcador_1: 1, marcador_2: 4, allowEdit: true });
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ ok: false, error: 'Solo se puede editar el resultado de un encuentro finalizado' });
     expect(log).toMatchSnapshot();
+  });
+
+  it('edición que cambia el ganador con el siguiente partido ya jugado → 409 sin escribir, sin cascada (B-05)', async () => {
+    db.enc[0] = { ...db.enc[0], estado: 'finalizado', ganador_id: 11 };
+    db.destino = [{ ...db.destino[0], estado: 'finalizado', participante_1_id: 11, participante_2_id: 13 }];
+    const res = await resultado({ marcador_1: 1, marcador_2: 4, allowEdit: true });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({
+      ok: false,
+      error: 'No se puede editar: el siguiente partido ya tiene resultado. Corrige primero ese partido.'
+    });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
+    expect(log.at(-1)[1]).toBe('ROLLBACK');
+  });
+
+  it('edición con el mismo ganador y el siguiente partido ya jugado → 200: cambia el marcador, no el destino (B-05)', async () => {
+    db.enc[0] = { ...db.enc[0], estado: 'finalizado', ganador_id: 11 };
+    db.destino = [{ ...db.destino[0], estado: 'finalizado', participante_1_id: 11, participante_2_id: 13 }];
+    const res = await resultado({ marcador_1: 4, marcador_2: 1, allowEdit: true });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe('Resultado actualizado correctamente');
+    expect(res.body.encuentro).toMatchObject({ marcador_1: 4, marcador_2: 1, ganador_id: 11 });
+    // Se actualiza el marcador del encuentro; el slot del destino no se escribe
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE encuentros_torneo SET marcador_1'))).toBe(true);
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE encuentros_torneo SET participante_'))).toBe(false);
+    expect(log.at(-1)[1]).toBe('COMMIT');
+  });
+
+  it('slot destino ocupado por otro participante (bracket heredado) → 409 sin escribir', async () => {
+    db.destino = [{ ...db.destino[0], participante_1_id: 99 }];
+    let res = await resultado({ marcador_1: 3, marcador_2: 1 });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ ok: false, error: 'El bracket de este torneo tiene datos inconsistentes' });
+
+    // Al editar, el slot debe tener al ganador anterior (o al nuevo, o estar vacío)
+    db.enc[0] = { ...db.enc[0], estado: 'finalizado', ganador_id: 11 };
+    res = await resultado({ marcador_1: 1, marcador_2: 4, allowEdit: true });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ ok: false, error: 'El bracket de este torneo tiene datos inconsistentes' });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
+  });
+
+  it.each([
+    [{}, 'No se puede editar un encuentro ya finalizado'],
+    [{ allowEdit: true }, 'El encuentro aún no tiene ambos participantes asignados']
+  ])('bye (un solo participante, finalizado) con %j → 409 sin escribir (B-26)', async (extra, error) => {
+    db.enc[0] = { ...db.enc[0], estado: 'finalizado', participante_2_id: null, ganador_id: 11 };
+    const res = await resultado({ marcador_1: 1, marcador_2: 0, ...extra });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ ok: false, error });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
   });
 
   it.each(['pendiente', 'programado'])('allowEdit en un encuentro %s → 409 sin UPDATE (B-11)', async (estado) => {

@@ -149,7 +149,11 @@ async function confirmarBracket(torneoIdParam) {
   });
 }
 
-/** Encuentros del torneo agrupados por ronda. */
+/**
+ * Encuentros del torneo agrupados por ronda. Los nombres salen solo de participante_1_id,
+ * participante_2_id y ganador_id; las columnas heredadas de texto (ganador, participante_1 y
+ * participante_2) ya no se leen (B-17).
+ */
 async function obtenerBracket(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
@@ -160,14 +164,13 @@ async function obtenerBracket(torneoIdParam) {
   const result = await pool.query(
     `SELECT
            e.encuentro_id, e.ronda, e.estado, e.cancha_asignada, e.hora_programada,
-           e.marcador_1, e.marcador_2, e.ganador_id, e.ganador AS ganador_nombre,
+           e.marcador_1, e.marcador_2, e.ganador_id,
            p1.participante_id AS participante_1_id,
            COALESCE(
              NULLIF(TRIM(eq1.nombre_equipo), ''),
              NULLIF(TRIM(CONCAT(u1.nombres, ' ', COALESCE(u1.apellido_paterno, ''), ' ', COALESCE(u1.apellido_materno, ''))), ''),
              NULLIF(TRIM(v1.nombre_completo), ''),
              NULLIF(TRIM(p1.nombre_externo), ''),
-             NULLIF(TRIM(e.participante_1), ''),
              'Por definir'
            ) AS participante_1_nombre,
            p2.participante_id AS participante_2_id,
@@ -176,7 +179,6 @@ async function obtenerBracket(torneoIdParam) {
              NULLIF(TRIM(CONCAT(u2.nombres, ' ', COALESCE(u2.apellido_paterno, ''), ' ', COALESCE(u2.apellido_materno, ''))), ''),
              NULLIF(TRIM(v2.nombre_completo), ''),
              NULLIF(TRIM(p2.nombre_externo), ''),
-             NULLIF(TRIM(e.participante_2), ''),
              'Por definir'
            ) AS participante_2_nombre
          FROM encuentros_torneo e
@@ -198,6 +200,11 @@ async function obtenerBracket(torneoIdParam) {
   const bracketPorRonda = result.rows.reduce((acc, row) => {
     const ronda = row.ronda || 1;
     if (!acc[ronda]) acc[ronda] = { ronda, encuentros: [] };
+    // Nombre del ganador a partir de ganador_id (el del participante que lo tiene); sin ganador, null
+    const ganadorId = row.ganador_id ?? null;
+    let ganadorNombre = null;
+    if (ganadorId !== null && ganadorId === row.participante_1_id) ganadorNombre = row.participante_1_nombre;
+    else if (ganadorId !== null && ganadorId === row.participante_2_id) ganadorNombre = row.participante_2_nombre;
     acc[ronda].encuentros.push({
       encuentro_id: row.encuentro_id,
       estado: row.estado,
@@ -206,7 +213,7 @@ async function obtenerBracket(torneoIdParam) {
       marcador_1: row.marcador_1,
       marcador_2: row.marcador_2,
       ganador_id: row.ganador_id,
-      ganador_nombre: row.ganador_nombre,
+      ganador_nombre: ganadorNombre,
       participante_1: {
         participante_id: row.participante_1_id,
         nombre: row.participante_1_nombre || 'Por definir'

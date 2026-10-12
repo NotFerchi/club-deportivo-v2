@@ -1198,6 +1198,36 @@ describe('GET /api/torneos/:torneo_id/bracket', () => {
     expect(log).toMatchSnapshot();
   });
 
+  it('el ganador sale solo de ganador_id, sin leer las columnas heredadas de texto (B-17)', async () => {
+    db.bracket = [
+      {
+        encuentro_id: 200,
+        ronda: 1,
+        estado: 'finalizado',
+        ganador_id: 12,
+        // Aunque la fila trajera texto heredado, la consulta ya no lo pide y no debe usarse
+        ganador_nombre: 'Texto heredado',
+        participante_1_id: 11,
+        participante_1_nombre: 'Ana',
+        participante_2_id: 12,
+        participante_2_nombre: 'Beto'
+      },
+      {
+        encuentro_id: 201,
+        ronda: 1,
+        estado: 'programado',
+        ganador_id: null,
+        participante_1_id: 13,
+        participante_2_id: 14
+      }
+    ];
+    const res = await request(app).get('/api/torneos/4/bracket');
+    expect(res.status).toBe(200);
+    expect(res.body[0].encuentros.map((e) => e.ganador_nombre)).toEqual(['Beto', null]);
+    const sql = log.find(([, q]) => q.startsWith('SELECT e.encuentro_id'))[1];
+    expect(sql).not.toMatch(/e\.ganador\b|e\.participante_1\b|e\.participante_2\b/);
+  });
+
   it('400 / 404 / 500', async () => {
     let res = await request(app).get('/api/torneos/x/bracket');
     expect(res.status).toBe(400);

@@ -49,6 +49,8 @@ function route(q) {
   if (q.startsWith('SELECT disciplina_id FROM disciplinas')) return rows(db.disciplina);
   if (q.startsWith('INSERT INTO torneos')) return rows([{ torneo_id: 9 }]);
   if (q.startsWith('UPDATE torneos SET disciplina_id')) return rows([]);
+  if (q.startsWith('SELECT COUNT(*)::int AS total FROM participantes_torneo')) return rows(db.inscritos);
+  if (q.startsWith('UPDATE participantes_torneo SET categoria_id')) return rows([]);
   if (q.startsWith('SELECT pt.participante_id, pt.torneo_id')) return rows(db.participantes);
   if (q.startsWith('SELECT * FROM socios')) return rows(db.socio);
   if (q.startsWith('SELECT * FROM visitas')) return rows(db.visita);
@@ -61,7 +63,9 @@ function route(q) {
   if (q.startsWith('SELECT nombre_externo FROM participantes_torneo')) return rows(db.externos);
   if (q.startsWith('INSERT INTO participantes_torneo')) return rows([{ participante_id: 31 }]);
   if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE') return rows(db.torneoLock);
-  if (q === 'SELECT estado, categoria_id FROM torneos WHERE torneo_id = $1 FOR UPDATE') return rows(db.torneoInfo);
+  // inscribir e inscribir-me bloquean el torneo leyendo estado, categoría y modalidad
+  if (q === 'SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE')
+    return rows(db.torneoInfo);
   if (q.startsWith('SELECT estado, disciplina_id, tipo_torneo, categoria_id FROM torneos'))
     return rows(db.torneoEditable);
   if (q === 'SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1 LIMIT 1') return rows(db.hayEncuentros);
@@ -102,6 +106,7 @@ beforeEach(() => {
     duplicado: [],
     existente: [],
     externos: [],
+    inscritos: [{ total: 0 }],
     ids: [11, 12, 13, 14, 15].map((participante_id) => ({ participante_id })),
     ultimoEncuentroId: 500,
     torneoLock: [{ estado: 'Abierto' }],
@@ -172,7 +177,7 @@ beforeEach(() => {
     categorias: [{ categoria_id: 3, nombre: 'Libre' }],
     socioPropio: [{ socio_id: 10 }],
     socioMis: [{ socio_id: 10 }],
-    torneoInfo: [{ torneo_id: 4, estado: 'Abierto', categoria_id: 3 }],
+    torneoInfo: [{ estado: 'Abierto', categoria_id: 3, tipo_torneo: 'Individual' }],
     borrado: [{ participante_id: 31 }],
     mis: [{ participante_id: 31, torneo_id: 4 }],
     torneoExiste: [{ torneo_id: 4 }],
@@ -257,7 +262,7 @@ describe('/api/torneos sin body: ningún endpoint responde 500', () => {
 
 describe('POST /api/torneos', () => {
   it('crea con valores por defecto y con todos los campos', async () => {
-    let res = await request(app).post('/api/torneos').send({ nombre: '  Copa  ', disciplina_id: '2' });
+    let res = await request(app).post('/api/torneos').send({ nombre: '  Copa  ', disciplina_id: '2', categoria_id: 3 });
     expect(res.status).toBe(201);
     expect(res.body).toEqual({ torneo_id: 9 });
 
@@ -277,7 +282,7 @@ describe('POST /api/torneos', () => {
   it('nombre de 150 caracteres (tras trim) → 201', async () => {
     const res = await request(app)
       .post('/api/torneos')
-      .send({ nombre: ` ${'n'.repeat(150)} `, disciplina_id: 2 });
+      .send({ nombre: ` ${'n'.repeat(150)} `, disciplina_id: 2, categoria_id: 3 });
     expect(res.status).toBe(201);
     expect(log.find(([, sql]) => sql.startsWith('INSERT INTO torneos'))[2][1]).toHaveLength(150);
   });
@@ -285,7 +290,9 @@ describe('POST /api/torneos', () => {
   it.each(['Cerrado', 'Finalizado', 'En_curso', 'Lo que sea'])(
     'estado %j en el body se ignora: el torneo nace Abierto (B-02)',
     async (estado) => {
-      const res = await request(app).post('/api/torneos').send({ nombre: 'Copa', disciplina_id: 2, estado });
+      const res = await request(app)
+        .post('/api/torneos')
+        .send({ nombre: 'Copa', disciplina_id: 2, categoria_id: 3, estado });
       expect(res.status).toBe(201);
       const insert = log.find(([, sql]) => sql.startsWith('INSERT INTO torneos'));
       expect(insert[2][4]).toBe('Abierto');
@@ -312,9 +319,12 @@ describe('POST /api/torneos', () => {
       'categoria_id debe ser un entero valido'
     ]),
     // B-13: tipo y fechas, antes de la BD
-    [{ nombre: 'Copa', disciplina_id: 2, tipo_torneo: 'Mixto' }, 'tipo_torneo debe ser Individual o Equipos'],
     [
-      { nombre: 'Copa', disciplina_id: 2, fecha_inicio: '2026-10-05', fecha_fin: '2026-10-01' },
+      { nombre: 'Copa', disciplina_id: 2, categoria_id: 3, tipo_torneo: 'Mixto' },
+      'tipo_torneo debe ser Individual o Equipos'
+    ],
+    [
+      { nombre: 'Copa', disciplina_id: 2, categoria_id: 3, fecha_inicio: '2026-10-05', fecha_fin: '2026-10-01' },
       'La fecha de fin no puede ser menor que la fecha de inicio'
     ]
   ])('validación %j → 400 sin consultar (B-08, B-09, B-13)', async (body, error) => {
@@ -326,7 +336,7 @@ describe('POST /api/torneos', () => {
 
   it('disciplina inexistente → 400', async () => {
     db.disciplina = [];
-    const res = await request(app).post('/api/torneos').send({ nombre: 'Copa', disciplina_id: 99 });
+    const res = await request(app).post('/api/torneos').send({ nombre: 'Copa', disciplina_id: 99, categoria_id: 3 });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'La disciplina no existe' });
     expect(log).toMatchSnapshot();
@@ -349,10 +359,20 @@ describe('POST /api/torneos', () => {
     ['XX000', 500, { error: 'Error al crear torneo' }]
   ])('error pg %s en INSERT → %i', async (code, status, body) => {
     db.falla = { sql: 'INSERT INTO torneos', code };
-    const res = await request(app).post('/api/torneos').send({ nombre: 'Copa', disciplina_id: 2 });
+    const res = await request(app).post('/api/torneos').send({ nombre: 'Copa', disciplina_id: 2, categoria_id: 3 });
     expect(res.status).toBe(status);
     expect(res.body).toEqual(body);
   });
+
+  it.each([undefined, null, ''])(
+    'categoria_id %p → 400 "categoria_id es requerido" sin consultar (B-10)',
+    async (cat) => {
+      const res = await request(app).post('/api/torneos').send({ nombre: 'Copa', disciplina_id: 2, categoria_id: cat });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'categoria_id es requerido' });
+      expect(log).toEqual([]);
+    }
+  );
 
   it('sin body → 400 con el campo que falta (B-09)', async () => {
     const res = await request(app).post('/api/torneos');
@@ -366,7 +386,7 @@ describe('POST /api/torneos', () => {
 
 describe('PUT /api/torneos/:torneo_id', () => {
   it('actualiza con y sin opcionales', async () => {
-    let res = await request(app).put('/api/torneos/4').send({ nombre: ' Copa ', disciplina_id: '2' });
+    let res = await request(app).put('/api/torneos/4').send({ nombre: ' Copa ', disciplina_id: '2', categoria_id: 3 });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true, torneo_id: 4, message: 'Torneo actualizado correctamente' });
 
@@ -411,7 +431,7 @@ describe('PUT /api/torneos/:torneo_id', () => {
 
   it('no existe → 404; errores pg', async () => {
     db.torneoEditable = [];
-    let res = await request(app).put('/api/torneos/4').send({ nombre: 'Copa', disciplina_id: 2 });
+    let res = await request(app).put('/api/torneos/4').send({ nombre: 'Copa', disciplina_id: 2, categoria_id: 3 });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Torneo no encontrado' });
 
@@ -424,7 +444,7 @@ describe('PUT /api/torneos/:torneo_id', () => {
       ['XX000', 500, 'Error al actualizar torneo']
     ]) {
       db.falla = { sql: 'UPDATE torneos', code };
-      res = await request(app).put('/api/torneos/4').send({ nombre: 'Copa', disciplina_id: 2 });
+      res = await request(app).put('/api/torneos/4').send({ nombre: 'Copa', disciplina_id: 2, categoria_id: 3 });
       expect(res.status).toBe(status);
       expect(res.body).toEqual({ error });
     }
@@ -482,11 +502,77 @@ describe('PUT /api/torneos/:torneo_id', () => {
     expect(res.body).toEqual({ error: 'La categoría no existe' });
 
     db.disciplina = [];
-    res = await request(app).put('/api/torneos/4').send({ nombre: 'Copa', disciplina_id: 99 });
+    res = await request(app).put('/api/torneos/4').send({ nombre: 'Copa', disciplina_id: 99, categoria_id: 3 });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'La disciplina no existe' });
     expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
   });
+
+  describe('categoría del torneo Abierto y sus inscritos', () => {
+    const editar = (categoria_id) =>
+      request(app).put('/api/torneos/4').send({ nombre: 'Copa', disciplina_id: 2, categoria_id });
+    const escrituras = () =>
+      log.filter(([, sql]) => sql.startsWith('UPDATE')).map(([, sql, params]) => [sql.split(' ')[1], params]);
+
+    it('sin categoría → X con inscritos: 200 y los inscritos pasan a X', async () => {
+      db.torneoEditable = [{ estado: 'Abierto', disciplina_id: 2, tipo_torneo: 'Individual', categoria_id: null }];
+      db.inscritos = [{ total: 2 }];
+      const res = await editar(3);
+      expect(res.status).toBe(200);
+      expect(escrituras()).toEqual([
+        ['torneos', [2, 'Copa', null, null, 3, null, 4]],
+        ['participantes_torneo', [3, 4]]
+      ]);
+      expect(log.at(-1)[1]).toBe('COMMIT');
+    });
+
+    it('X → Y con inscritos: 409 y no cambia nada', async () => {
+      db.inscritos = [{ total: 2 }];
+      const res = await editar(5);
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({ error: 'No se puede cambiar la categoría: el torneo ya tiene inscritos' });
+      expect(escrituras()).toEqual([]);
+      expect(log.at(-1)[1]).toBe('ROLLBACK');
+    });
+
+    it('X → Y sin inscritos: 200, cambia el torneo y no toca participantes', async () => {
+      const res = await editar(5);
+      expect(res.status).toBe(200);
+      expect(escrituras()).toEqual([['torneos', [2, 'Copa', null, null, 5, null, 4]]]);
+    });
+
+    it('misma categoría: 200 sin contar inscritos ni tocar participantes', async () => {
+      db.inscritos = [{ total: 2 }];
+      const res = await editar(3);
+      expect(res.status).toBe(200);
+      expect(log.some(([, sql]) => sql.includes('participantes_torneo'))).toBe(false);
+    });
+  });
+
+  it.each([undefined, null, ''])(
+    'torneo Abierto con categoria_id %p → 400 "categoria_id es requerido" sin UPDATE (B-10)',
+    async (cat) => {
+      const res = await request(app)
+        .put('/api/torneos/4')
+        .send({ nombre: 'Copa', disciplina_id: 2, categoria_id: cat });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'categoria_id es requerido' });
+      expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
+    }
+  );
+
+  it.each(['Inscripciones_cerradas', 'En_curso', 'Finalizado', 'Cancelado'])(
+    'torneo %s viejo sin categoría: editar nombre y fechas sin categoria_id → 200 (B-10)',
+    async (estado) => {
+      db.torneoEditable = [{ estado, disciplina_id: 2, tipo_torneo: 'Individual', categoria_id: null }];
+      const res = await request(app)
+        .put('/api/torneos/4')
+        .send({ nombre: 'Copa renombrada', disciplina_id: 2, fecha_inicio: '2026-11-01', fecha_fin: '2026-11-02' });
+      expect(res.status).toBe(200);
+      const update = log.find(([, sql]) => sql.startsWith('UPDATE torneos'));
+      expect(update[2]).toEqual([2, 'Copa renombrada', '2026-11-01', '2026-11-02', null, null, 4]);
+    }
+  );
 
   it('sin body → 400 con el campo que falta (B-09)', async () => {
     let res = await request(app).put('/api/torneos/abc');
@@ -580,9 +666,6 @@ describe('POST /api/torneos/:torneo_id/inscribir', () => {
       400,
       'categoria_id debe ser un entero valido'
     ]),
-    // B-13: sin categoría ya no responde "La categoría no existe"
-    [{ nombre_externo: 'Juan' }, 400, 'categoria_id es requerido'],
-    [{ nombre_externo: 'Juan', categoria_id: '' }, 400, 'categoria_id es requerido'],
     // B-08: longitud de nombre_externo, ya con trim
     [{ nombre_externo: 'e'.repeat(151), categoria_id: 3 }, 400, 'Máximo 150 caracteres']
   ])('validación %j → 400 sin consultar', async (body, status, error) => {
@@ -604,11 +687,58 @@ describe('POST /api/torneos/:torneo_id/inscribir', () => {
     expect(log.find(([, sql]) => sql.startsWith('INSERT INTO participantes_torneo'))[2][3]).toHaveLength(150);
   });
 
-  it('categoría inexistente → 400 "La categoría no existe" (B-13)', async () => {
-    db.categoria = [];
-    const res = await inscribir({ nombre_externo: 'Juan', categoria_id: 999 });
+  it.each([
+    ['sin categoria_id', {}],
+    ['categoria_id vacío', { categoria_id: '' }],
+    ['categoria_id igual a la del torneo', { categoria_id: '3' }]
+  ])('%s → 201 con la categoría del torneo (B-14)', async (_, extra) => {
+    const res = await inscribir({ nombre_externo: 'Juan', ...extra });
+    expect(res.status).toBe(201);
+    expect(log.find(([, sql]) => sql.startsWith('INSERT INTO participantes_torneo'))[2][5]).toBe(3);
+  });
+
+  it.each([5, 999])('categoria_id %i distinta de la del torneo → 400 sin INSERT (B-14)', async (categoria) => {
+    const res = await inscribir({ nombre_externo: 'Juan', categoria_id: categoria });
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'La categoría no existe' });
+    expect(res.body).toEqual({ error: 'La categoría debe ser la del torneo' });
+    expect(log.some(([, sql]) => sql.startsWith('INSERT'))).toBe(false);
+  });
+
+  it('torneo sin categoría → 409 sin INSERT (B-10, B-14)', async () => {
+    db.torneoInfo = [{ estado: 'Abierto', categoria_id: null, tipo_torneo: 'Individual' }];
+    const res = await inscribir({ nombre_externo: 'Juan' });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Este torneo no tiene categoría asignada' });
+    expect(log.some(([, sql]) => sql.startsWith('INSERT'))).toBe(false);
+  });
+
+  it.each([
+    ['socio', { socio_id: 10 }],
+    ['visita', { visita_id: 20 }]
+  ])('torneo por equipos: inscribir un %s → 400 sin consultarlo ni insertar (B-15)', async (_, participante) => {
+    db.torneoInfo = [{ estado: 'Abierto', categoria_id: 3, tipo_torneo: 'Equipos' }];
+    const res = await inscribir(participante);
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'En un torneo por equipos solo se inscriben equipos (nombre_externo)' });
+    expect(log.map(([, sql]) => sql)).toEqual([
+      'BEGIN',
+      'SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE',
+      'ROLLBACK'
+    ]);
+  });
+
+  it('torneo por equipos: inscribir un equipo (nombre_externo) → 201 (B-15)', async () => {
+    db.torneoInfo = [{ estado: 'Abierto', categoria_id: 3, tipo_torneo: 'Equipos' }];
+    const res = await inscribir({ nombre_externo: 'Águilas FC' });
+    expect(res.status).toBe(201);
+    expect(log.find(([, sql]) => sql.startsWith('INSERT INTO participantes_torneo'))[2]).toEqual([
+      4,
+      null,
+      null,
+      'Águilas FC',
+      null,
+      3
+    ]);
   });
 
   it.each(['águilas fc', ' ÁGUILAS   FC ', 'Águilas\tFC'])(
@@ -636,7 +766,7 @@ describe('POST /api/torneos/:torneo_id/inscribir', () => {
     expect(busquedas.map(([, , params]) => params)).toEqual([[4], [5]]);
   });
 
-  it('socio / visita / categoría no encontrados, duplicado, equipo inválido', async () => {
+  it('socio / visita no encontrados, categoría distinta, duplicado, equipo inválido', async () => {
     db.socio = [];
     let res = await inscribir({ socio_id: 10, categoria_id: 3 });
     expect(res.body).toEqual({ error: 'Socio no encontrado o inactivo' });
@@ -645,12 +775,10 @@ describe('POST /api/torneos/:torneo_id/inscribir', () => {
     res = await inscribir({ visita_id: 20, categoria_id: 3 });
     expect(res.body).toEqual({ error: 'Visita no encontrada o no vigente' });
 
-    db.categoria = [];
-    res = await inscribir({ nombre_externo: 'Juan', categoria_id: 3 });
+    res = await inscribir({ nombre_externo: 'Juan', categoria_id: 5 });
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'La categoría no existe' });
+    expect(res.body).toEqual({ error: 'La categoría debe ser la del torneo' });
 
-    db.categoria = [{ categoria_id: 3 }];
     db.visita = [{ visita_id: 20 }];
     db.duplicado = [{ participante_id: 1 }];
     res = await inscribir({ visita_id: 20, categoria_id: 3 });
@@ -675,7 +803,7 @@ describe('POST /api/torneos/:torneo_id/inscribir', () => {
   });
 
   it('torneo inexistente → 404 (B-04)', async () => {
-    db.torneoLock = [];
+    db.torneoInfo = [];
     const res = await inscribir({ nombre_externo: 'Juan', categoria_id: 3 });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Torneo no encontrado' });
@@ -684,13 +812,13 @@ describe('POST /api/torneos/:torneo_id/inscribir', () => {
   it.each(['Inscripciones_cerradas', 'En_curso', 'Finalizado', 'Cancelado'])(
     'torneo %s → 409 sin INSERT, con la fila del torneo bloqueada (B-04, B-18)',
     async (estado) => {
-      db.torneoLock = [{ estado }];
+      db.torneoInfo = [{ estado, categoria_id: 3, tipo_torneo: 'Individual' }];
       const res = await inscribir({ nombre_externo: 'Juan', categoria_id: 3 });
       expect(res.status).toBe(409);
       expect(res.body).toEqual({ error: 'El torneo no está abierto para inscripciones' });
       expect(log.map(([, sql]) => sql)).toEqual([
         'BEGIN',
-        'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE',
+        'SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE',
         'ROLLBACK'
       ]);
     }
@@ -933,10 +1061,11 @@ describe('POST /api/torneos/:torneo_id/inscribir-me', () => {
       expect(res.body).toEqual({ error: 'El torneo no está abierto para inscripciones' });
     }
 
+    // B-14: sin categoría es un conflicto del torneo (409), con el mismo mensaje que inscribir por staff
     db.torneoInfo = [{ torneo_id: 4, estado: 'Abierto', categoria_id: null }];
     res = await inscribirme();
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Este torneo no tiene categoría asignada. Contacta al administrador.' });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Este torneo no tiene categoría asignada' });
 
     db.torneoInfo = [{ torneo_id: 4, estado: 'Abierto', categoria_id: 3 }];
     db.existente = [{ participante_id: 31 }];
@@ -955,6 +1084,26 @@ describe('POST /api/torneos/:torneo_id/inscribir-me', () => {
     const res = await inscribirme();
     expect(res.status).toBe(status);
     expect(res.body).toEqual({ error });
+  });
+
+  it('torneo por equipos → 409 sin buscar al socio ni insertar (B-15)', async () => {
+    db.torneoInfo = [{ estado: 'Abierto', categoria_id: 3, tipo_torneo: 'Equipos' }];
+    const res = await inscribirme();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Este torneo es por equipos: la inscripción la hace el staff' });
+    expect(log.map(([, sql]) => sql)).toEqual([
+      'BEGIN',
+      'SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE',
+      'ROLLBACK'
+    ]);
+  });
+
+  it('torneo sin categoría → 409 (B-10, B-14)', async () => {
+    db.torneoInfo = [{ estado: 'Abierto', categoria_id: null, tipo_torneo: 'Individual' }];
+    const res = await inscribirme();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Este torneo no tiene categoría asignada' });
+    expect(log.some(([, sql]) => sql.startsWith('INSERT'))).toBe(false);
   });
 });
 

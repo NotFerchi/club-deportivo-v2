@@ -7,15 +7,24 @@ function InscribirModal({ torneo, socios, categorias, onClose, onInscribir }) {
   const [tipo, setTipo] = useState(esEquipos ? 'externo' : 'socio');
   const [socioId, setSocioId] = useState('');
   const [nombreExterno, setNombreExterno] = useState('');
-  const [categoriaId, setCategoriaId] = useState('');
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+
+  // La categoría del participante es la del torneo (B-14): se muestra fija y el backend la aplica
+  const sinCategoria = !torneo?.categoria_id;
+  const nombreCategoria =
+    torneo?.nombre_categoria ||
+    categorias.find((c) => String(c.categoria_id) === String(torneo?.categoria_id))?.nombre ||
+    '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (sinCategoria) {
+      setError('Este torneo no tiene categoría asignada');
+      return;
+    }
     const payload = {};
-    if (categoriaId) payload.categoria_id = Number(categoriaId);
     if (esEquipos || tipo === 'externo') {
       if (!nombreExterno.trim()) {
         setError(esEquipos ? 'Ingresa el nombre del equipo' : 'Ingresa el nombre');
@@ -167,32 +176,31 @@ function InscribirModal({ torneo, socios, categorias, onClose, onInscribir }) {
                 </select>
               </div>
             )}
-            {categorias.length > 0 && (
-              <div>
-                <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>
-                  Categoría
-                </label>
-                <select
-                  value={categoriaId}
-                  onChange={(e) => setCategoriaId(e.target.value)}
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>
+                Categoría
+              </label>
+              {sinCategoria ? (
+                <p style={{ margin: 0, fontSize: 12, color: '#b45309', fontWeight: 600 }}>
+                  Este torneo no tiene categoría asignada. Asígnala en "Editar torneo" para poder inscribir.
+                </p>
+              ) : (
+                <p
                   style={{
-                    width: '100%',
+                    margin: 0,
                     padding: '8px 12px',
                     borderRadius: 8,
-                    border: '1px solid #cbd5e1',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     fontSize: 13,
-                    boxSizing: 'border-box'
+                    color: '#0f172a'
                   }}
                 >
-                  <option value="">Sin categoría</option>
-                  {categorias.map((c) => (
-                    <option key={c.categoria_id} value={c.categoria_id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+                  {nombreCategoria || `Categoría #${torneo.categoria_id}`}{' '}
+                  <span style={{ color: '#94a3b8', fontSize: 11 }}>(la del torneo)</span>
+                </p>
+              )}
+            </div>
           </div>
           <div
             style={{
@@ -222,16 +230,16 @@ function InscribirModal({ torneo, socios, categorias, onClose, onInscribir }) {
             </button>
             <button
               type="submit"
-              disabled={cargando}
+              disabled={cargando || sinCategoria}
               style={{
-                background: cargando ? '#94a3b8' : 'linear-gradient(135deg,#2563eb,#3b82f6)',
+                background: cargando || sinCategoria ? '#94a3b8' : 'linear-gradient(135deg,#2563eb,#3b82f6)',
                 color: 'white',
                 border: 'none',
                 borderRadius: 8,
                 padding: '8px 18px',
                 fontWeight: 700,
                 fontSize: 13,
-                cursor: cargando ? 'not-allowed' : 'pointer',
+                cursor: cargando || sinCategoria ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 5

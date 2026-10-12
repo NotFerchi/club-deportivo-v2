@@ -6,7 +6,13 @@
  * responde 400 con el mensaje del campo que falte, nunca 500.
  */
 const { validateInput } = require('./validators');
-const { ERROR_FECHAS_TORNEO, ERROR_TIPO_PARTICIPANTE, esIdValido, tieneValor } = require('../services/torneoComun');
+const {
+  ERROR_CATEGORIA_REQUERIDA,
+  ERROR_FECHAS_TORNEO,
+  ERROR_TIPO_PARTICIPANTE,
+  esIdValido,
+  tieneValor
+} = require('../services/torneoComun');
 
 const bad = (error) => [400, { error }];
 const badOk = (error) => [400, { ok: false, error }];
@@ -63,13 +69,19 @@ function reglasOpcionalesTorneo({ categoria_id, tipo_torneo, fecha_inicio, fecha
   return null;
 }
 
-/** POST /: nombre (≤ 150) y disciplina_id requeridos; categoría, tipo y fechas si vienen. */
+/** POST /: nombre (≤ 150), disciplina_id y categoria_id requeridos (B-10); tipo y fechas si vienen. */
 const crearTorneo = validateInput((req) => {
   const body = cuerpo(req);
-  return reglasNombreYDisciplina(body) || reglasOpcionalesTorneo(body);
+  const falla = reglasNombreYDisciplina(body);
+  if (falla) return falla;
+  if (!tieneValor(body.categoria_id)) return bad(ERROR_CATEGORIA_REQUERIDA);
+  return reglasOpcionalesTorneo(body);
 });
 
-/** PUT /:torneo_id: torneo_id, nombre (≤ 150) y disciplina_id; categoría, tipo y fechas si vienen. */
+/**
+ * PUT /:torneo_id: torneo_id, nombre (≤ 150) y disciplina_id; categoría, tipo y fechas si vienen.
+ * La categoría es obligatoria solo con el torneo Abierto: lo comprueba el servicio, que conoce el estado.
+ */
 const actualizarTorneo = validateInput((req) => {
   const body = cuerpo(req);
   if (esIdValido(req.params.torneo_id) === null) return bad('torneo_id debe ser un entero valido');
@@ -77,8 +89,8 @@ const actualizarTorneo = validateInput((req) => {
 });
 
 /**
- * POST /:torneo_id/inscribir: exactamente un tipo de participante, torneo_id, ids válidos,
- * nombre_externo ≤ 150 y categoria_id requerido.
+ * POST /:torneo_id/inscribir: exactamente un tipo de participante, torneo_id, ids válidos y
+ * nombre_externo ≤ 150. categoria_id es opcional: la categoría es la del torneo (B-14).
  */
 const inscribirParticipante = validateInput((req) => {
   const { socio_id, visita_id, nombre_externo, categoria_id, equipo_id } = cuerpo(req);
@@ -89,8 +101,9 @@ const inscribirParticipante = validateInput((req) => {
   if (tieneValor(socio_id) && esIdValido(socio_id) === null) return bad('socio_id debe ser un entero valido');
   if (tieneValor(visita_id) && esIdValido(visita_id) === null) return bad('visita_id debe ser un entero valido');
   if (externo.length > MAX_NOMBRE_EXTERNO) return bad(maximo(MAX_NOMBRE_EXTERNO));
-  if (!tieneValor(categoria_id)) return bad('categoria_id es requerido');
-  if (esIdValido(categoria_id) === null) return bad('categoria_id debe ser un entero valido');
+  if (tieneValor(categoria_id) && esIdValido(categoria_id) === null) {
+    return bad('categoria_id debe ser un entero valido');
+  }
   if (tieneValor(equipo_id) && esIdValido(equipo_id) === null) return bad('equipo_id debe ser un entero valido');
   return null;
 });

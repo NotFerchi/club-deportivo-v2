@@ -192,10 +192,14 @@ function TournamentBracket({
     setShowTorneoModal(true);
   };
 
+  // La categoría es obligatoria mientras se puede inscribir gente: torneo nuevo o Abierto (B-10)
+  const categoriaRequerida = !editingTorneo || editingTorneo.estado === 'Abierto';
+
   const validateTorneoForm = () => {
     const errors = {};
     if (!formTorneo.nombre.trim()) errors.nombre = 'El nombre es requerido';
     if (!formTorneo.disciplina_id) errors.disciplina_id = 'La disciplina es requerida';
+    if (categoriaRequerida && !formTorneo.categoria_id) errors.categoria_id = 'La categoría es requerida';
     if (formTorneo.fecha_inicio && formTorneo.fecha_fin && formTorneo.fecha_fin < formTorneo.fecha_inicio) {
       errors.fecha_fin = 'La fecha fin no puede ser anterior a la fecha inicio';
     }
@@ -616,7 +620,20 @@ function TournamentBracket({
             <form onSubmit={handleSaveTorneo}>
               <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {torneoFormErrors.general && (
-                  <p style={{ margin: 0, color: '#dc2626', fontWeight: 600, fontSize: 13 }}>
+                  // Errores del backend al guardar (p. ej. 409 al cambiar la categoría con inscritos)
+                  <p
+                    role="alert"
+                    style={{
+                      margin: 0,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: '#fef2f2',
+                      border: '1px solid #fca5a5',
+                      color: '#b91c1c',
+                      fontWeight: 600,
+                      fontSize: 13
+                    }}
+                  >
                     {torneoFormErrors.general}
                   </p>
                 )}
@@ -748,7 +765,7 @@ function TournamentBracket({
                 </div>
                 <div>
                   <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4, color: '#374151' }}>
-                    Categoría del torneo
+                    Categoría del torneo {categoriaRequerida && <span style={{ color: '#ef4444' }}>*</span>}
                   </label>
                   <select
                     value={formTorneo.categoria_id}
@@ -757,18 +774,27 @@ function TournamentBracket({
                       width: '100%',
                       padding: '8px 12px',
                       borderRadius: 8,
-                      border: '1px solid #cbd5e1',
+                      border: `1px solid ${torneoFormErrors.categoria_id ? '#ef4444' : '#cbd5e1'}`,
                       fontSize: 14,
                       boxSizing: 'border-box'
                     }}
                   >
-                    <option value="">Sin categoría</option>
+                    {categoriaRequerida ? (
+                      <option value="" disabled>
+                        Selecciona una categoría
+                      </option>
+                    ) : (
+                      <option value="">Sin categoría</option>
+                    )}
                     {categorias.map((c) => (
                       <option key={c.categoria_id} value={c.categoria_id}>
                         {c.nombre}
                       </option>
                     ))}
                   </select>
+                  {torneoFormErrors.categoria_id && (
+                    <p style={{ margin: '4px 0 0', color: '#ef4444', fontSize: 12 }}>{torneoFormErrors.categoria_id}</p>
+                  )}
                   <p style={{ margin: '4px 0 0', fontSize: 11, color: '#94a3b8' }}>
                     Define la categoría para todos los participantes de este torneo.
                   </p>

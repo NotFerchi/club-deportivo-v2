@@ -8,9 +8,14 @@ const ERROR_SOCIO_NO_VALIDO = 'Socio no encontrado o inactivo';
 const ERROR_VISITA_NO_VALIDA = 'Visita no encontrada o no vigente';
 const ERROR_CATEGORIA_NO_EXISTE = 'La categoría no existe';
 const ERROR_PARTICIPANTE_DUPLICADO = 'Este participante ya está inscrito en el torneo';
+const ERROR_CATEGORIA_REQUERIDA = 'categoria_id es requerido';
+const ERROR_TORNEO_SIN_CATEGORIA = 'Este torneo no tiene categoría asignada';
 
 // Mayor valor de una columna INTEGER (int4) de PostgreSQL.
 const MAX_INT4 = 2147483647;
+
+/** Torneo por equipos: solo admite equipos (nombre_externo), inscritos por el staff. */
+const esPorEquipos = (tipoTorneo) => tipoTorneo === 'Equipos';
 
 function normalizarFechaOpcional(fecha) {
   return fecha === undefined || fecha === '' ? null : fecha;
@@ -56,6 +61,9 @@ module.exports = {
   ERROR_VISITA_NO_VALIDA,
   ERROR_CATEGORIA_NO_EXISTE,
   ERROR_PARTICIPANTE_DUPLICADO,
+  ERROR_CATEGORIA_REQUERIDA,
+  ERROR_TORNEO_SIN_CATEGORIA,
+  esPorEquipos,
   normalizarFechaOpcional,
   tieneValor,
   esIdValido,

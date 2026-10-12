@@ -1,6 +1,7 @@
 const ServiceError = require('./serviceError');
 const { enTransaccion } = require('./transaction');
 const { admiteAsignarCancha, admiteResultados } = require('./torneoEstados');
+const { ERROR_BRACKET_INCONSISTENTE, encuentroDestino } = require('./bracketPosicion');
 
 const ROLES_ARBITRAJE = ['instructor', 'admin', 'gerente', 'coordinador'];
 
@@ -24,62 +25,38 @@ async function estadoDelTorneo(client, encuentroId) {
   return rows[0].estado;
 }
 
-/** Coloca al ganador en la siguiente ronda (slot del ganador anterior al editar, o slot libre). */
-async function avanzarGanador(client, { enc, ganadorId, ganadorAnterior, allowEdit, siguienteRonda }) {
-  if (allowEdit && ganadorAnterior && ganadorAnterior !== ganadorId) {
-    // Edición: actualizar el ganador anterior por el nuevo en la siguiente ronda
-    const { rows: slotAnterior } = await client.query(
-      `SELECT encuentro_id, participante_1_id, participante_2_id
-           FROM encuentros_torneo
-           WHERE torneo_id = $1
-             AND ronda = $2
-             AND (participante_1_id = $3 OR participante_2_id = $3)
-           LIMIT 1 FOR UPDATE`,
-      [enc.torneo_id, siguienteRonda, ganadorAnterior]
-    );
-
-    if (slotAnterior.length > 0) {
-      const slot = slotAnterior[0];
-      const campo = slot.participante_1_id === ganadorAnterior ? 'participante_1_id' : 'participante_2_id';
-
-      const { rows: slotActualizado } = await client.query(
-        `UPDATE encuentros_torneo
-             SET ${campo} = $1
-             WHERE encuentro_id = $2
-             RETURNING encuentro_id, ronda, participante_1_id, participante_2_id`,
-        [ganadorId, slot.encuentro_id]
-      );
-      return slotActualizado[0];
-    }
-  } else if (!allowEdit) {
-    // Registro nuevo: buscar slot libre
-    const { rows: slotRows } = await client.query(
-      `SELECT encuentro_id, participante_1_id, participante_2_id
-           FROM encuentros_torneo
-           WHERE torneo_id = $1
-             AND ronda     = $2
-             AND (participante_1_id IS NULL OR participante_2_id IS NULL)
-           ORDER BY encuentro_id ASC
-           LIMIT 1
-           FOR UPDATE`,
-      [enc.torneo_id, siguienteRonda]
-    );
-
-    if (slotRows.length > 0) {
-      const slot = slotRows[0];
-      const campo = slot.participante_1_id === null ? 'participante_1_id' : 'participante_2_id';
-
-      const { rows: slotActualizado } = await client.query(
-        `UPDATE encuentros_torneo
-             SET ${campo} = $1
-             WHERE encuentro_id = $2
-             RETURNING encuentro_id, ronda, participante_1_id, participante_2_id`,
-        [ganadorId, slot.encuentro_id]
-      );
-      return slotActualizado[0];
-    }
+/**
+ * Comprueba que el ganador pueda ir al slot que marca la regla de posición:
+ * - Al editar (allowEdit) cambiando el ganador, el destino no debe tener resultado (sin cascada).
+ *   Con el mismo ganador (p. ej. corregir 3-1 a 4-1) solo cambia el marcador y el destino no se toca.
+ *   El slot debe tener al ganador anterior, al nuevo o estar vacío.
+ * - Al registrar, el slot debe estar vacío o tener ya al ganador.
+ * Si el slot tiene a otro participante, el bracket viene de la regla vieja (datos heredados): 409.
+ */
+function validarDestino(destino, { allowEdit, ganadorAnterior, ganadorId }) {
+  if (allowEdit && ganadorId !== ganadorAnterior && destino.estado === 'finalizado') {
+    throw fail(409, 'No se puede editar: el siguiente partido ya tiene resultado. Corrige primero ese partido.');
   }
-  return null;
+  const ocupante = destino[destino.campo];
+  const admitidos = [null, ganadorId];
+  if (allowEdit) admitidos.push(ganadorAnterior);
+  if (!admitidos.includes(ocupante)) throw fail(409, ERROR_BRACKET_INCONSISTENTE);
+}
+
+/** Coloca al ganador en su slot del encuentro destino (reemplaza al ganador anterior si se editó). */
+async function colocarGanador(client, destino, ganadorId) {
+  if (destino[destino.campo] === ganadorId) {
+    const { encuentro_id, ronda, participante_1_id, participante_2_id } = destino;
+    return { encuentro_id, ronda, participante_1_id, participante_2_id };
+  }
+  const { rows } = await client.query(
+    `UPDATE encuentros_torneo
+         SET ${destino.campo} = $1
+         WHERE encuentro_id = $2
+         RETURNING encuentro_id, ronda, participante_1_id, participante_2_id`,
+    [ganadorId, destino.encuentro_id]
+  );
+  return rows[0];
 }
 
 /**
@@ -136,8 +113,10 @@ async function registrarResultado(user, encuentroIdParam, body) {
       throw fail(409, 'El encuentro aún no tiene ambos participantes asignados');
     }
 
-    // Determinar nuevo ganador
+    // Determinar nuevo ganador y comprobar su destino antes de escribir nada
     const ganadorId = marcador1 > marcador2 ? enc.participante_1_id : enc.participante_2_id;
+    const destino = await encuentroDestino(client, enc);
+    if (destino) validarDestino(destino, { allowEdit, ganadorAnterior, ganadorId });
 
     // UPDATE del encuentro actual
     const { rows: updated } = await client.query(
@@ -153,13 +132,7 @@ async function registrarResultado(user, encuentroIdParam, body) {
     );
 
     const siguienteRonda = enc.ronda + 1;
-    const siguienteEncuentro = await avanzarGanador(client, {
-      enc,
-      ganadorId,
-      ganadorAnterior,
-      allowEdit,
-      siguienteRonda
-    });
+    const siguienteEncuentro = destino ? await colocarGanador(client, destino, ganadorId) : null;
 
     // Activar siguiente ronda si todos finalizados
     const { rows: pendientesRonda } = await client.query(

@@ -67,9 +67,8 @@ function route(q) {
   if (q === 'SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1 LIMIT 1') return rows(db.hayEncuentros);
   if (q.startsWith('SELECT 1 FROM encuentros_torneo WHERE $1 IN')) return rows(db.enBracket);
   if (q.startsWith('SELECT ganador_id FROM encuentros_torneo')) return rows(db.final);
-  if (q.startsWith('INSERT INTO encuentros_torneo')) return rows([]);
-  if (q.startsWith('SELECT encuentro_id, participante_1_id, participante_2_id FROM encuentros_torneo'))
-    return rows(db.byeSlot);
+  // encuentro_id creciente, como el SERIAL: la posición en la ronda es el orden de inserción
+  if (q.startsWith('INSERT INTO encuentros_torneo')) return rows([{ encuentro_id: ++db.ultimoEncuentroId }]);
   if (q.startsWith('UPDATE encuentros_torneo SET participante_')) return rows([]);
   if (q.startsWith('UPDATE torneos SET estado')) return rows([]);
   if (q.startsWith('UPDATE encuentros_torneo SET estado')) return rows([]);
@@ -104,7 +103,7 @@ beforeEach(() => {
     existente: [],
     externos: [],
     ids: [11, 12, 13, 14, 15].map((participante_id) => ({ participante_id })),
-    byeSlot: [{ encuentro_id: 500, participante_1_id: null, participante_2_id: null }],
+    ultimoEncuentroId: 500,
     torneoLock: [{ estado: 'Abierto' }],
     hayEncuentros: [],
     enBracket: [],

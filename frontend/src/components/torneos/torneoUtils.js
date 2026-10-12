@@ -92,3 +92,11 @@ export function isWinner(encuentro, participante) {
     normalizeText(encuentro.ganador_nombre) === normalizeText(getParticipantName(participante))
   );
 }
+
+/** Bye (pase directo): encuentro de ronda 1, finalizado y con un solo participante. */
+export function isBye(encuentro, ronda) {
+  if (Number(ronda) !== 1 || normalizeEstado(encuentro?.estado) !== ESTADOS_ENCUENTRO.finalizado) return false;
+  const tiene1 = Boolean(encuentro.participante_1?.participante_id);
+  const tiene2 = Boolean(encuentro.participante_2?.participante_id);
+  return tiene1 !== tiene2;
+}

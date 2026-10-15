@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Users, UserCheck, UserX, Loader2 } from 'lucide-react';
+import { Users, UserCheck, UserX, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../../../services/api';
+import { Table, Input } from '../../../components/ui';
 
 function iniciales(nombre, email) {
   if (nombre && nombre.trim()) {
@@ -86,14 +87,11 @@ function VistaSocios() {
       </div>
 
       {/* Buscador */}
-      <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
-        <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-        <input
-          type="text" placeholder="Buscar por nombre, número de socio o correo..."
-          value={busqueda} onChange={e => setBusqueda(e.target.value)}
-          style={{ width: '100%', paddingLeft: 40, paddingRight: 16, paddingTop: 10, paddingBottom: 10, border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, outline: 'none', boxSizing: 'border-box', background: 'white' }}
-        />
-      </div>
+      <Input
+        placeholder="Buscar por nombre, número de socio o correo..."
+        value={busqueda}
+        onChange={e => setBusqueda(e.target.value)}
+      />
 
       {/* Tabla desktop */}
       <div className="socios-tabla" style={{ background: 'white', borderRadius: '14px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
@@ -101,65 +99,45 @@ function VistaSocios() {
           <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Directorio de Socios</span>
           <span style={{ fontSize: '11px', color: '#94a3b8' }}>{filtrados.length} resultado{filtrados.length !== 1 ? 's' : ''}</span>
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: '#f8fafc' }}>
-              {['Socio', 'Número', 'Tipo', 'Modalidad', 'Estado'].map(h => (
-                <th key={h} style={{ padding: '0.75rem 1.25rem', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtrados.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
-                No se encontraron socios
-              </td></tr>
-            ) : filtrados.map((socio, idx) => {
-              const color = COLORES[idx % COLORES.length];
-              const nombre = nombreCompleto(socio);
-              return (
-                <tr key={socio.socio_id} style={{ borderTop: '1px solid #f1f5f9', transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'white'}>
-                  <td style={{ padding: '0.9rem 1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '12px', flexShrink: 0, overflow: 'hidden' }}>
-                        {socio.foto_perfil
-                          ? <img src={socio.foto_perfil} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : iniciales(nombre, socio.email)
-                        }
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '13px', color: '#1e293b' }}>{nombre}</div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{socio.email}</div>
-                      </div>
+        <Table
+          columns={[
+            {
+              key: 'socio', header: 'Socio',
+              render: (s, idx) => {
+                const color = COLORES[idx % COLORES.length];
+                const nombre = nombreCompleto(s);
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '12px', overflow: 'hidden' }}>
+                      {s.foto_perfil ? <img src={s.foto_perfil} alt={nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : iniciales(nombre, s.email)}
                     </div>
-                  </td>
-                  <td style={{ padding: '0.9rem 1.25rem' }}>
-                    <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px' }}>
-                      {socio.numero_socio}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.9rem 1.25rem' }}>
-                    <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px' }}>
-                      {socio.tipo}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.9rem 1.25rem', fontSize: '12px', color: '#64748b', fontWeight: 500 }}>{socio.modalidad}</td>
-                  <td style={{ padding: '0.9rem 1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: socio.activo ? '#10b981' : '#ef4444' }} />
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: socio.activo ? '#15803d' : '#b91c1c' }}>
-                        {socio.activo ? 'Activo' : 'Inactivo'}
-                      </span>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{nombre}</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8' }}>{s.email}</div>
                     </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </div>
+                );
+              },
+            },
+            { key: 'numero_socio', header: 'Número' },
+            { key: 'tipo', header: 'Tipo' },
+            { key: 'modalidad', header: 'Modalidad' },
+            {
+              key: 'estado', header: 'Estado',
+              render: (s) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.activo ? '#10b981' : '#ef4444' }} />
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: s.activo ? '#15803d' : '#b91c1c' }}>
+                    {s.activo ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
+              ),
+            },
+          ]}
+          data={filtrados}
+          getRowKey={(s) => s.socio_id}
+          emptyMessage="No se encontraron socios"
+        />
       </div>
 
       {/* Tarjetas móvil */}

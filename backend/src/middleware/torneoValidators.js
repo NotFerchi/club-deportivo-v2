@@ -8,9 +8,11 @@
 const { validateInput } = require('./validators');
 const {
   ERROR_CATEGORIA_REQUERIDA,
+  ERROR_CUPO_INVALIDO,
   ERROR_FECHAS_TORNEO,
   ERROR_TIPO_PARTICIPANTE,
   esIdValido,
+  normalizarCupo,
   tieneValor
 } = require('../services/torneoComun');
 const { FECHA_ISO, validarFechasInscripcion } = require('../services/torneoFechas');
@@ -56,8 +58,8 @@ function reglasNombreYDisciplina({ nombre, disciplina_id }) {
 }
 
 /**
- * Campos opcionales de POST y PUT: categoría, tipo, orden de las fechas del torneo y periodo de
- * inscripción (formato YYYY-MM-DD y orden con lo que venga en el body; en PUT el servicio vuelve a
+ * Campos opcionales de POST y PUT: categoría, tipo, cupo_maximo (entero 4–256 o null, E2.4), orden de las
+ * fechas del torneo y periodo de inscripción (formato YYYY-MM-DD y orden con lo que venga en el body; en PUT el servicio vuelve a
  * comprobar el orden con los valores guardados de los campos que no vienen).
  */
 function reglasOpcionalesTorneo(body) {
@@ -68,6 +70,7 @@ function reglasOpcionalesTorneo(body) {
   if (tieneValor(tipo_torneo) && !TIPOS_TORNEO.includes(tipo_torneo)) {
     return bad('tipo_torneo debe ser Individual o Equipos');
   }
+  if (Number.isNaN(normalizarCupo(body.cupo_maximo))) return bad(ERROR_CUPO_INVALIDO);
   // Mismo CHECK que la BD (fecha_fin >= fecha_inicio); otros formatos los valida PostgreSQL
   if (FECHA_ISO.test(fecha_inicio) && FECHA_ISO.test(fecha_fin) && fecha_fin < fecha_inicio) {
     return bad(ERROR_FECHAS_TORNEO);

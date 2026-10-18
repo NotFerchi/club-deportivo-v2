@@ -109,7 +109,7 @@ Response 409:
 | **404** | — (una lista vacía responde 200 con `[]`) |
 | **409** | — |
 
-`admite_inscripcion` es `true` solo si se cumplen todas: `estado = 'Abierto'`, `categoria_id` no es NULL, hoy (fecha del club) está dentro del periodo de inscripción (F-07, `enPeriodoInscripcion` de `torneoFechas.js`: desde `fecha_inicio_inscripcion` si existe; hasta `fecha_fin_inscripcion` inclusiva si existe, si no hasta el día anterior a `fecha_inicio`, y sin límite si no hay ninguna) y `cupo_maximo` es NULL o mayor que `total_participantes` (F-02). *(E2.12)* Se calcula en el backend con las mismas funciones que usan las inscripciones (`admiteInscripciones` y `enPeriodoInscripcion`), así que la tarjeta y el 409 de la inscripción no se contradicen. No mira la modalidad: un torneo por equipos con `true` admite inscripción por el staff, no auto-inscripción. La vista del socio muestra "Inscribirse" solo cuando es `true`, y la tarjeta pinta la barra `total_participantes / cupo_maximo` cuando hay cupo.
+`admite_inscripcion` es `true` solo si se cumplen todas: `estado = 'Abierto'`, `categoria_id` no es NULL, hoy (fecha del club) está dentro del periodo de inscripción (F-07, `enPeriodoInscripcion` de `torneoFechas.js`: desde `fecha_inicio_inscripcion` si existe; hasta `fecha_fin_inscripcion` inclusiva si existe, si no hasta el día anterior a `fecha_inicio`, y sin límite si no hay ninguna) y `cupo_maximo` es NULL o mayor que `total_participantes` (F-02). *(E2.12)* Se calcula en el backend con las mismas funciones que usan las inscripciones (`admiteInscripciones`, `enPeriodoInscripcion` y, desde E2.4, `hayCupo`), así que la tarjeta y el 409 de la inscripción no se contradicen. No mira la modalidad: un torneo por equipos con `true` admite inscripción por el staff, no auto-inscripción. La vista del socio muestra "Inscribirse" solo cuando es `true`, y la tarjeta pinta la barra `total_participantes / cupo_maximo` cuando hay cupo.
 
 Request:
 
@@ -148,14 +148,14 @@ Response 200:
 | **Método** | `POST` |
 | **Ruta** | `/api/torneos` |
 | **Roles** | `admin`, `gerente`, `coordinador` |
-| **Body** | `nombre` (requerido, ≤ 150), `disciplina_id` (requerido), `categoria_id` (requerido), `tipo_torneo` (`Individual` \| `Equipos`, por defecto `Individual`), `fecha_inicio`, `fecha_fin` (opcionales, `YYYY-MM-DD`), `cupo_maximo` *(nuevo, opcional: entero entre 4 y 256, o `null` para sin límite)*. `estado` se ignora: todo torneo nace `Abierto` |
+| **Body** | `nombre` (requerido, ≤ 150), `disciplina_id` (requerido), `categoria_id` (requerido), `tipo_torneo` (`Individual` \| `Equipos`, por defecto `Individual`), `fecha_inicio`, `fecha_fin` (opcionales, `YYYY-MM-DD`), `cupo_maximo` *(nuevo E2.4, opcional: entero entre 4 y 256 —número o texto de dígitos—, o `null`/`""` para sin límite; si no viene, sin límite)*. `estado` se ignora: todo torneo nace `Abierto` |
 | **Respuesta 201** | `{ "torneo_id": <id> }` |
 | **400** | `El nombre es requerido` · `Máximo 150 caracteres` · `disciplina_id es requerido` · `disciplina_id debe ser un entero valido` · `categoria_id es requerido` · `categoria_id debe ser un entero valido` · `tipo_torneo debe ser Individual o Equipos` · `La fecha de fin no puede ser menor que la fecha de inicio` · `Formato de fecha invalido` · `La disciplina no existe` · `La categoría no existe` · *(nuevo, E2.6)* `La categoría está desactivada` · *(nuevo)* `La fecha de inicio no puede ser anterior a hoy` · *(nuevo)* `cupo_maximo debe ser un entero entre 4 y 256` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | — (las referencias inexistentes responden 400) |
 | **409** | — |
 
-El mínimo de 4 coincide con `MINIMO_PARTICIPANTES` de `participanteService.js`: un cupo menor impediría que el torneo se realice.
+El mínimo de 4 coincide con `MINIMO_PARTICIPANTES` de `participanteService.js`: un cupo menor impediría que el torneo se realice. *(E2.4)* Decimales, negativos, booleanos, arreglos o texto no numérico responden 400 `cupo_maximo debe ser un entero entre 4 y 256`, sin tocar la BD.
 
 Request:
 
@@ -197,12 +197,12 @@ Response 400:
 | **Ruta** | `/api/torneos/:torneo_id` |
 | **Roles** | `admin`, `gerente`, `coordinador` |
 | **Body** | Los mismos campos que el alta. `estado` solo se acepta si es igual al actual. `cupo_maximo` *(nuevo)*: si no viene, se conserva el actual; `null` lo quita |
-| **Regla** | Con el torneo `Abierto` la categoría es obligatoria. Con las inscripciones cerradas solo cambian `nombre` y fechas. *(nuevo)* La fecha de inicio pasada solo se rechaza si `fecha_inicio` cambia, para poder seguir editando torneos antiguos. *(nuevo)* El cupo no puede quedar por debajo de los inscritos actuales |
+| **Regla** | Con el torneo `Abierto` la categoría es obligatoria. Con las inscripciones cerradas solo cambian `nombre` y fechas. *(nuevo)* La fecha de inicio pasada solo se rechaza si `fecha_inicio` cambia, para poder seguir editando torneos antiguos. *(nuevo, E2.4)* El cupo no puede quedar por debajo de los inscritos actuales (igual a los inscritos sí: queda lleno); nunca se da de baja a nadie. El cupo solo cambia con el torneo `Abierto`; enviar el mismo valor con las inscripciones cerradas no es un cambio y responde 200. Los inscritos se cuentan con la fila del torneo bloqueada |
 | **Respuesta 200** | `{ "ok": true, "torneo_id": <id>, "message": "Torneo actualizado correctamente" }` |
 | **400** | Los mismos que el alta, más `torneo_id debe ser un entero valido` y `El estado se cambia con las acciones del torneo` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | `Torneo no encontrado` |
-| **409** | `Con las inscripciones cerradas no se puede cambiar la disciplina, el tipo de torneo, la categoría ni el cupo` *(se amplía el mensaje actual con "ni el cupo")* · `No se puede cambiar la categoría: el torneo ya tiene inscritos` · *(nuevo)* `El cupo no puede ser menor que los inscritos actuales (6)` |
+| **409** | `Con las inscripciones cerradas no se puede cambiar la disciplina, el tipo de torneo ni la categoría` (sin cambios) · *(nuevo, E2.4)* `Con las inscripciones cerradas no se puede cambiar el cupo` (mensaje aparte para no alterar el existente) · `No se puede cambiar la categoría: el torneo ya tiene inscritos` · *(nuevo, E2.4)* `El cupo no puede ser menor que los inscritos actuales (6); no se da de baja a nadie` |
 
 Request:
 
@@ -233,7 +233,7 @@ Response 200:
 Response 409:
 
 ```json
-{ "error": "El cupo no puede ser menor que los inscritos actuales (6)" }
+{ "error": "El cupo no puede ser menor que los inscritos actuales (6); no se da de baja a nadie" }
 ```
 
 ### 3.5 Inscribir participante (staff) — Cambia (F-02, F-07; consumido por F-10)
@@ -244,12 +244,12 @@ Response 409:
 | **Ruta** | `/api/torneos/:torneo_id/inscribir` |
 | **Roles** | `admin`, `gerente`, `coordinador` |
 | **Body** | Exactamente uno de `socio_id`, `visita_id` o `nombre_externo` (≤ 150). Opcionales: `categoria_id` (si viene, debe ser la del torneo) y `equipo_id`. F-10 usa `visita_id`, que ya funciona |
-| **Regla** | Con la fila del torneo bloqueada, en este orden: existe → `Abierto` → *(nuevo)* fecha de inscripción vigente → tiene categoría → modalidad → *(nuevo)* cupo disponible → duplicados. El cupo se cuenta dentro de la misma transacción para que dos inscripciones simultáneas no lo rebasen |
+| **Regla** | Con la fila del torneo bloqueada, en este orden: existe → `Abierto` → *(nuevo)* fecha de inscripción vigente → tiene categoría → modalidad → *(nuevo)* cupo disponible → duplicados. *(E2.4)* El cupo se cuenta dentro de la misma transacción, después de bloquear la fila del torneo (`FOR UPDATE`) y antes del `INSERT`, así que dos inscripciones simultáneas no lo rebasan. Sin cupo (`NULL`) no se cuenta. Responde 409 cuando los inscritos llegan al cupo, con el mismo criterio (`hayCupo` de `torneoComun.js`) que `admite_inscripcion` |
 | **Respuesta 201** | `{ "participante_id": <id> }` |
 | **400** | `Debe especificar exactamente un tipo de participante` · `torneo_id debe ser un entero valido` · `socio_id debe ser un entero valido` · `visita_id debe ser un entero valido` · `Máximo 150 caracteres` · `categoria_id debe ser un entero valido` · `equipo_id debe ser un entero valido` · `La categoría debe ser la del torneo` · `En un torneo por equipos solo se inscriben equipos (nombre_externo)` · `Socio no encontrado o inactivo` · `Visita no encontrada o no vigente` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | `Torneo no encontrado` |
-| **409** | `El torneo no está abierto para inscripciones` · `Este torneo no tiene categoría asignada` · `Este participante ya está inscrito en el torneo` · *(nuevo)* `El periodo de inscripción terminó: el torneo inicia el 2026-10-15` · *(nuevo)* `El torneo alcanzó su cupo máximo (16 participantes)` |
+| **409** | `El torneo no está abierto para inscripciones` · `Este torneo no tiene categoría asignada` · `Este participante ya está inscrito en el torneo` · *(nuevo)* `El periodo de inscripción terminó: el torneo inicia el 2026-10-15` · *(nuevo, E2.4)* `El torneo ya alcanzó su cupo máximo` |
 
 Request (visita, F-10):
 
@@ -272,7 +272,7 @@ Response 201:
 Response 409:
 
 ```json
-{ "error": "El torneo alcanzó su cupo máximo (16 participantes)" }
+{ "error": "El torneo ya alcanzó su cupo máximo" }
 ```
 
 ### 3.6 Auto-inscripción del socio — Cambia (F-02, F-07)
@@ -288,7 +288,7 @@ Response 409:
 | **400** | `torneo_id debe ser un entero valido` · `Socio no encontrado o inactivo` |
 | **403** | — (el permiso lo da tener socio activo; sin socio responde 400) |
 | **404** | `Torneo no encontrado` |
-| **409** | `El torneo no está abierto para inscripciones` · `Este torneo es por equipos: la inscripción la hace el staff` · `Este torneo no tiene categoría asignada` · `Este participante ya está inscrito en el torneo` · *(nuevo)* `El periodo de inscripción terminó: el torneo inicia el 2026-10-15` · *(nuevo)* `El torneo alcanzó su cupo máximo (16 participantes)` |
+| **409** | `El torneo no está abierto para inscripciones` · `Este torneo es por equipos: la inscripción la hace el staff` · `Este torneo no tiene categoría asignada` · `Este participante ya está inscrito en el torneo` · *(nuevo)* `El periodo de inscripción terminó: el torneo inicia el 2026-10-15` · *(nuevo, E2.4)* `El torneo ya alcanzó su cupo máximo` |
 
 Request:
 
@@ -653,4 +653,4 @@ Son las reglas que la auditoría dejó abiertas y que aquí se fijan. Si alguna 
 
 ## 7. Colección de Postman (E2.11)
 
-`docs/postman/torneos.json` (colección v2.1) cubre los 24 endpoints de este contrato, con un caso exitoso y uno de error en cada uno, y pruebas (`pm.test`) del status y del mensaje. `docs/postman/torneos.postman_environment.json` es la plantilla del entorno: `baseUrl`, ids y fechas, y las credenciales de staff, instructor y socio **vacías**, que se llenan solo en el entorno local y nunca se suben. La carpeta "0. Autenticación" guarda `token`, `token_instructor` y `token_socio`; "Crear torneo" y "Crear categoría" guardan sus ids. Si cambia un endpoint, se cambia también la colección.
+`docs/postman/torneos.json` (colección v2.1) cubre los 24 endpoints de este contrato, con un caso exitoso y uno de error en cada uno, y pruebas (`pm.test`) del status y del mensaje. `docs/postman/torneos.postman_environment.json` es la plantilla del entorno: `baseUrl`, ids y fechas, y las credenciales de staff, instructor y socio **vacías**, que se llenan solo en el entorno local y nunca se suben. *(E2.4)* Además trae 7 casos de cupo: crear con cupo (201) y fuera de rango (400), editar el cupo (200) y bajarlo de los inscritos (409), las dos inscripciones con el torneo lleno (409) y el listado con `admite_inscripcion = false` para ese mismo torneo; usan `torneo_lleno_id`, un torneo `Abierto`, en periodo, con 5 o más inscritos y `cupo_maximo` igual a ellos. La carpeta "0. Autenticación" guarda `token`, `token_instructor` y `token_socio`; "Crear torneo" y "Crear categoría" guardan sus ids. Si cambia un endpoint, se cambia también la colección.

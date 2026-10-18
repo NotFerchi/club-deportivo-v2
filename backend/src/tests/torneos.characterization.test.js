@@ -33,7 +33,7 @@ const rows = (list) => ({ rows: list, rowCount: list.length });
 const LOCK_INSCRIPCION =
   "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, " +
   "to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, " +
-  "to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE";
+  "to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion, cupo_maximo FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE";
 const ERROR_HANDLER = { ok: false, error: 'Error interno del servidor' };
 
 let db;
@@ -534,7 +534,7 @@ describe('PUT /api/torneos/:torneo_id', () => {
       const res = await editar(3);
       expect(res.status).toBe(200);
       expect(escrituras()).toEqual([
-        ['torneos', [2, 'Copa', null, null, 3, null, null, null, 4]],
+        ['torneos', [2, 'Copa', null, null, 3, null, null, null, 4, null]],
         ['participantes_torneo', [3, 4]]
       ]);
       // la transacción termina en COMMIT; después solo va la auditoría (pool, fuera de la transacción)
@@ -553,7 +553,7 @@ describe('PUT /api/torneos/:torneo_id', () => {
     it('X → Y sin inscritos: 200, cambia el torneo y no toca participantes', async () => {
       const res = await editar(5);
       expect(res.status).toBe(200);
-      expect(escrituras()).toEqual([['torneos', [2, 'Copa', null, null, 5, null, null, null, 4]]]);
+      expect(escrituras()).toEqual([['torneos', [2, 'Copa', null, null, 5, null, null, null, 4, null]]]);
     });
 
     it('misma categoría: 200 sin contar inscritos ni tocar participantes', async () => {
@@ -585,7 +585,7 @@ describe('PUT /api/torneos/:torneo_id', () => {
         .send({ nombre: 'Copa renombrada', disciplina_id: 2, fecha_inicio: '2026-11-01', fecha_fin: '2026-11-02' });
       expect(res.status).toBe(200);
       const update = log.find(([, sql]) => sql.startsWith('UPDATE torneos'));
-      expect(update[2]).toEqual([2, 'Copa renombrada', '2026-11-01', '2026-11-02', null, null, null, null, 4]);
+      expect(update[2]).toEqual([2, 'Copa renombrada', '2026-11-01', '2026-11-02', null, null, null, null, 4, null]);
     }
   );
 
@@ -1532,7 +1532,7 @@ describe('fechas de inscripción (F-07)', () => {
         fecha_fin_inscripcion: '2026-11-06'
       });
       expect(res.status).toBe(201);
-      expect(insertTorneo()[2].slice(-2)).toEqual(['2026-10-20', '2026-11-06']);
+      expect(insertTorneo()[2].slice(-3)).toEqual(['2026-10-20', '2026-11-06', null]);
     });
 
     it('sin fechas de inscripción → 201 con NULL; fin igual a fecha_inicio → 201', async () => {

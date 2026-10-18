@@ -4,13 +4,16 @@ const { enTransaccion } = require('./transaction');
 const { admiteInscripciones } = require('./torneoEstados');
 const { COLUMNAS_FECHAS_TORNEO, ERROR_INSCRIPCIONES_CERRADAS, enPeriodoInscripcion } = require('./torneoFechas');
 const {
+  ERROR_CUPO_LLENO,
   ERROR_PARTICIPANTE_DUPLICADO,
   ERROR_SOCIO_NO_VALIDO,
   ERROR_TORNEO_SIN_CATEGORIA,
   ERROR_VISITA_NO_VALIDA,
   bloquearTorneo,
+  contarInscritos,
   esIdValido,
   esPorEquipos,
+  hayCupo,
   normalizarNombre,
   tieneValor
 } = require('./torneoComun');
@@ -24,8 +27,18 @@ const ERROR_CATEGORIA_DISTINTA = 'La categoría debe ser la del torneo';
 const ERROR_EQUIPOS_SOLO_EQUIPOS = 'En un torneo por equipos solo se inscriben equipos (nombre_externo)';
 const ERROR_EQUIPOS_LO_INSCRIBE_STAFF = 'Este torneo es por equipos: la inscripción la hace el staff';
 
-// Columnas del torneo que necesitan las inscripciones (estado, categoría, modalidad y periodo de inscripción).
-const COLUMNAS_INSCRIPCION = `estado, categoria_id, tipo_torneo, ${COLUMNAS_FECHAS_TORNEO}`;
+// Columnas del torneo que necesitan las inscripciones (estado, categoría, modalidad, periodo y cupo).
+const COLUMNAS_INSCRIPCION = `estado, categoria_id, tipo_torneo, ${COLUMNAS_FECHAS_TORNEO}, cupo_maximo`;
+
+/**
+ * 409 si el torneo ya llegó a su cupo (E2.4). Se llama con la fila del torneo bloqueada (FOR UPDATE), así que
+ * el conteo y el INSERT que sigue son atómicos: dos inscripciones simultáneas no rebasan el cupo.
+ */
+async function validarCupo(client, torneoId, torneo) {
+  if (torneo.cupo_maximo === null || torneo.cupo_maximo === undefined) return;
+  const inscritos = await contarInscritos(client, torneoId);
+  if (!hayCupo(inscritos, torneo.cupo_maximo)) throw new ServiceError(409, { error: ERROR_CUPO_LLENO });
+}
 
 // ── Consulta ─────────────────────────────────────────────────────────────────
 
@@ -115,7 +128,7 @@ async function misParticipaciones(user) {
  * Con la fila del torneo bloqueada: 404 si no existe, 409 si no está Abierto, si hoy (México) está
  * fuera del periodo de inscripción (F-07) o si no tiene categoría,
  * 400 si categoria_id no es la del torneo (B-14) o si es por equipos y no se inscribe un equipo (B-15),
- * y 409 si el socio, la visita o el externo (por nombre normalizado) ya está inscrito.
+ * 409 si ya alcanzó su cupo (E2.4) y 409 si el socio, la visita o el externo (por nombre normalizado) ya está inscrito.
  * El participante siempre queda con la categoría del torneo.
  */
 async function inscribirParticipante(torneoIdParam, body) {
@@ -140,6 +153,8 @@ async function inscribirParticipante(torneoIdParam, body) {
     if (esPorEquipos(torneo.tipo_torneo) && (socioId !== null || visitaId !== null)) {
       throw badRequest(ERROR_EQUIPOS_SOLO_EQUIPOS);
     }
+
+    await validarCupo(client, torneoId, torneo);
 
     if (socioId !== null) {
       const socio = await client.query('SELECT * FROM socios WHERE socio_id = $1 AND activo IS NOT FALSE', [socioId]);
@@ -191,7 +206,7 @@ async function inscribirParticipante(torneoIdParam, body) {
  * La categoría la decide el administrador al crear el torneo (torneo.categoria_id).
  * Con la fila del torneo bloqueada: 404 si no existe, 409 si no está Abierto, si hoy (México)
  * está fuera del periodo de inscripción (F-07), si es por equipos (los equipos los inscribe el
- * staff, B-15) o si no tiene categoría.
+ * staff, B-15), si no tiene categoría o si ya alcanzó su cupo (E2.4).
  */
 async function inscribirSocioPropio(torneoIdParam, user) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
@@ -214,6 +229,8 @@ async function inscribirSocioPropio(torneoIdParam, user) {
     // Usar la categoría del torneo; si no tiene, devolver error indicativo
     const categoriaId = torneo.categoria_id;
     if (!categoriaId) throw new ServiceError(409, { error: ERROR_TORNEO_SIN_CATEGORIA });
+
+    await validarCupo(client, torneoId, torneo);
 
     // Verificar que no esté ya inscrito
     const existente = await client.query(

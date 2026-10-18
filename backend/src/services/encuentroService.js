@@ -10,14 +10,14 @@ const fail = (status, error) => new ServiceError(status, { ok: false, error });
 /**
  * Estado del torneo del encuentro, con su fila bloqueada (FOR SHARE) antes que la del encuentro:
  * el mismo orden que cerrar, confirmar, finalizar y cancelar, que no pueden cambiar el estado
- * mientras tanto. 404 si el encuentro no existe.
+ * mientras tanto. 404 si el encuentro no existe o su torneo está eliminado.
  */
 async function estadoDelTorneo(client, encuentroId) {
   const { rows, rowCount } = await client.query(
     `SELECT t.estado
        FROM encuentros_torneo e
        JOIN torneos t ON t.torneo_id = e.torneo_id
-       WHERE e.encuentro_id = $1
+       WHERE e.encuentro_id = $1 AND t.activo
        FOR SHARE OF t`,
     [encuentroId]
   );

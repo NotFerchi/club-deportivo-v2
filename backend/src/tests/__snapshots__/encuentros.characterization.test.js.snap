@@ -9,7 +9,7 @@ exports[`PATCH /api/encuentros/:id/cancha asigna (recortada) y 404 1`] = `
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -34,7 +34,7 @@ exports[`PATCH /api/encuentros/:id/cancha asigna (recortada) y 404 1`] = `
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -59,7 +59,7 @@ exports[`PATCH /api/encuentros/:id/cancha asigna (recortada) y 404 1`] = `
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -81,7 +81,7 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -98,7 +98,7 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -122,7 +122,7 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -146,7 +146,7 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -170,7 +170,7 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -222,7 +222,7 @@ exports[`PATCH /api/encuentros/:id/resultado edición con cambio de ganador → 
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -304,7 +304,7 @@ exports[`PATCH /api/encuentros/:id/resultado edición con el mismo ganador → n
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -373,7 +373,7 @@ exports[`PATCH /api/encuentros/:id/resultado edición con el mismo ganador → n
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -402,7 +402,7 @@ exports[`PATCH /api/encuentros/:id/resultado error de BD → ROLLBACK + 500; con
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -440,7 +440,7 @@ exports[`PATCH /api/encuentros/:id/resultado registro nuevo en la final (única 
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -528,7 +528,7 @@ exports[`PATCH /api/encuentros/:id/resultado registro nuevo: posición 0 → par
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],
@@ -633,7 +633,7 @@ exports[`PATCH /api/encuentros/:id/resultado registro nuevo: posición 1 → par
   ],
   [
     "client",
-    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t",
+    "SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t",
     [
       100,
     ],

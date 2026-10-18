@@ -18,11 +18,13 @@ const ERROR_ESTADO_NO_EDITABLE = 'El estado se cambia con las acciones del torne
 const ERROR_TORNEO_BLOQUEADO =
   'Con las inscripciones cerradas no se puede cambiar la disciplina, el tipo de torneo ni la categoría';
 const ERROR_CATEGORIA_CON_INSCRITOS = 'No se puede cambiar la categoría: el torneo ya tiene inscritos';
+const ERROR_ELIMINAR_EN_CURSO = 'Cancela el torneo antes de eliminarlo';
 
 // ── Consulta ─────────────────────────────────────────────────────────────────
 
+/** Torneos activos; los eliminados (activo = FALSE) no se listan. */
 async function listarTorneos({ disciplina_id, estado }) {
-  const condiciones = [];
+  const condiciones = ['t.activo'];
   const valores = [];
 
   if (tieneValor(disciplina_id)) {
@@ -35,7 +37,7 @@ async function listarTorneos({ disciplina_id, estado }) {
     condiciones.push(`LOWER(t.estado) = LOWER($${valores.length})`);
   }
 
-  const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+  const where = `WHERE ${condiciones.join(' AND ')}`;
 
   const result = await pool.query(
     `
@@ -77,7 +79,7 @@ async function obtenerReporte(torneoIdParam) {
     `SELECT t.torneo_id, t.nombre, t.estado, d.nombre AS disciplina
          FROM torneos t
          JOIN disciplinas d ON d.disciplina_id = t.disciplina_id
-         WHERE t.torneo_id = $1`,
+         WHERE t.torneo_id = $1 AND t.activo`,
     [torneoId]
   );
 
@@ -317,6 +319,38 @@ async function cancelarTorneo(torneoIdParam) {
   });
 }
 
+// ── Eliminación ──────────────────────────────────────────────────────────────
+
+/**
+ * Sin participantes ni encuentros: borra la fila ('fisico'). Con historial: activo = FALSE ('logico'),
+ * porque las FKs de participantes_torneo y encuentros_torneo no tienen ON DELETE. Con la fila bloqueada,
+ * nadie puede inscribirse ni generar el bracket entre la comprobación y el borrado. 404 si no existe o
+ * ya está eliminado; 409 si está en curso (primero se cancela).
+ */
+async function eliminarTorneo(torneoIdParam) {
+  const torneoId = Number(torneoIdParam); // entero: validado en la ruta
+
+  return enTransaccion(async (client) => {
+    const torneo = await bloquearTorneo(client, torneoId);
+    if (torneo.estado === ESTADOS.EN_CURSO) throw new ServiceError(409, { error: ERROR_ELIMINAR_EN_CURSO });
+
+    const { rows } = await client.query(
+      `SELECT EXISTS (SELECT 1 FROM participantes_torneo WHERE torneo_id = $1) AS tiene_participantes,
+              EXISTS (SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1) AS tiene_encuentros`,
+      [torneoId]
+    );
+    const { tiene_participantes, tiene_encuentros } = rows[0];
+
+    if (!tiene_participantes && !tiene_encuentros) {
+      await client.query('DELETE FROM torneos WHERE torneo_id = $1', [torneoId]);
+      return 'fisico';
+    }
+
+    await client.query('UPDATE torneos SET activo = FALSE WHERE torneo_id = $1', [torneoId]);
+    return 'logico';
+  });
+}
+
 module.exports = {
   listarTorneos,
   listarCategorias,
@@ -324,5 +358,6 @@ module.exports = {
   crearTorneo,
   actualizarTorneo,
   finalizarTorneo,
-  cancelarTorneo
+  cancelarTorneo,
+  eliminarTorneo
 };

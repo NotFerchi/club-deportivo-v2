@@ -157,7 +157,7 @@ async function confirmarBracket(torneoIdParam) {
 async function obtenerBracket(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
-  const torneo = await pool.query('SELECT torneo_id FROM torneos WHERE torneo_id = $1', [torneoId]);
+  const torneo = await pool.query('SELECT torneo_id FROM torneos WHERE torneo_id = $1 AND activo', [torneoId]);
 
   if (torneo.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
 

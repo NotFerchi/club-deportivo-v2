@@ -148,9 +148,9 @@ Response 200:
 | **Método** | `POST` |
 | **Ruta** | `/api/torneos` |
 | **Roles** | `admin`, `gerente`, `coordinador` |
-| **Body** | `nombre` (requerido, ≤ 150), `disciplina_id` (requerido), `categoria_id` (requerido), `tipo_torneo` (`Individual` \| `Equipos`, por defecto `Individual`), `fecha_inicio`, `fecha_fin` (opcionales, `YYYY-MM-DD`), `cupo_maximo` *(nuevo E2.4, opcional: entero entre 4 y 256 —número o texto de dígitos—, o `null`/`""` para sin límite; si no viene, sin límite)*. `estado` se ignora: todo torneo nace `Abierto` |
+| **Body** | `nombre` (requerido, ≤ 150), `disciplina_id` (requerido), `categoria_id` (requerido), `tipo_torneo` (`Individual` \| `Equipos`, por defecto `Individual`), `fecha_inicio`, `fecha_fin`, `fecha_inicio_inscripcion`, `fecha_fin_inscripcion` (opcionales, `YYYY-MM-DD`; F-07), `cupo_maximo` *(nuevo E2.4, opcional: entero entre 4 y 256 —número o texto de dígitos—, o `null`/`""` para sin límite; si no viene, sin límite)*. `estado` se ignora: todo torneo nace `Abierto` |
 | **Respuesta 201** | `{ "torneo_id": <id> }` |
-| **400** | `El nombre es requerido` · `Máximo 150 caracteres` · `disciplina_id es requerido` · `disciplina_id debe ser un entero valido` · `categoria_id es requerido` · `categoria_id debe ser un entero valido` · `tipo_torneo debe ser Individual o Equipos` · `La fecha de fin no puede ser menor que la fecha de inicio` · `Formato de fecha invalido` · `La disciplina no existe` · `La categoría no existe` · *(nuevo, E2.6)* `La categoría está desactivada` · *(nuevo)* `La fecha de inicio no puede ser anterior a hoy` · *(nuevo)* `cupo_maximo debe ser un entero entre 4 y 256` |
+| **400** | `El nombre es requerido` · `Máximo 150 caracteres` · `disciplina_id es requerido` · `disciplina_id debe ser un entero valido` · `categoria_id es requerido` · `categoria_id debe ser un entero valido` · `tipo_torneo debe ser Individual o Equipos` · `La fecha de fin no puede ser menor que la fecha de inicio` · `Formato de fecha invalido` · `La disciplina no existe` · `La categoría no existe` · *(nuevo, E2.6)* `La categoría está desactivada` · *(nuevo, E2.5)* `La fecha de inicio no puede ser anterior a hoy` (hoy en `America/Mexico_City`; hoy mismo es válido) · *(nuevo, F-07)* `fecha_inicio_inscripcion debe tener el formato YYYY-MM-DD` · `fecha_fin_inscripcion debe tener el formato YYYY-MM-DD` · `fecha_fin_inscripcion (2026-11-01) no puede ser anterior a fecha_inicio_inscripcion (2026-11-03)` · `fecha_fin_inscripcion (2026-11-10) no puede ser posterior a fecha_inicio del torneo (2026-11-07)` · `fecha_inicio_inscripcion (2026-11-10) no puede ser posterior a fecha_inicio del torneo (2026-11-07)` · *(nuevo)* `cupo_maximo debe ser un entero entre 4 y 256` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | — (las referencias inexistentes responden 400) |
 | **409** | — |
@@ -196,8 +196,8 @@ Response 400:
 | **Método** | `PUT` |
 | **Ruta** | `/api/torneos/:torneo_id` |
 | **Roles** | `admin`, `gerente`, `coordinador` |
-| **Body** | Los mismos campos que el alta. `estado` solo se acepta si es igual al actual. `cupo_maximo` *(nuevo)*: si no viene, se conserva el actual; `null` lo quita |
-| **Regla** | Con el torneo `Abierto` la categoría es obligatoria. Con las inscripciones cerradas solo cambian `nombre` y fechas. *(nuevo)* La fecha de inicio pasada solo se rechaza si `fecha_inicio` cambia, para poder seguir editando torneos antiguos. *(nuevo, E2.4)* El cupo no puede quedar por debajo de los inscritos actuales (igual a los inscritos sí: queda lleno); nunca se da de baja a nadie. El cupo solo cambia con el torneo `Abierto`; enviar el mismo valor con las inscripciones cerradas no es un cambio y responde 200. Los inscritos se cuentan con la fila del torneo bloqueada |
+| **Body** | Los mismos campos que el alta. `estado` solo se acepta si es igual al actual. `fecha_inicio_inscripcion` y `fecha_fin_inscripcion` *(F-07)*: si no vienen, se conservan; `null` o `""` las quitan, y el orden se comprueba contra los valores resultantes. `cupo_maximo` *(nuevo)*: si no viene, se conserva el actual; `null` lo quita |
+| **Regla** | Con el torneo `Abierto` la categoría es obligatoria. Con las inscripciones cerradas solo cambian `nombre` y fechas. *(nuevo, E2.5)* La fecha de inicio pasada solo se rechaza si `fecha_inicio` cambia (dejar la misma o quitarla no se rechaza), para poder seguir editando torneos antiguos. *(nuevo, E2.4)* El cupo no puede quedar por debajo de los inscritos actuales (igual a los inscritos sí: queda lleno); nunca se da de baja a nadie. El cupo solo cambia con el torneo `Abierto`; enviar el mismo valor con las inscripciones cerradas no es un cambio y responde 200. Los inscritos se cuentan con la fila del torneo bloqueada |
 | **Respuesta 200** | `{ "ok": true, "torneo_id": <id>, "message": "Torneo actualizado correctamente" }` |
 | **400** | Los mismos que el alta, más `torneo_id debe ser un entero valido` y `El estado se cambia con las acciones del torneo` |
 | **403** | `No tienes permisos para esta acción` |
@@ -249,7 +249,7 @@ Response 409:
 | **400** | `Debe especificar exactamente un tipo de participante` · `torneo_id debe ser un entero valido` · `socio_id debe ser un entero valido` · `visita_id debe ser un entero valido` · `Máximo 150 caracteres` · `categoria_id debe ser un entero valido` · `equipo_id debe ser un entero valido` · `La categoría debe ser la del torneo` · `En un torneo por equipos solo se inscriben equipos (nombre_externo)` · `Socio no encontrado o inactivo` · `Visita no encontrada o no vigente` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | `Torneo no encontrado` |
-| **409** | `El torneo no está abierto para inscripciones` · `Este torneo no tiene categoría asignada` · `Este participante ya está inscrito en el torneo` · *(nuevo)* `El periodo de inscripción terminó: el torneo inicia el 2026-10-15` · *(nuevo, E2.4)* `El torneo ya alcanzó su cupo máximo` |
+| **409** | `El torneo no está abierto para inscripciones` · `Este torneo no tiene categoría asignada` · `Este participante ya está inscrito en el torneo` · *(nuevo, F-07)* `Las inscripciones de este torneo están cerradas` (hoy está fuera del periodo de inscripción) · *(nuevo, E2.4)* `El torneo ya alcanzó su cupo máximo` |
 
 Request (visita, F-10):
 
@@ -288,7 +288,7 @@ Response 409:
 | **400** | `torneo_id debe ser un entero valido` · `Socio no encontrado o inactivo` |
 | **403** | — (el permiso lo da tener socio activo; sin socio responde 400) |
 | **404** | `Torneo no encontrado` |
-| **409** | `El torneo no está abierto para inscripciones` · `Este torneo es por equipos: la inscripción la hace el staff` · `Este torneo no tiene categoría asignada` · `Este participante ya está inscrito en el torneo` · *(nuevo)* `El periodo de inscripción terminó: el torneo inicia el 2026-10-15` · *(nuevo, E2.4)* `El torneo ya alcanzó su cupo máximo` |
+| **409** | `El torneo no está abierto para inscripciones` · `Este torneo es por equipos: la inscripción la hace el staff` · `Este torneo no tiene categoría asignada` · `Este participante ya está inscrito en el torneo` · *(nuevo, F-07)* `Las inscripciones de este torneo están cerradas` (hoy está fuera del periodo de inscripción) · *(nuevo, E2.4)* `El torneo ya alcanzó su cupo máximo` |
 
 Request:
 
@@ -306,7 +306,7 @@ Response 201:
 Response 409:
 
 ```json
-{ "error": "El periodo de inscripción terminó: el torneo inicia el 2026-10-15" }
+{ "error": "Las inscripciones de este torneo están cerradas" }
 ```
 
 ### 3.6.1 Listar categorías — Cambia (F-08, E2.6)
@@ -645,7 +645,7 @@ Son las reglas que la auditoría dejó abiertas y que aquí se fijan. Si alguna 
 
 1. **Eliminar torneo (F-01):** borrado físico si el torneo no tiene participantes ni encuentros; si los tiene, borrado lógico con `torneos.activo = FALSE` (migración nueva e idempotente, DEFAULT TRUE). Los torneos inactivos se ocultan en todos los listados y responden 404. Un torneo en curso se cancela antes de eliminarlo (409). Lo pueden hacer los tres roles de staff, igual que cancelar.
 2. **Cupo (F-02):** `torneos.cupo_maximo INT NULL` con `CHECK (cupo_maximo IS NULL OR cupo_maximo BETWEEN 4 AND 256)`, en una migración nueva e idempotente. NULL significa sin límite, así que los torneos existentes no cambian.
-3. **Fechas (F-07):** la inscripción cierra el día anterior a `fecha_inicio` (el día del inicio ya no se inscribe nadie). Un torneo sin `fecha_inicio` admite inscripciones mientras esté `Abierto`. No se crean torneos con fecha de inicio pasada.
+3. **Fechas (F-07, E2.5):** el periodo de inscripción va de `fecha_inicio_inscripcion` a `fecha_fin_inscripcion`, ambas inclusivas y opcionales. Sin `fecha_fin_inscripcion`, la inscripción cierra el día anterior a `fecha_inicio` (el día del inicio ya no se inscribe nadie); sin ninguna de las dos, admite inscripciones mientras esté `Abierto`. Fuera del periodo, las inscripciones responden 409 `Las inscripciones de este torneo están cerradas`. No se crean torneos con fecha de inicio pasada, y al editar solo se rechaza si `fecha_inicio` cambia (400 `La fecha de inicio no puede ser anterior a hoy`).
 4. **Categorías (F-08, E2.6):** las administran los tres roles de staff. No se borran: se desactivan (`categorias_torneo.activo`), y no se desactiva una que use un torneo activo (no eliminado, ni Finalizado ni Cancelado). El nombre es único entre las activas, comparado con `normalizarNombre`.
 5. **Horario (F-09):** se intercambia como texto local `YYYY-MM-DDTHH:mm`, sin zona, para no depender de la zona del proceso de Node.
 

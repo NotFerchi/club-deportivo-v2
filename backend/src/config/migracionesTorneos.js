@@ -11,5 +11,6 @@ module.exports = [
   'Agregar_cupo_maximo_torneos.sql',
   'Agregar_activo_torneos.sql',
   'Agregar_fechas_inscripcion_torneos.sql',
-  'Agregar_activo_categorias_torneo.sql'
+  'Agregar_activo_categorias_torneo.sql',
+  'Agregar_arbitro_encuentros_torneo.sql'
 ];

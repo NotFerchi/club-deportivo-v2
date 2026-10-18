@@ -220,8 +220,20 @@ const asignarHorario = validateInput((req) => {
   return null;
 });
 
+/** PATCH /:encuentro_id/arbitro: id válido; instructor_id presente, null o id válido. */
+const asignarArbitro = validateInput((req) => {
+  if (esIdValido(req.params.encuentro_id) === null) return badOk('encuentro_id inválido');
+  const { instructor_id } = cuerpo(req);
+  if (instructor_id === undefined) return badOk('instructor_id es requerido');
+  if (instructor_id !== null && esIdValido(instructor_id) === null) {
+    return badOk('instructor_id debe ser un entero valido');
+  }
+  return null;
+});
+
 module.exports = {
   asignarHorario,
+  asignarArbitro,
   torneoId,
   torneoIdConAcento,
   filtroDisciplina,

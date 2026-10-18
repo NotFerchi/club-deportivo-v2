@@ -105,7 +105,7 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],
@@ -129,7 +129,7 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],
@@ -153,7 +153,7 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],
@@ -177,7 +177,7 @@ exports[`PATCH /api/encuentros/:id/resultado 404 / finalizado / no programado / 
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],
@@ -229,7 +229,7 @@ exports[`PATCH /api/encuentros/:id/resultado edición con cambio de ganador → 
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],
@@ -311,7 +311,7 @@ exports[`PATCH /api/encuentros/:id/resultado edición con el mismo ganador → n
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],
@@ -380,7 +380,7 @@ exports[`PATCH /api/encuentros/:id/resultado edición con el mismo ganador → n
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],
@@ -409,7 +409,7 @@ exports[`PATCH /api/encuentros/:id/resultado error de BD → ROLLBACK + 500; con
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],
@@ -447,7 +447,7 @@ exports[`PATCH /api/encuentros/:id/resultado registro nuevo en la final (única 
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],
@@ -535,7 +535,7 @@ exports[`PATCH /api/encuentros/:id/resultado registro nuevo: posición 0 → par
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],
@@ -640,7 +640,7 @@ exports[`PATCH /api/encuentros/:id/resultado registro nuevo: posición 1 → par
   ],
   [
     "client",
-    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
+    "SELECT encuentro_id, torneo_id, ronda, estado, participante_1_id, participante_2_id, ganador_id, arbitro_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE",
     [
       100,
     ],

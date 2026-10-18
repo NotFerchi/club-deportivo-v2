@@ -479,6 +479,46 @@ Response 409:
 { "ok": false, "error": "Un participante ya tiene otro encuentro a esa hora (encuentro 140)" }
 ```
 
+### 3.11 Asignar árbitro a un encuentro — Nuevo (E2.8)
+
+| | |
+|---|---|
+| **Método** | `PATCH` |
+| **Ruta** | `/api/encuentros/:encuentro_id/arbitro` |
+| **Roles** | `admin`, `gerente`, `coordinador` |
+| **Body** | `instructor_id`: id de `instructores`; o `null` para quitar el árbitro |
+| **Regla** | Mismos estados del torneo que la cancha (`Inscripciones_cerradas` o `En_curso`). No se cambia el árbitro de un encuentro con resultado (`finalizado` o con `ganador_id`). `instructor_id` debe ser un instructor activo: fila en `instructores` con `activo` no FALSE y su usuario con `activo` no FALSE. Se guarda en `encuentros_torneo.arbitro_id` (migración `Agregar_arbitro_encuentros_torneo.sql`) |
+| **Efecto en el resultado** | Ver §5.2: con árbitro asignado, un `instructor` que no sea ese árbitro recibe 403 al registrar o editar el resultado. El staff siempre puede |
+| **Respuesta 200** | `{ "ok": true, "message": "Árbitro asignado correctamente", "encuentro": { "encuentro_id": <id>, "arbitro_id": <id> | null } }` |
+| **400** | `encuentro_id inválido` · `instructor_id es requerido` · `instructor_id debe ser un entero valido` · `instructor_id no corresponde a un instructor activo` |
+| **403** | `No tienes permisos para esta acción` |
+| **404** | `Encuentro no encontrado` |
+| **409** | `Solo se puede asignar árbitro con las inscripciones cerradas o el torneo en curso (estado actual: Abierto)` · `No se puede cambiar el árbitro de un encuentro que ya tiene resultado` |
+
+Request:
+
+```http
+PATCH /api/encuentros/131/arbitro
+Authorization: Bearer eyJhbGciOi...
+Content-Type: application/json
+```
+
+```json
+{ "instructor_id": 5 }
+```
+
+Response 200:
+
+```json
+{ "ok": true, "message": "Árbitro asignado correctamente", "encuentro": { "encuentro_id": 131, "arbitro_id": 5 } }
+```
+
+Response 400:
+
+```json
+{ "ok": false, "error": "instructor_id no corresponde a un instructor activo" }
+```
+
 ---
 
 ## 4. Auditoría de las acciones (F-04)
@@ -499,6 +539,7 @@ No agrega endpoints ni cambia respuestas. Cada endpoint que escribe llama a `log
 | `DELETE /:torneo_id/participantes/:participante_id` | `desinscribir_participante_torneo` | `participantes_torneo` | `participante_id` | JSON con `torneo_id` |
 | `PATCH /api/encuentros/:encuentro_id/resultado` | `registrar_resultado_encuentro` o `editar_resultado_encuentro` (con `allowEdit`) | `encuentros_torneo` | `encuentro_id` | JSON con marcadores y `ganador_id`, antes y después en la edición |
 | `PATCH /api/encuentros/:encuentro_id/cancha` | `asignar_cancha_encuentro` | `encuentros_torneo` | `encuentro_id` | `Cancha: <cancha_asignada>` |
+| `PATCH /api/encuentros/:encuentro_id/arbitro` | `asignar_arbitro_encuentro` | `encuentros_torneo` | `encuentro_id` | `Árbitro: instructor <instructor_id>` |
 | `PATCH /api/encuentros/:encuentro_id/horario` | `programar_horario_encuentro` | `encuentros_torneo` | `encuentro_id` | `Horario: <hora_programada>` |
 | `POST /api/torneos/categorias` | `crear_categoria_torneo` | `categorias_torneo` | `categoria_id` | `Categoría creada: <nombre>` |
 | `PUT /api/torneos/categorias/:categoria_id` | `actualizar_categoria_torneo` | `categorias_torneo` | `categoria_id` | `<nombre anterior> → <nombre nuevo>` |
@@ -557,7 +598,7 @@ Response 200:
 
 ### 5.2 Registrar resultado (F-05)
 
-`PATCH /api/encuentros/:encuentro_id/resultado` ya admite `instructor`, `admin`, `gerente` y `coordinador`. El modo árbitro del panel del instructor solo necesita montar `MatchEditPanel` sin `readOnly` para ese rol y enviar `{ "marcador_1": <n>, "marcador_2": <n> }`. Si producto decide quitar el arbitraje, se saca `instructor` del `checkRole` de la ruta y de `ROLES_ARBITRAJE` en `encuentroService.js`, y el instructor recibe 403 `No tienes permisos para esta acción`.
+`PATCH /api/encuentros/:encuentro_id/resultado` ya admite `instructor`, `admin`, `gerente` y `coordinador`. *(E2.8)* Si el encuentro tiene árbitro asignado (§3.11), un `instructor` solo registra o edita el resultado si es ese árbitro; si no, 403 `{ "ok": false, "error": "Solo el árbitro asignado o el staff pueden registrar el resultado de este encuentro" }`. Sin árbitro asignado cualquier instructor puede, como antes. El staff siempre puede. El modo árbitro del panel del instructor solo necesita montar `MatchEditPanel` sin `readOnly` para ese rol y enviar `{ "marcador_1": <n>, "marcador_2": <n> }`. Si producto decide quitar el arbitraje, se saca `instructor` del `checkRole` de la ruta y de `ROLES_ARBITRAJE` en `encuentroService.js`, y el instructor recibe 403 `No tienes permisos para esta acción`.
 
 ---
 

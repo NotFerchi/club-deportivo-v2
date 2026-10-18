@@ -7,6 +7,9 @@ const ROLES_ARBITRAJE = ['instructor', 'admin', 'gerente', 'coordinador'];
 
 const fail = (status, error) => new ServiceError(status, { ok: false, error });
 
+const ERROR_NO_ES_ARBITRO = 'Solo el árbitro asignado o el staff pueden registrar el resultado de este encuentro';
+const ERROR_NO_ES_INSTRUCTOR = 'instructor_id no corresponde a un instructor activo';
+
 /**
  * Estado del torneo del encuentro, con su fila bloqueada (FOR SHARE) antes que la del encuentro:
  * el mismo orden que cerrar, confirmar, finalizar y cancelar, que no pueden cambiar el estado
@@ -65,6 +68,18 @@ async function colocarGanador(client, destino, ganadorId) {
 }
 
 /**
+ * E2.8: con árbitro asignado, un instructor solo registra (o edita) el resultado si es ese árbitro (403).
+ * Sin árbitro asignado, cualquier instructor puede, como antes de E2.8. El staff siempre puede.
+ */
+async function validarArbitro(client, user, enc) {
+  if (user.rol !== 'instructor' || enc.arbitro_id === null || enc.arbitro_id === undefined) return;
+  const { rows } = await client.query('SELECT instructor_id FROM instructores WHERE usuario_id = $1', [
+    user.usuario_id
+  ]);
+  if (!rows.some((row) => row.instructor_id === enc.arbitro_id)) throw fail(403, ERROR_NO_ES_ARBITRO);
+}
+
+/**
  * Registra (o edita con allowEdit) el marcador, avanza al ganador y activa la siguiente ronda.
  * Solo con el torneo En_curso; allowEdit solo sobre encuentros ya finalizados.
  */
@@ -90,7 +105,7 @@ async function registrarResultado(user, encuentroIdParam, body) {
 
     const { rows, rowCount } = await client.query(
       `SELECT encuentro_id, torneo_id, ronda, estado,
-                participante_1_id, participante_2_id, ganador_id
+                participante_1_id, participante_2_id, ganador_id, arbitro_id
          FROM encuentros_torneo
          WHERE encuentro_id = $1
          FOR UPDATE`,
@@ -100,6 +115,7 @@ async function registrarResultado(user, encuentroIdParam, body) {
     if (rowCount === 0) throw fail(404, 'Encuentro no encontrado');
 
     const enc = rows[0];
+    await validarArbitro(client, user, enc);
     const ganadorAnterior = enc.ganador_id;
 
     if (allowEdit && enc.estado !== 'finalizado') {
@@ -286,4 +302,51 @@ async function asignarHorario(encuentroIdParam, body) {
   });
 }
 
-module.exports = { registrarResultado, asignarCancha, asignarHorario };
+// ── Árbitro (E2.8) ───────────────────────────────────────────────────────────
+
+/**
+ * Asigna (o quita, con null) el instructor árbitro. encuentro_id e instructor_id validados en la ruta.
+ * Mismos estados que la cancha; 409 si el encuentro ya tiene resultado; 400 si instructor_id no es un
+ * instructor activo (registro activo en instructores y usuario activo).
+ */
+async function asignarArbitro(encuentroIdParam, body) {
+  const encuentroId = Number(encuentroIdParam);
+  const instructorId = body.instructor_id === null ? null : Number(body.instructor_id);
+
+  return enTransaccion(async (client) => {
+    const estadoTorneo = await estadoDelTorneo(client, encuentroId);
+    if (!admiteAsignarCancha(estadoTorneo)) {
+      throw fail(
+        409,
+        `Solo se puede asignar árbitro con las inscripciones cerradas o el torneo en curso (estado actual: ${estadoTorneo})`
+      );
+    }
+
+    const { rows } = await client.query(
+      'SELECT estado, ganador_id FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE',
+      [encuentroId]
+    );
+    if (rows[0].estado === 'finalizado' || rows[0].ganador_id !== null) {
+      throw fail(409, 'No se puede cambiar el árbitro de un encuentro que ya tiene resultado');
+    }
+
+    if (instructorId !== null) {
+      const instructor = await client.query(
+        `SELECT i.instructor_id
+           FROM instructores i
+           JOIN usuarios u ON u.usuario_id = i.usuario_id
+           WHERE i.instructor_id = $1 AND i.activo IS NOT FALSE AND u.activo IS NOT FALSE`,
+        [instructorId]
+      );
+      if (instructor.rowCount === 0) throw fail(400, ERROR_NO_ES_INSTRUCTOR);
+    }
+
+    const { rows: actualizado } = await client.query(
+      'UPDATE encuentros_torneo SET arbitro_id = $1 WHERE encuentro_id = $2 RETURNING encuentro_id, arbitro_id',
+      [instructorId, encuentroId]
+    );
+    return actualizado[0];
+  });
+}
+
+module.exports = { registrarResultado, asignarCancha, asignarHorario, asignarArbitro };

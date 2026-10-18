@@ -1,6 +1,7 @@
 const torneoService = require('../services/torneoService');
 const participanteService = require('../services/participanteService');
 const bracketService = require('../services/bracketService');
+const categoriaService = require('../services/categoriaService');
 const ServiceError = require('../services/serviceError');
 const { isEscalated } = require('../services/escalate');
 const { ERROR_PARTICIPANTE_DUPLICADO } = require('../services/torneoComun');
@@ -111,9 +112,38 @@ const torneosController = {
 
   getCategorias: async (req, res) => {
     try {
-      res.json(await torneoService.listarCategorias());
+      res.json(await categoriaService.listarCategorias({ soloActivas: req.query.activas === 'true' }));
     } catch (error) {
       handleError(res, error, 'Error al obtener categorías:', 'Error al obtener categorías');
+    }
+  },
+
+  createCategoria: async (req, res) => {
+    try {
+      res.status(201).json(await categoriaService.crearCategoria(req.body.nombre));
+    } catch (error) {
+      handleError(res, error, 'Error al crear categoría:', 'Error al crear categoría');
+    }
+  },
+
+  updateCategoria: async (req, res) => {
+    try {
+      const { categoria_id, nombre } = await categoriaService.renombrarCategoria(
+        req.params.categoria_id,
+        req.body.nombre
+      );
+      res.json({ ok: true, categoria_id, nombre, message: 'Categoría actualizada correctamente' });
+    } catch (error) {
+      handleError(res, error, 'Error al actualizar categoría:', 'Error al actualizar categoría');
+    }
+  },
+
+  desactivarCategoria: async (req, res) => {
+    try {
+      await categoriaService.desactivarCategoria(req.params.categoria_id);
+      res.json({ ok: true, message: 'Categoría desactivada correctamente' });
+    } catch (error) {
+      handleError(res, error, 'Error al desactivar categoría:', 'Error al desactivar categoría');
     }
   },
 

@@ -59,7 +59,7 @@ function route(q) {
   if (q.startsWith('SELECT pt.participante_id, pt.torneo_id')) return rows(db.participantes);
   if (q.startsWith('SELECT * FROM socios')) return rows(db.socio);
   if (q.startsWith('SELECT * FROM visitas')) return rows(db.visita);
-  if (q.startsWith('SELECT categoria_id FROM categorias_torneo')) return rows(db.categoria);
+  if (q.startsWith('SELECT categoria_id, activo FROM categorias_torneo')) return rows(db.categoria);
   if (q.startsWith('SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND (socio_id'))
     return rows(db.duplicado);
   if (q.startsWith('SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND socio_id'))
@@ -84,7 +84,7 @@ function route(q) {
   if (q.startsWith('SELECT t.torneo_id, t.nombre, t.estado, d.nombre AS disciplina')) return rows(db.reporteTorneo);
   if (q.startsWith('SELECT e.encuentro_id, e.ronda, e.estado, e.marcador_1')) return rows(db.reporteEncuentros);
   if (q.startsWith('SELECT e.encuentro_id, e.ronda, e.estado, e.cancha_asignada')) return rows(db.bracket);
-  if (q.startsWith('SELECT categoria_id, nombre FROM categorias_torneo')) return rows(db.categorias);
+  if (q.startsWith('SELECT categoria_id, nombre, activo FROM categorias_torneo')) return rows(db.categorias);
   if (q.startsWith('SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo')) return rows(db.socioPropio);
   if (q.startsWith('SELECT socio_id FROM socios WHERE usuario_id = $1')) return rows(db.socioMis);
   if (q.startsWith('DELETE FROM participantes_torneo')) return rows(db.borrado);
@@ -110,7 +110,7 @@ beforeEach(() => {
     ],
     socio: [{ socio_id: 10 }],
     visita: [{ visita_id: 20 }],
-    categoria: [{ categoria_id: 3 }],
+    categoria: [{ categoria_id: 3, activo: true }],
     duplicado: [],
     existente: [],
     externos: [],
@@ -182,7 +182,7 @@ beforeEach(() => {
       { encuentro_id: 102, ronda: null, estado: 'pendiente', participante_1_nombre: 'Por definir' },
       { encuentro_id: 103, ronda: 2, estado: 'pendiente', participante_1_nombre: 'Por definir' }
     ],
-    categorias: [{ categoria_id: 3, nombre: 'Libre' }],
+    categorias: [{ categoria_id: 3, nombre: 'Libre', activo: true }],
     socioPropio: [{ socio_id: 10 }],
     socioMis: [{ socio_id: 10 }],
     torneoInfo: [{ estado: 'Abierto', categoria_id: 3, tipo_torneo: 'Individual' }],

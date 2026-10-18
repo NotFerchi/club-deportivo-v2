@@ -12,6 +12,7 @@ const {
 } = require('./torneoComun');
 const { ESTADOS, admiteInscripciones, validarTransicion } = require('./torneoEstados');
 const { validarFechasInscripcion } = require('./torneoFechas');
+const { ERROR_CATEGORIA_INACTIVA } = require('./categoriaService');
 
 const badRequest = (error) => new ServiceError(400, { error });
 
@@ -67,11 +68,6 @@ async function listarTorneos({ disciplina_id, estado }) {
       `,
     valores
   );
-  return result.rows;
-}
-
-async function listarCategorias() {
-  const result = await pool.query('SELECT categoria_id, nombre FROM categorias_torneo ORDER BY nombre');
   return result.rows;
 }
 
@@ -156,16 +152,21 @@ async function obtenerReporte(torneoIdParam) {
 
 // ── Alta / edición ───────────────────────────────────────────────────────────
 
-/** 400 si la disciplina o la categoría (cuando viene) no existen; `db` es el pool o el cliente de la transacción. */
-async function validarReferencias(db, disciplinaId, categoriaId) {
+/**
+ * 400 si la disciplina o la categoría (cuando viene) no existen; `db` es el pool o el cliente de la
+ * transacción. Con `exigirActiva` también 400 si la categoría está desactivada (E2.6): se exige al
+ * crear y al cambiar de categoría; un torneo que ya tenía una categoría desactivada la conserva.
+ */
+async function validarReferencias(db, disciplinaId, categoriaId, { exigirActiva = true } = {}) {
   const disciplina = await db.query('SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1', [disciplinaId]);
   if (disciplina.rowCount === 0) throw badRequest(ERROR_DISCIPLINA_NO_EXISTE);
 
   if (categoriaId !== null) {
-    const categoria = await db.query('SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1', [
+    const categoria = await db.query('SELECT categoria_id, activo FROM categorias_torneo WHERE categoria_id = $1', [
       categoriaId
     ]);
     if (categoria.rowCount === 0) throw badRequest(ERROR_CATEGORIA_NO_EXISTE);
+    if (exigirActiva && !categoria.rows[0].activo) throw badRequest(ERROR_CATEGORIA_INACTIVA);
   }
 }
 
@@ -248,10 +249,10 @@ async function actualizarTorneo(torneoIdParam, body) {
       }
     }
 
-    await validarReferencias(client, disciplinaId, categoriaId);
-
     // Solo con el torneo Abierto puede cambiar la categoría (si no, ya respondió 409 arriba)
     const cambiaCategoria = categoriaId !== actual.categoria_id;
+    await validarReferencias(client, disciplinaId, categoriaId, { exigirActiva: cambiaCategoria });
+
     if (cambiaCategoria && actual.categoria_id !== null) {
       const inscritos = await client.query(
         'SELECT COUNT(*)::int AS total FROM participantes_torneo WHERE torneo_id = $1',
@@ -381,7 +382,6 @@ async function eliminarTorneo(torneoIdParam) {
 
 module.exports = {
   listarTorneos,
-  listarCategorias,
   obtenerReporte,
   crearTorneo,
   actualizarTorneo,

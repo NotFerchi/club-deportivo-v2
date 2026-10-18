@@ -126,6 +126,37 @@ const desinscribir = validateInput((req) =>
     : null
 );
 
+// ── Categorías (E2.6) ────────────────────────────────────────────────────────
+
+// categorias_torneo.nombre es VARCHAR(50).
+const MAX_NOMBRE_CATEGORIA = 50;
+
+const reglaCategoriaId = (req) =>
+  esIdValido(req.params.categoria_id) === null ? bad('categoria_id debe ser un entero valido') : null;
+
+function reglaNombreCategoria(req) {
+  const { nombre } = cuerpo(req);
+  if (typeof nombre !== 'string' || nombre.trim() === '') return bad('El nombre es requerido');
+  if (nombre.trim().length > MAX_NOMBRE_CATEGORIA) return bad(maximo(MAX_NOMBRE_CATEGORIA));
+  return null;
+}
+
+/** GET /categorias: `activas` opcional, 'true' o 'false'. */
+const filtroCategorias = validateInput((req) => {
+  const { activas } = req.query;
+  if (tieneValor(activas) && !['true', 'false'].includes(activas)) return bad('activas debe ser true o false');
+  return null;
+});
+
+/** POST /categorias: nombre requerido (≤ 50). */
+const crearCategoria = validateInput(reglaNombreCategoria);
+
+/** PUT /categorias/:categoria_id: id válido y nombre requerido (≤ 50). */
+const renombrarCategoria = validateInput((req) => reglaCategoriaId(req) || reglaNombreCategoria(req));
+
+/** PATCH /categorias/:categoria_id/desactivar: id válido. */
+const categoriaId = validateInput(reglaCategoriaId);
+
 // ── Encuentros ───────────────────────────────────────────────────────────────
 
 const esNoNegativo = (valor) => Number.isInteger(Number(valor)) && Number(valor) >= 0;
@@ -169,6 +200,10 @@ module.exports = {
   actualizarTorneo,
   inscribirParticipante,
   desinscribir,
+  filtroCategorias,
+  crearCategoria,
+  renombrarCategoria,
+  categoriaId,
   registrarResultado,
   asignarCancha
 };

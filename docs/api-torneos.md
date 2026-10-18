@@ -16,7 +16,7 @@ Este documento fija qué endpoints hay que construir o cambiar para cerrar los f
 | F-04 | Auditoría de las acciones | **Backend** | Sin endpoint nuevo: cada endpoint que escribe registra una fila en `logs_sistema` (§4) |
 | F-06 | Pruebas de reglas y permisos | **Backend** | Sin endpoint: tests en `backend/src/tests` que cubran las reglas de este contrato |
 | F-07 | Validar las fechas de inscripción | **Backend** + interfaz | Cambia `POST`/`PUT /api/torneos`, `GET /api/torneos` y las dos inscripciones (§3.2–§3.6). La vista del socio usa `admite_inscripcion` |
-| F-08 | Administrar las categorías | **Backend** + interfaz | Endpoints nuevos `POST`, `PUT` y `DELETE /api/torneos/categorias` (§3.7–§3.9). Pantalla de admin |
+| F-08 | Administrar las categorías | **Backend** + interfaz | Endpoints nuevos `POST`, `PUT` y `PATCH .../desactivar` en `/api/torneos/categorias`; `GET` suma `activo` y el filtro `activas` (§3.6.1–§3.9). Pantalla de admin |
 | F-09 | Programar fecha y hora de los encuentros | **Backend** + interfaz | Endpoint nuevo `PATCH /api/encuentros/:encuentro_id/horario` (§3.10). Campo en `MatchEditPanel` |
 | F-03 | Reporte y resultados en la UI | **Interfaz** | Consume `GET /api/torneos/:torneo_id/reporte`, que ya existe (§5). Reutilizar `ResultadosTorneo` |
 | F-05 | Arbitraje desde el panel del instructor | **Interfaz** (decisión de producto) | Consume `PATCH /api/encuentros/:encuentro_id/resultado`, que ya admite el rol `instructor` (§5). Si se decide quitar el rol, el único cambio de backend es sacar `instructor` del `checkRole` de esa ruta |
@@ -44,7 +44,7 @@ Este documento fija qué endpoints hay que construir o cambiar para cerrar los f
 - **Ids:** enteros entre 1 y 2147483647 (`esIdValido`), como número o como texto de dígitos.
 - **Body ausente:** se trata como `{}` y responde 400 con el mensaje del primer campo que falte.
 - **Fechas:** `fecha_inicio` y `fecha_fin` son `DATE` (`"YYYY-MM-DD"`). "Hoy" es la fecha del club en `America/Mexico_City`, la zona que ya fija `config/database.js`.
-- **Nombres de campos:** los de la base (`torneos`, `participantes_torneo`, `encuentros_torneo`, `categorias_torneo`). Los campos nuevos son `torneos.cupo_maximo` (F-02) y `torneos.activo` (borrado lógico, F-01). `admite_inscripcion` es calculado y no se guarda.
+- **Nombres de campos:** los de la base (`torneos`, `participantes_torneo`, `encuentros_torneo`, `categorias_torneo`). Los campos nuevos son `torneos.cupo_maximo` (F-02), `torneos.activo` (borrado lógico, F-01) y `categorias_torneo.activo` (desactivar categoría, E2.6). `admite_inscripcion` es calculado y no se guarda.
 
 ---
 
@@ -150,7 +150,7 @@ Response 200:
 | **Roles** | `admin`, `gerente`, `coordinador` |
 | **Body** | `nombre` (requerido, ≤ 150), `disciplina_id` (requerido), `categoria_id` (requerido), `tipo_torneo` (`Individual` \| `Equipos`, por defecto `Individual`), `fecha_inicio`, `fecha_fin` (opcionales, `YYYY-MM-DD`), `cupo_maximo` *(nuevo, opcional: entero entre 4 y 256, o `null` para sin límite)*. `estado` se ignora: todo torneo nace `Abierto` |
 | **Respuesta 201** | `{ "torneo_id": <id> }` |
-| **400** | `El nombre es requerido` · `Máximo 150 caracteres` · `disciplina_id es requerido` · `disciplina_id debe ser un entero valido` · `categoria_id es requerido` · `categoria_id debe ser un entero valido` · `tipo_torneo debe ser Individual o Equipos` · `La fecha de fin no puede ser menor que la fecha de inicio` · `Formato de fecha invalido` · `La disciplina no existe` · `La categoría no existe` · *(nuevo)* `La fecha de inicio no puede ser anterior a hoy` · *(nuevo)* `cupo_maximo debe ser un entero entre 4 y 256` |
+| **400** | `El nombre es requerido` · `Máximo 150 caracteres` · `disciplina_id es requerido` · `disciplina_id debe ser un entero valido` · `categoria_id es requerido` · `categoria_id debe ser un entero valido` · `tipo_torneo debe ser Individual o Equipos` · `La fecha de fin no puede ser menor que la fecha de inicio` · `Formato de fecha invalido` · `La disciplina no existe` · `La categoría no existe` · *(nuevo, E2.6)* `La categoría está desactivada` · *(nuevo)* `La fecha de inicio no puede ser anterior a hoy` · *(nuevo)* `cupo_maximo debe ser un entero entre 4 y 256` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | — (las referencias inexistentes responden 400) |
 | **409** | — |
@@ -309,6 +309,19 @@ Response 409:
 { "error": "El periodo de inscripción terminó: el torneo inicia el 2026-10-15" }
 ```
 
+### 3.6.1 Listar categorías — Cambia (F-08, E2.6)
+
+| | |
+|---|---|
+| **Método** | `GET` |
+| **Ruta** | `/api/torneos/categorias` |
+| **Roles** | Cualquier usuario autenticado |
+| **Query** | `activas` *(nuevo, opcional)*: `true` devuelve solo las activas; sin el parámetro (o `false`) devuelve todas, como hasta ahora |
+| **Respuesta 200** | Arreglo `[{ "categoria_id", "nombre", "activo" }]` ordenado por nombre. `activo` *(nuevo)*. Sin filtro siguen saliendo las inactivas para que las pantallas que muestran el nombre de la categoría de un torneo viejo lo sigan encontrando; el formulario de alta debe pedir `?activas=true` |
+| **400** | *(nuevo)* `activas debe ser true o false` |
+
+Requiere la columna `categorias_torneo.activo BOOLEAN NOT NULL DEFAULT TRUE` (migración `Agregar_activo_categorias_torneo.sql`).
+
 ### 3.7 Crear categoría — Nuevo (F-08)
 
 | | |
@@ -317,7 +330,7 @@ Response 409:
 | **Ruta** | `/api/torneos/categorias` |
 | **Roles** | `admin`, `gerente`, `coordinador` |
 | **Body** | `nombre` (requerido, ≤ 50, el límite de `categorias_torneo.nombre`) |
-| **Regla** | El nombre se guarda sin espacios en los extremos. Los duplicados se comparan con `normalizarNombre` (sin espacios sobrantes y en minúsculas), igual que los externos |
+| **Regla** | El nombre se guarda sin espacios en los extremos. Los duplicados se comparan con `normalizarNombre` (sin espacios sobrantes y en minúsculas), igual que los externos, y solo contra las categorías **activas**. La comprobación corre con la tabla bloqueada (`LOCK TABLE ... SHARE ROW EXCLUSIVE`) porque no hay índice único: hoy existen duplicados en uso ("Libre", ids 3 y 5) y el índice no se podría crear sin tocar datos |
 | **Respuesta 201** | `{ "categoria_id": <id>, "nombre": "<nombre>" }` |
 | **400** | `El nombre es requerido` · `Máximo 50 caracteres` |
 | **403** | `No tienes permisos para esta acción` |
@@ -356,12 +369,12 @@ Response 409:
 | **Ruta** | `/api/torneos/categorias/:categoria_id` |
 | **Roles** | `admin`, `gerente`, `coordinador` |
 | **Body** | `nombre` (requerido, ≤ 50) |
-| **Regla** | Solo cambia el nombre. Se permite aunque la categoría esté en uso: los torneos y participantes guardan `categoria_id`, no el texto |
+| **Regla** | Solo cambia el nombre. Se permite aunque la categoría esté en uso: los torneos y participantes guardan `categoria_id`, no el texto. Una categoría desactivada no se renombra |
 | **Respuesta 200** | `{ "ok": true, "categoria_id": <id>, "nombre": "<nombre>", "message": "Categoría actualizada correctamente" }` |
 | **400** | `categoria_id debe ser un entero valido` · `El nombre es requerido` · `Máximo 50 caracteres` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | `Categoría no encontrada` |
-| **409** | `Ya existe una categoría con ese nombre` (sin contar la propia) |
+| **409** | `Ya existe una categoría con ese nombre` (otra activa, sin contar la propia) · `La categoría está desactivada` |
 
 Request:
 
@@ -387,38 +400,40 @@ Response 404:
 { "error": "Categoría no encontrada" }
 ```
 
-### 3.9 Eliminar categoría — Nuevo (F-08)
+### 3.9 Desactivar categoría — Nuevo (F-08, E2.6)
+
+Reemplaza al `DELETE` que proponía este contrato: las categorías no se borran, se desactivan.
 
 | | |
 |---|---|
-| **Método** | `DELETE` |
-| **Ruta** | `/api/torneos/categorias/:categoria_id` |
+| **Método** | `PATCH` |
+| **Ruta** | `/api/torneos/categorias/:categoria_id/desactivar` |
 | **Roles** | `admin`, `gerente`, `coordinador` |
 | **Body** | Ninguno |
-| **Regla** | Solo si ningún torneo ni participante la usa (`torneos.categoria_id` y `participantes_torneo.categoria_id`). Las categorías duplicadas o de prueba que ya están en uso (por ejemplo "Libre", ids 3 y 5) se resuelven con un script de datos revisado, no con este endpoint |
-| **Respuesta 200** | `{ "ok": true, "message": "Categoría eliminada correctamente" }` |
+| **Regla** | Marca `activo = FALSE`; la fila no se borra, así que los torneos y participantes que ya la usan conservan su `categoria_id` y su nombre. No se desactiva si la usa algún **torneo activo**: no eliminado (`torneos.activo`) y en un estado distinto de `Finalizado` y `Cancelado`. Con la fila de la categoría bloqueada. Una categoría inactiva no se asigna a torneos: `POST /api/torneos` y el `PUT` que cambie a ella responden 400 `La categoría está desactivada`; un torneo que ya la tenía se sigue editando sin cambiarla. No hay endpoint para reactivar (queda para cuando se necesite) |
+| **Respuesta 200** | `{ "ok": true, "message": "Categoría desactivada correctamente" }` |
 | **400** | `categoria_id debe ser un entero valido` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | `Categoría no encontrada` |
-| **409** | `No se puede eliminar: la categoría está en uso por 3 torneos` · `No se puede eliminar: la categoría está en uso por 12 participantes` |
+| **409** | `No se puede desactivar: la categoría está en uso por 1 torneo activo` · `No se puede desactivar: la categoría está en uso por 3 torneos activos` · `La categoría ya está desactivada` |
 
 Request:
 
 ```http
-DELETE /api/torneos/categorias/9
+PATCH /api/torneos/categorias/9/desactivar
 Authorization: Bearer eyJhbGciOi...
 ```
 
 Response 200:
 
 ```json
-{ "ok": true, "message": "Categoría eliminada correctamente" }
+{ "ok": true, "message": "Categoría desactivada correctamente" }
 ```
 
 Response 409:
 
 ```json
-{ "error": "No se puede eliminar: la categoría está en uso por 3 torneos" }
+{ "error": "No se puede desactivar: la categoría está en uso por 3 torneos activos" }
 ```
 
 ### 3.10 Programar horario de un encuentro — Nuevo (F-09)
@@ -487,7 +502,7 @@ No agrega endpoints ni cambia respuestas. Cada endpoint que escribe llama a `log
 | `PATCH /api/encuentros/:encuentro_id/horario` | `programar_horario_encuentro` | `encuentros_torneo` | `encuentro_id` | `Horario: <hora_programada>` |
 | `POST /api/torneos/categorias` | `crear_categoria_torneo` | `categorias_torneo` | `categoria_id` | `Categoría creada: <nombre>` |
 | `PUT /api/torneos/categorias/:categoria_id` | `actualizar_categoria_torneo` | `categorias_torneo` | `categoria_id` | `<nombre anterior> → <nombre nuevo>` |
-| `DELETE /api/torneos/categorias/:categoria_id` | `eliminar_categoria_torneo` | `categorias_torneo` | `categoria_id` | `Categoría eliminada: <nombre>` |
+| `PATCH /api/torneos/categorias/:categoria_id/desactivar` | `desactivar_categoria_torneo` | `categorias_torneo` | `categoria_id` | `Categoría desactivada: <nombre>` |
 
 `detalles` se recorta a 1000 caracteres (`normalizeDetails`).
 
@@ -553,5 +568,5 @@ Son las reglas que la auditoría dejó abiertas y que aquí se fijan. Si alguna 
 1. **Eliminar torneo (F-01):** borrado físico si el torneo no tiene participantes ni encuentros; si los tiene, borrado lógico con `torneos.activo = FALSE` (migración nueva e idempotente, DEFAULT TRUE). Los torneos inactivos se ocultan en todos los listados y responden 404. Un torneo en curso se cancela antes de eliminarlo (409). Lo pueden hacer los tres roles de staff, igual que cancelar.
 2. **Cupo (F-02):** `torneos.cupo_maximo INT NULL` con `CHECK (cupo_maximo IS NULL OR cupo_maximo BETWEEN 4 AND 256)`, en una migración nueva e idempotente. NULL significa sin límite, así que los torneos existentes no cambian.
 3. **Fechas (F-07):** la inscripción cierra el día anterior a `fecha_inicio` (el día del inicio ya no se inscribe nadie). Un torneo sin `fecha_inicio` admite inscripciones mientras esté `Abierto`. No se crean torneos con fecha de inicio pasada.
-4. **Categorías (F-08):** las administran los tres roles de staff; no se borra una categoría en uso.
+4. **Categorías (F-08, E2.6):** las administran los tres roles de staff. No se borran: se desactivan (`categorias_torneo.activo`), y no se desactiva una que use un torneo activo (no eliminado, ni Finalizado ni Cancelado). El nombre es único entre las activas, comparado con `normalizarNombre`.
 5. **Horario (F-09):** se intercambia como texto local `YYYY-MM-DDTHH:mm`, sin zona, para no depender de la zona del proceso de Node.

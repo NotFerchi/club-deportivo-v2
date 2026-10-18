@@ -291,7 +291,7 @@ exports[`GET /api/torneos/categorias lista y error 1`] = `
 [
   [
     "pool",
-    "SELECT categoria_id, nombre FROM categorias_torneo ORDER BY nombre",
+    "SELECT categoria_id, nombre, activo FROM categorias_torneo ORDER BY nombre",
     [],
   ],
 ]
@@ -1291,7 +1291,7 @@ exports[`POST /api/torneos crea con valores por defecto y con todos los campos 1
   ],
   [
     "pool",
-    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    "SELECT categoria_id, activo FROM categorias_torneo WHERE categoria_id = $1",
     [
       3,
     ],
@@ -1320,7 +1320,7 @@ exports[`POST /api/torneos crea con valores por defecto y con todos los campos 1
   ],
   [
     "pool",
-    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    "SELECT categoria_id, activo FROM categorias_torneo WHERE categoria_id = $1",
     [
       3,
     ],
@@ -1845,7 +1845,7 @@ exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
   ],
   [
     "client",
-    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    "SELECT categoria_id, activo FROM categorias_torneo WHERE categoria_id = $1",
     [
       3,
     ],
@@ -1891,7 +1891,7 @@ exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
   ],
   [
     "client",
-    "SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1",
+    "SELECT categoria_id, activo FROM categorias_torneo WHERE categoria_id = $1",
     [
       3,
     ],

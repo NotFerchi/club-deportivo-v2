@@ -436,7 +436,7 @@ Response 409:
 { "error": "No se puede desactivar: la categoría está en uso por 3 torneos activos" }
 ```
 
-### 3.10 Programar horario de un encuentro — Nuevo (F-09)
+### 3.10 Programar horario de un encuentro — Nuevo (F-09, E2.7)
 
 | | |
 |---|---|
@@ -444,12 +444,12 @@ Response 409:
 | **Ruta** | `/api/encuentros/:encuentro_id/horario` |
 | **Roles** | `admin`, `gerente`, `coordinador` (los mismos que asignar cancha) |
 | **Body** | `hora_programada`: `"YYYY-MM-DDTHH:mm"` en hora del club, sin zona ni `Z`; o `null` para quitarla |
-| **Regla** | Mismos estados del torneo que la cancha (`admiteAsignarCancha`: `Inscripciones_cerradas` o `En_curso`), con la fila del torneo bloqueada (`estadoDelTorneo`). No se programa un encuentro `finalizado`. Si el torneo tiene `fecha_inicio`/`fecha_fin`, la fecha debe caer entre ellas. La columna es `TIMESTAMP` sin zona: el backend la escribe y la devuelve como texto (`to_char(... 'YYYY-MM-DD"T"HH24:MI')`) para que Node no la convierta a UTC |
+| **Regla** | Mismos estados del torneo que la cancha (`admiteAsignarCancha`: `Inscripciones_cerradas` o `En_curso`), con la fila del torneo bloqueada (`estadoDelTorneo`). *(E2.7)* No se reprograma (ni se quita la hora de) un encuentro con resultado: `finalizado` o con `ganador_id`. Si el torneo tiene `fecha_inicio`/`fecha_fin`, el día debe caer entre ellas (extremos inclusivos; si solo tiene una, se compara contra esa). *(E2.7)* **Choque de horario:** 409 si alguno de los dos participantes ya tiene otro encuentro a la misma hora exacta; se compara el `participante_id` y también la persona (mismo `socio_id` o `visita_id`) en otros torneos activos no cancelados. Los encuentros no tienen duración, así que solo choca la misma hora (minuto). Con `null` no se buscan choques. Las programaciones se serializan con un `pg_advisory_xact_lock` para que dos simultáneas no dejen a la misma persona en dos encuentros a la vez. La columna es `TIMESTAMP` sin zona: el backend la escribe y la devuelve como texto (`to_char(... 'YYYY-MM-DD"T"HH24:MI')`) para que Node no la convierta a UTC |
 | **Respuesta 200** | `{ "ok": true, "message": "Horario asignado correctamente", "encuentro": { "encuentro_id": <id>, "hora_programada": "<YYYY-MM-DDTHH:mm>" \| null } }` |
-| **400** | `encuentro_id inválido` · `hora_programada es requerida` (si el campo no viene; `null` sí es válido) · `hora_programada debe tener el formato YYYY-MM-DDTHH:mm` · `La fecha debe estar entre el inicio y el fin del torneo (2026-11-07 a 2026-11-15)` |
+| **400** | `encuentro_id inválido` · `hora_programada es requerida` (si el campo no viene; `null` sí es válido) · `hora_programada debe tener el formato YYYY-MM-DDTHH:mm` (también si la fecha u hora no existe, p. ej. `2026-02-30T10:00` o `T24:00`) · `La fecha debe estar entre el inicio y el fin del torneo (2026-11-07 a 2026-11-15)` · `La fecha no puede ser anterior al inicio del torneo (2026-11-07)` · `La fecha no puede ser posterior al fin del torneo (2026-11-15)` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | `Encuentro no encontrado` |
-| **409** | `Solo se puede programar el horario con las inscripciones cerradas o el torneo en curso (estado actual: Abierto)` · `No se puede programar un encuentro ya finalizado` |
+| **409** | `Solo se puede programar el horario con las inscripciones cerradas o el torneo en curso (estado actual: Abierto)` · `No se puede reprogramar un encuentro que ya tiene resultado` · *(E2.7)* `Un participante ya tiene otro encuentro a esa hora (encuentro 140)` |
 
 Request:
 
@@ -476,7 +476,7 @@ Response 200:
 Response 409:
 
 ```json
-{ "ok": false, "error": "No se puede programar un encuentro ya finalizado" }
+{ "ok": false, "error": "Un participante ya tiene otro encuentro a esa hora (encuentro 140)" }
 ```
 
 ---

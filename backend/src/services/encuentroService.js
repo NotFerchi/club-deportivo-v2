@@ -13,8 +13,13 @@ const fail = (status, error) => new ServiceError(status, { ok: false, error });
  * mientras tanto. 404 si el encuentro no existe o su torneo está eliminado.
  */
 async function estadoDelTorneo(client, encuentroId) {
+  return (await torneoDelEncuentro(client, encuentroId)).estado;
+}
+
+/** Como estadoDelTorneo, pero devuelve las `columnas` pedidas de la fila del torneo. */
+async function torneoDelEncuentro(client, encuentroId, columnas = 't.estado') {
   const { rows, rowCount } = await client.query(
-    `SELECT t.estado
+    `SELECT ${columnas}
        FROM encuentros_torneo e
        JOIN torneos t ON t.torneo_id = e.torneo_id
        WHERE e.encuentro_id = $1 AND t.activo
@@ -22,7 +27,7 @@ async function estadoDelTorneo(client, encuentroId) {
     [encuentroId]
   );
   if (rowCount === 0) throw fail(404, 'Encuentro no encontrado');
-  return rows[0].estado;
+  return rows[0];
 }
 
 /**
@@ -188,4 +193,97 @@ async function asignarCancha(encuentroIdParam, body) {
   });
 }
 
-module.exports = { registrarResultado, asignarCancha };
+// ── Horario (E2.7 / F-09) ────────────────────────────────────────────────────
+
+// Serializa todas las programaciones: el choque de horario se busca en otros encuentros (incluso de otros
+// torneos), que ningún FOR UPDATE de este encuentro protege. Las programaciones son pocas y cortas.
+const LOCK_HORARIOS = "SELECT pg_advisory_xact_lock(hashtext('encuentros_torneo.hora_programada'))";
+
+/** 400 si la fecha (YYYY-MM-DD) de `hora` cae fuera de fecha_inicio / fecha_fin del torneo (las que tenga). */
+function validarDentroDelTorneo(hora, { fecha_inicio, fecha_fin }) {
+  const dia = hora.slice(0, 10);
+  if (fecha_inicio && fecha_fin) {
+    if (dia < fecha_inicio || dia > fecha_fin) {
+      throw fail(400, `La fecha debe estar entre el inicio y el fin del torneo (${fecha_inicio} a ${fecha_fin})`);
+    }
+  } else if (fecha_inicio && dia < fecha_inicio) {
+    throw fail(400, `La fecha no puede ser anterior al inicio del torneo (${fecha_inicio})`);
+  } else if (fecha_fin && dia > fecha_fin) {
+    throw fail(400, `La fecha no puede ser posterior al fin del torneo (${fecha_fin})`);
+  }
+}
+
+/**
+ * 409 si alguno de los participantes del encuentro ya tiene otro encuentro a la misma hora. Se compara el
+ * participante y también la persona (mismo socio o misma visita) en otros torneos activos no cancelados.
+ * Los encuentros no tienen duración: el choque es a la misma hora exacta (minuto).
+ */
+async function validarSinChoque(client, enc, hora) {
+  const ids = [enc.participante_1_id, enc.participante_2_id].filter((id) => id !== null);
+  if (ids.length === 0) return;
+
+  const { rows } = await client.query(
+    `SELECT e.encuentro_id
+       FROM encuentros_torneo e
+       JOIN torneos t ON t.torneo_id = e.torneo_id AND t.activo AND t.estado <> 'Cancelado'
+       JOIN participantes_torneo otro ON otro.participante_id IN (e.participante_1_id, e.participante_2_id)
+       JOIN participantes_torneo yo ON yo.participante_id = ANY($2::int[])
+        AND (yo.participante_id = otro.participante_id OR yo.socio_id = otro.socio_id OR yo.visita_id = otro.visita_id)
+       WHERE e.encuentro_id <> $1 AND e.hora_programada = $3::timestamp
+       ORDER BY e.encuentro_id
+       LIMIT 1`,
+    [enc.encuentro_id, ids, hora]
+  );
+  if (rows.length > 0) {
+    throw fail(409, `Un participante ya tiene otro encuentro a esa hora (encuentro ${rows[0].encuentro_id})`);
+  }
+}
+
+/**
+ * Programa (o quita, con null) la hora de un encuentro. encuentro_id y formato YYYY-MM-DDTHH:mm validados en
+ * la ruta. Mismos estados que la cancha; 409 si el encuentro ya tiene resultado o si un participante choca;
+ * 400 si cae fuera de las fechas del torneo. TIMESTAMP sin zona: entra y sale como texto local del club.
+ */
+async function asignarHorario(encuentroIdParam, body) {
+  const encuentroId = Number(encuentroIdParam);
+  const hora = body.hora_programada; // 'YYYY-MM-DDTHH:mm' o null
+
+  return enTransaccion(async (client) => {
+    await client.query(LOCK_HORARIOS);
+    const torneo = await torneoDelEncuentro(
+      client,
+      encuentroId,
+      "t.estado, to_char(t.fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(t.fecha_fin, 'YYYY-MM-DD') AS fecha_fin"
+    );
+    if (!admiteAsignarCancha(torneo.estado)) {
+      throw fail(
+        409,
+        `Solo se puede programar el horario con las inscripciones cerradas o el torneo en curso (estado actual: ${torneo.estado})`
+      );
+    }
+
+    const { rows } = await client.query(
+      `SELECT encuentro_id, estado, ganador_id, participante_1_id, participante_2_id
+         FROM encuentros_torneo WHERE encuentro_id = $1 FOR UPDATE`,
+      [encuentroId]
+    );
+    const enc = rows[0];
+    if (enc.estado === 'finalizado' || enc.ganador_id !== null) {
+      throw fail(409, 'No se puede reprogramar un encuentro que ya tiene resultado');
+    }
+
+    if (hora !== null) {
+      validarDentroDelTorneo(hora, torneo);
+      await validarSinChoque(client, enc, hora);
+    }
+
+    const { rows: actualizado } = await client.query(
+      `UPDATE encuentros_torneo SET hora_programada = $1::timestamp WHERE encuentro_id = $2
+           RETURNING encuentro_id, to_char(hora_programada, 'YYYY-MM-DD"T"HH24:MI') AS hora_programada`,
+      [hora, encuentroId]
+    );
+    return actualizado[0];
+  });
+}
+
+module.exports = { registrarResultado, asignarCancha, asignarHorario };

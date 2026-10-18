@@ -21,4 +21,12 @@ router.patch(
   encuentrosController.asignarCancha
 );
 
+router.patch(
+  '/:encuentro_id/horario',
+  verifyToken,
+  checkRole(['admin', 'gerente', 'coordinador']),
+  validar.asignarHorario,
+  encuentrosController.asignarHorario
+);
+
 module.exports = router;

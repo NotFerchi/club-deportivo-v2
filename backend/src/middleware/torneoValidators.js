@@ -192,7 +192,36 @@ const asignarCancha = validateInput((req) => {
   return null;
 });
 
+const HORA_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+
+/** 'YYYY-MM-DDTHH:mm' con fecha y hora que existen (sin 2026-02-30 ni 25:00). */
+function esHoraLocalValida(valor) {
+  const partes = typeof valor === 'string' ? HORA_LOCAL.exec(valor) : null;
+  if (!partes) return false;
+  const [anio, mes, dia, hora, minuto] = partes.slice(1).map(Number);
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia, hora, minuto));
+  return (
+    fecha.getUTCFullYear() === anio &&
+    fecha.getUTCMonth() === mes - 1 &&
+    fecha.getUTCDate() === dia &&
+    fecha.getUTCHours() === hora &&
+    fecha.getUTCMinutes() === minuto
+  );
+}
+
+/** PATCH /:encuentro_id/horario: id válido; hora_programada presente, null o 'YYYY-MM-DDTHH:mm' válida. */
+const asignarHorario = validateInput((req) => {
+  if (esIdValido(req.params.encuentro_id) === null) return badOk('encuentro_id inválido');
+  const { hora_programada } = cuerpo(req);
+  if (hora_programada === undefined) return badOk('hora_programada es requerida');
+  if (hora_programada !== null && !esHoraLocalValida(hora_programada)) {
+    return badOk('hora_programada debe tener el formato YYYY-MM-DDTHH:mm');
+  }
+  return null;
+});
+
 module.exports = {
+  asignarHorario,
   torneoId,
   torneoIdConAcento,
   filtroDisciplina,

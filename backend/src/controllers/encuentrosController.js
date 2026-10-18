@@ -25,6 +25,15 @@ const encuentrosController = {
     } catch (error) {
       return handleError(res, error, 'Error al asignar cancha:');
     }
+  },
+
+  asignarHorario: async (req, res) => {
+    try {
+      const encuentro = await encuentroService.asignarHorario(req.params.encuentro_id, req.body);
+      return res.json({ ok: true, message: 'Horario asignado correctamente', encuentro });
+    } catch (error) {
+      return handleError(res, error, 'Error al asignar horario:');
+    }
   }
 };
 

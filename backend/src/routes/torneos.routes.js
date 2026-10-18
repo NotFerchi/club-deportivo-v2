@@ -51,6 +51,14 @@ router.patch(
   validar.torneoIdConAcento(),
   torneosController.cancelarTorneo
 );
+// Sin participantes ni encuentros borra la fila; con historial, borrado lógico (activo = FALSE)
+router.delete(
+  '/:torneo_id',
+  verifyToken,
+  checkRole(staffRoles),
+  validar.torneoIdConAcento(),
+  torneosController.eliminarTorneo
+);
 router.delete(
   '/:torneo_id/participantes/:participante_id',
   verifyToken,

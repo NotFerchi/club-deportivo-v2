@@ -256,10 +256,10 @@ describe('PATCH /api/encuentros/:id/resultado', () => {
       // El torneo se bloquea (FOR SHARE) antes de leer el encuentro, y no se escribe nada
       expect(log.map(([, sql]) => sql)).toEqual([
         'BEGIN',
-        'SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t',
+        'SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t',
         'ROLLBACK',
         'BEGIN',
-        'SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 FOR SHARE OF t',
+        'SELECT t.estado FROM encuentros_torneo e JOIN torneos t ON t.torneo_id = e.torneo_id WHERE e.encuentro_id = $1 AND t.activo FOR SHARE OF t',
         'ROLLBACK'
       ]);
     }

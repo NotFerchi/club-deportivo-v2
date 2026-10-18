@@ -175,6 +175,15 @@ const torneosController = {
     } catch (error) {
       handleError(res, error, 'Error al cancelar torneo:', 'Error interno del servidor');
     }
+  },
+
+  eliminarTorneo: async (req, res) => {
+    try {
+      const borrado = await torneoService.eliminarTorneo(req.params.torneo_id);
+      res.json({ ok: true, message: 'Torneo eliminado correctamente', borrado });
+    } catch (error) {
+      handleError(res, error, 'Error al eliminar torneo:', 'Error al eliminar torneo');
+    }
   }
 };
 

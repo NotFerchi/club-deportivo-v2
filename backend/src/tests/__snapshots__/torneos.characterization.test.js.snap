@@ -41,12 +41,12 @@ exports[`GET /api/torneos sin filtros y con filtros → SQL según filtros 1`] =
 [
   [
     "pool",
-    "SELECT t.torneo_id, t.nombre, t.disciplina_id, d.nombre AS nombre_disciplina, t.fecha_inicio, t.fecha_fin, t.estado, t.tipo_torneo, t.categoria_id, ct.nombre AS nombre_categoria, COUNT(pt.participante_id)::int AS total_participantes, (COUNT(pt.participante_id) >= 4) AS se_realiza FROM torneos t JOIN disciplinas d ON t.disciplina_id = d.disciplina_id LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id GROUP BY t.torneo_id, t.disciplina_id, d.nombre, t.tipo_torneo, t.categoria_id, ct.nombre ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC",
+    "SELECT t.torneo_id, t.nombre, t.disciplina_id, d.nombre AS nombre_disciplina, t.fecha_inicio, t.fecha_fin, t.fecha_inicio_inscripcion, t.fecha_fin_inscripcion, t.estado, t.tipo_torneo, t.categoria_id, ct.nombre AS nombre_categoria, COUNT(pt.participante_id)::int AS total_participantes, (COUNT(pt.participante_id) >= 4) AS se_realiza FROM torneos t JOIN disciplinas d ON t.disciplina_id = d.disciplina_id LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id GROUP BY t.torneo_id, t.disciplina_id, d.nombre, t.tipo_torneo, t.categoria_id, ct.nombre ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC",
     [],
   ],
   [
     "pool",
-    "SELECT t.torneo_id, t.nombre, t.disciplina_id, d.nombre AS nombre_disciplina, t.fecha_inicio, t.fecha_fin, t.estado, t.tipo_torneo, t.categoria_id, ct.nombre AS nombre_categoria, COUNT(pt.participante_id)::int AS total_participantes, (COUNT(pt.participante_id) >= 4) AS se_realiza FROM torneos t JOIN disciplinas d ON t.disciplina_id = d.disciplina_id LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id WHERE t.disciplina_id = $1 AND LOWER(t.estado) = LOWER($2) GROUP BY t.torneo_id, t.disciplina_id, d.nombre, t.tipo_torneo, t.categoria_id, ct.nombre ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC",
+    "SELECT t.torneo_id, t.nombre, t.disciplina_id, d.nombre AS nombre_disciplina, t.fecha_inicio, t.fecha_fin, t.fecha_inicio_inscripcion, t.fecha_fin_inscripcion, t.estado, t.tipo_torneo, t.categoria_id, ct.nombre AS nombre_categoria, COUNT(pt.participante_id)::int AS total_participantes, (COUNT(pt.participante_id) >= 4) AS se_realiza FROM torneos t JOIN disciplinas d ON t.disciplina_id = d.disciplina_id LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id WHERE t.disciplina_id = $1 AND LOWER(t.estado) = LOWER($2) GROUP BY t.torneo_id, t.disciplina_id, d.nombre, t.tipo_torneo, t.categoria_id, ct.nombre ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC",
     [
       2,
       "abierto",
@@ -54,7 +54,7 @@ exports[`GET /api/torneos sin filtros y con filtros → SQL según filtros 1`] =
   ],
   [
     "pool",
-    "SELECT t.torneo_id, t.nombre, t.disciplina_id, d.nombre AS nombre_disciplina, t.fecha_inicio, t.fecha_fin, t.estado, t.tipo_torneo, t.categoria_id, ct.nombre AS nombre_categoria, COUNT(pt.participante_id)::int AS total_participantes, (COUNT(pt.participante_id) >= 4) AS se_realiza FROM torneos t JOIN disciplinas d ON t.disciplina_id = d.disciplina_id LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id GROUP BY t.torneo_id, t.disciplina_id, d.nombre, t.tipo_torneo, t.categoria_id, ct.nombre ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC",
+    "SELECT t.torneo_id, t.nombre, t.disciplina_id, d.nombre AS nombre_disciplina, t.fecha_inicio, t.fecha_fin, t.fecha_inicio_inscripcion, t.fecha_fin_inscripcion, t.estado, t.tipo_torneo, t.categoria_id, ct.nombre AS nombre_categoria, COUNT(pt.participante_id)::int AS total_participantes, (COUNT(pt.participante_id) >= 4) AS se_realiza FROM torneos t JOIN disciplinas d ON t.disciplina_id = d.disciplina_id LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id LEFT JOIN participantes_torneo pt ON pt.torneo_id = t.torneo_id GROUP BY t.torneo_id, t.disciplina_id, d.nombre, t.tipo_torneo, t.categoria_id, ct.nombre ORDER BY t.fecha_inicio DESC NULLS LAST, t.torneo_id DESC",
     [],
   ],
 ]
@@ -1262,7 +1262,7 @@ exports[`POST /api/torneos crea con valores por defecto y con todos los campos 1
   ],
   [
     "pool",
-    "INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING torneo_id",
+    "INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo, fecha_inicio_inscripcion, fecha_fin_inscripcion) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING torneo_id",
     [
       2,
       "Copa",
@@ -1271,6 +1271,8 @@ exports[`POST /api/torneos crea con valores por defecto y con todos los campos 1
       "Abierto",
       3,
       "Individual",
+      null,
+      null,
     ],
   ],
   [
@@ -1289,7 +1291,7 @@ exports[`POST /api/torneos crea con valores por defecto y con todos los campos 1
   ],
   [
     "pool",
-    "INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING torneo_id",
+    "INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo, fecha_inicio_inscripcion, fecha_fin_inscripcion) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING torneo_id",
     [
       2,
       "Liga",
@@ -1298,6 +1300,8 @@ exports[`POST /api/torneos crea con valores por defecto y con todos los campos 1
       "Abierto",
       3,
       "Equipos",
+      null,
+      null,
     ],
   ],
 ]
@@ -1324,7 +1328,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio / visita no encontrados, c
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1348,7 +1352,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio / visita no encontrados, c
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1372,7 +1376,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio / visita no encontrados, c
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1389,7 +1393,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio / visita no encontrados, c
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1427,7 +1431,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio, visita y externo → 201 
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1472,7 +1476,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio, visita y externo → 201 
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1517,7 +1521,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio, visita y externo → 201 
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1558,7 +1562,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir-me errores de negocio 1`] = `
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1582,7 +1586,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir-me errores de negocio 1`] = `
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1599,7 +1603,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir-me errores de negocio 1`] = `
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1616,7 +1620,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir-me errores de negocio 1`] = `
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1633,7 +1637,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir-me errores de negocio 1`] = `
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1650,7 +1654,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir-me errores de negocio 1`] = `
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1667,7 +1671,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir-me errores de negocio 1`] = `
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1684,7 +1688,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir-me errores de negocio 1`] = `
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1708,7 +1712,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir-me errores de negocio 1`] = `
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1745,7 +1749,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir-me inscribe al socio autenticado
   ],
   [
     "client",
-    "SELECT estado, categoria_id, tipo_torneo FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1791,7 +1795,7 @@ exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
   ],
   [
     "client",
-    "SELECT estado, disciplina_id, tipo_torneo, categoria_id FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, disciplina_id, tipo_torneo, categoria_id, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1812,13 +1816,15 @@ exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
   ],
   [
     "client",
-    "UPDATE torneos SET disciplina_id = $1, nombre = $2, fecha_inicio = $3, fecha_fin = $4, categoria_id = $5, tipo_torneo = COALESCE($6, tipo_torneo) WHERE torneo_id = $7",
+    "UPDATE torneos SET disciplina_id = $1, nombre = $2, fecha_inicio = $3, fecha_fin = $4, categoria_id = $5, tipo_torneo = COALESCE($6, tipo_torneo), fecha_inicio_inscripcion = $7, fecha_fin_inscripcion = $8 WHERE torneo_id = $9",
     [
       2,
       "Copa",
       null,
       null,
       3,
+      null,
+      null,
       null,
       4,
     ],
@@ -1835,7 +1841,7 @@ exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
   ],
   [
     "client",
-    "SELECT estado, disciplina_id, tipo_torneo, categoria_id FROM torneos WHERE torneo_id = $1 FOR UPDATE",
+    "SELECT estado, disciplina_id, tipo_torneo, categoria_id, to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE",
     [
       4,
     ],
@@ -1856,7 +1862,7 @@ exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
   ],
   [
     "client",
-    "UPDATE torneos SET disciplina_id = $1, nombre = $2, fecha_inicio = $3, fecha_fin = $4, categoria_id = $5, tipo_torneo = COALESCE($6, tipo_torneo) WHERE torneo_id = $7",
+    "UPDATE torneos SET disciplina_id = $1, nombre = $2, fecha_inicio = $3, fecha_fin = $4, categoria_id = $5, tipo_torneo = COALESCE($6, tipo_torneo), fecha_inicio_inscripcion = $7, fecha_fin_inscripcion = $8 WHERE torneo_id = $9",
     [
       2,
       "Copa",
@@ -1864,6 +1870,8 @@ exports[`PUT /api/torneos/:torneo_id actualiza con y sin opcionales 1`] = `
       "2026-10-05",
       3,
       "Equipos",
+      null,
+      null,
       4,
     ],
   ],

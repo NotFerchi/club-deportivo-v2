@@ -2,6 +2,7 @@ const pool = require('../config/database');
 const ServiceError = require('./serviceError');
 const { enTransaccion } = require('./transaction');
 const { admiteInscripciones } = require('./torneoEstados');
+const { COLUMNAS_FECHAS_TORNEO, ERROR_INSCRIPCIONES_CERRADAS, enPeriodoInscripcion } = require('./torneoFechas');
 const {
   ERROR_PARTICIPANTE_DUPLICADO,
   ERROR_SOCIO_NO_VALIDO,
@@ -23,8 +24,8 @@ const ERROR_CATEGORIA_DISTINTA = 'La categoría debe ser la del torneo';
 const ERROR_EQUIPOS_SOLO_EQUIPOS = 'En un torneo por equipos solo se inscriben equipos (nombre_externo)';
 const ERROR_EQUIPOS_LO_INSCRIBE_STAFF = 'Este torneo es por equipos: la inscripción la hace el staff';
 
-// Columnas del torneo que necesitan las inscripciones (estado, categoría y modalidad).
-const COLUMNAS_INSCRIPCION = 'estado, categoria_id, tipo_torneo';
+// Columnas del torneo que necesitan las inscripciones (estado, categoría, modalidad y periodo de inscripción).
+const COLUMNAS_INSCRIPCION = `estado, categoria_id, tipo_torneo, ${COLUMNAS_FECHAS_TORNEO}`;
 
 // ── Consulta ─────────────────────────────────────────────────────────────────
 
@@ -111,7 +112,8 @@ async function misParticipaciones(user) {
 /**
  * Inscripción por staff. El formato (exactamente uno de socio_id, visita_id o nombre_externo,
  * ids válidos y nombre_externo ≤ 150) se valida en la ruta; aquí, lo que depende de la BD.
- * Con la fila del torneo bloqueada: 404 si no existe, 409 si no está Abierto o no tiene categoría,
+ * Con la fila del torneo bloqueada: 404 si no existe, 409 si no está Abierto, si hoy (México) está
+ * fuera del periodo de inscripción (F-07) o si no tiene categoría,
  * 400 si categoria_id no es la del torneo (B-14) o si es por equipos y no se inscribe un equipo (B-15),
  * y 409 si el socio, la visita o el externo (por nombre normalizado) ya está inscrito.
  * El participante siempre queda con la categoría del torneo.
@@ -129,6 +131,7 @@ async function inscribirParticipante(torneoIdParam, body) {
   return enTransaccion(async (client) => {
     const torneo = await bloquearTorneo(client, torneoId, COLUMNAS_INSCRIPCION);
     if (!admiteInscripciones(torneo.estado)) throw new ServiceError(409, { error: ERROR_TORNEO_NO_ABIERTO });
+    if (!enPeriodoInscripcion(torneo)) throw new ServiceError(409, { error: ERROR_INSCRIPCIONES_CERRADAS });
 
     const categoriaId = torneo.categoria_id;
     if (categoriaId === null) throw new ServiceError(409, { error: ERROR_TORNEO_SIN_CATEGORIA });
@@ -186,8 +189,9 @@ async function inscribirParticipante(torneoIdParam, body) {
 /**
  * Auto-inscripción del socio autenticado (sin requerir rol staff).
  * La categoría la decide el administrador al crear el torneo (torneo.categoria_id).
- * Con la fila del torneo bloqueada: 404 si no existe, 409 si no está Abierto, si es por
- * equipos (los equipos los inscribe el staff, B-15) o si no tiene categoría.
+ * Con la fila del torneo bloqueada: 404 si no existe, 409 si no está Abierto, si hoy (México)
+ * está fuera del periodo de inscripción (F-07), si es por equipos (los equipos los inscribe el
+ * staff, B-15) o si no tiene categoría.
  */
 async function inscribirSocioPropio(torneoIdParam, user) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
@@ -196,6 +200,7 @@ async function inscribirSocioPropio(torneoIdParam, user) {
     // El torneo debe existir y estar abierto; se obtiene su categoria_id
     const torneo = await bloquearTorneo(client, torneoId, COLUMNAS_INSCRIPCION);
     if (!admiteInscripciones(torneo.estado)) throw new ServiceError(409, { error: ERROR_TORNEO_NO_ABIERTO });
+    if (!enPeriodoInscripcion(torneo)) throw new ServiceError(409, { error: ERROR_INSCRIPCIONES_CERRADAS });
     if (esPorEquipos(torneo.tipo_torneo)) throw new ServiceError(409, { error: ERROR_EQUIPOS_LO_INSCRIBE_STAFF });
 
     // Obtener socio_id a partir del usuario autenticado (no se confía en el body)

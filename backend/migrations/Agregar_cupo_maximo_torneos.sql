@@ -1,7 +1,8 @@
 -- Cupo máximo de participantes por torneo (F-02 de docs/auditoria-torneos.md; contrato en docs/api-torneos.md). Idempotente.
 --  cupo_maximo INTEGER NULL: NULL significa sin límite, así que los torneos existentes no cambian.
---  CHECK (cupo_maximo > 0): NULL pasa el CHECK. Como todas las filas actuales quedan en NULL, se crea
---  validado directamente (no hace falta NOT VALID + VALIDATE).
+--  CHECK (cupo_maximo BETWEEN 4 AND 256), el rango de docs/api-torneos.md: el mínimo es MINIMO_PARTICIPANTES
+--  (participanteService.js), con menos el torneo no se realiza. NULL pasa el CHECK. Como todas las filas
+--  actuales quedan en NULL, se crea validado directamente (no hace falta NOT VALID + VALIDATE).
 
 ALTER TABLE torneos ADD COLUMN IF NOT EXISTS cupo_maximo INTEGER NULL;
 
@@ -15,6 +16,6 @@ BEGIN
   ) THEN
     ALTER TABLE torneos
       ADD CONSTRAINT torneos_cupo_maximo_check
-      CHECK (cupo_maximo > 0);
+      CHECK (cupo_maximo BETWEEN 4 AND 256);
   END IF;
 END $$;

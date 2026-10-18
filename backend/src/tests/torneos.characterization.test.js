@@ -212,7 +212,8 @@ describe('GET /api/torneos', () => {
   it('sin filtros y con filtros → SQL según filtros', async () => {
     let res = await request(app).get('/api/torneos');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(db.torneos);
+    // el mock no trae estado: admite_inscripcion se calcula como false (E2.12, ver torneoAdmiteInscripcion.test.js)
+    expect(res.body).toEqual([{ ...db.torneos[0], admite_inscripcion: false }]);
 
     res = await request(app).get('/api/torneos').query({ disciplina_id: '2', estado: 'abierto' });
     expect(res.status).toBe(200);

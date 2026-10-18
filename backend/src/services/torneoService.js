@@ -11,7 +11,7 @@ const {
   tieneValor
 } = require('./torneoComun');
 const { ESTADOS, admiteInscripciones, validarTransicion } = require('./torneoEstados');
-const { validarFechasInscripcion } = require('./torneoFechas');
+const { enPeriodoInscripcion, hoyEnClub, validarFechasInscripcion } = require('./torneoFechas');
 const { ERROR_CATEGORIA_INACTIVA } = require('./categoriaService');
 
 const badRequest = (error) => new ServiceError(400, { error });
@@ -57,7 +57,9 @@ async function listarTorneos({ disciplina_id, estado }) {
           t.categoria_id,
           ct.nombre AS nombre_categoria,
           COUNT(pt.participante_id)::int AS total_participantes,
-          (COUNT(pt.participante_id) >= 4) AS se_realiza
+          (COUNT(pt.participante_id) >= 4) AS se_realiza,
+          t.cupo_maximo,
+          ${COLUMNAS_PERIODO_LISTADO}
         FROM torneos t
         JOIN disciplinas d ON t.disciplina_id = d.disciplina_id
         LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id
@@ -68,7 +70,38 @@ async function listarTorneos({ disciplina_id, estado }) {
       `,
     valores
   );
-  return result.rows;
+  const hoy = hoyEnClub();
+  return result.rows.map(({ periodo_fecha_inicio, periodo_inicio_inscripcion, periodo_fin_inscripcion, ...torneo }) => ({
+    ...torneo,
+    admite_inscripcion: admiteInscripcion(
+      torneo,
+      {
+        fecha_inicio: periodo_fecha_inicio,
+        fecha_inicio_inscripcion: periodo_inicio_inscripcion,
+        fecha_fin_inscripcion: periodo_fin_inscripcion
+      },
+      hoy
+    )
+  }));
+}
+
+// Fechas del periodo como texto 'YYYY-MM-DD' solo para calcular admite_inscripcion: las columnas públicas
+// (fecha_inicio, ...) conservan su formato de siempre. Se quitan de la respuesta.
+const COLUMNAS_PERIODO_LISTADO = [
+  "to_char(t.fecha_inicio, 'YYYY-MM-DD') AS periodo_fecha_inicio",
+  "to_char(t.fecha_inicio_inscripcion, 'YYYY-MM-DD') AS periodo_inicio_inscripcion",
+  "to_char(t.fecha_fin_inscripcion, 'YYYY-MM-DD') AS periodo_fin_inscripcion"
+].join(',\n          ');
+
+/**
+ * E2.12: true si hoy se puede inscribir alguien, con las mismas reglas que las inscripciones: estado
+ * Abierto, con categoría, dentro del periodo de inscripción (F-07) y con cupo libre (NULL = sin límite).
+ */
+function admiteInscripcion(torneo, periodo, hoy) {
+  const conCupo = torneo.cupo_maximo === null || torneo.total_participantes < torneo.cupo_maximo;
+  return (
+    admiteInscripciones(torneo.estado) && torneo.categoria_id !== null && enPeriodoInscripcion(periodo, hoy) && conCupo
+  );
 }
 
 async function obtenerReporte(torneoIdParam) {

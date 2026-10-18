@@ -95,7 +95,7 @@ Response 409:
 { "error": "Cancela el torneo antes de eliminarlo" }
 ```
 
-### 3.2 Listar torneos — Cambia (F-02, F-07)
+### 3.2 Listar torneos — Cambia (F-02, F-07, E2.12)
 
 | | |
 |---|---|
@@ -103,13 +103,13 @@ Response 409:
 | **Ruta** | `/api/torneos` |
 | **Roles** | Cualquier usuario autenticado |
 | **Query** | `disciplina_id` (opcional, id válido), `estado` (opcional, sin distinguir mayúsculas) |
-| **Respuesta 200** | Arreglo de torneos con `torneo_id`, `nombre`, `disciplina_id`, `nombre_disciplina`, `fecha_inicio`, `fecha_fin`, `estado`, `tipo_torneo`, `categoria_id`, `nombre_categoria`, `total_participantes`, `se_realiza`, `cupo_maximo` *(nuevo)* y `admite_inscripcion` *(nuevo)* |
+| **Respuesta 200** | Arreglo de torneos con `torneo_id`, `nombre`, `disciplina_id`, `nombre_disciplina`, `fecha_inicio`, `fecha_fin`, `fecha_inicio_inscripcion`, `fecha_fin_inscripcion`, `estado`, `tipo_torneo`, `categoria_id`, `nombre_categoria`, `total_participantes`, `se_realiza`, `cupo_maximo` *(nuevo)* y `admite_inscripcion` *(nuevo)* |
 | **400** | `disciplina_id debe ser un entero valido` |
 | **403** | — (no restringe rol) |
 | **404** | — (una lista vacía responde 200 con `[]`) |
 | **409** | — |
 
-`admite_inscripcion` es `true` solo si se cumplen todas: `estado = 'Abierto'`, `categoria_id` no es NULL, `fecha_inicio` es NULL o posterior a hoy (F-07) y `cupo_maximo` es NULL o mayor que `total_participantes` (F-02). La vista del socio muestra "Inscribirse" solo cuando es `true`, y la tarjeta pinta la barra `total_participantes / cupo_maximo` cuando hay cupo.
+`admite_inscripcion` es `true` solo si se cumplen todas: `estado = 'Abierto'`, `categoria_id` no es NULL, hoy (fecha del club) está dentro del periodo de inscripción (F-07, `enPeriodoInscripcion` de `torneoFechas.js`: desde `fecha_inicio_inscripcion` si existe; hasta `fecha_fin_inscripcion` inclusiva si existe, si no hasta el día anterior a `fecha_inicio`, y sin límite si no hay ninguna) y `cupo_maximo` es NULL o mayor que `total_participantes` (F-02). *(E2.12)* Se calcula en el backend con las mismas funciones que usan las inscripciones (`admiteInscripciones` y `enPeriodoInscripcion`), así que la tarjeta y el 409 de la inscripción no se contradicen. No mira la modalidad: un torneo por equipos con `true` admite inscripción por el staff, no auto-inscripción. La vista del socio muestra "Inscribirse" solo cuando es `true`, y la tarjeta pinta la barra `total_participantes / cupo_maximo` cuando hay cupo.
 
 Request:
 

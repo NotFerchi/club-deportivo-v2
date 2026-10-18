@@ -101,7 +101,26 @@ function route(q) {
   throw new Error(`Query no esperada en test: ${q}`);
 }
 
+// Las fechas de los fixtures (2026-10-01, ...) no deben quedar "en el pasado" (E2.5) según el día en que
+// corran los tests: "hoy" se fija en el 2026-01-15 de México. Solo se falsea Date; supertest usa los timers reales.
+const HOY_FIJO = new Date('2026-01-15T18:00:00Z');
+const SOLO_DATE = {
+  doNotFake: [
+    'nextTick',
+    'setImmediate',
+    'clearImmediate',
+    'setTimeout',
+    'clearTimeout',
+    'setInterval',
+    'clearInterval',
+    'queueMicrotask',
+    'hrtime',
+    'performance'
+  ]
+};
+
 beforeEach(() => {
+  jest.useFakeTimers({ now: HOY_FIJO, ...SOLO_DATE });
   mockUser = { usuario_id: 7, rol: 'admin' };
   db = {
     falla: null,
@@ -206,6 +225,7 @@ beforeEach(() => {
 const ultimoError = () => consoleSpies[1].mock.calls.at(-1)?.[0];
 
 afterEach(() => {
+  jest.useRealTimers();
   consoleSpies.forEach((spy) => spy.mockRestore());
   jest.restoreAllMocks();
 });
@@ -1664,6 +1684,64 @@ describe('fechas de inscripción (F-07)', () => {
       const res = await inscribirAhora();
       expect(res.status).toBe(409);
       expect(res.body).toEqual({ error: 'El torneo no está abierto para inscripciones' });
+    });
+  });
+});
+
+// ── Fecha de inicio pasada (E2.5) ───────────────────────────────────────────
+
+describe('fecha de inicio anterior a hoy (E2.5)', () => {
+  const PASADA = { error: 'La fecha de inicio no puede ser anterior a hoy' };
+  const body = (fecha_inicio) => ({ nombre: 'Copa', disciplina_id: 2, categoria_id: 3, fecha_inicio });
+  const crear = (fecha_inicio) => request(app).post('/api/torneos').send(body(fecha_inicio));
+  const editar = (fecha_inicio) => request(app).put('/api/torneos/4').send(body(fecha_inicio));
+  const sqls = () => log.map(([, sql]) => sql);
+
+  // 21:00 del 2026-10-18 en México; en UTC ya es el 19. "Hoy" es el 18.
+  beforeEach(() => jest.setSystemTime(new Date('2026-10-19T03:00:00Z')));
+
+  describe('POST /api/torneos', () => {
+    it('ayer → 400 sin consultar la BD', async () => {
+      const res = await crear('2026-10-17');
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual(PASADA);
+      expect(log).toEqual([]);
+    });
+
+    it.each(['2026-10-18', '2026-10-19', undefined, null, ''])('fecha_inicio %j (hoy, futura o sin fecha) → 201', async (fecha) => {
+      expect((await crear(fecha)).status).toBe(201);
+    });
+  });
+
+  describe('PUT /api/torneos/:torneo_id', () => {
+    const conInicio = (fecha_inicio) => {
+      db.torneoEditable = [{ ...db.torneoEditable[0], fecha_inicio }];
+    };
+
+    it('cambia a una fecha pasada → 400 sin UPDATE', async () => {
+      conInicio('2026-11-07');
+      const res = await editar('2026-10-17');
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual(PASADA);
+      expect(sqls()).not.toContainEqual(expect.stringContaining('UPDATE torneos'));
+      expect(sqls()).toContain('ROLLBACK');
+    });
+
+    it('torneo antiguo que conserva su fecha pasada → 200', async () => {
+      conInicio('2025-03-01');
+      expect((await editar('2025-03-01')).status).toBe(200);
+    });
+
+    it('torneo sin fecha que recibe una pasada → 400', async () => {
+      conInicio(null);
+      expect((await editar('2026-10-01')).status).toBe(400);
+    });
+
+    it('cambia a hoy, a una futura o la quita → 200', async () => {
+      conInicio('2025-03-01');
+      for (const fecha of ['2026-10-18', '2026-12-01', null]) {
+        expect((await editar(fecha)).status).toBe(200);
+      }
     });
   });
 });

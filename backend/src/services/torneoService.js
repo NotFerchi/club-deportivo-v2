@@ -14,7 +14,7 @@ const {
   tieneValor
 } = require('./torneoComun');
 const { ESTADOS, admiteInscripciones, validarTransicion } = require('./torneoEstados');
-const { enPeriodoInscripcion, hoyEnClub, validarFechasInscripcion } = require('./torneoFechas');
+const { ERROR_INICIO_PASADO, enPeriodoInscripcion, hoyEnClub, iniciaEnElPasado, validarFechasInscripcion } = require('./torneoFechas');
 const { ERROR_CATEGORIA_INACTIVA } = require('./categoriaService');
 
 const badRequest = (error) => new ServiceError(400, { error });
@@ -252,7 +252,8 @@ async function crearTorneo(body) {
  * Todos los participantes son de la categoría del torneo: al asignarla a un torneo que no tenía, se
  * aplica también a sus inscritos; cambiar una categoría ya asignada solo se permite sin inscritos (409).
  * Las fechas de inscripción que no vienen en el body se conservan (null o '' las quitan), y el orden
- * de las fechas se comprueba con el resultado (400).
+ * de las fechas se comprueba con el resultado (400). Una fecha_inicio anterior a hoy (México) responde 400
+ * solo si cambia (E2.5).
  * cupo_maximo (E2.4): si no viene se conserva; null lo quita. Solo cambia con el torneo Abierto (409) y no
  * puede quedar por debajo de los inscritos actuales (409): nunca se da de baja a nadie.
  */
@@ -285,6 +286,11 @@ async function actualizarTorneo(torneoIdParam, body) {
     };
     const fechasMal = validarFechasInscripcion(fechas);
     if (fechasMal) throw badRequest(fechasMal);
+
+    // E2.5: una fecha de inicio pasada solo se rechaza si cambia, para seguir editando torneos antiguos
+    if (fechas.fecha_inicio !== actual.fecha_inicio && iniciaEnElPasado(fechas.fecha_inicio)) {
+      throw badRequest(ERROR_INICIO_PASADO);
+    }
 
     if (admiteInscripciones(actual.estado) && categoriaId === null) throw badRequest(ERROR_CATEGORIA_REQUERIDA);
 

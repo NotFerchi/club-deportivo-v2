@@ -9,7 +9,7 @@ exports[`DELETE /api/torneos/:torneo_id sin participantes ni encuentros → borr
   ],
   [
     "client",
-    "SELECT torneo_id FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE",
+    "SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE",
     [
       4,
     ],

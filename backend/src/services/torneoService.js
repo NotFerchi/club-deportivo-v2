@@ -18,6 +18,7 @@ const ERROR_ESTADO_NO_EDITABLE = 'El estado se cambia con las acciones del torne
 const ERROR_TORNEO_BLOQUEADO =
   'Con las inscripciones cerradas no se puede cambiar la disciplina, el tipo de torneo ni la categoría';
 const ERROR_CATEGORIA_CON_INSCRITOS = 'No se puede cambiar la categoría: el torneo ya tiene inscritos';
+const ERROR_ELIMINAR_EN_CURSO = 'Cancela el torneo antes de eliminarlo';
 
 // ── Consulta ─────────────────────────────────────────────────────────────────
 
@@ -324,13 +325,14 @@ async function cancelarTorneo(torneoIdParam) {
  * Sin participantes ni encuentros: borra la fila ('fisico'). Con historial: activo = FALSE ('logico'),
  * porque las FKs de participantes_torneo y encuentros_torneo no tienen ON DELETE. Con la fila bloqueada,
  * nadie puede inscribirse ni generar el bracket entre la comprobación y el borrado. 404 si no existe o
- * ya está eliminado.
+ * ya está eliminado; 409 si está en curso (primero se cancela).
  */
 async function eliminarTorneo(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   return enTransaccion(async (client) => {
-    await bloquearTorneo(client, torneoId, 'torneo_id');
+    const torneo = await bloquearTorneo(client, torneoId);
+    if (torneo.estado === ESTADOS.EN_CURSO) throw new ServiceError(409, { error: ERROR_ELIMINAR_EN_CURSO });
 
     const { rows } = await client.query(
       `SELECT EXISTS (SELECT 1 FROM participantes_torneo WHERE torneo_id = $1) AS tiene_participantes,

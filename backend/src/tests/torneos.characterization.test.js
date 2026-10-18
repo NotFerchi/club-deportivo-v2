@@ -84,8 +84,6 @@ function route(q) {
   if (q.startsWith('SELECT socio_id FROM socios WHERE usuario_id = $1')) return rows(db.socioMis);
   if (q.startsWith('DELETE FROM participantes_torneo')) return rows(db.borrado);
   if (q.startsWith('SELECT pt.participante_id, t.torneo_id')) return rows(db.mis);
-  // eliminar bloquea el torneo leyendo solo su id
-  if (q === 'SELECT torneo_id FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE') return rows(db.torneoLock);
   if (q.startsWith('SELECT torneo_id FROM torneos')) return rows(db.torneoExiste);
   if (q.startsWith('SELECT EXISTS (SELECT 1 FROM participantes_torneo')) return rows(db.historial);
   if (q.startsWith('DELETE FROM torneos')) return rows([]);
@@ -1401,12 +1399,29 @@ describe('DELETE /api/torneos/:torneo_id', () => {
     await eliminar();
     expect(sqls()).toEqual([
       'BEGIN',
-      'SELECT torneo_id FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE',
+      'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE',
       'SELECT EXISTS (SELECT 1 FROM participantes_torneo WHERE torneo_id = $1) AS tiene_participantes, EXISTS (SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1) AS tiene_encuentros',
       'DELETE FROM torneos WHERE torneo_id = $1',
       'COMMIT'
     ]);
     expect(client.release).toHaveBeenCalled();
+  });
+
+  it('en curso → 409, sin comprobar historial ni borrar, con ROLLBACK', async () => {
+    db.torneoLock = [{ estado: 'En_curso' }];
+    db.historial = [{ tiene_participantes: true, tiene_encuentros: true }];
+    const res = await eliminar();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Cancela el torneo antes de eliminarlo' });
+    expect(sqls()).toEqual(['BEGIN', 'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE', 'ROLLBACK']);
+  });
+
+  it.each(['Abierto', 'Inscripciones_cerradas', 'Finalizado', 'Cancelado'])('desde %s → 200', async (estado) => {
+    db.torneoLock = [{ estado }];
+    db.historial = [{ tiene_participantes: true, tiene_encuentros: estado !== 'Abierto' }];
+    const res = await eliminar();
+    expect(res.status).toBe(200);
+    expect(res.body.borrado).toBe('logico');
   });
 
   it('400 / 404 (inexistente o ya eliminado) / 500 con ROLLBACK', async () => {

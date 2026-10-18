@@ -68,6 +68,10 @@ function route(q) {
   if (q.startsWith('SELECT nombre_externo FROM participantes_torneo')) return rows(db.externos);
   if (q.startsWith('INSERT INTO participantes_torneo')) return rows([{ participante_id: 31 }]);
   if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE') return rows(db.torneoLock);
+  if (q === 'SELECT estado, nombre FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE')
+    return rows(db.torneoLock.map((t) => ({ nombre: 'Copa', ...t })));
+  // auditoría (E2.10): logAudit atrapa sus errores, así que un fallo aquí no cambia la respuesta
+  if (q.startsWith('INSERT INTO logs_sistema')) return rows([]);
   // inscribir e inscribir-me bloquean el torneo leyendo estado, categoría y modalidad
   if (q === LOCK_INSCRIPCION)
     return rows(db.torneoInfo);
@@ -533,7 +537,8 @@ describe('PUT /api/torneos/:torneo_id', () => {
         ['torneos', [2, 'Copa', null, null, 3, null, null, null, 4]],
         ['participantes_torneo', [3, 4]]
       ]);
-      expect(log.at(-1)[1]).toBe('COMMIT');
+      // la transacción termina en COMMIT; después solo va la auditoría (pool, fuera de la transacción)
+      expect(log.filter(([origen]) => origen === 'client').at(-1)[1]).toBe('COMMIT');
     });
 
     it('X → Y con inscritos: 409 y no cambia nada', async () => {
@@ -1405,11 +1410,14 @@ describe('DELETE /api/torneos/:torneo_id', () => {
     await eliminar();
     expect(sqls()).toEqual([
       'BEGIN',
-      'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE',
+      'SELECT estado, nombre FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE',
       'SELECT EXISTS (SELECT 1 FROM participantes_torneo WHERE torneo_id = $1) AS tiene_participantes, EXISTS (SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1) AS tiene_encuentros',
       'DELETE FROM torneos WHERE torneo_id = $1',
-      'COMMIT'
+      'COMMIT',
+      // auditoría (E2.10), ya fuera de la transacción
+      'INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)'
     ]);
+    expect(log.at(-1)[2]).toEqual([7, 'eliminar_torneo', 'torneos', 'Torneo eliminado (fisico): Copa', expect.any(String), 4]);
     expect(client.release).toHaveBeenCalled();
   });
 
@@ -1419,7 +1427,7 @@ describe('DELETE /api/torneos/:torneo_id', () => {
     const res = await eliminar();
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ error: 'Cancela el torneo antes de eliminarlo' });
-    expect(sqls()).toEqual(['BEGIN', 'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE', 'ROLLBACK']);
+    expect(sqls()).toEqual(['BEGIN', 'SELECT estado, nombre FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE', 'ROLLBACK']);
   });
 
   it.each(['Abierto', 'Inscripciones_cerradas', 'Finalizado', 'Cancelado'])('desde %s → 200', async (estado) => {

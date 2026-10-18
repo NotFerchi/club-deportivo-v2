@@ -252,13 +252,14 @@ async function actualizarTorneo(torneoIdParam, body) {
 
   const categoriaId = tieneValor(categoria_id) ? esIdValido(categoria_id) : null;
 
-  await enTransaccion(async (client) => {
+  return enTransaccion(async (client) => {
     const actual = await bloquearTorneo(
       client,
       torneoId,
       `estado, disciplina_id, tipo_torneo, categoria_id,
        to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion,
-       to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion`
+       to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion,
+       nombre, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_fin, 'YYYY-MM-DD') AS fecha_fin`
     );
 
     if (tieneValor(estado) && estado !== actual.estado) throw badRequest(ERROR_ESTADO_NO_EDITABLE);
@@ -325,9 +326,29 @@ async function actualizarTorneo(torneoIdParam, body) {
         torneoId
       ]);
     }
-  });
 
-  return torneoId;
+    const despues = {
+      nombre: nombre.trim(),
+      disciplina_id: disciplinaId,
+      tipo_torneo: tipo_torneo || actual.tipo_torneo,
+      categoria_id: categoriaId,
+      fecha_inicio: fechas.fecha_inicio,
+      fecha_fin: normalizarFechaOpcional(fecha_fin),
+      fecha_inicio_inscripcion: fechas.fecha_inicio_inscripcion,
+      fecha_fin_inscripcion: fechas.fecha_fin_inscripcion
+    };
+    return { torneoId, cambios: camposCambiados(actual, despues) };
+  });
+}
+
+/** Para la auditoría (E2.10): { campo: { antes, despues } } de los campos que cambiaron. */
+function camposCambiados(antes, despues) {
+  const cambios = {};
+  for (const [campo, valor] of Object.entries(despues)) {
+    const anterior = antes[campo] ?? null;
+    if (anterior !== valor) cambios[campo] = { antes: anterior, despues: valor };
+  }
+  return cambios;
 }
 
 // ── Cambios de estado ────────────────────────────────────────────────────────
@@ -369,15 +390,16 @@ async function finalizarTorneo(torneoIdParam) {
   });
 }
 
-/** Cualquier estado no final → Cancelado. */
+/** Cualquier estado no final → Cancelado. Devuelve el estado anterior (para la auditoría). */
 async function cancelarTorneo(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
-  await enTransaccion(async (client) => {
+  return enTransaccion(async (client) => {
     const torneo = await bloquearTorneo(client, torneoId);
     validarTransicion(torneo.estado, ESTADOS.CANCELADO);
 
     await client.query('UPDATE torneos SET estado = $1 WHERE torneo_id = $2', [ESTADOS.CANCELADO, torneoId]);
+    return torneo.estado;
   });
 }
 
@@ -387,13 +409,13 @@ async function cancelarTorneo(torneoIdParam) {
  * Sin participantes ni encuentros: borra la fila ('fisico'). Con historial: activo = FALSE ('logico'),
  * porque las FKs de participantes_torneo y encuentros_torneo no tienen ON DELETE. Con la fila bloqueada,
  * nadie puede inscribirse ni generar el bracket entre la comprobación y el borrado. 404 si no existe o
- * ya está eliminado; 409 si está en curso (primero se cancela).
+ * ya está eliminado; 409 si está en curso (primero se cancela). Devuelve { borrado, nombre }.
  */
 async function eliminarTorneo(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   return enTransaccion(async (client) => {
-    const torneo = await bloquearTorneo(client, torneoId);
+    const torneo = await bloquearTorneo(client, torneoId, 'estado, nombre');
     if (torneo.estado === ESTADOS.EN_CURSO) throw new ServiceError(409, { error: ERROR_ELIMINAR_EN_CURSO });
 
     const { rows } = await client.query(
@@ -405,11 +427,11 @@ async function eliminarTorneo(torneoIdParam) {
 
     if (!tiene_participantes && !tiene_encuentros) {
       await client.query('DELETE FROM torneos WHERE torneo_id = $1', [torneoId]);
-      return 'fisico';
+      return { borrado: 'fisico', nombre: torneo.nombre };
     }
 
     await client.query('UPDATE torneos SET activo = FALSE WHERE torneo_id = $1', [torneoId]);
-    return 'logico';
+    return { borrado: 'logico', nombre: torneo.nombre };
   });
 }
 

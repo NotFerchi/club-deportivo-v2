@@ -28,6 +28,13 @@ router.get('/mis-participaciones', verifyToken, torneosController.getMisParticip
 router.get('/:torneo_id/participantes', verifyToken, validar.torneoId(), torneosController.getParticipantes);
 router.get('/:torneo_id/bracket', verifyToken, validar.torneoId(), torneosController.getBracket);
 router.get('/:torneo_id/reporte', verifyToken, validar.torneoIdConAcento(), torneosController.getReporte);
+router.get(
+  '/:torneo_id/bitacora',
+  verifyToken,
+  checkRole(staffRoles),
+  validar.torneoIdConAcento(),
+  torneosController.getBitacora
+);
 
 router.post('/', verifyToken, checkRole(staffRoles), validar.crearTorneo, torneosController.createTorneo);
 router.put('/:torneo_id', verifyToken, checkRole(staffRoles), validar.actualizarTorneo, torneosController.updateTorneo);

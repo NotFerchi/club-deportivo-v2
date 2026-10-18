@@ -116,4 +116,24 @@ async function estadisticasLogs() {
   };
 }
 
-module.exports = { listarLogs, logsPorTabla, estadisticasLogs };
+/** Bitácora de un registro (p. ej. un torneo): sus acciones, de la más reciente a la más antigua, hasta 200. */
+async function logsDeRegistro(tabla, registroId) {
+  const result = await pool.query(
+    `SELECT
+         l.log_id,
+         l.usuario_id,
+         NULLIF(TRIM(CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, ''))), '') AS usuario_nombre,
+         l.accion,
+         l.detalles,
+         TO_CHAR(l.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD"T"HH24:MI:SS') AS fecha_local
+       FROM logs_sistema l
+       LEFT JOIN usuarios u ON l.usuario_id = u.usuario_id
+       WHERE l.tabla_afectada = $1 AND l.registro_id = $2
+       ORDER BY l.fecha DESC, l.log_id DESC
+       LIMIT 200`,
+    [tabla, registroId]
+  );
+  return result.rows;
+}
+
+module.exports = { listarLogs, logsPorTabla, estadisticasLogs, logsDeRegistro };

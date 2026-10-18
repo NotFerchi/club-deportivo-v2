@@ -519,17 +519,54 @@ Response 400:
 { "ok": false, "error": "instructor_id no corresponde a un instructor activo" }
 ```
 
+### 3.12 Bitácora de un torneo — Nuevo (E2.10)
+
+| | |
+|---|---|
+| **Método** | `GET` |
+| **Ruta** | `/api/torneos/:torneo_id/bitacora` |
+| **Roles** | `admin`, `gerente`, `coordinador` |
+| **Body** | Ninguno |
+| **Regla** | Solo lectura. Devuelve las filas de `logs_sistema` con `tabla_afectada = 'torneos'` y `registro_id = torneo_id`, de la más reciente a la más antigua, hasta 200. **No** exige que el torneo exista: un torneo eliminado (lógico o físico) sigue teniendo bitácora, que es cuando más se consulta. Un id sin registros responde `[]`. No devuelve `ip_origen` (la bitácora completa con IP sigue en `/api/logs`, solo admin) |
+| **Respuesta 200** | `[{ "log_id", "usuario_id", "usuario_nombre", "accion", "detalles", "fecha_local" }]`; `fecha_local` es `YYYY-MM-DDTHH:mm:ss` en hora del club |
+| **400** | `torneo_id debe ser un entero válido` |
+| **403** | `No tienes permisos para esta acción` |
+| **404** | — |
+| **409** | — |
+
+Request:
+
+```http
+GET /api/torneos/45/bitacora
+Authorization: Bearer eyJhbGciOi...
+```
+
+Response 200:
+
+```json
+[
+  {
+    "log_id": 812,
+    "usuario_id": 7,
+    "usuario_nombre": "Ana López",
+    "accion": "actualizar_torneo",
+    "detalles": "{\"nombre\":{\"antes\":\"Copa Otoño\",\"despues\":\"Copa Invierno\"}}",
+    "fecha_local": "2026-10-18T10:15:03"
+  }
+]
+```
+
 ---
 
 ## 4. Auditoría de las acciones (F-04)
 
-No agrega endpoints ni cambia respuestas. Cada endpoint que escribe llama a `logAudit` (`backend/src/utils/auditLogger.js`) **solo cuando la operación tuvo éxito**, igual que `disciplinasController.js`. `usuario_id` e `ip_origen` los toma `logAudit` de la petición; si la escritura del log falla, la respuesta no cambia.
+No cambia respuestas; el único endpoint nuevo es la bitácora de solo lectura (§3.12). *(E2.10)* **Implementado:** crear, editar, cancelar y eliminar torneo; el resto de las filas de la tabla queda pendiente. Cada endpoint que escribe llama a `logAudit` (`backend/src/utils/auditLogger.js`) **solo cuando la operación tuvo éxito**, igual que `disciplinasController.js`. `usuario_id` e `ip_origen` los toma `logAudit` de la petición; si la escritura del log falla, la respuesta no cambia: `logAudit` atrapa el error y solo deja un `console.warn`. El log se escribe con el pool, después del `COMMIT` de la operación, así que tampoco la revierte.
 
 | Endpoint | `accion` | `tabla_afectada` | `registro_id` | `detalles` |
 |---|---|---|---|---|
 | `POST /api/torneos` | `crear_torneo` | `torneos` | `torneo_id` | `Torneo creado: <nombre>` |
-| `PUT /api/torneos/:torneo_id` | `actualizar_torneo` | `torneos` | `torneo_id` | JSON con los campos que cambiaron (antes → después) |
-| `DELETE /api/torneos/:torneo_id` | `eliminar_torneo` | `torneos` | `torneo_id` | `Torneo eliminado: <nombre>` |
+| `PUT /api/torneos/:torneo_id` | `actualizar_torneo` | `torneos` | `torneo_id` | JSON con los campos que cambiaron: `{ "<campo>": { "antes": …, "despues": … } }` entre `nombre`, `disciplina_id`, `tipo_torneo`, `categoria_id`, `fecha_inicio`, `fecha_fin`, `fecha_inicio_inscripcion` y `fecha_fin_inscripcion`; `{}` si nada cambió |
+| `DELETE /api/torneos/:torneo_id` | `eliminar_torneo` | `torneos` | `torneo_id` | `Torneo eliminado (<fisico|logico>): <nombre>` |
 | `PATCH /:torneo_id/cerrar-inscripciones` | `cerrar_inscripciones_torneo` | `torneos` | `torneo_id` | `Bracket generado con <n> participantes` |
 | `PATCH /:torneo_id/confirmar-bracket` | `confirmar_bracket_torneo` | `torneos` | `torneo_id` | `Bracket confirmado` |
 | `PATCH /:torneo_id/finalizar` | `finalizar_torneo` | `torneos` | `torneo_id` | `Campeón: participante <ganador_id>` |

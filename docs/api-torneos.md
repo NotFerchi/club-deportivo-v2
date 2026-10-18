@@ -44,7 +44,7 @@ Este documento fija qué endpoints hay que construir o cambiar para cerrar los f
 - **Ids:** enteros entre 1 y 2147483647 (`esIdValido`), como número o como texto de dígitos.
 - **Body ausente:** se trata como `{}` y responde 400 con el mensaje del primer campo que falte.
 - **Fechas:** `fecha_inicio` y `fecha_fin` son `DATE` (`"YYYY-MM-DD"`). "Hoy" es la fecha del club en `America/Mexico_City`, la zona que ya fija `config/database.js`.
-- **Nombres de campos:** los de la base (`torneos`, `participantes_torneo`, `encuentros_torneo`, `categorias_torneo`). El único campo nuevo es `torneos.cupo_maximo` (F-02). `admite_inscripcion` es calculado y no se guarda.
+- **Nombres de campos:** los de la base (`torneos`, `participantes_torneo`, `encuentros_torneo`, `categorias_torneo`). Los campos nuevos son `torneos.cupo_maximo` (F-02) y `torneos.activo` (borrado lógico, F-01). `admite_inscripcion` es calculado y no se guarda.
 
 ---
 
@@ -60,13 +60,15 @@ Marcas: **Nuevo** = no existe hoy. **Cambia** = ya existe; se documenta completo
 | **Ruta** | `/api/torneos/:torneo_id` |
 | **Roles** | `admin`, `gerente`, `coordinador` |
 | **Body** | Ninguno |
-| **Regla** | Borrado físico, solo si el torneo **no tiene participantes ni encuentros**. Un torneo con inscritos o con bracket se cancela (`PATCH /:torneo_id/cancelar`), no se elimina: así se conserva el historial y no hace falta `ON DELETE` en las FKs. Se hace en una transacción con la fila del torneo bloqueada (`bloquearTorneo`) |
-| **Respuesta 200** | `{ "ok": true, "message": "Torneo eliminado correctamente" }` |
+| **Regla** | Un torneo `En_curso` no se elimina: primero se cancela (`PATCH /:torneo_id/cancelar`). En cualquier otro estado: **sin participantes ni encuentros**, borrado físico (`DELETE` de la fila); **con participantes o encuentros**, borrado lógico (`activo = FALSE`), que conserva el historial sin necesitar `ON DELETE` en las FKs. Todo ocurre en una transacción con la fila del torneo bloqueada (`bloquearTorneo`), así que nadie se inscribe ni genera el bracket entre la comprobación y el borrado |
+| **Visibilidad** | Un torneo con `activo = FALSE` no aparece en `GET /api/torneos` ni en `GET /mis-participaciones`. Participantes, bracket, reporte y cualquier acción sobre él, o sobre sus encuentros, responden 404, igual que si no existiera. Eliminarlo otra vez también responde 404 |
+| **Respuesta 200** | `{ "ok": true, "message": "Torneo eliminado correctamente", "borrado": "fisico" \| "logico" }` |
 | **400** | `torneo_id debe ser un entero válido` |
 | **403** | `No tienes permisos para esta acción` |
-| **404** | `Torneo no encontrado` |
-| **409** | `No se puede eliminar: el torneo tiene participantes inscritos. Cancélalo en su lugar` |
-| **409** | `No se puede eliminar: el torneo ya tiene bracket. Cancélalo en su lugar` |
+| **404** | `Torneo no encontrado` (no existe o ya está eliminado) |
+| **409** | `Cancela el torneo antes de eliminarlo` (el torneo está `En_curso`) |
+
+Requiere la columna `torneos.activo BOOLEAN NOT NULL DEFAULT TRUE` (migración `Agregar_activo_torneos.sql`).
 
 Request:
 
@@ -75,16 +77,22 @@ DELETE /api/torneos/45
 Authorization: Bearer eyJhbGciOi...
 ```
 
-Response 200:
+Response 200 (torneo sin participantes ni encuentros):
 
 ```json
-{ "ok": true, "message": "Torneo eliminado correctamente" }
+{ "ok": true, "message": "Torneo eliminado correctamente", "borrado": "fisico" }
+```
+
+Response 200 (torneo con participantes o encuentros):
+
+```json
+{ "ok": true, "message": "Torneo eliminado correctamente", "borrado": "logico" }
 ```
 
 Response 409:
 
 ```json
-{ "error": "No se puede eliminar: el torneo tiene participantes inscritos. Cancélalo en su lugar" }
+{ "error": "Cancela el torneo antes de eliminarlo" }
 ```
 
 ### 3.2 Listar torneos — Cambia (F-02, F-07)
@@ -542,7 +550,7 @@ Response 200:
 
 Son las reglas que la auditoría dejó abiertas y que aquí se fijan. Si alguna no se acepta, se corrige este documento antes de implementar.
 
-1. **Eliminar torneo (F-01):** borrado físico solo sin participantes ni encuentros; en otro caso se cancela. Lo pueden hacer los tres roles de staff, igual que cancelar.
+1. **Eliminar torneo (F-01):** borrado físico si el torneo no tiene participantes ni encuentros; si los tiene, borrado lógico con `torneos.activo = FALSE` (migración nueva e idempotente, DEFAULT TRUE). Los torneos inactivos se ocultan en todos los listados y responden 404. Un torneo en curso se cancela antes de eliminarlo (409). Lo pueden hacer los tres roles de staff, igual que cancelar.
 2. **Cupo (F-02):** `torneos.cupo_maximo INT NULL` con `CHECK (cupo_maximo IS NULL OR cupo_maximo BETWEEN 4 AND 256)`, en una migración nueva e idempotente. NULL significa sin límite, así que los torneos existentes no cambian.
 3. **Fechas (F-07):** la inscripción cierra el día anterior a `fecha_inicio` (el día del inicio ya no se inscribe nadie). Un torneo sin `fecha_inicio` admite inscripciones mientras esté `Abierto`. No se crean torneos con fecha de inicio pasada.
 4. **Categorías (F-08):** las administran los tres roles de staff; no se borra una categoría en uso.

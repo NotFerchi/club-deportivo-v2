@@ -648,3 +648,9 @@ Son las reglas que la auditoría dejó abiertas y que aquí se fijan. Si alguna 
 3. **Fechas (F-07):** la inscripción cierra el día anterior a `fecha_inicio` (el día del inicio ya no se inscribe nadie). Un torneo sin `fecha_inicio` admite inscripciones mientras esté `Abierto`. No se crean torneos con fecha de inicio pasada.
 4. **Categorías (F-08, E2.6):** las administran los tres roles de staff. No se borran: se desactivan (`categorias_torneo.activo`), y no se desactiva una que use un torneo activo (no eliminado, ni Finalizado ni Cancelado). El nombre es único entre las activas, comparado con `normalizarNombre`.
 5. **Horario (F-09):** se intercambia como texto local `YYYY-MM-DDTHH:mm`, sin zona, para no depender de la zona del proceso de Node.
+
+---
+
+## 7. Colección de Postman (E2.11)
+
+`docs/postman/torneos.json` (colección v2.1) cubre los 24 endpoints de este contrato, con un caso exitoso y uno de error en cada uno, y pruebas (`pm.test`) del status y del mensaje. `docs/postman/torneos.postman_environment.json` es la plantilla del entorno: `baseUrl`, ids y fechas, y las credenciales de staff, instructor y socio **vacías**, que se llenan solo en el entorno local y nunca se suben. La carpeta "0. Autenticación" guarda `token`, `token_instructor` y `token_socio`; "Crear torneo" y "Crear categoría" guardan sus ids. Si cambia un endpoint, se cambia también la colección.

@@ -1,8 +1,8 @@
 'use strict';
 
-/** Reglas del periodo de inscripción (F-07): funciones puras de services/torneoFechas.js. */
+/** Reglas de fechas del torneo (F-07, E2.5): funciones puras de services/torneoFechas.js. */
 
-const { hoyEnClub, enPeriodoInscripcion, validarFechasInscripcion } = require('../services/torneoFechas');
+const { hoyEnClub, enPeriodoInscripcion, iniciaEnElPasado, validarFechasInscripcion } = require('../services/torneoFechas');
 
 describe('hoyEnClub: fecha en America/Mexico_City', () => {
   it.each([
@@ -79,5 +79,32 @@ describe('validarFechasInscripcion', () => {
 
   it('formatos que no son YYYY-MM-DD no se comparan (los rechaza la ruta o PostgreSQL)', () => {
     expect(validarFechasInscripcion({ fecha_inicio_inscripcion: '05/11/2026', fecha_fin_inscripcion: '2026-01-01' })).toBeNull();
+  });
+});
+
+describe('iniciaEnElPasado (E2.5)', () => {
+  const HOY = '2026-10-18';
+
+  it('ayer → true; hoy y mañana → false', () => {
+    expect(iniciaEnElPasado('2026-10-17', HOY)).toBe(true);
+    expect(iniciaEnElPasado('2026-10-18', HOY)).toBe(false);
+    expect(iniciaEnElPasado('2026-10-19', HOY)).toBe(false);
+  });
+
+  it('sin fecha u otro formato → false (lo rechaza la ruta o PostgreSQL)', () => {
+    for (const valor of [undefined, null, '', '18/10/2026', 20261017]) {
+      expect(iniciaEnElPasado(valor, HOY)).toBe(false);
+    }
+  });
+
+  it('por defecto compara contra hoy en México, no en UTC', () => {
+    jest.useFakeTimers({ now: new Date('2026-10-19T03:00:00Z'), doNotFake: ['nextTick', 'setImmediate'] });
+    try {
+      // en UTC ya es el 19, pero en el club sigue siendo el 18
+      expect(iniciaEnElPasado('2026-10-18')).toBe(false);
+      expect(iniciaEnElPasado('2026-10-17')).toBe(true);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

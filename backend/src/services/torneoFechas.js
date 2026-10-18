@@ -10,6 +10,7 @@ const ZONA_CLUB = 'America/Mexico_City';
 const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 const ERROR_INSCRIPCIONES_CERRADAS = 'Las inscripciones de este torneo están cerradas';
+const ERROR_INICIO_PASADO = 'La fecha de inicio no puede ser anterior a hoy';
 
 // 'en-CA' formatea como YYYY-MM-DD
 const formatoFechaClub = new Intl.DateTimeFormat('en-CA', {
@@ -37,6 +38,15 @@ function enPeriodoInscripcion({ fecha_inicio, fecha_inicio_inscripcion, fecha_fi
   if (hasta) return hoy <= hasta;
   if (inicioTorneo) return hoy < inicioTorneo;
   return true;
+}
+
+/**
+ * E2.5: true si fecha_inicio ('YYYY-MM-DD') es anterior a hoy en la zona del club. Hoy mismo es válido.
+ * Sin fecha u otro formato → false (otros formatos los rechaza la ruta o PostgreSQL).
+ */
+function iniciaEnElPasado(fechaInicio, hoy = hoyEnClub()) {
+  const inicio = fechaIso(fechaInicio);
+  return inicio !== null && inicio < hoy;
 }
 
 /**
@@ -71,8 +81,10 @@ module.exports = {
   ZONA_CLUB,
   FECHA_ISO,
   ERROR_INSCRIPCIONES_CERRADAS,
+  ERROR_INICIO_PASADO,
   COLUMNAS_FECHAS_TORNEO,
   hoyEnClub,
+  iniciaEnElPasado,
   enPeriodoInscripcion,
   validarFechasInscripcion
 };

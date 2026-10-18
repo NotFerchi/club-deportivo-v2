@@ -13,7 +13,12 @@ const {
   esIdValido,
   tieneValor
 } = require('../services/torneoComun');
-const { FECHA_ISO, validarFechasInscripcion } = require('../services/torneoFechas');
+const {
+  ERROR_INICIO_PASADO,
+  FECHA_ISO,
+  iniciaEnElPasado,
+  validarFechasInscripcion
+} = require('../services/torneoFechas');
 
 const bad = (error) => [400, { error }];
 const badOk = (error) => [400, { ok: false, error }];
@@ -80,12 +85,17 @@ function reglasOpcionalesTorneo(body) {
   return ordenMal ? bad(ordenMal) : null;
 }
 
-/** POST /: nombre (≤ 150), disciplina_id y categoria_id requeridos (B-10); tipo y fechas si vienen. */
+/**
+ * POST /: nombre (≤ 150), disciplina_id y categoria_id requeridos (B-10); tipo y fechas si vienen.
+ * fecha_inicio no puede ser anterior a hoy en America/Mexico_City (E2.5); en PUT lo valida el servicio,
+ * solo si cambia.
+ */
 const crearTorneo = validateInput((req) => {
   const body = cuerpo(req);
   const falla = reglasNombreYDisciplina(body);
   if (falla) return falla;
   if (!tieneValor(body.categoria_id)) return bad(ERROR_CATEGORIA_REQUERIDA);
+  if (iniciaEnElPasado(body.fecha_inicio)) return bad(ERROR_INICIO_PASADO);
   return reglasOpcionalesTorneo(body);
 });
 

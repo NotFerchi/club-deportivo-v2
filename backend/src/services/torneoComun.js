@@ -43,12 +43,14 @@ function normalizarNombre(nombre) {
 
 /**
  * Dentro de una transacción: bloquea la fila del torneo (FOR UPDATE) y devuelve `columnas`.
- * Serializa los cambios de estado con las inscripciones y los resultados. 404 si no existe.
+ * Serializa los cambios de estado con las inscripciones y los resultados. 404 si no existe
+ * o si está eliminado (activo = FALSE).
  */
 async function bloquearTorneo(client, torneoId, columnas = 'estado') {
-  const { rows, rowCount } = await client.query(`SELECT ${columnas} FROM torneos WHERE torneo_id = $1 FOR UPDATE`, [
-    torneoId
-  ]);
+  const { rows, rowCount } = await client.query(
+    `SELECT ${columnas} FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE`,
+    [torneoId]
+  );
   if (rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
   return rows[0];
 }

@@ -33,7 +33,7 @@ const rows = (list) => ({ rows: list, rowCount: list.length });
 const LOCK_INSCRIPCION =
   "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, " +
   "to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, " +
-  "to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 FOR UPDATE";
+  "to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE";
 const ERROR_HANDLER = { ok: false, error: 'Error interno del servidor' };
 
 let db;
@@ -67,7 +67,7 @@ function route(q) {
   if (q === 'SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1') return rows(db.ids);
   if (q.startsWith('SELECT nombre_externo FROM participantes_torneo')) return rows(db.externos);
   if (q.startsWith('INSERT INTO participantes_torneo')) return rows([{ participante_id: 31 }]);
-  if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE') return rows(db.torneoLock);
+  if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE') return rows(db.torneoLock);
   // inscribir e inscribir-me bloquean el torneo leyendo estado, categoría y modalidad
   if (q === LOCK_INSCRIPCION)
     return rows(db.torneoInfo);
@@ -90,6 +90,9 @@ function route(q) {
   if (q.startsWith('DELETE FROM participantes_torneo')) return rows(db.borrado);
   if (q.startsWith('SELECT pt.participante_id, t.torneo_id')) return rows(db.mis);
   if (q.startsWith('SELECT torneo_id FROM torneos')) return rows(db.torneoExiste);
+  if (q.startsWith('SELECT EXISTS (SELECT 1 FROM participantes_torneo')) return rows(db.historial);
+  if (q.startsWith('DELETE FROM torneos')) return rows([]);
+  if (q.startsWith('UPDATE torneos SET activo')) return rows([]);
   if (q.startsWith('SELECT COUNT(*) as total FROM encuentros_torneo')) return rows(db.pendientes);
   throw new Error(`Query no esperada en test: ${q}`);
 }
@@ -205,6 +208,7 @@ beforeEach(() => {
     borrado: [{ participante_id: 31 }],
     mis: [{ participante_id: 31, torneo_id: 4 }],
     torneoExiste: [{ torneo_id: 4 }],
+    historial: [{ tiene_participantes: false, tiene_encuentros: false }],
     pendientes: [{ total: '0' }]
   };
   ({ log, client } = recordQueries(pool, route));
@@ -647,7 +651,7 @@ describe('GET /api/torneos/:torneo_id/participantes', () => {
     const res = await request(app).get('/api/torneos/999/participantes');
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Torneo no encontrado' });
-    expect(log.map(([, sql]) => sql)).toEqual(['SELECT torneo_id FROM torneos WHERE torneo_id = $1']);
+    expect(log.map(([, sql]) => sql)).toEqual(['SELECT torneo_id FROM torneos WHERE torneo_id = $1 AND activo']);
   });
 
   it.each(['abc', '0', '-1', '1.5', '99999999999'])('torneo_id %s → 400 sin consultar (B-09)', async (id) => {
@@ -921,7 +925,7 @@ describe('PATCH /api/torneos/:torneo_id/cerrar-inscripciones', () => {
     expect(res.body).toEqual({ error: 'El torneo ya tiene un bracket generado' });
     expect(log.map(([, sql]) => sql)).toEqual([
       'BEGIN',
-      'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE',
+      'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE',
       'SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1 LIMIT 1',
       'ROLLBACK'
     ]);
@@ -1387,6 +1391,110 @@ describe('PATCH /api/torneos/:torneo_id/cancelar', () => {
     res = await cancelar();
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: 'Error interno del servidor' });
+  });
+});
+
+describe('DELETE /api/torneos/:torneo_id', () => {
+  const eliminar = (id = '4') => request(app).delete(`/api/torneos/${id}`);
+  const sqls = () => log.map(([, sql]) => sql);
+
+  it('sin participantes ni encuentros → borrado físico', async () => {
+    const res = await eliminar();
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, message: 'Torneo eliminado correctamente', borrado: 'fisico' });
+    expect(log.find(([, sql]) => sql.startsWith('DELETE FROM torneos'))[2]).toEqual([4]);
+    expect(sqls().some((sql) => sql.startsWith('UPDATE torneos SET activo'))).toBe(false);
+    expect(log).toMatchSnapshot();
+  });
+
+  it.each([
+    ['con participantes', { tiene_participantes: true, tiene_encuentros: false }],
+    ['con encuentros', { tiene_participantes: false, tiene_encuentros: true }],
+    ['con participantes y encuentros', { tiene_participantes: true, tiene_encuentros: true }]
+  ])('%s → borrado lógico, sin DELETE', async (_caso, historial) => {
+    db.historial = [historial];
+    const res = await eliminar();
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, message: 'Torneo eliminado correctamente', borrado: 'logico' });
+    expect(log.find(([, sql]) => sql.startsWith('UPDATE torneos SET activo'))[2]).toEqual([4]);
+    expect(sqls().some((sql) => sql.startsWith('DELETE'))).toBe(false);
+  });
+
+  it('comprueba y borra dentro de la transacción, con el torneo bloqueado', async () => {
+    await eliminar();
+    expect(sqls()).toEqual([
+      'BEGIN',
+      'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE',
+      'SELECT EXISTS (SELECT 1 FROM participantes_torneo WHERE torneo_id = $1) AS tiene_participantes, EXISTS (SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1) AS tiene_encuentros',
+      'DELETE FROM torneos WHERE torneo_id = $1',
+      'COMMIT'
+    ]);
+    expect(client.release).toHaveBeenCalled();
+  });
+
+  it('en curso → 409, sin comprobar historial ni borrar, con ROLLBACK', async () => {
+    db.torneoLock = [{ estado: 'En_curso' }];
+    db.historial = [{ tiene_participantes: true, tiene_encuentros: true }];
+    const res = await eliminar();
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Cancela el torneo antes de eliminarlo' });
+    expect(sqls()).toEqual(['BEGIN', 'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE', 'ROLLBACK']);
+  });
+
+  it.each(['Abierto', 'Inscripciones_cerradas', 'Finalizado', 'Cancelado'])('desde %s → 200', async (estado) => {
+    db.torneoLock = [{ estado }];
+    db.historial = [{ tiene_participantes: true, tiene_encuentros: estado !== 'Abierto' }];
+    const res = await eliminar();
+    expect(res.status).toBe(200);
+    expect(res.body.borrado).toBe('logico');
+  });
+
+  it('400 / 404 (inexistente o ya eliminado) / 500 con ROLLBACK', async () => {
+    let res = await eliminar('abc');
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'torneo_id debe ser un entero válido' });
+
+    db.torneoLock = [];
+    res = await eliminar('999');
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Torneo no encontrado' });
+    expect(sqls().some((sql) => sql.startsWith('DELETE') || sql.startsWith('UPDATE'))).toBe(false);
+
+    db.torneoLock = [{ estado: 'Abierto' }];
+    db.falla = { sql: 'DELETE FROM torneos' };
+    res = await eliminar();
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Error al eliminar torneo' });
+    expect(sqls().at(-1)).toBe('ROLLBACK');
+  });
+});
+
+describe('torneos eliminados (activo = FALSE) no se muestran', () => {
+  it('el listado filtra siempre por t.activo', async () => {
+    await request(app).get('/api/torneos');
+    expect(log[0][1]).toContain('WHERE t.activo GROUP BY');
+  });
+
+  it.each([
+    ['participantes', '/api/torneos/4/participantes'],
+    ['bracket', '/api/torneos/4/bracket'],
+    ['reporte', '/api/torneos/4/reporte']
+  ])('%s de un torneo eliminado → 404', async (_caso, url) => {
+    db.torneoExiste = [];
+    db.reporteTorneo = [];
+    const res = await request(app).get(url);
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Torneo no encontrado' });
+    expect(log[0][1]).toMatch(/AND t?\.?activo/);
+  });
+
+  it('mis participaciones excluye los torneos eliminados', async () => {
+    mockUser = { usuario_id: 7, rol: 'socio' };
+    await request(app).get('/api/torneos/mis-participaciones');
+    expect(log.find(([, sql]) => sql.startsWith('SELECT pt.participante_id, t.torneo_id'))[1]).toContain(
+      'WHERE pt.socio_id = $1 AND t.activo'
+    );
+
   });
 });
 

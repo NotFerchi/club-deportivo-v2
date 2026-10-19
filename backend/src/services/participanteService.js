@@ -33,7 +33,7 @@ const COLUMNAS_INSCRIPCION = `estado, categoria_id, tipo_torneo, ${COLUMNAS_FECH
 async function listarParticipantes(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // id válido: validado en la ruta
 
-  const torneo = await pool.query('SELECT torneo_id FROM torneos WHERE torneo_id = $1', [torneoId]);
+  const torneo = await pool.query('SELECT torneo_id FROM torneos WHERE torneo_id = $1 AND activo', [torneoId]);
   if (torneo.rowCount === 0) throw new ServiceError(404, { error: 'Torneo no encontrado' });
 
   const result = await pool.query(
@@ -98,7 +98,7 @@ async function misParticipaciones(user) {
         JOIN torneos t ON t.torneo_id = pt.torneo_id
         JOIN disciplinas d ON d.disciplina_id = t.disciplina_id
         LEFT JOIN categorias_torneo c ON c.categoria_id = pt.categoria_id
-        WHERE pt.socio_id = $1
+        WHERE pt.socio_id = $1 AND t.activo
         ORDER BY t.fecha_inicio DESC NULLS LAST
       `,
     [socioId]

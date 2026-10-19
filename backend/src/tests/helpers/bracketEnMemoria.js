@@ -59,7 +59,7 @@ function crearBracketEnMemoria({ torneoId = 4, participantes, estado = 'Abierto'
     }
 
     // Torneo
-    if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1 FOR UPDATE') {
+    if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE') {
       return resultado([{ estado: datos.torneo.estado }]);
     }
     if (q === 'UPDATE torneos SET estado = $1 WHERE torneo_id = $2') {

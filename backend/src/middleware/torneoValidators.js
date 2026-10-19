@@ -13,6 +13,12 @@ const {
   esIdValido,
   tieneValor
 } = require('../services/torneoComun');
+const {
+  ERROR_INICIO_PASADO,
+  FECHA_ISO,
+  iniciaEnElPasado,
+  validarFechasInscripcion
+} = require('../services/torneoFechas');
 
 const bad = (error) => [400, { error }];
 const badOk = (error) => [400, { ok: false, error }];
@@ -27,7 +33,7 @@ const MAX_CANCHA = 100;
 const maximo = (limite) => `Máximo ${limite} caracteres`;
 
 const TIPOS_TORNEO = ['Individual', 'Equipos'];
-const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+const FECHAS_INSCRIPCION = ['fecha_inicio_inscripcion', 'fecha_fin_inscripcion'];
 
 // ── Torneos ──────────────────────────────────────────────────────────────────
 
@@ -54,8 +60,13 @@ function reglasNombreYDisciplina({ nombre, disciplina_id }) {
   return null;
 }
 
-/** Campos opcionales de POST y PUT: categoría, tipo y orden de las fechas. */
-function reglasOpcionalesTorneo({ categoria_id, tipo_torneo, fecha_inicio, fecha_fin }) {
+/**
+ * Campos opcionales de POST y PUT: categoría, tipo, orden de las fechas del torneo y periodo de
+ * inscripción (formato YYYY-MM-DD y orden con lo que venga en el body; en PUT el servicio vuelve a
+ * comprobar el orden con los valores guardados de los campos que no vienen).
+ */
+function reglasOpcionalesTorneo(body) {
+  const { categoria_id, tipo_torneo, fecha_inicio, fecha_fin } = body;
   if (tieneValor(categoria_id) && esIdValido(categoria_id) === null) {
     return bad('categoria_id debe ser un entero valido');
   }
@@ -66,15 +77,25 @@ function reglasOpcionalesTorneo({ categoria_id, tipo_torneo, fecha_inicio, fecha
   if (FECHA_ISO.test(fecha_inicio) && FECHA_ISO.test(fecha_fin) && fecha_fin < fecha_inicio) {
     return bad(ERROR_FECHAS_TORNEO);
   }
-  return null;
+  const formatoMal = FECHAS_INSCRIPCION.find(
+    (campo) => tieneValor(body[campo]) && !(typeof body[campo] === 'string' && FECHA_ISO.test(body[campo]))
+  );
+  if (formatoMal) return bad(`${formatoMal} debe tener el formato YYYY-MM-DD`);
+  const ordenMal = validarFechasInscripcion(body);
+  return ordenMal ? bad(ordenMal) : null;
 }
 
-/** POST /: nombre (≤ 150), disciplina_id y categoria_id requeridos (B-10); tipo y fechas si vienen. */
+/**
+ * POST /: nombre (≤ 150), disciplina_id y categoria_id requeridos (B-10); tipo y fechas si vienen.
+ * fecha_inicio no puede ser anterior a hoy en America/Mexico_City (E2.5); en PUT lo valida el servicio,
+ * solo si cambia.
+ */
 const crearTorneo = validateInput((req) => {
   const body = cuerpo(req);
   const falla = reglasNombreYDisciplina(body);
   if (falla) return falla;
   if (!tieneValor(body.categoria_id)) return bad(ERROR_CATEGORIA_REQUERIDA);
+  if (iniciaEnElPasado(body.fecha_inicio)) return bad(ERROR_INICIO_PASADO);
   return reglasOpcionalesTorneo(body);
 });
 

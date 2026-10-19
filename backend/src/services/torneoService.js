@@ -11,6 +11,7 @@ const {
   tieneValor
 } = require('./torneoComun');
 const { ESTADOS, admiteInscripciones, validarTransicion } = require('./torneoEstados');
+const { ERROR_INICIO_PASADO, iniciaEnElPasado, validarFechasInscripcion } = require('./torneoFechas');
 
 const badRequest = (error) => new ServiceError(400, { error });
 
@@ -48,6 +49,8 @@ async function listarTorneos({ disciplina_id, estado }) {
           d.nombre AS nombre_disciplina,
           t.fecha_inicio,
           t.fecha_fin,
+          t.fecha_inicio_inscripcion,
+          t.fecha_fin_inscripcion,
           t.estado,
           t.tipo_torneo,
           t.categoria_id,
@@ -167,8 +170,8 @@ async function validarReferencias(db, disciplinaId, categoriaId) {
 }
 
 /**
- * Body validado en la ruta (nombre, disciplina_id, categoria_id, tipo_torneo y fechas).
- * Todo torneo nace Abierto: `estado` se ignora.
+ * Body validado en la ruta (nombre, disciplina_id, categoria_id, tipo_torneo, fechas y periodo de
+ * inscripción). Todo torneo nace Abierto: `estado` se ignora.
  */
 async function crearTorneo(body) {
   const { nombre, disciplina_id, fecha_inicio, fecha_fin, categoria_id, tipo_torneo } = body;
@@ -178,8 +181,9 @@ async function crearTorneo(body) {
   await validarReferencias(pool, disciplinaId, categoriaId);
 
   const result = await pool.query(
-    `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo,
+                          fecha_inicio_inscripcion, fecha_fin_inscripcion)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING torneo_id`,
     [
       disciplinaId,
@@ -188,7 +192,9 @@ async function crearTorneo(body) {
       normalizarFechaOpcional(fecha_fin),
       ESTADOS.ABIERTO,
       categoriaId,
-      tipo_torneo || 'Individual'
+      tipo_torneo || 'Individual',
+      normalizarFechaOpcional(body.fecha_inicio_inscripcion),
+      normalizarFechaOpcional(body.fecha_fin_inscripcion)
     ]
   );
 
@@ -202,6 +208,9 @@ async function crearTorneo(body) {
  * cambia disciplina, tipo o categoría), así que los torneos viejos sin categoría se pueden seguir editando.
  * Todos los participantes son de la categoría del torneo: al asignarla a un torneo que no tenía, se
  * aplica también a sus inscritos; cambiar una categoría ya asignada solo se permite sin inscritos (409).
+ * Las fechas de inscripción que no vienen en el body se conservan (null o '' las quitan), y el orden
+ * de las fechas se comprueba con el resultado (400). Una fecha_inicio anterior a hoy (México) responde 400
+ * solo si cambia (E2.5).
  */
 async function actualizarTorneo(torneoIdParam, body) {
   const torneoId = Number(torneoIdParam);
@@ -211,9 +220,31 @@ async function actualizarTorneo(torneoIdParam, body) {
   const categoriaId = tieneValor(categoria_id) ? esIdValido(categoria_id) : null;
 
   await enTransaccion(async (client) => {
-    const actual = await bloquearTorneo(client, torneoId, 'estado, disciplina_id, tipo_torneo, categoria_id');
+    const actual = await bloquearTorneo(
+      client,
+      torneoId,
+      `estado, disciplina_id, tipo_torneo, categoria_id,
+       to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion,
+       to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion,
+       to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio_actual`
+    );
 
     if (tieneValor(estado) && estado !== actual.estado) throw badRequest(ERROR_ESTADO_NO_EDITABLE);
+
+    const conservaOCambia = (campo) =>
+      body[campo] === undefined ? (actual[campo] ?? null) : normalizarFechaOpcional(body[campo]);
+    const fechas = {
+      fecha_inicio: normalizarFechaOpcional(fecha_inicio),
+      fecha_inicio_inscripcion: conservaOCambia('fecha_inicio_inscripcion'),
+      fecha_fin_inscripcion: conservaOCambia('fecha_fin_inscripcion')
+    };
+    const fechasMal = validarFechasInscripcion(fechas);
+    if (fechasMal) throw badRequest(fechasMal);
+
+    // E2.5: una fecha de inicio pasada solo se rechaza si cambia, para seguir editando torneos antiguos
+    if (fechas.fecha_inicio !== actual.fecha_inicio_actual && iniciaEnElPasado(fechas.fecha_inicio)) {
+      throw badRequest(ERROR_INICIO_PASADO);
+    }
 
     if (admiteInscripciones(actual.estado) && categoriaId === null) throw badRequest(ERROR_CATEGORIA_REQUERIDA);
 
@@ -243,15 +274,19 @@ async function actualizarTorneo(torneoIdParam, body) {
              fecha_inicio  = $3,
              fecha_fin     = $4,
              categoria_id  = $5,
-             tipo_torneo   = COALESCE($6, tipo_torneo)
-         WHERE torneo_id = $7`,
+             tipo_torneo   = COALESCE($6, tipo_torneo),
+             fecha_inicio_inscripcion = $7,
+             fecha_fin_inscripcion    = $8
+         WHERE torneo_id = $9`,
       [
         disciplinaId,
         nombre.trim(),
-        normalizarFechaOpcional(fecha_inicio),
+        fechas.fecha_inicio,
         normalizarFechaOpcional(fecha_fin),
         categoriaId,
         tipo_torneo || null,
+        fechas.fecha_inicio_inscripcion,
+        fechas.fecha_fin_inscripcion,
         torneoId
       ]
     );

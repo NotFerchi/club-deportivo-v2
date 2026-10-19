@@ -7,5 +7,6 @@ module.exports = [
   'Crear_encuentros_torneo.sql',
   'Agregar_tipo_torneo.sql',
   'Ajustar_torneos_estado_check.sql',
-  'zzz_torneos_estado_check_y_cancha.sql'
+  'zzz_torneos_estado_check_y_cancha.sql',
+  'Agregar_cupo_maximo_torneos.sql'
 ];

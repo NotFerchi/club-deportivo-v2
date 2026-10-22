@@ -1,4 +1,4 @@
-// Valida las consultas reales de los servicios de torneos contra una base real, SIN ESCRIBIR NADA.
+// Valida las consultas reales de los servicios de torneos (y de evaluaciones, E4) contra una base real, SIN ESCRIBIR NADA.
 //
 //   node scripts/validarConsultas.js --principal   → DATABASE_URL de backend/.env
 //   node scripts/validarConsultas.js --branch      → NEON_BRANCH_URL de backend/.env.paso7
@@ -129,6 +129,7 @@ const bracketService = cargar('../src/services/bracketService');
 const encuentroService = cargar('../src/services/encuentroService');
 const categoriaService = cargar('../src/services/categoriaService');
 const logService = cargar('../src/services/logService');
+const evaluacionService = cargar('../src/services/evaluacionService');
 const { bloquearTorneo } = cargar('../src/services/torneoComun');
 const { logAudit } = cargar('../src/utils/auditLogger');
 
@@ -295,6 +296,45 @@ async function main() {
         registro_id: torneo.torneo_id,
         detalles: 'validador de consultas'
       }), { omitir: noExiste(logAudit, 'logAudit') || sinDatos(torneo, 'torneos') });
+
+    // Evaluaciones de instructores (E4). Socio activo con inscripción Confirmada en una sesión con instructor activo.
+    const inscrito = await muestra(
+      `SELECT s.usuario_id, ic.sesion_id
+         FROM inscripciones_clases ic
+         JOIN socios s ON s.socio_id = ic.socio_id
+         JOIN sesiones_programadas sp ON sp.sesion_id = ic.sesion_id
+         JOIN instructores i ON i.instructor_id = sp.instructor_id
+        WHERE ic.estado = 'Confirmada' AND s.usuario_id IS NOT NULL AND s.activo IS NOT FALSE AND i.activo IS NOT FALSE
+        ORDER BY ic.inscripcion_id LIMIT 1`
+    );
+    const sinEvaluaciones =
+      noExiste(evaluacionService.crearEvaluacion, 'evaluacionService') ||
+      (await muestra("SELECT to_regclass('evaluaciones_instructor') IS NULL AS falta")).falta && 'falta la tabla evaluaciones_instructor';
+    const staff = { rol: 'admin', usuario_id: 0 };
+    await paso('E4 POST /api/evaluaciones (solo EXPLAIN del INSERT)', () =>
+      evaluacionService.crearEvaluacion(inscrito.usuario_id, { sesion_id: inscrito.sesion_id, calificacion: 5, comentario: '__validador__' }), {
+      omitir: sinEvaluaciones || sinDatos(inscrito, 'socios con inscripción Confirmada en una sesión con instructor activo')
+    });
+    await paso('E4 GET /api/evaluaciones/mias', () => evaluacionService.misEvaluaciones(inscrito.usuario_id), {
+      omitir: sinEvaluaciones || sinDatos(inscrito, 'socios con inscripción Confirmada')
+    });
+    await paso('E4 GET /api/evaluaciones/mias?periodo', () => evaluacionService.misEvaluaciones(inscrito.usuario_id, '2026-10'), {
+      omitir: sinEvaluaciones || sinDatos(inscrito, 'socios con inscripción Confirmada')
+    });
+    await paso('E4 GET /instructor/:id como staff', () => evaluacionService.listarPorInstructor(staff, instructor.instructor_id), {
+      omitir: sinEvaluaciones || sinDatos(instructor, 'instructores')
+    });
+    await paso('E4 GET /instructor/:id?periodo como instructor (el suyo)', () =>
+      evaluacionService.listarPorInstructor({ rol: 'instructor', usuario_id: instructor.usuario_id }, instructor.instructor_id, '2026-10'), {
+      omitir: sinEvaluaciones || sinDatos(instructor?.usuario_id, 'instructores con usuario')
+    });
+    await paso('E4 GET /instructor/:id/promedio como staff', () => evaluacionService.promedioDeInstructor(staff, instructor.instructor_id), {
+      omitir: sinEvaluaciones || sinDatos(instructor, 'instructores')
+    });
+    await paso('E4 GET /instructor/:id/promedio?periodo como staff', () =>
+      evaluacionService.promedioDeInstructor(staff, instructor.instructor_id, '2026-10'), {
+      omitir: sinEvaluaciones || sinDatos(instructor, 'instructores')
+    });
   } finally {
     await real.query('ROLLBACK').catch(() => {});
     await real.end();

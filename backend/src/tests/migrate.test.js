@@ -12,6 +12,9 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { planMigraciones, OPCION_TODAS } = require('../config/migrate');
 const MIGRACIONES_TORNEOS = require('../config/migracionesTorneos');
+const MIGRACIONES_POSTERIORES = require('../config/migracionesPosteriores');
+
+const EVALUACIONES = 'Crear_evaluaciones_instructor.sql';
 
 const SCRIPT = path.join(__dirname, '../config/migrate.js');
 
@@ -31,8 +34,26 @@ describe('planMigraciones', () => {
     expect(planMigraciones(objetivo, dir)).toBeNull();
   });
 
-  it('--todas → .sql en orden alfabético y, al final, las de torneos en su orden', () => {
-    expect(planMigraciones(OPCION_TODAS, dir)).toEqual(['a.sql', 'b.sql', 'schema.sql', ...MIGRACIONES_TORNEOS]);
+  it('--todas → .sql en orden alfabético y, al final, las de torneos y las posteriores en su orden', () => {
+    expect(planMigraciones(OPCION_TODAS, dir)).toEqual([
+      'a.sql',
+      'b.sql',
+      'schema.sql',
+      ...MIGRACIONES_TORNEOS,
+      ...MIGRACIONES_POSTERIORES
+    ]);
+  });
+
+  it('--todas → Crear_evaluaciones_instructor.sql corre una sola vez y después de schema.sql', () => {
+    fs.writeFileSync(path.join(dir, EVALUACIONES), '');
+    const plan = planMigraciones(OPCION_TODAS, dir);
+    expect(plan.filter((f) => f === EVALUACIONES)).toHaveLength(1);
+    expect(plan.indexOf(EVALUACIONES)).toBeGreaterThan(plan.indexOf('schema.sql'));
+  });
+
+  it('Crear_evaluaciones_instructor.sql como archivo único → solo ese', () => {
+    fs.writeFileSync(path.join(dir, EVALUACIONES), '');
+    expect(planMigraciones(EVALUACIONES, dir)).toEqual([EVALUACIONES]);
   });
 
   it('torneos → solo las de torneos', () => {

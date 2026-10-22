@@ -1,0 +1,830 @@
+{
+  "info": {
+    "name": "Evaluaciones de instructores (E4)",
+    "description": "Contrato: docs/api-evaluaciones.md. Corre las carpetas en orden: el caso feliz crea una evaluación y las peticiones siguientes la usan. Llena baseUrl, los tokens (uno por rol) y los ids de prueba con un environment; nunca guardes tokens en este archivo. periodo se calcula solo (mes actual en America/Mexico_City) si viene vacío.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('periodo')) {",
+          "  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });",
+          "  pm.collectionVariables.set('periodo', hoy.slice(0, 7));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Crear evaluación (POST)",
+      "item": [
+        {
+          "name": "POST sin token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"Sin token de autenticación\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": \"{{sesionOk}}\",\n  \"calificacion\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST como coordinador → 403 (rol)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"No tienes permisos para esta acción\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCoordinador}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": 1,\n  \"calificacion\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST body vacío → 400 sesion_id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"sesion_id debe ser un entero válido\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST calificacion 6 → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"calificacion debe ser un entero de 1 a 5\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": 1,\n  \"calificacion\": 6\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST comentario de 501 caracteres → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"comentario debe ser texto de máximo 500 caracteres\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": 1,\n  \"calificacion\": 5,\n  \"comentario\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST sesión inexistente → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"Sesión no encontrada\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": \"{{sesionInexistente}}\",\n  \"calificacion\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST socio sin inscripción → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"Solo puedes evaluar clases en las que estás inscrito\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocioSinInscripcion}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": \"{{sesionOk}}\",\n  \"calificacion\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST inscripción Cancelada → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"Solo puedes evaluar clases en las que estás inscrito\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": \"{{sesionCancelada}}\",\n  \"calificacion\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST sesión sin instructor → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"La sesión no tiene instructor asignado\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": \"{{sesionSinInstructor}}\",\n  \"calificacion\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST instructor inactivo → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"El instructor de esta sesión está inactivo\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocioInstructorInactivo}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": \"{{sesionInstructorInactivo}}\",\n  \"calificacion\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST caso feliz → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Sin socio_id (anónimo)', () => {",
+                  "  const cuerpo = pm.response.json();",
+                  "  const filas = Array.isArray(cuerpo) ? cuerpo : [cuerpo];",
+                  "  filas.forEach((f) => pm.expect(f).to.not.have.property('socio_id'));",
+                  "});",
+                  "pm.test('Evaluación creada con el contrato', () => {",
+                  "  const e = pm.response.json();",
+                  "  pm.expect(e).to.have.all.keys('evaluacion_id', 'instructor_id', 'sesion_id', 'calificacion', 'comentario', 'periodo', 'fecha_creacion');",
+                  "  pm.expect(e.comentario).to.eql('Muy buena clase, explica con paciencia.');",
+                  "  pm.expect(e.periodo).to.eql(pm.collectionVariables.get('periodo'));",
+                  "  pm.expect(String(e.instructor_id)).to.eql(String(pm.variables.get('instructorPropio')));",
+                  "  pm.collectionVariables.set('evaluacionCreada', e.evaluacion_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": \"{{sesionOk}}\",\n  \"calificacion\": 5,\n  \"comentario\": \"  Muy buena clase, explica con paciencia.  \"\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
+          "name": "POST repetido el mismo mes → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"Ya evaluaste esta clase este mes\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": \"{{sesionOk}}\",\n  \"calificacion\": 4\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar (GET)",
+      "item": [
+        {
+          "name": "GET /mias → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sin socio_id (anónimo)', () => {",
+                  "  const cuerpo = pm.response.json();",
+                  "  const filas = Array.isArray(cuerpo) ? cuerpo : [cuerpo];",
+                  "  filas.forEach((f) => pm.expect(f).to.not.have.property('socio_id'));",
+                  "});",
+                  "pm.test('Incluye la evaluación creada', () => {",
+                  "  const ids = pm.response.json().map((e) => e.evaluacion_id);",
+                  "  pm.expect(ids).to.include(Number(pm.collectionVariables.get('evaluacionCreada')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/mias?periodo={{periodo}}"
+          }
+        },
+        {
+          "name": "GET /mias periodo inválido → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"periodo debe tener el formato YYYY-MM\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/mias?periodo=2026-13"
+          }
+        },
+        {
+          "name": "GET /mias como instructor → 403 (rol)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"No tienes permisos para esta acción\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/mias"
+          }
+        },
+        {
+          "name": "GET lista del instructor propio → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sin socio_id (anónimo)', () => {",
+                  "  const cuerpo = pm.response.json();",
+                  "  const filas = Array.isArray(cuerpo) ? cuerpo : [cuerpo];",
+                  "  filas.forEach((f) => pm.expect(f).to.not.have.property('socio_id'));",
+                  "});",
+                  "pm.test('Solo los campos del contrato', () => {",
+                  "  pm.response.json().forEach((e) => pm.expect(e).to.have.all.keys('evaluacion_id', 'sesion_id', 'disciplina', 'calificacion', 'comentario', 'periodo', 'fecha_creacion'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/instructor/{{instructorPropio}}"
+          }
+        },
+        {
+          "name": "GET lista de otro instructor → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"No tienes permisos para esta acción\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/instructor/{{instructorAjeno}}"
+          }
+        },
+        {
+          "name": "GET lista como coordinador con periodo → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sin socio_id (anónimo)', () => {",
+                  "  const cuerpo = pm.response.json();",
+                  "  const filas = Array.isArray(cuerpo) ? cuerpo : [cuerpo];",
+                  "  filas.forEach((f) => pm.expect(f).to.not.have.property('socio_id'));",
+                  "});",
+                  "pm.test('Al menos una evaluación', () => pm.expect(pm.response.json().length).to.be.above(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCoordinador}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/instructor/{{instructorPropio}}?periodo={{periodo}}"
+          }
+        },
+        {
+          "name": "GET lista instructor_id inválido → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"instructor_id debe ser un entero válido\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCoordinador}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/instructor/abc"
+          }
+        },
+        {
+          "name": "GET lista instructor inexistente → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"Instructor no encontrado\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCoordinador}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/instructor/{{instructorInexistente}}"
+          }
+        },
+        {
+          "name": "GET promedio del instructor propio → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sin socio_id (anónimo)', () => {",
+                  "  const cuerpo = pm.response.json();",
+                  "  const filas = Array.isArray(cuerpo) ? cuerpo : [cuerpo];",
+                  "  filas.forEach((f) => pm.expect(f).to.not.have.property('socio_id'));",
+                  "});",
+                  "pm.test('Promedio de la evaluación creada', () => {",
+                  "  const p = pm.response.json();",
+                  "  pm.expect(p).to.have.all.keys('instructor_id', 'total', 'promedio', 'distribucion');",
+                  "  pm.expect(p.total).to.eql(1);",
+                  "  pm.expect(p.promedio).to.eql(5);",
+                  "  pm.expect(p.distribucion).to.eql({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 1 });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/instructor/{{instructorPropio}}/promedio?periodo={{periodo}}"
+          }
+        },
+        {
+          "name": "GET promedio sin evaluaciones → 200 con null",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('total 0 y promedio null', () => {",
+                  "  const p = pm.response.json();",
+                  "  pm.expect(p.total).to.eql(0);",
+                  "  pm.expect(p.promedio).to.eql(null);",
+                  "  pm.expect(p.distribucion).to.eql({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCoordinador}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/instructor/{{instructorAjeno}}/promedio"
+          }
+        },
+        {
+          "name": "GET promedio periodo inválido → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"periodo debe tener el formato YYYY-MM\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCoordinador}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/instructor/{{instructorPropio}}/promedio?periodo=2026-1"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "tokenSocio",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenSocioSinInscripcion",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenSocioInstructorInactivo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenInstructor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenCoordinador",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sesionOk",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sesionCancelada",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sesionSinInstructor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sesionInstructorInactivo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sesionInexistente",
+      "value": "999999",
+      "type": "string"
+    },
+    {
+      "key": "instructorPropio",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "instructorAjeno",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "instructorInexistente",
+      "value": "999999",
+      "type": "string"
+    },
+    {
+      "key": "periodo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "evaluacionCreada",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

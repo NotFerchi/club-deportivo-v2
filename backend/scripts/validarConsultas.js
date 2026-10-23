@@ -311,9 +311,22 @@ async function main() {
       noExiste(evaluacionService.crearEvaluacion, 'evaluacionService') ||
       (await muestra("SELECT to_regclass('evaluaciones_instructor') IS NULL AS falta")).falta && 'falta la tabla evaluaciones_instructor';
     const staff = { rol: 'admin', usuario_id: 0 };
-    await paso('E4 POST /api/evaluaciones (solo EXPLAIN del INSERT)', () =>
+    // El POST lee inscripción + sesión + instructor en una sola consulta (403 antes que 404)
+    await paso('E4 POST /api/evaluaciones (consulta unificada + solo EXPLAIN del INSERT)', () =>
       evaluacionService.crearEvaluacion(inscrito.usuario_id, { sesion_id: inscrito.sesion_id, calificacion: 5, comentario: '__validador__' }), {
       omitir: sinEvaluaciones || sinDatos(inscrito, 'socios con inscripción Confirmada en una sesión con instructor activo')
+    });
+    await paso('E4 POST sesión inexistente → 403 de inscripción (consulta unificada)', async () => {
+      const sesionInexistente = 2147483647;
+      try {
+        await evaluacionService.crearEvaluacion(inscrito.usuario_id, { sesion_id: sesionInexistente, calificacion: 5 });
+      } catch (error) {
+        if (error.status === 403 && error.body?.error === evaluacionService.ERROR_NO_INSCRITO) return;
+        throw error;
+      }
+      throw new Error('se esperaba el 403 de inscripción y el servicio no falló');
+    }, {
+      omitir: sinEvaluaciones || sinDatos(inscrito, 'socios con inscripción Confirmada')
     });
     await paso('E4 GET /api/evaluaciones/mias', () => evaluacionService.misEvaluaciones(inscrito.usuario_id), {
       omitir: sinEvaluaciones || sinDatos(inscrito, 'socios con inscripción Confirmada')
@@ -321,7 +334,13 @@ async function main() {
     await paso('E4 GET /api/evaluaciones/mias?periodo', () => evaluacionService.misEvaluaciones(inscrito.usuario_id, '2026-10'), {
       omitir: sinEvaluaciones || sinDatos(inscrito, 'socios con inscripción Confirmada')
     });
-    await paso('E4 GET /instructor/:id como staff', () => evaluacionService.listarPorInstructor(staff, instructor.instructor_id), {
+    // El listado es anónimo: solo estas columnas (sin sesion_id ni fecha_creacion), ordenado por fecha_creacion
+    const COLUMNAS_LISTA = ['calificacion', 'comentario', 'disciplina', 'evaluacion_id', 'periodo'];
+    await paso('E4 GET /instructor/:id como staff (sin sesion_id ni hora)', async () => {
+      const filas = await evaluacionService.listarPorInstructor(staff, instructor.instructor_id);
+      const distinta = filas.find((f) => Object.keys(f).sort().join() !== COLUMNAS_LISTA.join());
+      if (distinta) throw new Error(`columnas inesperadas en el listado: ${Object.keys(distinta).join(', ')}`);
+    }, {
       omitir: sinEvaluaciones || sinDatos(instructor, 'instructores')
     });
     await paso('E4 GET /instructor/:id?periodo como instructor (el suyo)', () =>

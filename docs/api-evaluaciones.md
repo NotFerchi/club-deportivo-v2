@@ -13,9 +13,10 @@ Este documento fija los endpoints y las reglas de la evaluación de instructores
 |---|---|
 | **Quién evalúa** | Solo el rol `socio`, y solo en una sesión donde tiene una inscripción con `estado = 'Confirmada'` (`inscripciones_clases`). El `socio_id` sale del token (por `usuario_id`), nunca del body |
 | **Qué evalúa** | Al instructor de la sesión (`sesiones_programadas.instructor_id`), que se guarda en la evaluación. Calificación entera de 1 a 5 y comentario opcional de hasta 500 caracteres: se recorta y, si queda vacío, se guarda `NULL` |
+| **Cuándo** | En cualquier momento mientras el socio tenga inscripción Confirmada en la clase; una evaluación por socio, por sesión y por mes calendario (America/Mexico_City) |
 | **Frecuencia** | Una evaluación por socio, por sesión y por mes. El mes es el de la fecha del club en `America/Mexico_City` (`periodo`) |
 | **Quién ve** | El `instructor` solo las suyas. `admin`, `gerente` y `coordinador`, las de cualquier instructor. El `socio`, solo las que él hizo (§3.4) |
-| **Anonimato** | Las respuestas de listado (§3.2) y de promedio (§3.3) **nunca** incluyen `socio_id` ni el nombre del socio |
+| **Anonimato** | Las respuestas de listado (§3.2) y de promedio (§3.3) **nunca** incluyen `socio_id` ni el nombre del socio. El listado tampoco incluye `sesion_id` ni la hora (`fecha_creacion`), con los que se podría deducir quién evaluó: solo el `periodo` |
 | **Fuera de alcance** | Editar o borrar evaluaciones, y la interfaz (E5) |
 
 Tabla nueva: `evaluaciones_instructor` (script `backend/migrations/Crear_evaluaciones_instructor.sql`), con `UNIQUE (socio_id, sesion_id, periodo)`.
@@ -40,7 +41,7 @@ Tabla nueva: `evaluaciones_instructor` (script `backend/migrations/Crear_evaluac
 - **Ids:** enteros entre 1 y 2147483647 (`esIdValido`), como número o como texto de dígitos.
 - **Body ausente:** se trata como `{}` y responde 400 con el mensaje del primer campo que falte.
 - **`periodo`:** en la BD es un `DATE` con el día 1 del mes; en las respuestas y en el query viaja como texto `"YYYY-MM"`. Lo calcula la BD al guardar: `date_trunc('month', now() AT TIME ZONE 'America/Mexico_City')`.
-- **`fecha_creacion`:** texto `"YYYY-MM-DDTHH:mm:ss"` en hora del club, sin zona (`to_char`), para que Node no lo convierta a UTC.
+- **`fecha_creacion`:** texto `"YYYY-MM-DDTHH:mm:ss"` en hora del club, sin zona (`to_char`), para que Node no lo convierta a UTC. Solo viaja en §3.1 y §3.4; el listado del instructor (§3.2) no la devuelve.
 - **Filtro `?periodo`** (opcional en §3.2, §3.3 y §3.4): `YYYY-MM` con mes de `01` a `12` y año distinto de `0000` (PostgreSQL no tiene año 0). Si no viene, se toman todos los meses.
 
 ---
@@ -57,11 +58,11 @@ Los cuatro son **nuevos**.
 | **Ruta** | `/api/evaluaciones` |
 | **Roles** | `socio` |
 | **Body** | `sesion_id` (requerido, id válido), `calificacion` (requerido, entero de 1 a 5, como número o texto de dígitos), `comentario` (opcional, texto; se recorta; hasta 500 caracteres después de recortar; no puede contener el carácter nulo `\u0000`, que PostgreSQL no admite en texto; `null`, ausente o vacío → `NULL`) |
-| **Regla** | En este orden: formato (400) → el usuario tiene socio activo (403) → la sesión existe (404) → el socio tiene inscripción `Confirmada` en esa sesión (403) → la sesión tiene instructor (409) → el instructor está activo (409) → no hay evaluación de ese socio, sesión y mes (409). La validación de la inscripción y el `INSERT` van en una transacción; el duplicado lo decide el `UNIQUE` de la tabla (`23505` → 409), así dos envíos simultáneos no crean dos filas |
+| **Regla** | En este orden: formato (400) → el usuario tiene socio activo (403) → el socio tiene inscripción `Confirmada` en esa sesión (403) → la sesión tiene instructor (409) → el instructor está activo (409) → no hay evaluación de ese socio, sesión y mes (409). La inscripción, la sesión y su instructor se leen en una sola consulta: una sesión que no existe responde el mismo 403 `Solo puedes evaluar clases en las que estás inscrito`, para no revelar qué `sesion_id` existen. La validación de la inscripción y el `INSERT` van en una transacción; el duplicado lo decide el `UNIQUE` de la tabla (`23505` → 409), así dos envíos simultáneos no crean dos filas |
 | **Respuesta 201** | La evaluación creada: `evaluacion_id`, `instructor_id`, `sesion_id`, `calificacion`, `comentario`, `periodo`, `fecha_creacion` |
 | **400** | `sesion_id debe ser un entero válido` · `calificacion debe ser un entero de 1 a 5` · `comentario debe ser texto de máximo 500 caracteres` |
-| **403** | `No tienes permisos para esta acción` · `Tu usuario no tiene un registro de socio activo` · `Solo puedes evaluar clases en las que estás inscrito` |
-| **404** | `Sesión no encontrada` |
+| **403** | `No tienes permisos para esta acción` · `Tu usuario no tiene un registro de socio activo` · `Solo puedes evaluar clases en las que estás inscrito` (también si la sesión no existe) |
+| **404** | — |
 | **409** | `La sesión no tiene instructor asignado` · `El instructor de esta sesión está inactivo` · `Ya evaluaste esta clase este mes` |
 
 Request:
@@ -105,7 +106,7 @@ Response 409:
 | **Roles** | `admin`, `gerente`, `coordinador`, `instructor` (este último solo si `:instructor_id` es el suyo) |
 | **Query** | `periodo` (opcional, `YYYY-MM`) |
 | **Regla** | Para el rol `instructor` se busca su `instructor_id` por `usuario_id`; si no tiene registro o no coincide con `:instructor_id`, 403. El 404 solo aplica si el instructor no existe: uno inactivo se puede consultar |
-| **Respuesta 200** | Arreglo **anónimo** ordenado de la más reciente a la más antigua (`fecha_creacion` y luego `evaluacion_id`, descendente): `evaluacion_id`, `sesion_id`, `disciplina`, `calificacion`, `comentario`, `periodo`, `fecha_creacion`. Sin evaluaciones → `[]`. Nunca incluye `socio_id` ni el nombre del socio |
+| **Respuesta 200** | Arreglo **anónimo** ordenado de la más reciente a la más antigua (por `fecha_creacion` y luego `evaluacion_id`, descendente, aunque `fecha_creacion` no se devuelve): `evaluacion_id`, `disciplina`, `calificacion`, `comentario`, `periodo` (`"YYYY-MM"`). Sin evaluaciones → `[]`. Nunca incluye `socio_id`, el nombre del socio, `sesion_id` ni la hora |
 | **400** | `instructor_id debe ser un entero válido` · `periodo debe tener el formato YYYY-MM` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | `Instructor no encontrado` |
@@ -124,12 +125,10 @@ Response 200:
 [
   {
     "evaluacion_id": 27,
-    "sesion_id": 14,
     "disciplina": "Natación",
     "calificacion": 5,
     "comentario": "Muy buena clase, explica con paciencia.",
-    "periodo": "2026-10",
-    "fecha_creacion": "2026-10-22T18:05:41"
+    "periodo": "2026-10"
   }
 ]
 ```
@@ -239,7 +238,7 @@ Solo escribe §3.1. El controlador llama a `logAudit` (`backend/src/utils/auditL
 | Pantalla | Rol | Endpoints | Para qué |
 |---|---|---|---|
 | Formulario de evaluación | `socio` | §3.4 `GET /api/evaluaciones/mias?periodo=<mes actual>` | Marcar las clases que ya calificó este mes y no ofrecer el envío otra vez |
-| | | §3.1 `POST /api/evaluaciones` | Enviar la calificación y el comentario; mostrar el mensaje de error del 403/404/409 tal cual |
+| | | §3.1 `POST /api/evaluaciones` | Enviar la calificación y el comentario; mostrar el mensaje de error del 403/409 tal cual |
 | Vista de resultados | `instructor` (las suyas), staff (cualquiera) | §3.3 `GET /api/evaluaciones/instructor/:id/promedio` | Promedio, total y gráfica de distribución |
 | | | §3.2 `GET /api/evaluaciones/instructor/:id` | Lista anónima de calificaciones y comentarios |
 
@@ -250,8 +249,10 @@ Solo escribe §3.1. El controlador llama a `logAudit` (`backend/src/utils/auditL
 Si alguna no se acepta, se corrige este documento antes de implementar.
 
 1. **Socio inactivo:** un usuario con rol `socio` sin fila en `socios` o con `socios.activo = FALSE` se trata igual: 403 `Tu usuario no tiene un registro de socio activo`.
-2. **Formato de fechas:** `periodo` viaja como `"YYYY-MM"` y `fecha_creacion` como `"YYYY-MM-DDTHH:mm:ss"` en hora del club, ambos con `to_char`, igual que el horario de los encuentros de torneos.
+2. **Formato de fechas:** `periodo` viaja como `"YYYY-MM"` y `fecha_creacion` como `"YYYY-MM-DDTHH:mm:ss"` en hora del club, ambos con `to_char`, igual que el horario de los encuentros de torneos. `fecha_creacion` solo sale en §3.1 y §3.4.
 3. **Filtro `?periodo`:** opcional; sin él se devuelven todos los meses.
 4. **Instructor inexistente vs. inactivo:** §3.2 y §3.3 responden 404 solo si el `instructor_id` no existe; un instructor inactivo conserva su historial consultable. Para crear una evaluación (§3.1), en cambio, el instructor debe estar activo.
-5. **`/mias` sin `socio_id`:** el socio ya sabe quién es; la respuesta no lo repite.
+5. **`/mias` sin `socio_id`:** el socio ya sabe quién es; la respuesta no lo repite. Sí trae `sesion_id` y `fecha_creacion`, porque son sus propias evaluaciones.
 6. **Limitación conocida:** no se exige asistencia previa a la clase; se puede endurecer después exigiendo al menos una asistencia presente del socio en esa sesión.
+7. **403 antes que 404 en §3.1:** la existencia de la sesión no se valida por separado; una sesión inexistente responde el 403 de inscripción, para no revelar qué `sesion_id` existen.
+8. **Listado sin `sesion_id` ni hora (§3.2):** con la sesión y la hora exacta, el instructor podría cruzar la evaluación con la lista de inscritos y deducir quién la hizo. Solo se devuelve el `periodo`.

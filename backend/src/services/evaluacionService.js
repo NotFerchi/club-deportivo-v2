@@ -7,7 +7,6 @@ const { esIdValido, tieneValor } = require('./torneoComun');
 
 const ERROR_SIN_SOCIO = 'Tu usuario no tiene un registro de socio activo';
 const ERROR_NO_INSCRITO = 'Solo puedes evaluar clases en las que estás inscrito';
-const ERROR_SESION_NO_EXISTE = 'Sesión no encontrada';
 const ERROR_SIN_INSTRUCTOR = 'La sesión no tiene instructor asignado';
 const ERROR_INSTRUCTOR_INACTIVO = 'El instructor de esta sesión está inactivo';
 const ERROR_DUPLICADA = 'Ya evaluaste esta clase este mes';
@@ -38,8 +37,10 @@ function normalizarComentario(comentario) {
 }
 
 /**
- * POST /: valida socio → sesión → inscripción Confirmada → instructor asignado y activo, e inserta, todo en
- * una transacción. El duplicado (mismo socio, sesión y mes) lo decide el UNIQUE: 23505 → 409.
+ * POST /: valida socio → inscripción Confirmada → instructor asignado y activo, e inserta, todo en una
+ * transacción. La inscripción y la sesión se leen en una sola consulta: una sesión inexistente responde el
+ * mismo 403 que una sin inscripción, para no revelar qué sesion_id existen. El duplicado (mismo socio, sesión
+ * y mes) lo decide el UNIQUE: 23505 → 409.
  */
 async function crearEvaluacion(usuarioId, body) {
   const sesionId = esIdValido(body.sesion_id);
@@ -50,24 +51,18 @@ async function crearEvaluacion(usuarioId, body) {
     return await enTransaccion(async (client) => {
       const socioId = await socioActivoDeUsuario(client, usuarioId);
 
-      const sesion = await client.query(
-        `SELECT sp.instructor_id, i.activo AS instructor_activo
-           FROM sesiones_programadas sp
-           LEFT JOIN instructores i ON i.instructor_id = sp.instructor_id
-          WHERE sp.sesion_id = $1`,
-        [sesionId]
-      );
-      if (sesion.rows.length === 0) throw new ServiceError(404, { error: ERROR_SESION_NO_EXISTE });
-
       const inscripcion = await client.query(
-        `SELECT 1 FROM inscripciones_clases
-          WHERE sesion_id = $1 AND socio_id = $2 AND estado = 'Confirmada'
+        `SELECT sp.instructor_id, i.activo AS instructor_activo
+           FROM inscripciones_clases ic
+           JOIN sesiones_programadas sp ON sp.sesion_id = ic.sesion_id
+           LEFT JOIN instructores i ON i.instructor_id = sp.instructor_id
+          WHERE ic.sesion_id = $1 AND ic.socio_id = $2 AND ic.estado = 'Confirmada'
           LIMIT 1`,
         [sesionId, socioId]
       );
       if (inscripcion.rows.length === 0) throw new ServiceError(403, { error: ERROR_NO_INSCRITO });
 
-      const { instructor_id: instructorId, instructor_activo: instructorActivo } = sesion.rows[0];
+      const { instructor_id: instructorId, instructor_activo: instructorActivo } = inscripcion.rows[0];
       if (instructorId === null) throw new ServiceError(409, { error: ERROR_SIN_INSTRUCTOR });
       if (instructorActivo === false) throw new ServiceError(409, { error: ERROR_INSTRUCTOR_INACTIVO });
 
@@ -106,13 +101,15 @@ async function verificarAcceso(user, instructorId) {
   if (existe.rows.length === 0) throw new ServiceError(404, { error: ERROR_INSTRUCTOR_NO_EXISTE });
 }
 
-/** GET /instructor/:instructor_id: lista anónima (sin socio_id ni nombre), de la más reciente a la más antigua. */
+/**
+ * GET /instructor/:instructor_id: lista anónima, de la más reciente a la más antigua. Sin socio_id ni nombre,
+ * y tampoco sesion_id ni la hora (fecha_creacion), que permitirían deducir quién evaluó; solo el periodo.
+ */
 async function listarPorInstructor(user, instructorIdParam, periodo) {
   const instructorId = esIdValido(instructorIdParam);
   await verificarAcceso(user, instructorId);
   const { rows } = await pool.query(
-    `SELECT e.evaluacion_id, e.sesion_id, d.nombre AS disciplina, e.calificacion, e.comentario,
-            ${PERIODO_TEXTO}, ${FECHA_TEXTO}
+    `SELECT e.evaluacion_id, d.nombre AS disciplina, e.calificacion, e.comentario, ${PERIODO_TEXTO}
        FROM evaluaciones_instructor e
        JOIN sesiones_programadas sp ON sp.sesion_id = e.sesion_id
        LEFT JOIN disciplinas d ON d.disciplina_id = sp.disciplina_id
@@ -166,7 +163,6 @@ async function misEvaluaciones(usuarioId, periodo) {
 module.exports = {
   ERROR_SIN_SOCIO,
   ERROR_NO_INSCRITO,
-  ERROR_SESION_NO_EXISTE,
   ERROR_SIN_INSTRUCTOR,
   ERROR_INSTRUCTOR_INACTIVO,
   ERROR_DUPLICADA,

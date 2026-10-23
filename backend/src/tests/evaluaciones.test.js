@@ -48,16 +48,18 @@ const CREADA = {
   periodo: '2026-10',
   fecha_creacion: '2026-10-22T18:05:41'
 };
-const CAMPOS_LISTA = ['evaluacion_id', 'sesion_id', 'disciplina', 'calificacion', 'comentario', 'periodo', 'fecha_creacion'];
+const CAMPOS_LISTA = ['evaluacion_id', 'disciplina', 'calificacion', 'comentario', 'periodo'];
 const FILA_LISTA = {
   evaluacion_id: 27,
-  sesion_id: 14,
   disciplina: 'Natación',
   calificacion: 5,
   comentario: 'Muy buena clase',
-  periodo: '2026-10',
-  fecha_creacion: '2026-10-22T18:05:41'
+  periodo: '2026-10'
 };
+// /mias sí trae sesion_id e instructor_id: son las evaluaciones del propio socio
+const FILA_MIAS = { ...FILA_LISTA, sesion_id: 14, instructor_id: 3, fecha_creacion: '2026-10-22T18:05:41' };
+const INSCRIPCION = 'SELECT sp.instructor_id, i.activo AS instructor_activo FROM inscripciones_clases ic';
+const LISTA = 'SELECT e.evaluacion_id, d.nombre AS disciplina';
 
 let db;
 let log;
@@ -74,12 +76,11 @@ function route(q) {
   if (db.falla && q.startsWith(db.falla.sql)) throw pgError(db.falla.code);
   if (q === 'BEGIN' || q === 'COMMIT' || q === 'ROLLBACK') return rows([]);
   if (q.startsWith('SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo IS NOT FALSE')) return rows(db.socio);
-  if (q.startsWith('SELECT sp.instructor_id, i.activo AS instructor_activo')) return rows(db.sesion);
-  if (q.startsWith('SELECT 1 FROM inscripciones_clases')) return rows(db.inscripcion);
+  if (q.startsWith(INSCRIPCION)) return rows(db.inscripcion);
   if (q.startsWith('INSERT INTO evaluaciones_instructor')) return rows([CREADA]);
   if (q.startsWith('SELECT instructor_id FROM instructores WHERE usuario_id = $1')) return rows(db.instructorDelUsuario);
   if (q.startsWith('SELECT 1 FROM instructores WHERE instructor_id = $1')) return rows(db.instructorExiste);
-  if (q.startsWith('SELECT e.evaluacion_id, e.sesion_id, d.nombre AS disciplina')) return rows(db.lista);
+  if (q.startsWith(LISTA)) return rows(db.lista);
   if (q.startsWith('SELECT e.evaluacion_id, e.sesion_id, e.instructor_id')) return rows(db.mias);
   if (q.startsWith('SELECT e.calificacion, COUNT(*)::int AS total')) return rows(db.votos);
   throw new Error(`Query no esperada en test: ${q}`);
@@ -93,12 +94,11 @@ beforeEach(() => {
   db = {
     falla: null,
     socio: [{ socio_id: 1 }],
-    sesion: [{ instructor_id: 3, instructor_activo: true }],
-    inscripcion: [{ '?column?': 1 }],
+    inscripcion: [{ instructor_id: 3, instructor_activo: true }],
     instructorDelUsuario: [{ instructor_id: 3 }],
     instructorExiste: [{ '?column?': 1 }],
     lista: [FILA_LISTA],
-    mias: [{ ...FILA_LISTA, instructor_id: 3 }],
+    mias: [FILA_MIAS],
     votos: []
   };
   ({ log, client } = recordQueries(pool, route));
@@ -177,33 +177,37 @@ describe('POST /api/evaluaciones · permisos y reglas', () => {
     expect(sql()).toContain('ROLLBACK');
   });
 
-  it('sesión inexistente → 404', async () => {
-    db.sesion = [];
-    const res = await crear({ sesion_id: 999999, calificacion: 5 });
-    expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Sesión no encontrada' });
-  });
-
   it('socio no inscrito (sin inscripción Confirmada) → 403', async () => {
     db.inscripcion = [];
     const res = await crear({ sesion_id: 14, calificacion: 5 });
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'Solo puedes evaluar clases en las que estás inscrito' });
-    const [, q, params] = consulta('SELECT 1 FROM inscripciones_clases');
-    expect(q).toContain("estado = 'Confirmada'");
+    const [, q, params] = consulta(INSCRIPCION);
+    expect(q).toContain("ic.estado = 'Confirmada'");
+    expect(q).toContain('JOIN sesiones_programadas sp ON sp.sesion_id = ic.sesion_id');
     expect(params).toEqual([14, 1]);
     expect(consulta('INSERT INTO')).toBeUndefined();
   });
 
+  it('sesión inexistente → el mismo 403 que sin inscripción (no revela qué sesion_id existen)', async () => {
+    db.inscripcion = [];
+    const res = await crear({ sesion_id: 999999, calificacion: 5 });
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Solo puedes evaluar clases en las que estás inscrito' });
+    // Una sola consulta decide: no hay otra que distinga "la sesión no existe"
+    expect(sql().filter((q) => q.includes('sesiones_programadas'))).toEqual([consulta(INSCRIPCION)[1]]);
+    expect(sql()).toContain('ROLLBACK');
+  });
+
   it('sesión sin instructor → 409', async () => {
-    db.sesion = [{ instructor_id: null, instructor_activo: null }];
+    db.inscripcion = [{ instructor_id: null, instructor_activo: null }];
     const res = await crear({ sesion_id: 14, calificacion: 5 });
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ error: 'La sesión no tiene instructor asignado' });
   });
 
   it('instructor inactivo → 409', async () => {
-    db.sesion = [{ instructor_id: 4, instructor_activo: false }];
+    db.inscripcion = [{ instructor_id: 4, instructor_activo: false }];
     const res = await crear({ sesion_id: 14, calificacion: 5 });
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ error: 'El instructor de esta sesión está inactivo' });
@@ -221,7 +225,7 @@ describe('POST /api/evaluaciones · permisos y reglas', () => {
   });
 
   it('error no previsto de la BD → 500 genérico, sin detalles', async () => {
-    db.falla = { sql: 'SELECT sp.instructor_id', code: '42P01' };
+    db.falla = { sql: INSCRIPCION, code: '42P01' };
     const res = await crear({ sesion_id: 14, calificacion: 5 });
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: 'Error al registrar la evaluación' });
@@ -240,7 +244,6 @@ describe('POST /api/evaluaciones · caso feliz', () => {
       'client: BEGIN',
       'client: SELECT socio_id FROM socios',
       'client: SELECT sp.instructor_id, i.activo AS',
-      'client: SELECT 1 FROM inscripciones_clases',
       'client: INSERT INTO evaluaciones_instructor AS',
       'client: COMMIT'
     ]);
@@ -268,15 +271,18 @@ describe('POST /api/evaluaciones · caso feliz', () => {
 describe('GET /api/evaluaciones/instructor/:instructor_id', () => {
   const listar = (id, query = '') => request(app).get(`/api/evaluaciones/instructor/${id}${query}`);
 
-  it('staff: lista anónima, sin socio_id ni nombre del socio', async () => {
+  it('staff: lista anónima, sin socio_id, nombre del socio, sesion_id ni hora', async () => {
     mockUser = COORDINADOR;
     const res = await listar(3);
     expect(res.status).toBe(200);
     expect(res.body).toEqual([FILA_LISTA]);
     for (const fila of res.body) expect(Object.keys(fila).sort()).toEqual([...CAMPOS_LISTA].sort());
 
-    const [, q, params] = consulta('SELECT e.evaluacion_id, e.sesion_id, d.nombre');
+    const [, q, params] = consulta(LISTA);
     expect(q).not.toMatch(/socio_id|socios|usuarios|nombres/);
+    const columnas = q.slice(0, q.indexOf(' FROM '));
+    expect(columnas).not.toMatch(/sesion_id|fecha_creacion/);
+    // Sin devolver la hora, el orden sigue siendo de la más reciente a la más antigua
     expect(q).toContain('ORDER BY e.fecha_creacion DESC, e.evaluacion_id DESC');
     expect(params).toEqual([3, null]);
     expect(consulta('SELECT instructor_id FROM instructores WHERE usuario_id')).toBeUndefined();
@@ -285,7 +291,7 @@ describe('GET /api/evaluaciones/instructor/:instructor_id', () => {
   it('?periodo=YYYY-MM → filtra por el día 1 del mes', async () => {
     mockUser = COORDINADOR;
     await listar(3, '?periodo=2026-10');
-    expect(consulta('SELECT e.evaluacion_id, e.sesion_id, d.nombre')[2]).toEqual([3, '2026-10-01']);
+    expect(consulta(LISTA)[2]).toEqual([3, '2026-10-01']);
   });
 
   it('instructor consultando sus propias evaluaciones → 200', async () => {
@@ -352,7 +358,7 @@ describe('GET /api/evaluaciones/instructor/:instructor_id', () => {
     mockUser = COORDINADOR;
     const res = await listar(3, '?periodo=0001-01');
     expect(res.status).toBe(200);
-    expect(consulta('SELECT e.evaluacion_id, e.sesion_id, d.nombre')[2]).toEqual([3, '0001-01-01']);
+    expect(consulta(LISTA)[2]).toEqual([3, '0001-01-01']);
   });
 });
 
@@ -433,13 +439,14 @@ describe('GET /api/evaluaciones/instructor/:instructor_id/promedio', () => {
 describe('GET /api/evaluaciones/mias', () => {
   const mias = (query = '') => request(app).get(`/api/evaluaciones/mias${query}`);
 
-  it('socio: sus evaluaciones, sin socio_id', async () => {
+  it('socio: sus evaluaciones con sesion_id y fecha_creacion, sin socio_id', async () => {
     const res = await mias('?periodo=2026-10');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([{ ...FILA_LISTA, instructor_id: 3 }]);
+    expect(res.body).toEqual([FILA_MIAS]);
     expect(res.body[0]).not.toHaveProperty('socio_id');
     const [, q, params] = consulta('SELECT e.evaluacion_id, e.sesion_id, e.instructor_id');
     expect(q).toContain('WHERE e.socio_id = $1');
+    expect(q).toContain('AS fecha_creacion');
     expect(params).toEqual([1, '2026-10-01']);
   });
 

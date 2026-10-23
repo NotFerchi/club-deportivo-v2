@@ -217,15 +217,15 @@
           }
         },
         {
-          "name": "POST sesión inexistente → 404",
+          "name": "POST sesión 999999 → 403 (no revela si existe)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
-                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"Sesión no encontrada\" }));"
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Mismo mensaje que sin inscripción', () => pm.expect(pm.response.json()).to.eql({ error: \"Solo puedes evaluar clases en las que estás inscrito\" }));"
                 ]
               }
             }
@@ -587,7 +587,7 @@
                   "  filas.forEach((f) => pm.expect(f).to.not.have.property('socio_id'));",
                   "});",
                   "pm.test('Solo los campos del contrato', () => {",
-                  "  pm.response.json().forEach((e) => pm.expect(e).to.have.all.keys('evaluacion_id', 'sesion_id', 'disciplina', 'calificacion', 'comentario', 'periodo', 'fecha_creacion'));",
+                  "  pm.response.json().forEach((e) => pm.expect(e).to.have.all.keys('evaluacion_id', 'disciplina', 'calificacion', 'comentario', 'periodo'));",
                   "});"
                 ]
               }
@@ -643,7 +643,14 @@
                   "  const filas = Array.isArray(cuerpo) ? cuerpo : [cuerpo];",
                   "  filas.forEach((f) => pm.expect(f).to.not.have.property('socio_id'));",
                   "});",
-                  "pm.test('Al menos una evaluación', () => pm.expect(pm.response.json().length).to.be.above(0));"
+                  "pm.test('Al menos una evaluación', () => pm.expect(pm.response.json().length).to.be.above(0));",
+                  "pm.test('Sin sesion_id ni hora (anónimo)', () => {",
+                  "  pm.response.json().forEach((e) => {",
+                  "    pm.expect(e).to.not.have.property('sesion_id');",
+                  "    pm.expect(e).to.not.have.property('fecha_creacion');",
+                  "    pm.expect(e.periodo).to.match(/^\\d{4}-\\d{2}$/);",
+                  "  });",
+                  "});"
                 ]
               }
             }

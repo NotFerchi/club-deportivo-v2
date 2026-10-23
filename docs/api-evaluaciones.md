@@ -41,7 +41,7 @@ Tabla nueva: `evaluaciones_instructor` (script `backend/migrations/Crear_evaluac
 - **Body ausente:** se trata como `{}` y responde 400 con el mensaje del primer campo que falte.
 - **`periodo`:** en la BD es un `DATE` con el día 1 del mes; en las respuestas y en el query viaja como texto `"YYYY-MM"`. Lo calcula la BD al guardar: `date_trunc('month', now() AT TIME ZONE 'America/Mexico_City')`.
 - **`fecha_creacion`:** texto `"YYYY-MM-DDTHH:mm:ss"` en hora del club, sin zona (`to_char`), para que Node no lo convierta a UTC.
-- **Filtro `?periodo`** (opcional en §3.2, §3.3 y §3.4): `YYYY-MM` con mes de `01` a `12`. Si no viene, se toman todos los meses.
+- **Filtro `?periodo`** (opcional en §3.2, §3.3 y §3.4): `YYYY-MM` con mes de `01` a `12` y año distinto de `0000` (PostgreSQL no tiene año 0). Si no viene, se toman todos los meses.
 
 ---
 
@@ -56,7 +56,7 @@ Los cuatro son **nuevos**.
 | **Método** | `POST` |
 | **Ruta** | `/api/evaluaciones` |
 | **Roles** | `socio` |
-| **Body** | `sesion_id` (requerido, id válido), `calificacion` (requerido, entero de 1 a 5, como número o texto de dígitos), `comentario` (opcional, texto; se recorta; hasta 500 caracteres después de recortar; `null`, ausente o vacío → `NULL`) |
+| **Body** | `sesion_id` (requerido, id válido), `calificacion` (requerido, entero de 1 a 5, como número o texto de dígitos), `comentario` (opcional, texto; se recorta; hasta 500 caracteres después de recortar; no puede contener el carácter nulo `\u0000`, que PostgreSQL no admite en texto; `null`, ausente o vacío → `NULL`) |
 | **Regla** | En este orden: formato (400) → el usuario tiene socio activo (403) → la sesión existe (404) → el socio tiene inscripción `Confirmada` en esa sesión (403) → la sesión tiene instructor (409) → el instructor está activo (409) → no hay evaluación de ese socio, sesión y mes (409). La validación de la inscripción y el `INSERT` van en una transacción; el duplicado lo decide el `UNIQUE` de la tabla (`23505` → 409), así dos envíos simultáneos no crean dos filas |
 | **Respuesta 201** | La evaluación creada: `evaluacion_id`, `instructor_id`, `sesion_id`, `calificacion`, `comentario`, `periodo`, `fecha_creacion` |
 | **400** | `sesion_id debe ser un entero válido` · `calificacion debe ser un entero de 1 a 5` · `comentario debe ser texto de máximo 500 caracteres` |

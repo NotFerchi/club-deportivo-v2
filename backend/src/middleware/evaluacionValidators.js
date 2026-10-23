@@ -13,8 +13,8 @@ const cuerpo = (req) => req.body ?? {};
 
 // evaluaciones_instructor.comentario VARCHAR(500)
 const MAX_COMENTARIO = 500;
-// YYYY-MM con mes de 01 a 12
-const PERIODO = /^\d{4}-(0[1-9]|1[0-2])$/;
+// YYYY-MM con mes de 01 a 12; el año 0000 no existe en PostgreSQL (22008)
+const PERIODO = /^(?!0000)\d{4}-(0[1-9]|1[0-2])$/;
 
 /** Calificación entera de 1 a 5, como número o como texto de un dígito; null si no lo es. */
 function calificacionValida(valor) {
@@ -24,13 +24,16 @@ function calificacionValida(valor) {
   return Number.isInteger(numero) && numero >= 1 && numero <= 5 ? numero : null;
 }
 
-/** POST /: sesion_id, calificacion de 1 a 5 y comentario opcional (texto de hasta 500 tras recortar). */
+/**
+ * POST /: sesion_id, calificacion de 1 a 5 y comentario opcional (texto de hasta 500 tras recortar y sin
+ * el carácter nulo \u0000, que PostgreSQL no admite en texto: 22021).
+ */
 const crearEvaluacion = validateInput((req) => {
   const { sesion_id, calificacion, comentario } = cuerpo(req);
   if (esIdValido(sesion_id) === null) return bad('sesion_id debe ser un entero válido');
   if (calificacionValida(calificacion) === null) return bad('calificacion debe ser un entero de 1 a 5');
   if (comentario !== undefined && comentario !== null) {
-    if (typeof comentario !== 'string' || comentario.trim().length > MAX_COMENTARIO) {
+    if (typeof comentario !== 'string' || comentario.includes('\u0000') || comentario.trim().length > MAX_COMENTARIO) {
       return bad(`comentario debe ser texto de máximo ${MAX_COMENTARIO} caracteres`);
     }
   }

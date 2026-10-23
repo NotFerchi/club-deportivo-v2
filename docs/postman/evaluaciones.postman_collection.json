@@ -184,6 +184,39 @@
           }
         },
         {
+          "name": "POST comentario con \\u0000 → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"comentario debe ser texto de máximo 500 caracteres\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sesion_id\": 1,\n  \"calificacion\": 5,\n  \"comentario\": \"Buena\\u0000clase\"\n}"
+            },
+            "url": "{{baseUrl}}/api/evaluaciones"
+          }
+        },
+        {
           "name": "POST sesión inexistente → 404",
           "event": [
             {
@@ -490,6 +523,31 @@
           }
         },
         {
+          "name": "GET /mias periodo 0000-01 → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"periodo debe tener el formato YYYY-MM\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSocio}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/mias?periodo=0000-01"
+          }
+        },
+        {
           "name": "GET /mias como instructor → 403 (rol)",
           "event": [
             {
@@ -627,6 +685,31 @@
           }
         },
         {
+          "name": "GET lista periodo 0000-01 → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"periodo debe tener el formato YYYY-MM\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCoordinador}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/instructor/{{instructorPropio}}?periodo=0000-01"
+          }
+        },
+        {
           "name": "GET lista instructor inexistente → 404",
           "event": [
             {
@@ -740,6 +823,31 @@
               }
             ],
             "url": "{{baseUrl}}/api/evaluaciones/instructor/{{instructorPropio}}/promedio?periodo=2026-1"
+          }
+        },
+        {
+          "name": "GET promedio periodo 0000-01 → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensaje de error', () => pm.expect(pm.response.json()).to.eql({ error: \"periodo debe tener el formato YYYY-MM\" }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCoordinador}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/evaluaciones/instructor/{{instructorPropio}}/promedio?periodo=0000-01"
           }
         }
       ]

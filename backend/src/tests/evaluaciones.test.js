@@ -141,6 +141,13 @@ describe('POST /api/evaluaciones · validaciones 400', () => {
     expect(res.body).toEqual({ error: 'comentario debe ser texto de máximo 500 caracteres' });
   });
 
+  it.each(['Buena\u0000clase', '\u0000'])('comentario con \\u0000 %j → 400, sin tocar la BD (evita el 22021)', async (comentario) => {
+    const res = await crear({ sesion_id: 14, calificacion: 5, comentario });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'comentario debe ser texto de máximo 500 caracteres' });
+    expect(log).toHaveLength(0);
+  });
+
   it('comentario de 500 caracteres con espacios alrededor sí pasa (se mide recortado)', async () => {
     const res = await crear({ sesion_id: 14, calificacion: 5, comentario: `   ${'a'.repeat(500)}   ` });
     expect(res.status).toBe(201);
@@ -332,6 +339,21 @@ describe('GET /api/evaluaciones/instructor/:instructor_id', () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'periodo debe tener el formato YYYY-MM' });
   });
+
+  it('periodo 0000-01 → 400, sin tocar la BD (evita el 22008)', async () => {
+    mockUser = COORDINADOR;
+    const res = await listar(3, '?periodo=0000-01');
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'periodo debe tener el formato YYYY-MM' });
+    expect(log).toHaveLength(0);
+  });
+
+  it('periodo 0001-01 sí pasa (primer año válido en PostgreSQL)', async () => {
+    mockUser = COORDINADOR;
+    const res = await listar(3, '?periodo=0001-01');
+    expect(res.status).toBe(200);
+    expect(consulta('SELECT e.evaluacion_id, e.sesion_id, d.nombre')[2]).toEqual([3, '0001-01-01']);
+  });
 });
 
 // ── GET /api/evaluaciones/instructor/:instructor_id/promedio ──────────────────
@@ -396,6 +418,14 @@ describe('GET /api/evaluaciones/instructor/:instructor_id/promedio', () => {
     const res = await promedio(3, '?periodo=2026-13');
     expect(res.status).toBe(400);
   });
+
+  it('periodo 0000-01 → 400, sin tocar la BD (evita el 22008)', async () => {
+    mockUser = COORDINADOR;
+    const res = await promedio(3, '?periodo=0000-01');
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'periodo debe tener el formato YYYY-MM' });
+    expect(log).toHaveLength(0);
+  });
 });
 
 // ── GET /api/evaluaciones/mias ───────────────────────────────────────────────
@@ -430,5 +460,12 @@ describe('GET /api/evaluaciones/mias', () => {
     const res = await mias('?periodo=2026-1');
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'periodo debe tener el formato YYYY-MM' });
+  });
+
+  it('periodo 0000-01 → 400, sin tocar la BD (evita el 22008)', async () => {
+    const res = await mias('?periodo=0000-01');
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'periodo debe tener el formato YYYY-MM' });
+    expect(log).toHaveLength(0);
   });
 });

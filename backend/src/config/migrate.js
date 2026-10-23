@@ -4,6 +4,8 @@ const path = require('path');
 const MIGRATIONS_DIR = path.join(__dirname, '../../migrations');
 // Migraciones de torneos en su orden real (ver migracionesTorneos.js)
 const MIGRACIONES_TORNEOS = require('./migracionesTorneos');
+// Dependen de schema.sql y van al final con --todas (ver migracionesPosteriores.js)
+const MIGRACIONES_POSTERIORES = require('./migracionesPosteriores');
 
 const OPCION_TODAS = '--todas';
 
@@ -11,7 +13,7 @@ const OPCION_TODAS = '--todas';
 const USO = `Uso (desde backend/):
   npm run migrate -- <archivo.sql>   Ejecuta solo ese archivo de backend/migrations
   npm run migrate -- torneos         Ejecuta solo las migraciones de torneos, en su orden
-  npm run migrate -- ${OPCION_TODAS}         Ejecuta TODAS (orden alfabético y, al final, las de torneos)
+  npm run migrate -- ${OPCION_TODAS}         Ejecuta TODAS (orden alfabético y, al final, las de torneos y las posteriores a schema.sql)
 
 Sin argumento no se ejecuta nada. Ojo: sin el "--", npm se queda con ${OPCION_TODAS} y el script no lo recibe.`;
 
@@ -26,12 +28,12 @@ function planMigraciones(objetivo, dir = MIGRATIONS_DIR) {
 
   if (objetivo === OPCION_TODAS) {
     // El resto sigue en orden alfabético (su orden real queda pendiente: GEN-B05).
-    // Las de torneos van al final, después de schema.sql, en su orden real.
+    // Las de torneos van al final, después de schema.sql, en su orden real; luego las posteriores.
     const files = fs
       .readdirSync(dir)
-      .filter((f) => f.endsWith('.sql') && !MIGRACIONES_TORNEOS.includes(f))
+      .filter((f) => f.endsWith('.sql') && !MIGRACIONES_TORNEOS.includes(f) && !MIGRACIONES_POSTERIORES.includes(f))
       .sort();
-    return [...files, ...MIGRACIONES_TORNEOS];
+    return [...files, ...MIGRACIONES_TORNEOS, ...MIGRACIONES_POSTERIORES];
   }
 
   if (!fs.existsSync(path.join(dir, objetivo))) {

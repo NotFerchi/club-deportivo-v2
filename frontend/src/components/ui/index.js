@@ -8,5 +8,3 @@ export { Alert } from './Alert';
 export { ProgressBar } from './ProgressBar';
 export { Stack } from './Stack';
 export { Text } from './Text';
-export { StatCard } from './StatCard';
-export { Card } from './Card';

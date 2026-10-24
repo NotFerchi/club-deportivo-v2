@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Badge, Button, Card, Input, Modal, ProgressBar, Select, StatCard, Table } from '../components/ui';
+import { Alert, Badge, Button, Input, Modal, ProgressBar, Select, Table } from '../components/ui';
 import './UIKitPlayground.css';
 
 /**
@@ -119,27 +119,6 @@ export default function UIKitPlayground() {
           <ProgressBar label="Inscritos" value={14} max={16} />
           <ProgressBar label="Inscritos" value={16} max={16} />
           <ProgressBar label="Sin cupo definido" value={6} />
-        </div>
-      </Section>
-
-      <Section title="StatCard">
-        <div className="uikit-grid uikit-grid--inputs">
-          <StatCard label="Total socios" value={248} hint="231 activos" tone="primary" />
-          <StatCard label="Confirmadas" value={8} tone="success" />
-          <StatCard label="No-Show" value={2} tone="warning" />
-          <StatCard label="Canceladas" value={1} tone="danger" selected onClick={() => {}} />
-          <StatCard label="Acceso directo" value={12} tone="neutral" onClick={() => {}} />
-        </div>
-      </Section>
-
-      <Section title="Card">
-        <div className="uikit-grid uikit-grid--inputs">
-          <Card title="Visitas activas" action={<Button variant="secondary">Ver todo</Button>}>
-            Contenido del panel con margen interior.
-          </Card>
-          <Card title="Con tabla a ras del borde" flush>
-            <Table columns={[{ key: 'a', header: 'Socio' }, { key: 'b', header: 'Número' }]} data={[{ id: 1, a: 'Ana López', b: 'S-001' }]} />
-          </Card>
         </div>
       </Section>
 

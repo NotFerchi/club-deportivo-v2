@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Badge, Button, Card, Input, Modal, ProgressBar, Select, StatCard, Table } from '../components/ui';
+import { Alert, Avatar, Badge, Button, Card, Checkbox, Chip, Input, Modal, ProgressBar, Select, StatCard, Table } from '../components/ui';
 import './UIKitPlayground.css';
 
 /**
@@ -25,6 +25,18 @@ const DISCIPLINAS = [
   { value: 2, label: 'Pádel' },
   { value: 3, label: 'Natación' },
 ];
+
+function ChipsDemo() {
+  const [sel, setSel] = useState(['Yoga']);
+  const toggle = (n) => setSel((p) => (p.includes(n) ? p.filter((x) => x !== n) : [...p, n]));
+  return (
+    <div className="uikit-grid">
+      {['Natación', 'Yoga', 'Tenis'].map((n) => (
+        <Chip key={n} selected={sel.includes(n)} onClick={() => toggle(n)}>{n}</Chip>
+      ))}
+    </div>
+  );
+}
 
 function Section({ title, children }) {
   return (
@@ -140,6 +152,26 @@ export default function UIKitPlayground() {
           <Card title="Con tabla a ras del borde" flush>
             <Table columns={[{ key: 'a', header: 'Socio' }, { key: 'b', header: 'Número' }]} data={[{ id: 1, a: 'Ana López', b: 'S-001' }]} />
           </Card>
+        </div>
+      </Section>
+
+      <Section title="Avatar">
+        <div className="uikit-grid">
+          <Avatar name="Carlos López" size="sm" />
+          <Avatar name="María Fernanda Hernández" size="md" />
+          <Avatar name="Ana Gil" size="lg" />
+        </div>
+      </Section>
+
+      <Section title="Chip">
+        <ChipsDemo />
+      </Section>
+
+      <Section title="Checkbox">
+        <div className="uikit-grid">
+          <Checkbox label="Instructor activo" defaultChecked />
+          <Checkbox label="Opción sin marcar" />
+          <Checkbox label="Deshabilitada" disabled />
         </div>
       </Section>
 

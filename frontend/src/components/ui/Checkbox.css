@@ -1,0 +1,29 @@
+/* Checkbox — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    font-family: var(--font-sans);
+}
+
+.ui-checkbox .ui-checkbox__input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
+
+.ui-checkbox .ui-checkbox__label {
+    font: var(--font-body-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+.ui-checkbox--disabled .ui-checkbox__input,
+.ui-checkbox--disabled .ui-checkbox__label {
+    cursor: not-allowed;
+    opacity: 0.6;
+}

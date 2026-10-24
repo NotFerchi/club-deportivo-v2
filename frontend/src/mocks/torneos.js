@@ -7,12 +7,14 @@
 //   guardarTorneo(payload, id)  →  POST /api/torneos  |  PUT /api/torneos/:id   (§3.3, §3.4)
 //   inscribirme(torneoId)       →  POST /api/torneos/:id/inscribir-me           (§3.6)
 //   listarDisciplinas / listarCategorias  →  GET /api/disciplinas, /api/torneos/categorias
+//   obtenerReporte(torneoId)    →  GET  /api/torneos/:id/reporte                (§5.1)
 //
 // Para ver los estados de la pantalla, agrega ?modo= a la URL:
 //   ?modo=lento  → la carga tarda 3 s (estado de carga)
 //   ?modo=vacio  → la lista llega sin torneos (estado vacío)
 //   ?modo=error  → la lista falla (estado de error con Reintentar)
 //   ?modo=conflicto → inscribirme responde 409 de cupo lleno (error del backend en el modal)
+//   ?modo=error-reporte → el reporte de un torneo falla (error con Reintentar en los resultados)
 
 const MS_DEMORA = 500;
 
@@ -86,11 +88,11 @@ let torneosGuardados = [
   },
   {
     torneo_id: 51, nombre: 'Open de Tenis', disciplina_id: 1, categoria_id: 1, tipo_torneo: 'Individual',
-    fecha_inicio: sumarDias(hoy, -2), fecha_fin: sumarDias(hoy, 3), estado: 'En_curso', total_participantes: 16, cupo_maximo: 16,
+    fecha_inicio: sumarDias(hoy, -2), fecha_fin: sumarDias(hoy, 3), estado: 'En_curso', total_participantes: 8, cupo_maximo: 16,
   },
   {
     torneo_id: 33, nombre: 'Copa Primavera', disciplina_id: 1, categoria_id: 1, tipo_torneo: 'Individual',
-    fecha_inicio: sumarDias(hoy, -60), fecha_fin: sumarDias(hoy, -52), estado: 'Finalizado', total_participantes: 12, cupo_maximo: null,
+    fecha_inicio: sumarDias(hoy, -60), fecha_fin: sumarDias(hoy, -52), estado: 'Finalizado', total_participantes: 8, cupo_maximo: null,
   },
   {
     torneo_id: 34, nombre: 'Copa Invierno', disciplina_id: 3, categoria_id: 2, tipo_torneo: 'Individual',
@@ -134,6 +136,93 @@ export async function listarDisciplinas() {
 export async function listarCategorias() {
   await esperar(150);
   return CATEGORIAS;
+}
+
+// ── Reporte y resultados (E3.2) ──────────────────────────────────────────────────────────
+
+/** Atajo para armar un encuentro con la forma de GET /api/torneos/:id/reporte (§5.1). */
+function encuentro(id, ronda, p1, p2, { estado = 'pendiente', m1 = null, m2 = null, cancha = null, hora = null } = {}) {
+  const ganador = estado === 'finalizado' && p1 && p2 ? (m1 > m2 ? p1 : p2) : null;
+  return {
+    encuentro_id: id,
+    ronda,
+    estado,
+    marcador_1: m1,
+    marcador_2: m2,
+    cancha_asignada: cancha,
+    hora_programada: hora,
+    participante_1: p1,
+    participante_2: p2,
+    ganador,
+  };
+}
+
+const P = {
+  ana: { id: 145, nombre: 'Ana López Ruiz' },
+  luis: { id: 151, nombre: 'Luis Pérez Gómez' },
+  marta: { id: 152, nombre: 'Marta Díaz Soto' },
+  jorge: { id: 153, nombre: 'Jorge Ramírez Luna' },
+  sofia: { id: 154, nombre: 'Sofía Torres Vega' },
+  carlos: { id: 155, nombre: 'Carlos Núñez Rojo' },
+  elena: { id: 156, nombre: 'Elena Vargas Mora' },
+  pablo: { id: 157, nombre: 'Pablo Ortiz Cruz' },
+};
+
+const hora = (dias, hhmm) => `${sumarDias(hoy, dias)}T${hhmm}`;
+
+// Encuentros por torneo. Los torneos que no aparecen aquí (abiertos o cancelados sin bracket)
+// responden con `encuentros: []`, como el backend.
+const encuentrosPorTorneo = {
+  // Finalizado: cuartos, semifinales y final con campeón
+  33: [
+    encuentro(70, 1, P.ana, P.pablo, { estado: 'finalizado', m1: 6, m2: 2, cancha: 'Cancha 1', hora: hora(-58, '09:00') }),
+    encuentro(71, 1, P.luis, P.elena, { estado: 'finalizado', m1: 6, m2: 4, cancha: 'Cancha 2', hora: hora(-58, '10:30') }),
+    encuentro(72, 1, P.marta, P.carlos, { estado: 'finalizado', m1: 3, m2: 6, cancha: 'Cancha 1', hora: hora(-58, '12:00') }),
+    encuentro(73, 1, P.jorge, P.sofia, { estado: 'finalizado', m1: 6, m2: 1, cancha: 'Cancha 2', hora: hora(-58, '13:30') }),
+    encuentro(74, 2, P.ana, P.luis, { estado: 'finalizado', m1: 6, m2: 3, cancha: 'Cancha 1', hora: hora(-55, '10:00') }),
+    encuentro(75, 2, P.carlos, P.jorge, { estado: 'finalizado', m1: 7, m2: 5, cancha: 'Cancha 2', hora: hora(-55, '11:30') }),
+    encuentro(76, 3, P.ana, P.carlos, { estado: 'finalizado', m1: 6, m2: 4, cancha: 'Cancha 1', hora: hora(-52, '12:00') }),
+  ],
+  // En curso: unos encuentros jugados, otros programados y otros por definir
+  51: [
+    encuentro(80, 1, P.ana, P.pablo, { estado: 'finalizado', m1: 6, m2: 3, cancha: 'Cancha 1', hora: hora(-1, '09:00') }),
+    encuentro(81, 1, P.luis, P.elena, { estado: 'finalizado', m1: 4, m2: 6, cancha: 'Cancha 2', hora: hora(-1, '10:30') }),
+    encuentro(82, 1, P.marta, P.carlos, { estado: 'programado', cancha: 'Cancha 1', hora: hora(1, '09:00') }),
+    encuentro(83, 1, P.jorge, P.sofia, { estado: 'pendiente' }),
+    encuentro(84, 2, P.ana, P.elena, { estado: 'programado', cancha: 'Cancha 2', hora: hora(2, '11:00') }),
+    encuentro(85, 2, null, null, { estado: 'pendiente' }),
+    encuentro(86, 3, null, null, { estado: 'pendiente' }),
+  ],
+  // Inscripciones cerradas: bracket generado, todavía sin jugar
+  50: [
+    encuentro(90, 1, P.ana, P.pablo, { estado: 'programado', cancha: 'Cancha 1', hora: hora(2, '09:00') }),
+    encuentro(91, 1, P.luis, P.elena, { estado: 'pendiente' }),
+    encuentro(92, 1, P.marta, P.carlos, { estado: 'pendiente' }),
+    encuentro(93, 1, P.jorge, P.sofia, { estado: 'pendiente' }),
+    encuentro(94, 2, null, null, { estado: 'pendiente' }),
+    encuentro(95, 2, null, null, { estado: 'pendiente' }),
+    encuentro(96, 3, null, null, { estado: 'pendiente' }),
+  ],
+};
+
+/** GET /api/torneos/:id/reporte (§5.1): { torneo, encuentros } ordenado por ronda y encuentro_id. */
+export async function obtenerReporte(torneoId) {
+  const modo = modoDeLaUrl();
+  await esperar(modo === 'lento' ? 3000 : MS_DEMORA);
+  if (modo === 'error-reporte') throw errorHttp(500, 'Error al obtener el reporte');
+  const torneo = torneosGuardados.find((t) => t.torneo_id === torneoId);
+  if (!torneo) throw errorHttp(404, 'Torneo no encontrado');
+  const disciplina = DISCIPLINAS.find((d) => d.disciplina_id === torneo.disciplina_id);
+  return {
+    torneo: {
+      torneo_id: torneo.torneo_id,
+      nombre: torneo.nombre,
+      estado: torneo.estado,
+      disciplina: disciplina?.nombre ?? null,
+    },
+    encuentros: [...(encuentrosPorTorneo[torneoId] ?? [])]
+      .sort((a, b) => a.ronda - b.ronda || a.encuentro_id - b.encuentro_id),
+  };
 }
 
 /** Valida como POST/PUT /api/torneos y devuelve el torneo normalizado; lanza 400 con el mensaje del backend. */

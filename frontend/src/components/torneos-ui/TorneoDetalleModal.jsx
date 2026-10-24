@@ -20,13 +20,15 @@ function Dato({ etiqueta, children }) {
  *   onClose      - cierra el modal
  *   onEditar     - (torneo) => void; staff. Sin esta prop no se muestra "Editar"
  *   onInscribir  - (torneo) => void; socio. Se muestra solo si el torneo admite inscripción
+ *   onVerResultados - (torneo) => void; se muestra en torneos que ya no están abiertos
  */
-export default function TorneoDetalleModal({ torneo, onClose, onEditar, onInscribir }) {
+export default function TorneoDetalleModal({ torneo, onClose, onEditar, onInscribir, onVerResultados }) {
   if (!torneo) return null;
 
   const estado = estadoTorneo(torneo.estado);
   const esEquipos = torneo.tipo_torneo === 'Equipos';
   const motivo = motivoSinInscripcion(torneo);
+  const puedeVerResultados = Boolean(onVerResultados) && torneo.estado !== 'Abierto';
   const puedeInscribirse = Boolean(onInscribir) && torneo.admite_inscripcion && !esEquipos;
 
   return (
@@ -38,6 +40,7 @@ export default function TorneoDetalleModal({ torneo, onClose, onEditar, onInscri
       footer={(
         <>
           <Button variant="secondary" onClick={onClose}>Cerrar</Button>
+          {puedeVerResultados && <Button variant="secondary" onClick={() => onVerResultados(torneo)}>Ver resultados</Button>}
           {onEditar && <Button variant="secondary" onClick={() => onEditar(torneo)}>Editar</Button>}
           {puedeInscribirse && <Button onClick={() => onInscribir(torneo)}>Inscribirme</Button>}
         </>

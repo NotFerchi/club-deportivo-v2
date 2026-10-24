@@ -40,3 +40,13 @@ export function motivoSinInscripcion(torneo) {
   }
   return 'El periodo de inscripción ya terminó.';
 }
+
+/**
+ * "2026-11-08T10:30" → "08 nov 2026, 10:30". Sin valor → "Por programar".
+ * El backend manda la hora del club como texto local, sin zona: no se pasa por Date en UTC.
+ */
+export function formatFechaHora(valor) {
+  const m = String(valor ?? '').match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+  if (!m) return 'Por programar';
+  return `${formatFecha(m[1])}, ${m[2]}`;
+}

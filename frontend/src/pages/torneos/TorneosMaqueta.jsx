@@ -4,6 +4,7 @@ import TorneosListado from '../../components/torneos-ui/TorneosListado';
 import TorneoDetalleModal from '../../components/torneos-ui/TorneoDetalleModal';
 import TorneoFormModal from '../../components/torneos-ui/TorneoFormModal';
 import InscripcionModal from '../../components/torneos-ui/InscripcionModal';
+import ReporteTorneoModal from '../../components/torneos-ui/ReporteTorneoModal';
 import { ESTADOS_TORNEO } from '../../components/torneos-ui/torneoEstado';
 import { guardarTorneo, listarCategorias, inscribirme, listarDisciplinas, listarTorneos } from '../../mocks/torneos';
 
@@ -26,6 +27,7 @@ export default function TorneosMaqueta() {
   // undefined = formulario cerrado; null = crear; objeto = editar ese torneo
   const [formTorneo, setFormTorneo] = useState(undefined);
   const [inscribiendo, setInscribiendo] = useState(null);
+  const [viendoResultados, setViendoResultados] = useState(null);
   const [aviso, setAviso] = useState(null);
 
   // Cada cambio de filtros o de `version` (Reintentar) vuelve a pedir la lista.
@@ -137,7 +139,16 @@ export default function TorneosMaqueta() {
         onClose={() => setSeleccionado(null)}
         onEditar={esStaff ? (torneo) => { setSeleccionado(null); setAviso(null); setFormTorneo(torneo); } : undefined}
         onInscribir={esStaff ? undefined : (torneo) => { setSeleccionado(null); setAviso(null); setInscribiendo(torneo); }}
+        onVerResultados={(torneo) => { setSeleccionado(null); setViendoResultados(torneo); }}
       />
+
+      {viendoResultados && (
+        <ReporteTorneoModal
+          key={viendoResultados.torneo_id}
+          torneo={viendoResultados}
+          onClose={() => setViendoResultados(null)}
+        />
+      )}
 
       <InscripcionModal
         torneo={inscribiendo}

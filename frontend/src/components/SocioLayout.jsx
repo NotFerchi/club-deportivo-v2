@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, GraduationCap, Baby,
-  AlertCircle, LogOut, ChevronDown, Bell, Trophy, QrCode, X,
+  AlertCircle, LogOut, ChevronDown, Bell, Trophy, QrCode, X, Star,
   CheckCheck
 } from 'lucide-react'
 import { apiRequest } from '../services/api'
@@ -250,6 +250,7 @@ function SocioLayout({ children, activeTab = 'inicio', title }) {
     { id: 'inicio',    label: 'Inicio',    icon: LayoutDashboard, path: '/dashboard-socio' },
     { id: 'reservas',  label: 'Reservas',  icon: Calendar,        path: '/reservas' },
     { id: 'clases',    label: 'Clases',    icon: GraduationCap,   path: '/clases' },
+    { id: 'evaluar',   label: 'Evaluar',   icon: Star,            path: '/evaluaciones' },
     { id: 'ludoteca',  label: 'Ludoteca',  icon: Baby,            path: '/ludoteca' },
     { id: 'torneos',   label: 'Torneos',   icon: Trophy,          path: '/torneos' },
     { id: 'sanciones', label: 'Historial', icon: AlertCircle,     path: '/sanciones' },

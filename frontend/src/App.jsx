@@ -15,6 +15,7 @@ import Clases from './pages/dashboards/socio/Clases'
 import Ludoteca from './pages/dashboards/socio/Ludoteca'
 import Sanciones from './pages/dashboards/socio/Sanciones'
 import Torneos from './pages/dashboards/socio/Torneos'
+import Evaluaciones from './pages/dashboards/socio/Evaluaciones'
 import Espacios from './pages/Espacios'
 
 // Playground del UI Kit: solo en desarrollo. En build de producción
@@ -106,6 +107,7 @@ function App() {
           <Route path="/ludoteca" element={<ProtectedRoute allowedRoles={['socio']}><Ludoteca /></ProtectedRoute>} />
           <Route path="/sanciones" element={<ProtectedRoute allowedRoles={['socio']}><Sanciones /></ProtectedRoute>} />
           <Route path="/torneos" element={<ProtectedRoute allowedRoles={['socio']}><Torneos /></ProtectedRoute>} />
+          <Route path="/evaluaciones" element={<ProtectedRoute allowedRoles={['socio']}><Evaluaciones /></ProtectedRoute>} />
           <Route path="/components/socio-layout" element={<SocioLayout />} />
 
           {import.meta.env.DEV && (

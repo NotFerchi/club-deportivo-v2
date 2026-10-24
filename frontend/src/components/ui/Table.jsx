@@ -20,6 +20,8 @@ import './Table.css';
  *   emptyAction  - nodo bajo el mensaje vacío (p. ej. <Button variant="secondary">); opcional
  *   getRowKey    - (row, index) => key; default row.id ?? index
  *   onRowClick   - (row) => void; opcional, hace la fila clicable
+ *   minWidth     - ancho mínimo en px de la tabla; por debajo de ese ancho el contenedor se
+ *                  desplaza de lado en vez de apretar las columnas (pantallas pequeñas); opcional
  *   className    - clase extra del contenedor; opcional
  */
 export function Table({
@@ -30,6 +32,7 @@ export function Table({
   emptyAction,
   getRowKey = (row, index) => row?.id ?? index,
   onRowClick,
+  minWidth,
   className,
 }) {
   const classes = className ? `ui-table ${className}` : 'ui-table';
@@ -37,7 +40,7 @@ export function Table({
 
   return (
     <div className={classes}>
-      <table className="ui-table__table">
+      <table className="ui-table__table" style={minWidth ? { minWidth } : undefined}>
         <thead>
           <tr className="ui-table__row ui-table__row--header">
             {columns.map((column) => (

@@ -1,6 +1,6 @@
 // Estado de un torneo → texto y variante del Badge del kit. Un solo lugar para toda la UI nueva.
-// (No reutiliza components/torneos/torneoUtils.js: ese archivo usa colores sueltos y lo
-// reemplaza E3.3.)
+// (No reutiliza components/torneos/torneoUtils.js: ese archivo usa colores sueltos y sigue
+// siendo de las pantallas viejas, como el bracket.)
 
 export const ESTADOS_TORNEO = [
   { value: 'Abierto', label: 'Abierto', variant: 'success' },

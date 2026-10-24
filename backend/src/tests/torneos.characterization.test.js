@@ -33,7 +33,7 @@ const rows = (list) => ({ rows: list, rowCount: list.length });
 const LOCK_INSCRIPCION =
   "SELECT estado, categoria_id, tipo_torneo, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, " +
   "to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion, " +
-  "to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE";
+  "to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion, cupo_maximo FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE";
 const ERROR_HANDLER = { ok: false, error: 'Error interno del servidor' };
 
 let db;
@@ -59,7 +59,7 @@ function route(q) {
   if (q.startsWith('SELECT pt.participante_id, pt.torneo_id')) return rows(db.participantes);
   if (q.startsWith('SELECT * FROM socios')) return rows(db.socio);
   if (q.startsWith('SELECT * FROM visitas')) return rows(db.visita);
-  if (q.startsWith('SELECT categoria_id FROM categorias_torneo')) return rows(db.categoria);
+  if (q.startsWith('SELECT categoria_id, activo FROM categorias_torneo')) return rows(db.categoria);
   if (q.startsWith('SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND (socio_id'))
     return rows(db.duplicado);
   if (q.startsWith('SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND socio_id'))
@@ -68,6 +68,10 @@ function route(q) {
   if (q.startsWith('SELECT nombre_externo FROM participantes_torneo')) return rows(db.externos);
   if (q.startsWith('INSERT INTO participantes_torneo')) return rows([{ participante_id: 31 }]);
   if (q === 'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE') return rows(db.torneoLock);
+  if (q === 'SELECT estado, nombre FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE')
+    return rows(db.torneoLock.map((t) => ({ nombre: 'Copa', ...t })));
+  // auditoría (E2.10): logAudit atrapa sus errores, así que un fallo aquí no cambia la respuesta
+  if (q.startsWith('INSERT INTO logs_sistema')) return rows([]);
   // inscribir e inscribir-me bloquean el torneo leyendo estado, categoría y modalidad
   if (q === LOCK_INSCRIPCION)
     return rows(db.torneoInfo);
@@ -84,7 +88,7 @@ function route(q) {
   if (q.startsWith('SELECT t.torneo_id, t.nombre, t.estado, d.nombre AS disciplina')) return rows(db.reporteTorneo);
   if (q.startsWith('SELECT e.encuentro_id, e.ronda, e.estado, e.marcador_1')) return rows(db.reporteEncuentros);
   if (q.startsWith('SELECT e.encuentro_id, e.ronda, e.estado, e.cancha_asignada')) return rows(db.bracket);
-  if (q.startsWith('SELECT categoria_id, nombre FROM categorias_torneo')) return rows(db.categorias);
+  if (q.startsWith('SELECT categoria_id, nombre, activo FROM categorias_torneo')) return rows(db.categorias);
   if (q.startsWith('SELECT socio_id FROM socios WHERE usuario_id = $1 AND activo')) return rows(db.socioPropio);
   if (q.startsWith('SELECT socio_id FROM socios WHERE usuario_id = $1')) return rows(db.socioMis);
   if (q.startsWith('DELETE FROM participantes_torneo')) return rows(db.borrado);
@@ -129,7 +133,7 @@ beforeEach(() => {
     ],
     socio: [{ socio_id: 10 }],
     visita: [{ visita_id: 20 }],
-    categoria: [{ categoria_id: 3 }],
+    categoria: [{ categoria_id: 3, activo: true }],
     duplicado: [],
     existente: [],
     externos: [],
@@ -201,7 +205,7 @@ beforeEach(() => {
       { encuentro_id: 102, ronda: null, estado: 'pendiente', participante_1_nombre: 'Por definir' },
       { encuentro_id: 103, ronda: 2, estado: 'pendiente', participante_1_nombre: 'Por definir' }
     ],
-    categorias: [{ categoria_id: 3, nombre: 'Libre' }],
+    categorias: [{ categoria_id: 3, nombre: 'Libre', activo: true }],
     socioPropio: [{ socio_id: 10 }],
     socioMis: [{ socio_id: 10 }],
     torneoInfo: [{ estado: 'Abierto', categoria_id: 3, tipo_torneo: 'Individual' }],
@@ -232,7 +236,8 @@ describe('GET /api/torneos', () => {
   it('sin filtros y con filtros → SQL según filtros', async () => {
     let res = await request(app).get('/api/torneos');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(db.torneos);
+    // el mock no trae estado: admite_inscripcion se calcula como false (E2.12, ver torneoAdmiteInscripcion.test.js)
+    expect(res.body).toEqual([{ ...db.torneos[0], admite_inscripcion: false }]);
 
     res = await request(app).get('/api/torneos').query({ disciplina_id: '2', estado: 'abierto' });
     expect(res.status).toBe(200);
@@ -549,10 +554,11 @@ describe('PUT /api/torneos/:torneo_id', () => {
       const res = await editar(3);
       expect(res.status).toBe(200);
       expect(escrituras()).toEqual([
-        ['torneos', [2, 'Copa', null, null, 3, null, null, null, 4]],
+        ['torneos', [2, 'Copa', null, null, 3, null, null, null, 4, null]],
         ['participantes_torneo', [3, 4]]
       ]);
-      expect(log.at(-1)[1]).toBe('COMMIT');
+      // la transacción termina en COMMIT; después solo va la auditoría (pool, fuera de la transacción)
+      expect(log.filter(([origen]) => origen === 'client').at(-1)[1]).toBe('COMMIT');
     });
 
     it('X → Y con inscritos: 409 y no cambia nada', async () => {
@@ -567,7 +573,7 @@ describe('PUT /api/torneos/:torneo_id', () => {
     it('X → Y sin inscritos: 200, cambia el torneo y no toca participantes', async () => {
       const res = await editar(5);
       expect(res.status).toBe(200);
-      expect(escrituras()).toEqual([['torneos', [2, 'Copa', null, null, 5, null, null, null, 4]]]);
+      expect(escrituras()).toEqual([['torneos', [2, 'Copa', null, null, 5, null, null, null, 4, null]]]);
     });
 
     it('misma categoría: 200 sin contar inscritos ni tocar participantes', async () => {
@@ -599,7 +605,7 @@ describe('PUT /api/torneos/:torneo_id', () => {
         .send({ nombre: 'Copa renombrada', disciplina_id: 2, fecha_inicio: '2026-11-01', fecha_fin: '2026-11-02' });
       expect(res.status).toBe(200);
       const update = log.find(([, sql]) => sql.startsWith('UPDATE torneos'));
-      expect(update[2]).toEqual([2, 'Copa renombrada', '2026-11-01', '2026-11-02', null, null, null, null, 4]);
+      expect(update[2]).toEqual([2, 'Copa renombrada', '2026-11-01', '2026-11-02', null, null, null, null, 4, null]);
     }
   );
 
@@ -1424,11 +1430,14 @@ describe('DELETE /api/torneos/:torneo_id', () => {
     await eliminar();
     expect(sqls()).toEqual([
       'BEGIN',
-      'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE',
+      'SELECT estado, nombre FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE',
       'SELECT EXISTS (SELECT 1 FROM participantes_torneo WHERE torneo_id = $1) AS tiene_participantes, EXISTS (SELECT 1 FROM encuentros_torneo WHERE torneo_id = $1) AS tiene_encuentros',
       'DELETE FROM torneos WHERE torneo_id = $1',
-      'COMMIT'
+      'COMMIT',
+      // auditoría (E2.10), ya fuera de la transacción
+      'INSERT INTO logs_sistema (usuario_id, accion, tabla_afectada, detalles, ip_origen, registro_id) VALUES ($1, $2, $3, $4, $5, $6)'
     ]);
+    expect(log.at(-1)[2]).toEqual([7, 'eliminar_torneo', 'torneos', 'Torneo eliminado (fisico): Copa', expect.any(String), 4]);
     expect(client.release).toHaveBeenCalled();
   });
 
@@ -1438,7 +1447,7 @@ describe('DELETE /api/torneos/:torneo_id', () => {
     const res = await eliminar();
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ error: 'Cancela el torneo antes de eliminarlo' });
-    expect(sqls()).toEqual(['BEGIN', 'SELECT estado FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE', 'ROLLBACK']);
+    expect(sqls()).toEqual(['BEGIN', 'SELECT estado, nombre FROM torneos WHERE torneo_id = $1 AND activo FOR UPDATE', 'ROLLBACK']);
   });
 
   it.each(['Abierto', 'Inscripciones_cerradas', 'Finalizado', 'Cancelado'])('desde %s → 200', async (estado) => {
@@ -1494,7 +1503,6 @@ describe('torneos eliminados (activo = FALSE) no se muestran', () => {
     expect(log.find(([, sql]) => sql.startsWith('SELECT pt.participante_id, t.torneo_id'))[1]).toContain(
       'WHERE pt.socio_id = $1 AND t.activo'
     );
-
   });
 });
 
@@ -1544,7 +1552,7 @@ describe('fechas de inscripción (F-07)', () => {
         fecha_fin_inscripcion: '2026-11-06'
       });
       expect(res.status).toBe(201);
-      expect(insertTorneo()[2].slice(-2)).toEqual(['2026-10-20', '2026-11-06']);
+      expect(insertTorneo()[2].slice(-3)).toEqual(['2026-10-20', '2026-11-06', null]);
     });
 
     it('sin fechas de inscripción → 201 con NULL; fin igual a fecha_inicio → 201', async () => {
@@ -1706,8 +1714,8 @@ describe('fecha de inicio anterior a hoy (E2.5)', () => {
   });
 
   describe('PUT /api/torneos/:torneo_id', () => {
-    const conInicio = (fecha_inicio_actual) => {
-      db.torneoEditable = [{ ...db.torneoEditable[0], fecha_inicio_actual }];
+    const conInicio = (fecha_inicio) => {
+      db.torneoEditable = [{ ...db.torneoEditable[0], fecha_inicio }];
     };
 
     it('cambia a una fecha pasada → 400 sin UPDATE', async () => {

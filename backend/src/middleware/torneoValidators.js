@@ -8,9 +8,11 @@
 const { validateInput } = require('./validators');
 const {
   ERROR_CATEGORIA_REQUERIDA,
+  ERROR_CUPO_INVALIDO,
   ERROR_FECHAS_TORNEO,
   ERROR_TIPO_PARTICIPANTE,
   esIdValido,
+  normalizarCupo,
   tieneValor
 } = require('../services/torneoComun');
 const {
@@ -61,8 +63,8 @@ function reglasNombreYDisciplina({ nombre, disciplina_id }) {
 }
 
 /**
- * Campos opcionales de POST y PUT: categoría, tipo, orden de las fechas del torneo y periodo de
- * inscripción (formato YYYY-MM-DD y orden con lo que venga en el body; en PUT el servicio vuelve a
+ * Campos opcionales de POST y PUT: categoría, tipo, cupo_maximo (entero 4–256 o null, E2.4), orden de las
+ * fechas del torneo y periodo de inscripción (formato YYYY-MM-DD y orden con lo que venga en el body; en PUT el servicio vuelve a
  * comprobar el orden con los valores guardados de los campos que no vienen).
  */
 function reglasOpcionalesTorneo(body) {
@@ -73,6 +75,7 @@ function reglasOpcionalesTorneo(body) {
   if (tieneValor(tipo_torneo) && !TIPOS_TORNEO.includes(tipo_torneo)) {
     return bad('tipo_torneo debe ser Individual o Equipos');
   }
+  if (Number.isNaN(normalizarCupo(body.cupo_maximo))) return bad(ERROR_CUPO_INVALIDO);
   // Mismo CHECK que la BD (fecha_fin >= fecha_inicio); otros formatos los valida PostgreSQL
   if (FECHA_ISO.test(fecha_inicio) && FECHA_ISO.test(fecha_fin) && fecha_fin < fecha_inicio) {
     return bad(ERROR_FECHAS_TORNEO);
@@ -136,6 +139,37 @@ const desinscribir = validateInput((req) =>
     : null
 );
 
+// ── Categorías (E2.6) ────────────────────────────────────────────────────────
+
+// categorias_torneo.nombre es VARCHAR(50).
+const MAX_NOMBRE_CATEGORIA = 50;
+
+const reglaCategoriaId = (req) =>
+  esIdValido(req.params.categoria_id) === null ? bad('categoria_id debe ser un entero valido') : null;
+
+function reglaNombreCategoria(req) {
+  const { nombre } = cuerpo(req);
+  if (typeof nombre !== 'string' || nombre.trim() === '') return bad('El nombre es requerido');
+  if (nombre.trim().length > MAX_NOMBRE_CATEGORIA) return bad(maximo(MAX_NOMBRE_CATEGORIA));
+  return null;
+}
+
+/** GET /categorias: `activas` opcional, 'true' o 'false'. */
+const filtroCategorias = validateInput((req) => {
+  const { activas } = req.query;
+  if (tieneValor(activas) && !['true', 'false'].includes(activas)) return bad('activas debe ser true o false');
+  return null;
+});
+
+/** POST /categorias: nombre requerido (≤ 50). */
+const crearCategoria = validateInput(reglaNombreCategoria);
+
+/** PUT /categorias/:categoria_id: id válido y nombre requerido (≤ 50). */
+const renombrarCategoria = validateInput((req) => reglaCategoriaId(req) || reglaNombreCategoria(req));
+
+/** PATCH /categorias/:categoria_id/desactivar: id válido. */
+const categoriaId = validateInput(reglaCategoriaId);
+
 // ── Encuentros ───────────────────────────────────────────────────────────────
 
 const esNoNegativo = (valor) => Number.isInteger(Number(valor)) && Number(valor) >= 0;
@@ -171,7 +205,48 @@ const asignarCancha = validateInput((req) => {
   return null;
 });
 
+const HORA_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+
+/** 'YYYY-MM-DDTHH:mm' con fecha y hora que existen (sin 2026-02-30 ni 25:00). */
+function esHoraLocalValida(valor) {
+  const partes = typeof valor === 'string' ? HORA_LOCAL.exec(valor) : null;
+  if (!partes) return false;
+  const [anio, mes, dia, hora, minuto] = partes.slice(1).map(Number);
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia, hora, minuto));
+  return (
+    fecha.getUTCFullYear() === anio &&
+    fecha.getUTCMonth() === mes - 1 &&
+    fecha.getUTCDate() === dia &&
+    fecha.getUTCHours() === hora &&
+    fecha.getUTCMinutes() === minuto
+  );
+}
+
+/** PATCH /:encuentro_id/horario: id válido; hora_programada presente, null o 'YYYY-MM-DDTHH:mm' válida. */
+const asignarHorario = validateInput((req) => {
+  if (esIdValido(req.params.encuentro_id) === null) return badOk('encuentro_id inválido');
+  const { hora_programada } = cuerpo(req);
+  if (hora_programada === undefined) return badOk('hora_programada es requerida');
+  if (hora_programada !== null && !esHoraLocalValida(hora_programada)) {
+    return badOk('hora_programada debe tener el formato YYYY-MM-DDTHH:mm');
+  }
+  return null;
+});
+
+/** PATCH /:encuentro_id/arbitro: id válido; instructor_id presente, null o id válido. */
+const asignarArbitro = validateInput((req) => {
+  if (esIdValido(req.params.encuentro_id) === null) return badOk('encuentro_id inválido');
+  const { instructor_id } = cuerpo(req);
+  if (instructor_id === undefined) return badOk('instructor_id es requerido');
+  if (instructor_id !== null && esIdValido(instructor_id) === null) {
+    return badOk('instructor_id debe ser un entero valido');
+  }
+  return null;
+});
+
 module.exports = {
+  asignarHorario,
+  asignarArbitro,
   torneoId,
   torneoIdConAcento,
   filtroDisciplina,
@@ -179,6 +254,10 @@ module.exports = {
   actualizarTorneo,
   inscribirParticipante,
   desinscribir,
+  filtroCategorias,
+  crearCategoria,
+  renombrarCategoria,
+  categoriaId,
   registrarResultado,
   asignarCancha
 };

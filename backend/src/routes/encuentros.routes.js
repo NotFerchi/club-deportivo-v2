@@ -21,4 +21,21 @@ router.patch(
   encuentrosController.asignarCancha
 );
 
+router.patch(
+  '/:encuentro_id/horario',
+  verifyToken,
+  checkRole(['admin', 'gerente', 'coordinador']),
+  validar.asignarHorario,
+  encuentrosController.asignarHorario
+);
+
+// Con árbitro asignado, solo ese instructor (o el staff) registra el resultado
+router.patch(
+  '/:encuentro_id/arbitro',
+  verifyToken,
+  checkRole(['admin', 'gerente', 'coordinador']),
+  validar.asignarArbitro,
+  encuentrosController.asignarArbitro
+);
+
 module.exports = router;

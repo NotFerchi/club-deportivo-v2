@@ -1,6 +1,9 @@
 const torneoService = require('../services/torneoService');
 const participanteService = require('../services/participanteService');
 const bracketService = require('../services/bracketService');
+const categoriaService = require('../services/categoriaService');
+const logService = require('../services/logService');
+const { logAudit } = require('../utils/auditLogger');
 const ServiceError = require('../services/serviceError');
 const { isEscalated } = require('../services/escalate');
 const { ERROR_PARTICIPANTE_DUPLICADO } = require('../services/torneoComun');
@@ -17,6 +20,13 @@ function handleError(res, error, logMessage, message, pgErrors = {}) {
   if (mapped) return res.status(mapped[0]).json({ error: mapped[1] });
   return res.status(500).json({ error: message });
 }
+
+/**
+ * Auditoría de torneos (E2.10, contrato §4): solo tras una operación exitosa. logAudit atrapa sus propios
+ * errores (solo registra un aviso), así que un fallo del log nunca cambia la respuesta.
+ */
+const auditarTorneo = (req, accion, torneoId, detalles) =>
+  logAudit(req, { accion, tabla_afectada: 'torneos', registro_id: torneoId, detalles });
 
 // Errores de PostgreSQL al guardar un torneo (INSERT / UPDATE). Fechas, tipo, disciplina y categoría
 // se validan antes (ruta y servicio); 23514 y 23503 quedan solo como red de seguridad, con un mensaje neutro.
@@ -45,6 +55,7 @@ const torneosController = {
   createTorneo: async (req, res) => {
     try {
       const torneoId = await torneoService.crearTorneo(req.body);
+      await auditarTorneo(req, 'crear_torneo', torneoId, `Torneo creado: ${req.body.nombre.trim()}`);
       res.status(201).json({ torneo_id: torneoId });
     } catch (error) {
       handleError(res, error, 'Error al crear torneo:', 'Error al crear torneo', PG_ERRORES_TORNEO);
@@ -53,7 +64,8 @@ const torneosController = {
 
   updateTorneo: async (req, res) => {
     try {
-      const torneoId = await torneoService.actualizarTorneo(req.params.torneo_id, req.body);
+      const { torneoId, cambios } = await torneoService.actualizarTorneo(req.params.torneo_id, req.body);
+      await auditarTorneo(req, 'actualizar_torneo', torneoId, cambios);
       res.json({ ok: true, torneo_id: torneoId, message: 'Torneo actualizado correctamente' });
     } catch (error) {
       handleError(res, error, 'Error al actualizar torneo:', 'Error al actualizar torneo', PG_ERRORES_TORNEO);
@@ -111,9 +123,38 @@ const torneosController = {
 
   getCategorias: async (req, res) => {
     try {
-      res.json(await torneoService.listarCategorias());
+      res.json(await categoriaService.listarCategorias({ soloActivas: req.query.activas === 'true' }));
     } catch (error) {
       handleError(res, error, 'Error al obtener categorías:', 'Error al obtener categorías');
+    }
+  },
+
+  createCategoria: async (req, res) => {
+    try {
+      res.status(201).json(await categoriaService.crearCategoria(req.body.nombre));
+    } catch (error) {
+      handleError(res, error, 'Error al crear categoría:', 'Error al crear categoría');
+    }
+  },
+
+  updateCategoria: async (req, res) => {
+    try {
+      const { categoria_id, nombre } = await categoriaService.renombrarCategoria(
+        req.params.categoria_id,
+        req.body.nombre
+      );
+      res.json({ ok: true, categoria_id, nombre, message: 'Categoría actualizada correctamente' });
+    } catch (error) {
+      handleError(res, error, 'Error al actualizar categoría:', 'Error al actualizar categoría');
+    }
+  },
+
+  desactivarCategoria: async (req, res) => {
+    try {
+      await categoriaService.desactivarCategoria(req.params.categoria_id);
+      res.json({ ok: true, message: 'Categoría desactivada correctamente' });
+    } catch (error) {
+      handleError(res, error, 'Error al desactivar categoría:', 'Error al desactivar categoría');
     }
   },
 
@@ -170,16 +211,27 @@ const torneosController = {
 
   cancelarTorneo: async (req, res) => {
     try {
-      await torneoService.cancelarTorneo(req.params.torneo_id);
+      const estadoAnterior = await torneoService.cancelarTorneo(req.params.torneo_id);
+      await auditarTorneo(req, 'cancelar_torneo', Number(req.params.torneo_id), `Cancelado desde ${estadoAnterior}`);
       res.json({ ok: true, message: 'Torneo cancelado correctamente' });
     } catch (error) {
       handleError(res, error, 'Error al cancelar torneo:', 'Error interno del servidor');
     }
   },
 
+  // Bitácora de solo lectura (E2.10): también responde para torneos eliminados, que es cuando más se consulta
+  getBitacora: async (req, res) => {
+    try {
+      res.json(await logService.logsDeRegistro('torneos', Number(req.params.torneo_id)));
+    } catch (error) {
+      handleError(res, error, 'Error al obtener bitácora del torneo:', 'Error al obtener la bitácora');
+    }
+  },
+
   eliminarTorneo: async (req, res) => {
     try {
-      const borrado = await torneoService.eliminarTorneo(req.params.torneo_id);
+      const { borrado, nombre } = await torneoService.eliminarTorneo(req.params.torneo_id);
+      await auditarTorneo(req, 'eliminar_torneo', Number(req.params.torneo_id), `Torneo eliminado (${borrado}): ${nombre}`);
       res.json({ ok: true, message: 'Torneo eliminado correctamente', borrado });
     } catch (error) {
       handleError(res, error, 'Error al eliminar torneo:', 'Error al eliminar torneo');

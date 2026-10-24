@@ -6,3 +6,5 @@ export { Select } from './Select';
 export { Badge } from './Badge';
 export { Alert } from './Alert';
 export { ProgressBar } from './ProgressBar';
+export { Stack } from './Stack';
+export { Text } from './Text';

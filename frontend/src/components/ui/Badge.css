@@ -1,0 +1,41 @@
+/* Badge — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-2) var(--space-10);
+    border: 1px solid transparent;
+    border-radius: var(--ui-radius-full);
+    font: var(--font-caption);
+    white-space: nowrap;
+}
+
+.ui-badge--neutral {
+    background: var(--color-bg-subtle);
+    border-color: var(--color-border-default);
+    color: var(--color-text-secondary);
+}
+
+.ui-badge--success {
+    background: var(--color-feedback-success-bg);
+    border-color: var(--color-feedback-success-border);
+    color: var(--color-feedback-success-text);
+}
+
+.ui-badge--warning {
+    background: var(--color-feedback-warning-bg);
+    border-color: var(--color-feedback-warning-border);
+    color: var(--color-feedback-warning-text);
+}
+
+.ui-badge--danger {
+    background: var(--color-feedback-danger-bg);
+    border-color: var(--color-feedback-danger-border);
+    color: var(--color-feedback-danger-text);
+}
+
+.ui-badge--info {
+    background: var(--color-feedback-info-bg);
+    border-color: var(--color-feedback-info-border);
+    color: var(--color-feedback-info-text);
+}

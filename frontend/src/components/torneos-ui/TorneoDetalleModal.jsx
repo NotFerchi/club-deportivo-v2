@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Badge, Button, Modal, ProgressBar, Stack, Text } from '../ui';
-import { estadoTorneo, formatFecha, motivoSinInscripcion } from './torneoEstado';
+import { estadoTorneo, formatFecha, motivoSinInscripcion, periodoInscripcion } from './torneoEstado';
 
 function Dato({ etiqueta, children }) {
   return (
@@ -29,6 +29,7 @@ export default function TorneoDetalleModal({ torneo, onClose, onEditar, onInscri
   const estado = estadoTorneo(torneo.estado);
   const esEquipos = torneo.tipo_torneo === 'Equipos';
   const motivo = motivoSinInscripcion(torneo);
+  const periodo = periodoInscripcion(torneo);
   const puedeVerResultados = Boolean(onVerResultados) && torneo.estado !== 'Abierto';
   const puedeInscribirse = Boolean(onInscribir) && torneo.admite_inscripcion && !esEquipos && !yaInscrito;
 
@@ -58,6 +59,11 @@ export default function TorneoDetalleModal({ torneo, onClose, onEditar, onInscri
           <Dato etiqueta="Inicio">{formatFecha(torneo.fecha_inicio)}</Dato>
           <Dato etiqueta="Fin">{formatFecha(torneo.fecha_fin)}</Dato>
           <Dato etiqueta="Categoría">{torneo.nombre_categoria || 'Sin categoría'}</Dato>
+        </Stack>
+
+        <Stack direction="row" gap={16} grow minChild={120}>
+          <Dato etiqueta="Inscripciones abren">{periodo.abre ? formatFecha(periodo.abre) : 'Sin límite'}</Dato>
+          <Dato etiqueta="Inscripciones cierran">{periodo.cierra ? formatFecha(periodo.cierra) : 'Sin límite'}</Dato>
         </Stack>
 
         {torneo.cupo_maximo === null

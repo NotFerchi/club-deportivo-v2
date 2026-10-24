@@ -7,11 +7,34 @@ const validar = require('../middleware/torneoValidators');
 const staffRoles = ['admin', 'gerente', 'coordinador'];
 
 router.get('/', verifyToken, validar.filtroDisciplina, torneosController.getTorneos);
-router.get('/categorias', verifyToken, torneosController.getCategorias);
+router.get('/categorias', verifyToken, validar.filtroCategorias, torneosController.getCategorias);
+router.post('/categorias', verifyToken, checkRole(staffRoles), validar.crearCategoria, torneosController.createCategoria);
+router.put(
+  '/categorias/:categoria_id',
+  verifyToken,
+  checkRole(staffRoles),
+  validar.renombrarCategoria,
+  torneosController.updateCategoria
+);
+// Desactivar, no borrar: los torneos y participantes que ya la usan la conservan
+router.patch(
+  '/categorias/:categoria_id/desactivar',
+  verifyToken,
+  checkRole(staffRoles),
+  validar.categoriaId,
+  torneosController.desactivarCategoria
+);
 router.get('/mis-participaciones', verifyToken, torneosController.getMisParticipaciones);
 router.get('/:torneo_id/participantes', verifyToken, validar.torneoId(), torneosController.getParticipantes);
 router.get('/:torneo_id/bracket', verifyToken, validar.torneoId(), torneosController.getBracket);
 router.get('/:torneo_id/reporte', verifyToken, validar.torneoIdConAcento(), torneosController.getReporte);
+router.get(
+  '/:torneo_id/bitacora',
+  verifyToken,
+  checkRole(staffRoles),
+  validar.torneoIdConAcento(),
+  torneosController.getBitacora
+);
 
 router.post('/', verifyToken, checkRole(staffRoles), validar.crearTorneo, torneosController.createTorneo);
 router.put('/:torneo_id', verifyToken, checkRole(staffRoles), validar.actualizarTorneo, torneosController.updateTorneo);

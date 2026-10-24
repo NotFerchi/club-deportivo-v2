@@ -6,12 +6,16 @@ const {
   ERROR_CATEGORIA_REQUERIDA,
   ERROR_DISCIPLINA_NO_EXISTE,
   bloquearTorneo,
+  contarInscritos,
   esIdValido,
+  hayCupo,
+  normalizarCupo,
   normalizarFechaOpcional,
   tieneValor
 } = require('./torneoComun');
 const { ESTADOS, admiteInscripciones, validarTransicion } = require('./torneoEstados');
-const { ERROR_INICIO_PASADO, iniciaEnElPasado, validarFechasInscripcion } = require('./torneoFechas');
+const { ERROR_INICIO_PASADO, enPeriodoInscripcion, hoyEnClub, iniciaEnElPasado, validarFechasInscripcion } = require('./torneoFechas');
+const { ERROR_CATEGORIA_INACTIVA } = require('./categoriaService');
 
 const badRequest = (error) => new ServiceError(400, { error });
 
@@ -19,6 +23,9 @@ const ERROR_ESTADO_NO_EDITABLE = 'El estado se cambia con las acciones del torne
 const ERROR_TORNEO_BLOQUEADO =
   'Con las inscripciones cerradas no se puede cambiar la disciplina, el tipo de torneo ni la categoría';
 const ERROR_CATEGORIA_CON_INSCRITOS = 'No se puede cambiar la categoría: el torneo ya tiene inscritos';
+const ERROR_CUPO_BLOQUEADO = 'Con las inscripciones cerradas no se puede cambiar el cupo';
+const errorCupoMenorQueInscritos = (inscritos) =>
+  `El cupo no puede ser menor que los inscritos actuales (${inscritos}); no se da de baja a nadie`;
 const ERROR_ELIMINAR_EN_CURSO = 'Cancela el torneo antes de eliminarlo';
 
 // ── Consulta ─────────────────────────────────────────────────────────────────
@@ -56,7 +63,9 @@ async function listarTorneos({ disciplina_id, estado }) {
           t.categoria_id,
           ct.nombre AS nombre_categoria,
           COUNT(pt.participante_id)::int AS total_participantes,
-          (COUNT(pt.participante_id) >= 4) AS se_realiza
+          (COUNT(pt.participante_id) >= 4) AS se_realiza,
+          t.cupo_maximo,
+          ${COLUMNAS_PERIODO_LISTADO}
         FROM torneos t
         JOIN disciplinas d ON t.disciplina_id = d.disciplina_id
         LEFT JOIN categorias_torneo ct ON ct.categoria_id = t.categoria_id
@@ -67,12 +76,40 @@ async function listarTorneos({ disciplina_id, estado }) {
       `,
     valores
   );
-  return result.rows;
+  const hoy = hoyEnClub();
+  return result.rows.map(({ periodo_fecha_inicio, periodo_inicio_inscripcion, periodo_fin_inscripcion, ...torneo }) => ({
+    ...torneo,
+    admite_inscripcion: admiteInscripcion(
+      torneo,
+      {
+        fecha_inicio: periodo_fecha_inicio,
+        fecha_inicio_inscripcion: periodo_inicio_inscripcion,
+        fecha_fin_inscripcion: periodo_fin_inscripcion
+      },
+      hoy
+    )
+  }));
 }
 
-async function listarCategorias() {
-  const result = await pool.query('SELECT categoria_id, nombre FROM categorias_torneo ORDER BY nombre');
-  return result.rows;
+// Fechas del periodo como texto 'YYYY-MM-DD' solo para calcular admite_inscripcion: las columnas públicas
+// (fecha_inicio, ...) conservan su formato de siempre. Se quitan de la respuesta.
+const COLUMNAS_PERIODO_LISTADO = [
+  "to_char(t.fecha_inicio, 'YYYY-MM-DD') AS periodo_fecha_inicio",
+  "to_char(t.fecha_inicio_inscripcion, 'YYYY-MM-DD') AS periodo_inicio_inscripcion",
+  "to_char(t.fecha_fin_inscripcion, 'YYYY-MM-DD') AS periodo_fin_inscripcion"
+].join(',\n          ');
+
+/**
+ * E2.12: true si hoy se puede inscribir alguien, con las mismas reglas que las inscripciones: estado
+ * Abierto, con categoría, dentro del periodo de inscripción (F-07) y con cupo libre (NULL = sin límite).
+ */
+function admiteInscripcion(torneo, periodo, hoy) {
+  return (
+    admiteInscripciones(torneo.estado) &&
+    torneo.categoria_id !== null &&
+    enPeriodoInscripcion(periodo, hoy) &&
+    hayCupo(torneo.total_participantes, torneo.cupo_maximo)
+  );
 }
 
 async function obtenerReporte(torneoIdParam) {
@@ -156,22 +193,27 @@ async function obtenerReporte(torneoIdParam) {
 
 // ── Alta / edición ───────────────────────────────────────────────────────────
 
-/** 400 si la disciplina o la categoría (cuando viene) no existen; `db` es el pool o el cliente de la transacción. */
-async function validarReferencias(db, disciplinaId, categoriaId) {
+/**
+ * 400 si la disciplina o la categoría (cuando viene) no existen; `db` es el pool o el cliente de la
+ * transacción. Con `exigirActiva` también 400 si la categoría está desactivada (E2.6): se exige al
+ * crear y al cambiar de categoría; un torneo que ya tenía una categoría desactivada la conserva.
+ */
+async function validarReferencias(db, disciplinaId, categoriaId, { exigirActiva = true } = {}) {
   const disciplina = await db.query('SELECT disciplina_id FROM disciplinas WHERE disciplina_id = $1', [disciplinaId]);
   if (disciplina.rowCount === 0) throw badRequest(ERROR_DISCIPLINA_NO_EXISTE);
 
   if (categoriaId !== null) {
-    const categoria = await db.query('SELECT categoria_id FROM categorias_torneo WHERE categoria_id = $1', [
+    const categoria = await db.query('SELECT categoria_id, activo FROM categorias_torneo WHERE categoria_id = $1', [
       categoriaId
     ]);
     if (categoria.rowCount === 0) throw badRequest(ERROR_CATEGORIA_NO_EXISTE);
+    if (exigirActiva && !categoria.rows[0].activo) throw badRequest(ERROR_CATEGORIA_INACTIVA);
   }
 }
 
 /**
- * Body validado en la ruta (nombre, disciplina_id, categoria_id, tipo_torneo, fechas y periodo de
- * inscripción). Todo torneo nace Abierto: `estado` se ignora.
+ * Body validado en la ruta (nombre, disciplina_id, categoria_id, tipo_torneo, fechas, periodo de
+ * inscripción y cupo_maximo). Todo torneo nace Abierto: `estado` se ignora. Sin cupo_maximo, sin límite.
  */
 async function crearTorneo(body) {
   const { nombre, disciplina_id, fecha_inicio, fecha_fin, categoria_id, tipo_torneo } = body;
@@ -182,8 +224,8 @@ async function crearTorneo(body) {
 
   const result = await pool.query(
     `INSERT INTO torneos (disciplina_id, nombre, fecha_inicio, fecha_fin, estado, categoria_id, tipo_torneo,
-                          fecha_inicio_inscripcion, fecha_fin_inscripcion)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                          fecha_inicio_inscripcion, fecha_fin_inscripcion, cupo_maximo)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING torneo_id`,
     [
       disciplinaId,
@@ -194,7 +236,8 @@ async function crearTorneo(body) {
       categoriaId,
       tipo_torneo || 'Individual',
       normalizarFechaOpcional(body.fecha_inicio_inscripcion),
-      normalizarFechaOpcional(body.fecha_fin_inscripcion)
+      normalizarFechaOpcional(body.fecha_fin_inscripcion),
+      normalizarCupo(body.cupo_maximo) ?? null
     ]
   );
 
@@ -211,6 +254,8 @@ async function crearTorneo(body) {
  * Las fechas de inscripción que no vienen en el body se conservan (null o '' las quitan), y el orden
  * de las fechas se comprueba con el resultado (400). Una fecha_inicio anterior a hoy (México) responde 400
  * solo si cambia (E2.5).
+ * cupo_maximo (E2.4): si no viene se conserva; null lo quita. Solo cambia con el torneo Abierto (409) y no
+ * puede quedar por debajo de los inscritos actuales (409): nunca se da de baja a nadie.
  */
 async function actualizarTorneo(torneoIdParam, body) {
   const torneoId = Number(torneoIdParam);
@@ -219,14 +264,15 @@ async function actualizarTorneo(torneoIdParam, body) {
 
   const categoriaId = tieneValor(categoria_id) ? esIdValido(categoria_id) : null;
 
-  await enTransaccion(async (client) => {
+  return enTransaccion(async (client) => {
     const actual = await bloquearTorneo(
       client,
       torneoId,
       `estado, disciplina_id, tipo_torneo, categoria_id,
        to_char(fecha_inicio_inscripcion, 'YYYY-MM-DD') AS fecha_inicio_inscripcion,
        to_char(fecha_fin_inscripcion, 'YYYY-MM-DD') AS fecha_fin_inscripcion,
-       to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio_actual`
+       nombre, to_char(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, to_char(fecha_fin, 'YYYY-MM-DD') AS fecha_fin,
+       cupo_maximo`
     );
 
     if (tieneValor(estado) && estado !== actual.estado) throw badRequest(ERROR_ESTADO_NO_EDITABLE);
@@ -242,7 +288,7 @@ async function actualizarTorneo(torneoIdParam, body) {
     if (fechasMal) throw badRequest(fechasMal);
 
     // E2.5: una fecha de inicio pasada solo se rechaza si cambia, para seguir editando torneos antiguos
-    if (fechas.fecha_inicio !== actual.fecha_inicio_actual && iniciaEnElPasado(fechas.fecha_inicio)) {
+    if (fechas.fecha_inicio !== actual.fecha_inicio && iniciaEnElPasado(fechas.fecha_inicio)) {
       throw badRequest(ERROR_INICIO_PASADO);
     }
 
@@ -255,10 +301,21 @@ async function actualizarTorneo(torneoIdParam, body) {
       }
     }
 
-    await validarReferencias(client, disciplinaId, categoriaId);
-
     // Solo con el torneo Abierto puede cambiar la categoría (si no, ya respondió 409 arriba)
     const cambiaCategoria = categoriaId !== actual.categoria_id;
+    await validarReferencias(client, disciplinaId, categoriaId, { exigirActiva: cambiaCategoria });
+
+    const cupoPedido = normalizarCupo(body.cupo_maximo);
+    const cupo = cupoPedido === undefined ? (actual.cupo_maximo ?? null) : cupoPedido;
+    if (cupo !== (actual.cupo_maximo ?? null)) {
+      if (!admiteInscripciones(actual.estado)) throw new ServiceError(409, { error: ERROR_CUPO_BLOQUEADO });
+      if (cupo !== null) {
+        const inscritos = await contarInscritos(client, torneoId);
+        // cupo === inscritos es válido (queda lleno); menor dejaría inscritos fuera
+        if (cupo < inscritos) throw new ServiceError(409, { error: errorCupoMenorQueInscritos(inscritos) });
+      }
+    }
+
     if (cambiaCategoria && actual.categoria_id !== null) {
       const inscritos = await client.query(
         'SELECT COUNT(*)::int AS total FROM participantes_torneo WHERE torneo_id = $1',
@@ -276,7 +333,8 @@ async function actualizarTorneo(torneoIdParam, body) {
              categoria_id  = $5,
              tipo_torneo   = COALESCE($6, tipo_torneo),
              fecha_inicio_inscripcion = $7,
-             fecha_fin_inscripcion    = $8
+             fecha_fin_inscripcion    = $8,
+             cupo_maximo   = $10
          WHERE torneo_id = $9`,
       [
         disciplinaId,
@@ -287,7 +345,8 @@ async function actualizarTorneo(torneoIdParam, body) {
         tipo_torneo || null,
         fechas.fecha_inicio_inscripcion,
         fechas.fecha_fin_inscripcion,
-        torneoId
+        torneoId,
+        cupo
       ]
     );
 
@@ -298,9 +357,30 @@ async function actualizarTorneo(torneoIdParam, body) {
         torneoId
       ]);
     }
-  });
 
-  return torneoId;
+    const despues = {
+      nombre: nombre.trim(),
+      disciplina_id: disciplinaId,
+      tipo_torneo: tipo_torneo || actual.tipo_torneo,
+      categoria_id: categoriaId,
+      fecha_inicio: fechas.fecha_inicio,
+      fecha_fin: normalizarFechaOpcional(fecha_fin),
+      fecha_inicio_inscripcion: fechas.fecha_inicio_inscripcion,
+      fecha_fin_inscripcion: fechas.fecha_fin_inscripcion,
+      cupo_maximo: cupo
+    };
+    return { torneoId, cambios: camposCambiados(actual, despues) };
+  });
+}
+
+/** Para la auditoría (E2.10): { campo: { antes, despues } } de los campos que cambiaron. */
+function camposCambiados(antes, despues) {
+  const cambios = {};
+  for (const [campo, valor] of Object.entries(despues)) {
+    const anterior = antes[campo] ?? null;
+    if (anterior !== valor) cambios[campo] = { antes: anterior, despues: valor };
+  }
+  return cambios;
 }
 
 // ── Cambios de estado ────────────────────────────────────────────────────────
@@ -342,15 +422,16 @@ async function finalizarTorneo(torneoIdParam) {
   });
 }
 
-/** Cualquier estado no final → Cancelado. */
+/** Cualquier estado no final → Cancelado. Devuelve el estado anterior (para la auditoría). */
 async function cancelarTorneo(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
-  await enTransaccion(async (client) => {
+  return enTransaccion(async (client) => {
     const torneo = await bloquearTorneo(client, torneoId);
     validarTransicion(torneo.estado, ESTADOS.CANCELADO);
 
     await client.query('UPDATE torneos SET estado = $1 WHERE torneo_id = $2', [ESTADOS.CANCELADO, torneoId]);
+    return torneo.estado;
   });
 }
 
@@ -360,13 +441,13 @@ async function cancelarTorneo(torneoIdParam) {
  * Sin participantes ni encuentros: borra la fila ('fisico'). Con historial: activo = FALSE ('logico'),
  * porque las FKs de participantes_torneo y encuentros_torneo no tienen ON DELETE. Con la fila bloqueada,
  * nadie puede inscribirse ni generar el bracket entre la comprobación y el borrado. 404 si no existe o
- * ya está eliminado; 409 si está en curso (primero se cancela).
+ * ya está eliminado; 409 si está en curso (primero se cancela). Devuelve { borrado, nombre }.
  */
 async function eliminarTorneo(torneoIdParam) {
   const torneoId = Number(torneoIdParam); // entero: validado en la ruta
 
   return enTransaccion(async (client) => {
-    const torneo = await bloquearTorneo(client, torneoId);
+    const torneo = await bloquearTorneo(client, torneoId, 'estado, nombre');
     if (torneo.estado === ESTADOS.EN_CURSO) throw new ServiceError(409, { error: ERROR_ELIMINAR_EN_CURSO });
 
     const { rows } = await client.query(
@@ -378,17 +459,16 @@ async function eliminarTorneo(torneoIdParam) {
 
     if (!tiene_participantes && !tiene_encuentros) {
       await client.query('DELETE FROM torneos WHERE torneo_id = $1', [torneoId]);
-      return 'fisico';
+      return { borrado: 'fisico', nombre: torneo.nombre };
     }
 
     await client.query('UPDATE torneos SET activo = FALSE WHERE torneo_id = $1', [torneoId]);
-    return 'logico';
+    return { borrado: 'logico', nombre: torneo.nombre };
   });
 }
 
 module.exports = {
   listarTorneos,
-  listarCategorias,
   obtenerReporte,
   crearTorneo,
   actualizarTorneo,

@@ -1,0 +1,95 @@
+/* Textarea — solo tokens semánticos (src/styles/tokens.css)
+   Los selectores del campo van como `.ui-textarea .ui-textarea__field` (0,2,0) para
+   ganar a las reglas globales de `textarea` de css/Dashboard.css. */
+
+.ui-textarea {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+.ui-textarea__label {
+    font: var(--font-label-sm);
+    color: var(--color-text-secondary);
+}
+
+.ui-textarea .ui-textarea__field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-10) var(--space-12);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--ui-radius-md);
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    font: var(--font-body-md);
+    resize: vertical;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ui-textarea .ui-textarea__field::placeholder {
+    color: var(--color-text-muted);
+}
+
+/* focus — borde de 2px (Figma) sin mover el layout: 1px de borde + 1px de sombra */
+.ui-textarea .ui-textarea__field:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.ui-textarea__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-12);
+}
+
+.ui-textarea__message {
+    margin: 0;
+    font: var(--font-caption);
+    color: var(--color-text-muted);
+}
+
+.ui-textarea__count {
+    margin-left: auto;
+    font: var(--font-caption);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+/* error */
+.ui-textarea--error .ui-textarea__field,
+.ui-textarea--error .ui-textarea__field:focus {
+    border-color: var(--color-feedback-danger-solid);
+}
+
+.ui-textarea--error .ui-textarea__field:focus {
+    box-shadow: 0 0 0 1px var(--color-feedback-danger-solid);
+}
+
+.ui-textarea--error .ui-textarea__message {
+    color: var(--color-feedback-danger-text);
+}
+
+/* disabled */
+.ui-textarea--disabled .ui-textarea__label,
+.ui-textarea--disabled .ui-textarea__message,
+.ui-textarea--disabled .ui-textarea__count {
+    color: var(--color-text-disabled);
+}
+
+.ui-textarea .ui-textarea__field:disabled {
+    border-color: var(--color-border-default);
+    background: var(--color-bg-subtle);
+    color: var(--color-text-disabled);
+    resize: none;
+    cursor: not-allowed;
+}
+
+.ui-textarea .ui-textarea__field:disabled::placeholder {
+    color: var(--color-text-disabled);
+}
+
+.ui-textarea__required {
+    color: var(--color-feedback-danger-text);
+}

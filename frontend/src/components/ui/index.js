@@ -3,6 +3,7 @@ export { Input } from './Input';
 export { Modal } from './Modal';
 export { Table, TableRow } from './Table';
 export { Select } from './Select';
+export { Textarea } from './Textarea';
 export { Badge } from './Badge';
 export { Alert } from './Alert';
 export { ProgressBar } from './ProgressBar';

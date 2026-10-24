@@ -1,0 +1,44 @@
+/* ProgressBar — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    font-family: var(--font-sans);
+}
+
+.ui-progress__text {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-8);
+    font: var(--font-caption);
+    color: var(--color-text-secondary);
+}
+
+.ui-progress__track {
+    width: 100%;
+    height: var(--space-8);
+    overflow: hidden;
+    border-radius: var(--ui-radius-full);
+    background: var(--color-bg-subtle);
+    box-shadow: inset 0 0 0 1px var(--color-border-default);
+}
+
+.ui-progress__fill {
+    height: 100%;
+    border-radius: var(--ui-radius-full);
+    background: var(--color-primary);
+    transition: width 0.2s;
+}
+
+.ui-progress--high .ui-progress__fill {
+    background: var(--color-feedback-warning-solid);
+}
+
+.ui-progress--full .ui-progress__fill {
+    background: var(--color-feedback-danger-solid);
+}
+
+.ui-progress--full .ui-progress__count {
+    color: var(--color-feedback-danger-text);
+}

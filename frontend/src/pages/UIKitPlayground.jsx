@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Input, Modal, Table } from '../components/ui';
+import { Alert, Badge, Button, Card, Input, Modal, ProgressBar, Select, StatCard, Table } from '../components/ui';
 import './UIKitPlayground.css';
 
 /**
@@ -20,6 +20,12 @@ const RESERVAS = [
   { id: 3, socio: 'Ana Torres', espacio: 'Cancha de tenis 2', fecha: '13/10/2026 · 08:00', estado: 'Cancelada' },
 ];
 
+const DISCIPLINAS = [
+  { value: 1, label: 'Tenis' },
+  { value: 2, label: 'Pádel' },
+  { value: 3, label: 'Natación' },
+];
+
 function Section({ title, children }) {
   return (
     <section className="uikit-section">
@@ -33,6 +39,7 @@ export default function UIKitPlayground() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nombre, setNombre] = useState('');
   const [socio, setSocio] = useState('');
+  const [disciplina, setDisciplina] = useState('');
 
   const closeModal = () => setIsModalOpen(false);
 
@@ -66,6 +73,73 @@ export default function UIKitPlayground() {
           />
           <Input label="Nombre completo" defaultValue="Juan Pé" error="Este campo es obligatorio" />
           <Input label="Nombre completo" placeholder="Ej. Juan Pérez" helperText="Campo no editable" disabled />
+        </div>
+      </Section>
+
+      <Section title="Select">
+        <div className="uikit-grid uikit-grid--inputs">
+          <Select
+            label="Disciplina"
+            placeholder="Todas"
+            helperText="Texto de ayuda"
+            options={DISCIPLINAS}
+            value={disciplina}
+            onChange={(event) => setDisciplina(event.target.value)}
+          />
+          <Select label="Categoría" placeholder="Elige una categoría" options={DISCIPLINAS} error="Elige una categoría" />
+          <Select label="Tipo de torneo" options={DISCIPLINAS} disabled />
+        </div>
+      </Section>
+
+      <Section title="Badge">
+        <div className="uikit-row">
+          <Badge>Neutral</Badge>
+          <Badge variant="success">Abierto</Badge>
+          <Badge variant="warning">Inscripciones cerradas</Badge>
+          <Badge variant="danger">Cancelado</Badge>
+          <Badge variant="info">En curso</Badge>
+        </div>
+      </Section>
+
+      <Section title="Alert">
+        <div className="uikit-grid">
+          <Alert variant="error" action={<Button variant="secondary">Reintentar</Button>}>
+            No se pudieron cargar los torneos.
+          </Alert>
+          <Alert variant="error">El torneo alcanzó su cupo máximo (16 participantes)</Alert>
+          <Alert variant="success">¡Inscripción exitosa en Copa Otoño 2026!</Alert>
+          <Alert variant="warning" title="Cupo casi lleno">Quedan 2 lugares.</Alert>
+          <Alert variant="info">Las inscripciones cierran un día antes del inicio.</Alert>
+        </div>
+      </Section>
+
+      <Section title="ProgressBar">
+        <div className="uikit-grid uikit-grid--inputs">
+          <ProgressBar label="Inscritos" value={6} max={16} />
+          <ProgressBar label="Inscritos" value={14} max={16} />
+          <ProgressBar label="Inscritos" value={16} max={16} />
+          <ProgressBar label="Sin cupo definido" value={6} />
+        </div>
+      </Section>
+
+      <Section title="StatCard">
+        <div className="uikit-grid uikit-grid--inputs">
+          <StatCard label="Total socios" value={248} hint="231 activos" tone="primary" />
+          <StatCard label="Confirmadas" value={8} tone="success" />
+          <StatCard label="No-Show" value={2} tone="warning" />
+          <StatCard label="Canceladas" value={1} tone="danger" selected onClick={() => {}} />
+          <StatCard label="Acceso directo" value={12} tone="neutral" onClick={() => {}} />
+        </div>
+      </Section>
+
+      <Section title="Card">
+        <div className="uikit-grid uikit-grid--inputs">
+          <Card title="Visitas activas" action={<Button variant="secondary">Ver todo</Button>}>
+            Contenido del panel con margen interior.
+          </Card>
+          <Card title="Con tabla a ras del borde" flush>
+            <Table columns={[{ key: 'a', header: 'Socio' }, { key: 'b', header: 'Número' }]} data={[{ id: 1, a: 'Ana López', b: 'S-001' }]} />
+          </Card>
         </div>
       </Section>
 

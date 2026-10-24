@@ -33,6 +33,7 @@ const torneosRoutes       = require('./src/routes/torneos.routes');
 const encuentrosRoutes    = require('./src/routes/encuentros.routes');
 const reportesRoutes      = require('./src/routes/reportes.routes');
 const importacionRoutes   = require('./src/routes/importacion.routes');
+const evaluacionesRoutes  = require('./src/routes/evaluaciones.routes');
 const errorHandler        = require('./src/middleware/errorHandler');
 
 const app = express();
@@ -97,6 +98,7 @@ app.use('/api/torneos',       torneosRoutes);
 app.use('/api/encuentros',    encuentrosRoutes);
 app.use('/api/reportes',      reportesRoutes);
 app.use('/api/importacion',   importacionRoutes);
+app.use('/api/evaluaciones',  evaluacionesRoutes);
 
 app.use(errorHandler);
 

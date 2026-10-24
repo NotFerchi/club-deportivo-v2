@@ -1,0 +1,60 @@
+/* Alert — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-12);
+    padding: var(--space-12) var(--space-16);
+    border: 1px solid transparent;
+    border-radius: var(--ui-radius-md);
+    font-family: var(--font-sans);
+}
+
+.ui-alert__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    flex: 1 1 200px;
+    min-width: 0;
+}
+
+.ui-alert__title {
+    margin: 0;
+    font: var(--font-label-sm);
+}
+
+.ui-alert__message {
+    margin: 0;
+    font: var(--font-body-sm);
+    overflow-wrap: anywhere;
+}
+
+.ui-alert__action {
+    flex: 0 0 auto;
+}
+
+.ui-alert--error {
+    background: var(--color-feedback-danger-bg);
+    border-color: var(--color-feedback-danger-border);
+    color: var(--color-feedback-danger-text);
+}
+
+.ui-alert--success {
+    background: var(--color-feedback-success-bg);
+    border-color: var(--color-feedback-success-border);
+    color: var(--color-feedback-success-text);
+}
+
+.ui-alert--warning {
+    background: var(--color-feedback-warning-bg);
+    border-color: var(--color-feedback-warning-border);
+    color: var(--color-feedback-warning-text);
+}
+
+.ui-alert--info {
+    background: var(--color-feedback-info-bg);
+    border-color: var(--color-feedback-info-border);
+    color: var(--color-feedback-info-text);
+}

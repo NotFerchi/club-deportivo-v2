@@ -1,0 +1,43 @@
+/* Stack — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-stack {
+    display: flex;
+    min-width: 0;
+}
+
+.ui-stack--column { flex-direction: column; }
+.ui-stack--row { flex-direction: row; }
+.ui-stack--wrap { flex-wrap: wrap; }
+
+.ui-stack--gap-0 { gap: var(--space-0); }
+.ui-stack--gap-4 { gap: var(--space-4); }
+.ui-stack--gap-8 { gap: var(--space-8); }
+.ui-stack--gap-12 { gap: var(--space-12); }
+.ui-stack--gap-16 { gap: var(--space-16); }
+.ui-stack--gap-24 { gap: var(--space-24); }
+.ui-stack--gap-32 { gap: var(--space-32); }
+
+.ui-stack--pad-8 { padding: var(--space-8); }
+.ui-stack--pad-16 { padding: var(--space-16); }
+.ui-stack--pad-24 { padding: var(--space-24); }
+.ui-stack--pad-32 { padding: var(--space-32); }
+
+.ui-stack--align-stretch { align-items: stretch; }
+.ui-stack--align-start { align-items: flex-start; }
+.ui-stack--align-center { align-items: center; }
+.ui-stack--align-end { align-items: flex-end; }
+
+.ui-stack--justify-start { justify-content: flex-start; }
+.ui-stack--justify-center { justify-content: center; }
+.ui-stack--justify-end { justify-content: flex-end; }
+.ui-stack--justify-between { justify-content: space-between; }
+
+/* grow: cada hijo ocupa al menos --ui-stack-min-child y reparte el ancho sobrante */
+.ui-stack--grow {
+    flex-wrap: wrap;
+}
+
+.ui-stack--grow > * {
+    flex: 1 1 var(--ui-stack-min-child, 200px);
+    min-width: 0;
+}

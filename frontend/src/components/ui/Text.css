@@ -1,0 +1,35 @@
+/* Text — solo tokens semánticos (src/styles/tokens.css)
+   Los selectores van como `.ui-text.ui-text--x` (0,2,0) para ganar a reglas
+   globales de etiqueta como `.dashboard-root h2` de css/Dashboard.css. */
+
+.ui-text {
+    margin: 0;
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+    overflow-wrap: anywhere;
+}
+
+.ui-text.ui-text--title {
+    font: var(--font-heading-h1);
+    letter-spacing: var(--tracking-heading-h1);
+}
+
+.ui-text.ui-text--heading {
+    font: var(--font-heading-h2);
+    letter-spacing: var(--tracking-heading-h2);
+}
+
+.ui-text.ui-text--subheading { font: var(--font-heading-h3); }
+.ui-text.ui-text--body { font: var(--font-body-md); }
+.ui-text.ui-text--small { font: var(--font-body-sm); }
+.ui-text.ui-text--caption { font: var(--font-caption); }
+
+.ui-text.ui-text--overline {
+    font: var(--font-overline);
+    letter-spacing: var(--tracking-overline);
+    text-transform: uppercase;
+}
+
+.ui-text.ui-text--muted {
+    color: var(--color-text-secondary);
+}

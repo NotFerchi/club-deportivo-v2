@@ -20,8 +20,6 @@ import Espacios from './pages/Espacios'
 // Playground del UI Kit: solo en desarrollo. En build de producción
 // import.meta.env.DEV es false y la página no entra en el bundle.
 const UIKitPlayground = import.meta.env.DEV ? lazy(() => import('./pages/UIKitPlayground')) : null
-// Maqueta de torneos con datos simulados (E3.1): también solo en desarrollo.
-const TorneosMaqueta = import.meta.env.DEV ? lazy(() => import('./pages/torneos/TorneosMaqueta')) : null
 
 function getStoredRol() {
   try {
@@ -110,10 +108,6 @@ function App() {
 
           {import.meta.env.DEV && (
             <Route path="/ui-kit" element={<Suspense fallback={null}><UIKitPlayground /></Suspense>} />
-          )}
-
-          {import.meta.env.DEV && (
-            <Route path="/torneos-ui" element={<Suspense fallback={null}><TorneosMaqueta /></Suspense>} />
           )}
 
           <Route path="*" element={<Navigate to="/" replace />} />

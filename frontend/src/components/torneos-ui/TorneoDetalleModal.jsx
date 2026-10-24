@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Badge, Button, Modal, ProgressBar, Stack, Text } from '../ui';
-import { estadoTorneo, formatFecha, motivoSinInscripcion } from './torneoEstado';
+import { estadoTorneo, formatFecha, motivoSinInscripcion, periodoInscripcion } from './torneoEstado';
 
 function Dato({ etiqueta, children }) {
   return (
@@ -21,15 +21,17 @@ function Dato({ etiqueta, children }) {
  *   onEditar     - (torneo) => void; staff. Sin esta prop no se muestra "Editar"
  *   onInscribir  - (torneo) => void; socio. Se muestra solo si el torneo admite inscripción
  *   onVerResultados - (torneo) => void; se muestra en torneos que ya no están abiertos
+ *   yaInscrito   - true si el socio ya participa; oculta "Inscribirme" y lo avisa
  */
-export default function TorneoDetalleModal({ torneo, onClose, onEditar, onInscribir, onVerResultados }) {
+export default function TorneoDetalleModal({ torneo, onClose, onEditar, onInscribir, onVerResultados, yaInscrito = false }) {
   if (!torneo) return null;
 
   const estado = estadoTorneo(torneo.estado);
   const esEquipos = torneo.tipo_torneo === 'Equipos';
   const motivo = motivoSinInscripcion(torneo);
+  const periodo = periodoInscripcion(torneo);
   const puedeVerResultados = Boolean(onVerResultados) && torneo.estado !== 'Abierto';
-  const puedeInscribirse = Boolean(onInscribir) && torneo.admite_inscripcion && !esEquipos;
+  const puedeInscribirse = Boolean(onInscribir) && torneo.admite_inscripcion && !esEquipos && !yaInscrito;
 
   return (
     <Modal
@@ -50,12 +52,18 @@ export default function TorneoDetalleModal({ torneo, onClose, onEditar, onInscri
         <Stack direction="row" gap={8} wrap>
           <Badge variant={estado.variant}>{estado.label}</Badge>
           <Badge>{esEquipos ? 'Por equipos' : 'Individual'}</Badge>
+          {yaInscrito && <Badge variant="success">Inscrito</Badge>}
         </Stack>
 
         <Stack direction="row" gap={16} grow minChild={120}>
           <Dato etiqueta="Inicio">{formatFecha(torneo.fecha_inicio)}</Dato>
           <Dato etiqueta="Fin">{formatFecha(torneo.fecha_fin)}</Dato>
           <Dato etiqueta="Categoría">{torneo.nombre_categoria || 'Sin categoría'}</Dato>
+        </Stack>
+
+        <Stack direction="row" gap={16} grow minChild={120}>
+          <Dato etiqueta="Inscripciones abren">{periodo.abre ? formatFecha(periodo.abre) : 'Sin límite'}</Dato>
+          <Dato etiqueta="Inscripciones cierran">{periodo.cierra ? formatFecha(periodo.cierra) : 'Sin límite'}</Dato>
         </Stack>
 
         {torneo.cupo_maximo === null
@@ -65,7 +73,7 @@ export default function TorneoDetalleModal({ torneo, onClose, onEditar, onInscri
         {onInscribir && esEquipos && torneo.estado === 'Abierto' && (
           <Alert variant="info">Este torneo es por equipos: la inscripción la hace el staff.</Alert>
         )}
-        {onInscribir && !esEquipos && motivo && <Alert variant="warning">{motivo}</Alert>}
+        {onInscribir && !esEquipos && !yaInscrito && motivo && <Alert variant="warning">{motivo}</Alert>}
       </Stack>
     </Modal>
   );

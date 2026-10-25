@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import SocioLayout from '../../../components/SocioLayout'
 import {
-  Baby, Users, Clock, QrCode,
-  CheckCircle, Plus, Search,
-  Info, AlertCircle as AlertIcon, LogOut, Timer
+  Baby, Clock, QrCode,
+  CheckCircle, Plus,
+  Info, LogOut, Timer
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
 import { useNotification } from '../../../context/NotificationContext'
-import '../../../../css/socio/Ludoteca.css'
+import { Alert, Badge, Button, Card, Chip, Input, Modal, ProgressBar, Stack, Table, Text } from '../../../components/ui'
 
 const LIMITE_MINUTOS = 120
 const ALERTA_MINUTOS = 90
@@ -130,16 +130,11 @@ function Ludoteca() {
     return ts
   }
 
-  const getColorMinutos = (mins) => {
-    if (mins >= CRITICO_MINUTOS) return '#dc2626'
-    if (mins >= ALERTA_MINUTOS) return '#d97706'
-    return '#16a34a'
-  }
-
-  const getBgMinutos = (mins) => {
-    if (mins >= CRITICO_MINUTOS) return '#fee2e2'
-    if (mins >= ALERTA_MINUTOS) return '#fef3c7'
-    return '#dcfce7'
+  // minutos → variante de Badge/Alert del kit
+  const getVarianteMinutos = (mins) => {
+    if (mins >= CRITICO_MINUTOS) return 'danger'
+    if (mins >= ALERTA_MINUTOS) return 'warning'
+    return 'success'
   }
 
   // ── Date limits for the form (3–7 years) ──
@@ -191,409 +186,277 @@ function Ludoteca() {
     }
   }
 
+  const columnasHistorial = [
+    {
+      key: 'fecha',
+      header: 'Fecha',
+      render: (r) => {
+        // Extraer fecha directamente del string "YYYY-MM-DDTHH:MM:SS" (ya es hora México)
+        const fechaMatch = r.hora_entrada ? String(r.hora_entrada).match(/^(\d{4})-(\d{2})-(\d{2})/) : null
+        const _dia = fechaMatch ? fechaMatch[3] : '—'
+        const _mes = fechaMatch
+          ? new Date(Number(fechaMatch[1]), Number(fechaMatch[2]) - 1, 1)
+              .toLocaleString('es-MX', { month: 'short' })
+          : ''
+        return `${_dia} ${_mes}`
+      },
+    },
+    { key: 'nombre_hijo', header: 'Niño' },
+    { key: 'hora_entrada', header: 'Entrada', render: (r) => formatHora(r.hora_entrada) },
+    { key: 'hora_salida', header: 'Salida', render: (r) => (r.hora_salida ? formatHora(r.hora_salida) : '—') },
+    { key: 'minutos_transcurridos', header: 'Duración', render: (r) => (r.minutos_transcurridos ? formatTiempo(r.minutos_transcurridos) : '—') },
+    { key: 'estado', header: 'Estado', render: () => <Badge variant="success"><CheckCircle size={14} /> Completado</Badge> },
+  ]
+
   return (
     <SocioLayout activeTab="ludoteca" title="Club Social | Ludoteca">
+      <Stack gap={24}>
 
-      {/* BANNER DE ALERTA — visible en cualquier pestaña */}
-      {tieneAlertaActiva && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.75rem',
-          padding: '0.875rem 1.25rem', borderRadius: '12px', marginBottom: '1rem',
-          background: '#fef3c7', border: '1px solid #f59e0b', color: '#92400e'
-        }}>
-          <AlertIcon size={22} style={{ flexShrink: 0, color: '#d97706' }} />
-          <div>
-            <strong>¡Atención!</strong> Uno o más niños están por alcanzar el límite de 2 horas.
+        {/* BANNER DE ALERTA — visible en cualquier pestaña */}
+        {tieneAlertaActiva && (
+          <Alert variant="warning" title="¡Atención!">
+            Uno o más niños están por alcanzar el límite de 2 horas.
             Recógelos en la ludoteca y registra su salida para evitar una sanción.
-          </div>
-        </div>
-      )}
+          </Alert>
+        )}
 
-      {/* HEADER */}
-      <section className="rs-welcome-card">
-        <div className="rs-welcome-info">
-          <h2 className="rs-title-serif">Ludoteca</h2>
-          <p className="rs-subtitle">Cuida de tus hijos mientras disfrutas del club</p>
-        </div>
-        <div className="rs-status-tags">
-        </div>
-      </section>
+        {/* HEADER */}
+        <Stack gap={4}>
+          <Text variant="heading">Ludoteca</Text>
+          <Text variant="small" muted>Cuida de tus hijos mientras disfrutas del club</Text>
+        </Stack>
 
-      {/* AFORO */}
-      <div className="aforo-card">
-        <div className="aforo-info">
-          <h3>Aforo Actual</h3>
-          <div className="aforo-numeros">
-            <span className={`aforo-actual ${getAforoColor()}`}>{aforoActual}</span>
-            <span className="aforo-separador">/</span>
-            <span className="aforo-maximo">{aforoMaximo}</span>
-          </div>
-          <div className="aforo-barra">
-            <div className={`aforo-fill ${getAforoColor()}`} style={{ width: `${getAforoPorcentaje()}%` }} />
-          </div>
-          <p className="aforo-mensaje">
-            {getAforoColor() === 'verde' && 'Hay lugares disponibles'}
-            {getAforoColor() === 'naranja' && 'Aforo casi lleno'}
-            {getAforoColor() === 'rojo' && 'Aforo lleno, intenta más tarde'}
-          </p>
-        </div>
-      </div>
+        {/* AFORO */}
+        <Card title="Aforo Actual">
+          <Stack gap={8}>
+            <ProgressBar value={aforoActual} max={aforoMaximo} label="Niños en ludoteca" />
+            <Text variant="small" muted>
+              {getAforoColor() === 'verde' && 'Hay lugares disponibles'}
+              {getAforoColor() === 'naranja' && 'Aforo casi lleno'}
+              {getAforoColor() === 'rojo' && 'Aforo lleno, intenta más tarde'}
+            </Text>
+          </Stack>
+        </Card>
 
-      {/* TABS */}
-      <div className="clases-tabs-container">
-        <button
-          className={`clases-tab-btn ${vista === 'activos' ? 'active' : ''}`}
-          onClick={() => setVista('activos')}
-        >
-          <Baby size={18} />
-          Activos
-          {registrosActivos.length > 0 && (
-            <span style={{
-              marginLeft: '0.35rem', background: tieneAlertaActiva ? '#ef4444' : '#22c55e',
-              color: 'white', borderRadius: '50%', width: 20, height: 20,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.75rem', fontWeight: 700
-            }}>{registrosActivos.length}</span>
-          )}
-        </button>
-        <button
-          className={`clases-tab-btn ${vista === 'historial' ? 'active' : ''}`}
-          onClick={() => setVista('historial')}
-        >
-          <Clock size={18} /> Historial
-        </button>
-        <button
-          className={`clases-tab-btn ${vista === 'info' ? 'active' : ''}`}
-          onClick={() => setVista('info')}
-        >
-          <Info size={18} /> Cómo funciona
-        </button>
-      </div>
+        {/* TABS */}
+        <Stack direction="row" gap={8} wrap role="tablist">
+          <Button
+            role="tab"
+            aria-selected={vista === 'activos'}
+            variant={vista === 'activos' ? 'primary' : 'secondary'}
+            onClick={() => setVista('activos')}
+          >
+            <Baby size={18} />
+            Activos
+            {registrosActivos.length > 0 && (
+              <Badge variant={tieneAlertaActiva ? 'danger' : 'success'}>{registrosActivos.length}</Badge>
+            )}
+          </Button>
+          <Button
+            role="tab"
+            aria-selected={vista === 'historial'}
+            variant={vista === 'historial' ? 'primary' : 'secondary'}
+            onClick={() => setVista('historial')}
+          >
+            <Clock size={18} /> Historial
+          </Button>
+          <Button
+            role="tab"
+            aria-selected={vista === 'info'}
+            variant={vista === 'info' ? 'primary' : 'secondary'}
+            onClick={() => setVista('info')}
+          >
+            <Info size={18} /> Cómo funciona
+          </Button>
+        </Stack>
 
-      {/* ─── VISTA: ACTIVOS ─── */}
-      {vista === 'activos' && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ margin: 0, color: 'var(--ds-navy)' }}>Niños en ludoteca ahora</h3>
-            <button
-              onClick={() => abrirFormulario()}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                padding: '0.625rem 1.25rem', background: 'var(--ds-navy)',
-                border: 'none', borderRadius: '10px', color: 'white',
-                fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem'
-              }}
-            >
-              <Plus size={18} /> Registrar entrada
-            </button>
-          </div>
+        {/* ─── VISTA: ACTIVOS ─── */}
+        {vista === 'activos' && (
+          <Stack gap={16}>
+            <Stack direction="row" gap={12} align="center" justify="between" wrap>
+              <Text variant="subheading">Niños en ludoteca ahora</Text>
+              <Button onClick={() => abrirFormulario()}>
+                <Plus size={18} /> Registrar entrada
+              </Button>
+            </Stack>
 
-          {loading ? (
-            <div className="loading-state">Cargando...</div>
-          ) : registrosActivos.length === 0 ? (
-            <div className="empty-state" style={{ padding: '2.5rem' }}>
-              <Baby size={48} />
-              <h3>Sin niños activos</h3>
-              <p>Registra la entrada de tu hijo para empezar a contar su tiempo de estancia.</p>
-              <button
-                onClick={() => abrirFormulario()}
-                style={{
-                  marginTop: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                  padding: '0.75rem 1.5rem', background: 'var(--ds-navy)',
-                  border: 'none', borderRadius: '10px', color: 'white',
-                  fontWeight: 700, cursor: 'pointer'
-                }}
-              >
-                <Plus size={18} /> Registrar primera entrada
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {registrosActivos.map(r => {
+            {loading ? (
+              <Text muted>Cargando...</Text>
+            ) : registrosActivos.length === 0 ? (
+              <Stack gap={8} align="center" padding={32}>
+                <Baby size={48} />
+                <Text variant="subheading">Sin niños activos</Text>
+                <Text variant="small" muted>Registra la entrada de tu hijo para empezar a contar su tiempo de estancia.</Text>
+                <Button onClick={() => abrirFormulario()}>
+                  <Plus size={18} /> Registrar primera entrada
+                </Button>
+              </Stack>
+            ) : (
+              registrosActivos.map(r => {
                 const mins = getLiveMinutos(r)
                 const restantes = Math.max(LIMITE_MINUTOS - mins, 0)
-                const pct = Math.min((mins / LIMITE_MINUTOS) * 100, 100)
-                const colorPrincipal = getColorMinutos(mins)
-                const bgPrincipal = getBgMinutos(mins)
+                const variante = getVarianteMinutos(mins)
                 const esCritico = mins >= CRITICO_MINUTOS
                 const esAdvertencia = mins >= ALERTA_MINUTOS && !esCritico
 
                 return (
-                  <div key={r.registro_id} style={{
-                    background: 'white', borderRadius: '16px', padding: '1.5rem',
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
-                    border: `1px solid ${esCritico ? '#fca5a5' : esAdvertencia ? '#fde68a' : '#e2e8f0'}`
-                  }}>
-                    {/* Fila superior */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{
-                          width: 44, height: 44, borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #0f172a, #2563eb)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                          <Baby size={22} color="white" />
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>{r.nombre_hijo}</div>
-                          <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                            Entrada: {formatHora(r.hora_entrada)}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Tiempo transcurrido badge */}
-                      <div style={{
-                        padding: '0.4rem 1rem', borderRadius: '20px',
-                        background: bgPrincipal, color: colorPrincipal,
-                        fontWeight: 800, fontSize: '1rem',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem'
-                      }}>
-                        <Timer size={16} />
+                  <Card
+                    key={r.registro_id}
+                    title={r.nombre_hijo}
+                    icon={<Baby size={18} />}
+                    action={
+                      <Badge variant={variante}>
+                        <Timer size={14} />
                         {formatTiempo(mins)}
-                      </div>
-                    </div>
+                      </Badge>
+                    }
+                  >
+                    <Stack gap={12}>
+                      <Text variant="small" muted>Entrada: {formatHora(r.hora_entrada)}</Text>
 
-                    {/* Barra de progreso */}
-                    <div style={{ marginBottom: '0.6rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748b', marginBottom: '0.35rem' }}>
-                        <span>Tiempo transcurrido</span>
-                        <span style={{ color: colorPrincipal, fontWeight: 700 }}>
+                      {/* Barra de progreso */}
+                      <ProgressBar value={mins} max={LIMITE_MINUTOS} label="Tiempo transcurrido (min)" />
+                      <Stack direction="row" gap={8} justify="between" wrap>
+                        <Text variant="small">
                           {mins >= LIMITE_MINUTOS ? '¡Tiempo superado!' : `Quedan ${formatTiempo(restantes)}`}
-                        </span>
-                      </div>
-                      <div style={{ height: 10, background: '#f1f5f9', borderRadius: '5px', overflow: 'hidden' }}>
-                        <div style={{
-                          height: '100%', borderRadius: '5px',
-                          width: `${pct}%`,
-                          background: colorPrincipal,
-                          transition: 'width 1s linear'
-                        }} />
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                        <span>0 min</span>
-                        <span style={{ color: '#d97706' }}>90 min</span>
-                        <span style={{ color: '#dc2626' }}>120 min</span>
-                      </div>
-                    </div>
+                        </Text>
+                        <Text variant="caption" muted>Aviso a los 90 min · límite 120 min</Text>
+                      </Stack>
 
-                    {/* Alerta */}
-                    {(esAdvertencia || esCritico) && (
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        padding: '0.6rem 0.875rem', borderRadius: '8px', marginBottom: '1rem',
-                        background: esCritico ? '#fee2e2' : '#fef3c7',
-                        color: esCritico ? '#991b1b' : '#92400e',
-                        fontSize: '0.85rem', fontWeight: 600
-                      }}>
-                        <AlertIcon size={16} />
-                        {esCritico
-                          ? '¡Tiempo límite superado! Recoge a tu hijo para evitar una sanción.'
-                          : `Quedan menos de ${formatTiempo(restantes)} — recuerda recoger a tu hijo.`}
-                      </div>
-                    )}
+                      {/* Alerta */}
+                      {(esAdvertencia || esCritico) && (
+                        <Alert variant={esCritico ? 'error' : 'warning'}>
+                          {esCritico
+                            ? '¡Tiempo límite superado! Recoge a tu hijo para evitar una sanción.'
+                            : `Quedan menos de ${formatTiempo(restantes)} — recuerda recoger a tu hijo.`}
+                        </Alert>
+                      )}
 
-                    {/* Botón salida */}
-                    <button
-                      onClick={() => handleRegistrarSalida(r.registro_id)}
-                      disabled={salidaLoading[r.registro_id]}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        gap: '0.5rem', padding: '0.75rem',
-                        background: esCritico ? '#dc2626' : 'var(--ds-navy)',
-                        border: 'none', borderRadius: '10px', color: 'white',
-                        fontWeight: 700, cursor: salidaLoading[r.registro_id] ? 'not-allowed' : 'pointer',
-                        opacity: salidaLoading[r.registro_id] ? 0.7 : 1,
-                        fontSize: '0.95rem'
-                      }}
-                    >
-                      <LogOut size={18} />
-                      {salidaLoading[r.registro_id] ? 'Procesando...' : 'Registrar salida'}
-                    </button>
-                  </div>
+                      {/* Botón salida */}
+                      <Button
+                        variant={esCritico ? 'error' : 'primary'}
+                        onClick={() => handleRegistrarSalida(r.registro_id)}
+                        disabled={salidaLoading[r.registro_id]}
+                      >
+                        <LogOut size={18} />
+                        {salidaLoading[r.registro_id] ? 'Procesando...' : 'Registrar salida'}
+                      </Button>
+                    </Stack>
+                  </Card>
                 )
-              })}
-            </div>
-          )}
-        </div>
-      )}
+              })
+            )}
+          </Stack>
+        )}
 
-      {/* ─── VISTA: HISTORIAL ─── */}
-      {vista === 'historial' && (
-        <div className="historial-view">
-          <h3>Historial de visitas</h3>
+        {/* ─── VISTA: HISTORIAL ─── */}
+        {vista === 'historial' && (
+          <Stack gap={16}>
+            <Text variant="subheading">Historial de visitas</Text>
+            {loading ? (
+              <Text muted>Cargando...</Text>
+            ) : (
+              <Table
+                columns={columnasHistorial}
+                data={historial}
+                getRowKey={(r) => r.registro_id}
+                minWidth={560}
+                emptyTitle="Sin historial"
+                emptyMessage="Las visitas completadas aparecerán aquí"
+              />
+            )}
+          </Stack>
+        )}
 
-          {loading ? (
-            <div className="loading-state">Cargando...</div>
-          ) : historial.length === 0 ? (
-            <div className="empty-state">
-              <Search size={48} />
-              <h3>Sin historial</h3>
-              <p>Las visitas completadas aparecerán aquí</p>
-            </div>
-          ) : (
-            <div className="historial-list">
-              {historial.map(r => {
-                // Extraer fecha directamente del string "YYYY-MM-DDTHH:MM:SS" (ya es hora México)
-                const fechaMatch = r.hora_entrada ? String(r.hora_entrada).match(/^(\d{4})-(\d{2})-(\d{2})/) : null
-                const _dia = fechaMatch ? fechaMatch[3] : '—'
-                const _mes = fechaMatch
-                  ? new Date(Number(fechaMatch[1]), Number(fechaMatch[2]) - 1, 1)
-                      .toLocaleString('es-MX', { month: 'short' })
-                  : ''
-                return (
-                  <div key={r.registro_id} className="historial-item">
-                    <div className="historial-fecha">
-                      <span className="dia">{_dia}</span>
-                      <span className="mes">{_mes}</span>
-                    </div>
-                    <div className="historial-detalles">
-                      <h4>{r.nombre_hijo}</h4>
-                      <p>
-                        <Clock size={13} style={{ display: 'inline', marginRight: 4 }} />
-                        {formatHora(r.hora_entrada)}
-                        {r.hora_salida ? ` → ${formatHora(r.hora_salida)}` : ''}
-                        {r.minutos_transcurridos ? ` · ${formatTiempo(r.minutos_transcurridos)}` : ''}
-                      </p>
-                    </div>
-                    <span className="historial-status completado">
-                      <CheckCircle size={15} /> Completado
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ─── VISTA: CÓMO FUNCIONA ─── */}
-      {vista === 'info' && (
-        <div className="reservar-view">
-          <div className="reservar-info-card">
-            <Info size={24} />
-            <div>
-              <h4>Cómo funciona la ludoteca</h4>
-              <p>Registra la entrada de tu hijo desde esta app. El sistema empezará a contar las 2 horas de estancia y te notificará cuando esté por terminar.</p>
-            </div>
-          </div>
-          <div className="instrucciones-card">
-            <h4>Pasos:</h4>
-            <ol>
-              <li>Ve a la pestaña <strong>Activos</strong> y pulsa <em>Registrar entrada</em></li>
-              <li>Ingresa el nombre y fecha de nacimiento de tu hijo (3–7 años)</li>
-              <li>Deja a tu hijo en la ludoteca con el personal</li>
-              <li>El contador se actualizará en tiempo real</li>
-              <li>Al recogerlo, pulsa <em>Registrar salida</em> desde la app o en recepción</li>
-              <li>Superar las 2 horas genera una sanción automática</li>
-            </ol>
-          </div>
-        </div>
-      )}
+        {/* ─── VISTA: CÓMO FUNCIONA ─── */}
+        {vista === 'info' && (
+          <Stack gap={16}>
+            <Alert variant="info" title="Cómo funciona la ludoteca">
+              Registra la entrada de tu hijo desde esta app. El sistema empezará a contar las 2 horas de estancia y te notificará cuando esté por terminar.
+            </Alert>
+            <Card title="Pasos:">
+              <ol>
+                <li>Ve a la pestaña <strong>Activos</strong> y pulsa <em>Registrar entrada</em></li>
+                <li>Ingresa el nombre y fecha de nacimiento de tu hijo (3–7 años)</li>
+                <li>Deja a tu hijo en la ludoteca con el personal</li>
+                <li>El contador se actualizará en tiempo real</li>
+                <li>Al recogerlo, pulsa <em>Registrar salida</em> desde la app o en recepción</li>
+                <li>Superar las 2 horas genera una sanción automática</li>
+              </ol>
+            </Card>
+          </Stack>
+        )}
+      </Stack>
 
       {/* ─── MODAL: REGISTRAR ENTRADA ─── */}
       {showModalRegistrar && (
-        <div className="rs-modal-overlay">
-          <div className="rs-modal">
-            <header className="modal-header">
-              <h3>Registrar entrada a ludoteca</h3>
-              <button className="close-btn" onClick={() => setShowModalRegistrar(false)}>&times;</button>
-            </header>
-            <div className="modal-body">
-              {/* Acceso rápido — hijos anteriores */}
-              {hijosConocidos.length > 0 && (
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.6rem', fontWeight: 600 }}>
-                    Hijos registrados anteriormente:
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {hijosConocidos.map(h => (
-                      <button
-                        key={h.nombre}
-                        onClick={() => abrirFormulario(h)}
-                        style={{
-                          padding: '0.4rem 1rem', background: '#f1f5f9',
-                          border: '1px solid #e2e8f0', borderRadius: '20px',
-                          color: '#0f172a', fontWeight: 600, cursor: 'pointer',
-                          fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.35rem'
-                        }}
-                      >
-                        <Baby size={14} /> {h.nombre}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ borderBottom: '1px solid #e2e8f0', margin: '1rem 0' }} />
-                </div>
-              )}
+        <Modal
+          isOpen
+          onClose={() => setShowModalRegistrar(false)}
+          title="Registrar entrada a ludoteca"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setShowModalRegistrar(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" form="form-entrada-ludoteca" disabled={formLoading}>
+                {formLoading ? 'Registrando...' : '✓ Confirmar entrada'}
+              </Button>
+            </>
+          }
+        >
+          {/* Acceso rápido — hijos anteriores */}
+          {hijosConocidos.length > 0 && (
+            <Stack gap={8}>
+              <Text variant="small" muted>Hijos registrados anteriormente:</Text>
+              <Stack direction="row" gap={8} wrap>
+                {hijosConocidos.map(h => (
+                  <Chip key={h.nombre} selected={formNombre === h.nombre} onClick={() => abrirFormulario(h)}>
+                    <Baby size={14} /> {h.nombre}
+                  </Chip>
+                ))}
+              </Stack>
+            </Stack>
+          )}
 
-              <form onSubmit={handleRegistrarEntrada} className="form-agregar-hijo">
-                <div className="form-group">
-                  <label>Nombre completo del niño</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: Sofía García"
-                    value={formNombre}
-                    onChange={e => setFormNombre(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Fecha de nacimiento <span style={{ fontWeight: 400, color: '#64748b' }}>(entre 3 y 7 años)</span></label>
-                  <input
-                    type="date"
-                    value={formFechaNac}
-                    min={minFechaNac}
-                    max={maxFechaNac}
-                    onChange={e => setFormFechaNac(e.target.value)}
-                    required
-                  />
-                </div>
+          <Stack as="form" id="form-entrada-ludoteca" gap={16} onSubmit={handleRegistrarEntrada}>
+            <Input
+              label="Nombre completo del niño"
+              type="text"
+              placeholder="Ej: Sofía García"
+              value={formNombre}
+              onChange={e => setFormNombre(e.target.value)}
+              required
+            />
+            <Input
+              label="Fecha de nacimiento"
+              helperText="Entre 3 y 7 años"
+              type="date"
+              value={formFechaNac}
+              min={minFechaNac}
+              max={maxFechaNac}
+              onChange={e => setFormFechaNac(e.target.value)}
+              required
+            />
 
-                {formError && (
-                  <div style={{
-                    padding: '0.75rem 1rem', background: '#fee2e2', borderRadius: '10px',
-                    color: '#991b1b', fontWeight: 600, fontSize: '0.9rem',
-                    display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'
-                  }}>
-                    <AlertIcon size={17} /> {formError}
-                  </div>
-                )}
+            {formError && <Alert variant="error">{formError}</Alert>}
 
-                <div style={{
-                  padding: '0.75rem 1rem', background: '#eff6ff', borderRadius: '10px',
-                  color: '#1e40af', fontSize: '0.82rem', marginBottom: '0.5rem'
-                }}>
-                  Al confirmar, el contador de 2 horas comenzará. Recibirás una alerta cuando el tiempo esté por agotarse.
-                </div>
-
-                <div className="modal-footer" style={{ padding: '0.5rem 0 0', border: 'none' }}>
-                  <button type="submit" className="modal-btn confirm" disabled={formLoading}>
-                    {formLoading ? 'Registrando...' : '✓ Confirmar entrada'}
-                  </button>
-                  <button type="button" className="modal-btn cancel" onClick={() => setShowModalRegistrar(false)}>
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+            <Alert variant="info">
+              Al confirmar, el contador de 2 horas comenzará. Recibirás una alerta cuando el tiempo esté por agotarse.
+            </Alert>
+          </Stack>
+        </Modal>
       )}
 
       {/* ─── MODAL: QR ─── */}
       {showModalQR && (
-        <div className="rs-modal-overlay">
-          <div className="rs-modal modal-qr">
-            <header className="modal-header">
-              <h3>Mi Código QR</h3>
-              <button className="close-btn" onClick={() => setShowModalQR(false)}>&times;</button>
-            </header>
-            <div className="modal-body text-center">
-              <div className="qr-display"><QrCode size={200} /></div>
-              <p className="qr-instruccion">Presenta este código en recepción si necesitas apoyo del personal</p>
-              <div className="qr-codigo"><strong>Código: </strong>{numeroSocio}</div>
-            </div>
-          </div>
-        </div>
+        <Modal isOpen onClose={() => setShowModalQR(false)} title="Mi Código QR">
+          <Stack gap={12} align="center">
+            <QrCode size={200} />
+            <Text variant="small" muted>Presenta este código en recepción si necesitas apoyo del personal</Text>
+            <Text variant="small"><strong>Código: </strong>{numeroSocio}</Text>
+          </Stack>
+        </Modal>
       )}
 
     </SocioLayout>

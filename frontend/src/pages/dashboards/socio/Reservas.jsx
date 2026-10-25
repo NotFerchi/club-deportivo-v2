@@ -1,27 +1,25 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import SocioLayout from '../../../components/SocioLayout'
 import {
-  MapPin, Clock, CheckCircle, AlertCircle, Zap, CalendarDays, RotateCcw, XCircle,
-  Activity, CircleDot, Waves, Target, LayoutGrid, Dumbbell, Ban
+  MapPin, Clock, CheckCircle, Zap, CalendarDays, RotateCcw, XCircle,
+  Activity, CircleDot, Waves, Target, LayoutGrid, Dumbbell
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
-import '../../../../css/socio/Reservas.css'
+import { Alert, Badge, Button, Card, Chip, Modal, Stack, Text } from '../../../components/ui'
 
-const DISCIPLINA_META = {
-  'Tenis':      { Icon: Activity,    color: '#1e40af', bg: '#dbeafe' },
-  'Pádel':      { Icon: Activity,    color: '#0f766e', bg: '#ccfbf1' },
-  'Fútbol':     { Icon: CircleDot,   color: '#15803d', bg: '#dcfce7' },
-  'Voleibol':   { Icon: CircleDot,   color: '#7c3aed', bg: '#ede9fe' },
-  'Natación':   { Icon: Waves,       color: '#0369a1', bg: '#e0f2fe' },
-  'Básquetbol': { Icon: CircleDot,   color: '#c2410c', bg: '#ffedd5' },
-  'Squash':     { Icon: Target,      color: '#b45309', bg: '#fef3c7' },
-  'Frontón':    { Icon: Activity,    color: '#6d28d9', bg: '#ede9fe' },
-  'Multiusos':  { Icon: LayoutGrid,  color: '#475569', bg: '#f1f5f9' },
-  'Fitness':    { Icon: Dumbbell,    color: '#be185d', bg: '#fce7f3' },
+const DISCIPLINA_ICONO = {
+  'Tenis':      Activity,
+  'Pádel':      Activity,
+  'Fútbol':     CircleDot,
+  'Voleibol':   CircleDot,
+  'Natación':   Waves,
+  'Básquetbol': CircleDot,
+  'Squash':     Target,
+  'Frontón':    Activity,
+  'Multiusos':  LayoutGrid,
+  'Fitness':    Dumbbell,
 }
-const META_DEFAULT = { Icon: LayoutGrid, color: '#475569', bg: '#f1f5f9' }
-
-const ESPACIO_IMG = 'https://i.pinimg.com/1200x/ef/f3/ee/eff3ee2f0b1a53227187312402baf20b.jpg'
+const ICONO_DEFAULT = LayoutGrid
 
 function todayISO() {
   const d = new Date()
@@ -36,6 +34,16 @@ function slotLabel(hora) {
   const [h] = hora.split(':')
   const fin = `${String(Number(h) + 1).padStart(2,'0')}:00`
   return `${hora} – ${fin}`
+}
+
+// Ícono + texto secundario en una línea
+function Dato({ icon, children }) {
+  return (
+    <Stack direction="row" gap={8} align="center">
+      {icon}
+      <Text variant="small" muted as="span">{children}</Text>
+    </Stack>
+  )
 }
 
 export default function Reservas() {
@@ -273,283 +281,193 @@ export default function Reservas() {
 
   return (
     <SocioLayout activeTab="reservas" title="Club Social | Reserva de Canchas">
+      <Stack gap={24}>
 
-      {/* HEADER */}
-      <section className="rs-welcome-card">
-        <div className="rs-welcome-info">
-          <h2 className="rs-title-serif">Reserva de Canchas</h2>
-          <p className="rs-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}>
-            <CalendarDays size={14} /> Hoy, {todayLabel()} · máx. 2 horas
-          </p>
-          {HORARIO_HOY && (
-            <p style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
-              <Clock size={12} /> Horario de hoy: <strong>{HORARIO_HOY}</strong>
-            </p>
+        {/* HEADER */}
+        <Stack direction="row" gap={16} align="start" justify="between" wrap>
+          <Stack gap={4}>
+            <Text variant="heading">Reserva de Canchas</Text>
+            <Dato icon={<CalendarDays size={14} />}>Hoy, {todayLabel()} · máx. 2 horas</Dato>
+            {HORARIO_HOY && (
+              <Dato icon={<Clock size={14} />}>Horario de hoy: <strong>{HORARIO_HOY}</strong></Dato>
+            )}
+          </Stack>
+          {misReservas.length > 0 && (
+            <Badge variant="info">{misReservas.length} reserva{misReservas.length > 1 ? 's' : ''} hoy</Badge>
           )}
-        </div>
+        </Stack>
+
+        {/* BANNER LUNES CERRADO */}
+        {hoyEsLunes && (
+          <Alert variant="info">
+            El club está <strong>cerrado los Lunes</strong>. Puedes reservar de martes a sábado (6:00–22:00) y domingos (7:00–19:00).
+          </Alert>
+        )}
+
+        {/* FEEDBACK BANNER */}
+        {feedback && (
+          <Alert variant={feedback.tipo === 'exito' ? 'success' : 'error'}>{feedback.msg}</Alert>
+        )}
+
+        {/* MIS RESERVAS HOY */}
         {misReservas.length > 0 && (
-          <div className="rs-status-tags">
-            <span className="tag-category">{misReservas.length} reserva{misReservas.length > 1 ? 's' : ''} hoy</span>
+          <Card title="Mis reservas de hoy" icon={<CheckCircle size={18} />}>
+            <Stack gap={12}>
+              {misReservas.map(r => (
+                <Stack key={r.reserva_id} direction="row" gap={12} align="center" justify="between">
+                  <Stack gap={0}>
+                    <Text variant="small">{r.espacio_nombre}</Text>
+                    <Dato icon={<Clock size={12} />}>{String(r.hora_inicio).slice(0,5)} – {String(r.hora_fin).slice(0,5)}</Dato>
+                  </Stack>
+                  <Button variant="error" onClick={() => handleCancelar(r.reserva_id)}>
+                    <XCircle size={14} /> Cancelar
+                  </Button>
+                </Stack>
+              ))}
+            </Stack>
+          </Card>
+        )}
+
+        {/* PASO 1: DEPORTE */}
+        <Card title="1 · ¿Qué quieres jugar hoy?">
+          <Stack direction="row" gap={8} wrap>
+            {disciplinas.map(d => {
+              const Icono = DISCIPLINA_ICONO[d.nombre] || ICONO_DEFAULT
+              return (
+                <Chip key={d.id} selected={selectedDisc?.id === d.id} onClick={() => handleSelectDisc(d)}>
+                  <Icono size={16} />
+                  {d.nombre}
+                </Chip>
+              )
+            })}
+          </Stack>
+        </Card>
+
+        {/* PASO 2: CANCHA */}
+        {selectedDisc && (
+          <Card title={`2 · Elige tu cancha · ${selectedDisc.nombre}`}>
+            {espaciosFiltrados.length === 0 ? (
+              <Text variant="small" muted>No hay canchas disponibles para esta disciplina.</Text>
+            ) : (
+              <Stack direction="row" gap={8} wrap>
+                {espaciosFiltrados.map(esp => (
+                  <Chip
+                    key={esp.espacio_id}
+                    selected={selectedEspacio?.espacio_id === esp.espacio_id}
+                    onClick={() => handleSelectEspacio(esp)}
+                  >
+                    <MapPin size={14} />
+                    {esp.nombre}
+                    {esp.capacidad_maxima ? ` · Cap. ${esp.capacidad_maxima}` : ''}
+                  </Chip>
+                ))}
+              </Stack>
+            )}
+          </Card>
+        )}
+
+        {/* PASO 3: HORARIO */}
+        {selectedEspacio && (
+          <div ref={slotsRef}>
+            <Card
+              title={`3 · Elige tu horario · ${selectedEspacio.nombre}`}
+              action={
+                <Button variant="secondary" onClick={() => fetchDisponibilidad(selectedEspacio.espacio_id)}>
+                  <RotateCcw size={14} /> Actualizar
+                </Button>
+              }
+            >
+              <Stack gap={16}>
+
+                {/* DURACIÓN */}
+                <Stack direction="row" gap={8} align="center" wrap>
+                  <Text variant="small" as="span">Duración:</Text>
+                  {[1, 2].map(d => (
+                    <Chip key={d} selected={duracion === d} onClick={() => handleDuracionChange(d)}>
+                      {d} hora{d > 1 ? 's' : ''}
+                    </Chip>
+                  ))}
+                </Stack>
+
+                {/* LEYENDA */}
+                <Stack direction="row" gap={8} wrap>
+                  <Badge variant="success">Libre</Badge>
+                  <Badge variant="danger">Reservado</Badge>
+                  <Badge variant="info">Clase/Sesión</Badge>
+                </Stack>
+
+                {/* SLOTS */}
+                {loadingSlots ? (
+                  <Text variant="small" muted>Cargando disponibilidad...</Text>
+                ) : cerradoHoy ? (
+                  <Alert variant="info">El club está cerrado hoy. No hay horarios disponibles.</Alert>
+                ) : (
+                  <Stack direction="row" gap={8} wrap>
+                    {slots.map(slot => {
+                      const isSelected = selectedSlot === slot.hora
+                      const isExt = duracion === 2 && selectedSlot && (() => {
+                        const idx = slots.findIndex(s => s.hora === selectedSlot)
+                        return slots[idx + 1]?.hora === slot.hora
+                      })()
+                      const isPast = parseInt(slot.hora.split(':')[0]) <= new Date().getHours()
+                      const valid = slotValido(slot)
+                      const estadoTexto = isPast ? 'Pasado'
+                        : !slot.libre ? (slot.motivo === 'sesion' ? 'Clase' : 'Reservado')
+                        : null
+
+                      return (
+                        <Chip
+                          key={slot.hora}
+                          selected={Boolean(isSelected || isExt)}
+                          onClick={() => handleSelectSlot(slot)}
+                          disabled={!valid && !isSelected}
+                          title={isPast ? 'Horario pasado' : !slot.libre ? (slot.motivo === 'sesion' ? 'Clase programada' : 'Ya reservado') : ''}
+                        >
+                          {slotLabel(slot.hora)}
+                          {estadoTexto && ` · ${estadoTexto}`}
+                          {isExt && ' · +1h'}
+                        </Chip>
+                      )
+                    })}
+                  </Stack>
+                )}
+
+                {/* BOTÓN RESERVAR */}
+                {canReserve && (
+                  <Stack direction="row" justify="end">
+                    <Button onClick={() => setModal(true)}>
+                      <Zap size={18} />
+                      Reservar {selectedSlot} – {String(Number(selectedSlot.split(':')[0]) + duracion).padStart(2,'0')}:00
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+            </Card>
           </div>
         )}
-      </section>
-
-      {/* BANNER LUNES CERRADO */}
-      {hoyEsLunes && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.75rem',
-          padding: '1rem 1.25rem', borderRadius: '12px', marginBottom: '1rem',
-          background: '#f1f5f9', color: '#475569', fontWeight: 600, fontSize: '0.9rem',
-          border: '1px solid #e2e8f0'
-        }}>
-          <Ban size={18} style={{ flexShrink: 0 }} />
-          <span>El club está <strong>cerrado los Lunes</strong>. Puedes reservar de martes a sábado (6:00–22:00) y domingos (7:00–19:00).</span>
-        </div>
-      )}
-
-      {/* FEEDBACK BANNER */}
-      {feedback && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.75rem',
-          padding: '0.875rem 1.25rem', borderRadius: '12px', marginBottom: '1rem',
-          background: feedback.tipo === 'exito' ? '#dcfce7' : '#fee2e2',
-          color: feedback.tipo === 'exito' ? '#166534' : '#991b1b', fontWeight: 600
-        }}>
-          {feedback.tipo === 'exito' ? <CheckCircle size={18}/> : <AlertCircle size={18}/>}
-          {feedback.msg}
-        </div>
-      )}
-
-      {/* MIS RESERVAS HOY */}
-      {misReservas.length > 0 && (
-        <section className="rs-section" style={{ marginBottom: '1.5rem' }}>
-          <header className="section-header">
-            <CheckCircle size={18} style={{ color: '#16a34a' }} />
-            <h3>Mis reservas de hoy</h3>
-          </header>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {misReservas.map(r => (
-              <div key={r.reserva_id} style={{
-                background: 'white', borderRadius: '12px', padding: '0.875rem 1rem',
-                border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-              }}>
-                <div>
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f2146' }}>{r.espacio_nombre}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
-                    <Clock size={12}/> {String(r.hora_inicio).slice(0,5)} – {String(r.hora_fin).slice(0,5)}
-                  </span>
-                </div>
-                <button onClick={() => handleCancelar(r.reserva_id)} style={{
-                  background: 'none', border: '1px solid #fca5a5', borderRadius: '8px',
-                  padding: '0.3rem 0.7rem', color: '#dc2626', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer'
-                }}>
-                  <XCircle size={14} style={{ verticalAlign: 'middle', marginRight: '3px' }}/>Cancelar
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* PASO 1: DEPORTE */}
-      <section className="rs-section">
-        <header className="section-header">
-          <span style={{ background: '#0f2146', color: 'white', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>1</span>
-          <h3>¿Qué quieres jugar hoy?</h3>
-        </header>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '1.5rem' }}>
-          {disciplinas.map(d => {
-            const m = DISCIPLINA_META[d.nombre] || META_DEFAULT
-            const selected = selectedDisc?.id === d.id
-            return (
-              <button key={d.id} onClick={() => handleSelectDisc(d)} style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                padding: '0.5rem 1rem', borderRadius: '20px', border: '2px solid',
-                borderColor: selected ? m.color : '#e2e8f0',
-                background: selected ? m.bg : 'white',
-                color: selected ? m.color : '#475569',
-                fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
-                transition: 'all 0.18s'
-              }}>
-                <m.Icon size={16} />
-                {d.nombre}
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* PASO 2: CANCHA */}
-      {selectedDisc && (
-        <section className="rs-section">
-          <header className="section-header">
-            <span style={{ background: '#0f2146', color: 'white', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>2</span>
-            <h3>Elige tu cancha · {selectedDisc.nombre}</h3>
-          </header>
-          {espaciosFiltrados.length === 0 ? (
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No hay canchas disponibles para esta disciplina.</p>
-          ) : (
-            <div className="rs-espacios-grid" style={{ marginBottom: '1.5rem' }}>
-              {espaciosFiltrados.map(esp => {
-                const m = DISCIPLINA_META[esp.disciplina] || META_DEFAULT
-                const sel = selectedEspacio?.espacio_id === esp.espacio_id
-                return (
-                  <div key={esp.espacio_id}
-                    className={`rs-espacio-card ${sel ? 'active' : ''}`}
-                    onClick={() => handleSelectEspacio(esp)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div className="espacio-img" style={{ padding: 0, height: 80, overflow: 'hidden', position: 'relative' }}>
-                      <img src={ESPACIO_IMG} alt={esp.nombre}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover',
-                          filter: sel ? 'brightness(0.85)' : 'none', transition: 'filter 0.2s' }} />
-                      {sel && (
-                        <div style={{ position: 'absolute', top: 6, right: 6, background: m.color,
-                          borderRadius: '50%', width: 20, height: 20, display: 'flex',
-                          alignItems: 'center', justifyContent: 'center' }}>
-                          <CheckCircle size={13} color="white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="espacio-info">
-                      <h4>{esp.nombre}</h4>
-                      {esp.capacidad_maxima && <p>Cap. {esp.capacidad_maxima}</p>}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* PASO 3: HORARIO */}
-      {selectedEspacio && (
-        <section ref={slotsRef} className="rs-section">
-          <header className="section-header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ background: '#0f2146', color: 'white', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, flexShrink: 0 }}>3</span>
-              <h3 style={{ margin: 0 }}>Elige tu horario · {selectedEspacio.nombre}</h3>
-            </div>
-            <button onClick={() => fetchDisponibilidad(selectedEspacio.espacio_id)} style={{
-              display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: '1px solid #e2e8f0',
-              borderRadius: '8px', padding: '4px 10px', fontSize: '0.75rem', color: '#64748b', cursor: 'pointer'
-            }}>
-              <RotateCcw size={12}/> Actualizar
-            </button>
-          </header>
-
-          {/* DURACIÓN */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Duración:</span>
-            {[1, 2].map(d => (
-              <button key={d} onClick={() => handleDuracionChange(d)} style={{
-                padding: '0.35rem 1rem', borderRadius: '20px', border: '2px solid',
-                borderColor: duracion === d ? '#0f2146' : '#e2e8f0',
-                background: duracion === d ? '#0f2146' : 'white',
-                color: duracion === d ? 'white' : '#475569',
-                fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer'
-              }}>
-                {d} hora{d > 1 ? 's' : ''}
-              </button>
-            ))}
-          </div>
-
-          {/* LEYENDA */}
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-            {[
-              { color: '#dcfce7', border: '#86efac', text: 'Libre' },
-              { color: '#fee2e2', border: '#fca5a5', text: 'Reservado' },
-              { color: '#dbeafe', border: '#93c5fd', text: 'Clase/Sesión' },
-            ].map(l => (
-              <div key={l.text} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.73rem', color: '#475569' }}>
-                <div style={{ width: 12, height: 12, borderRadius: '3px', background: l.color, border: `1px solid ${l.border}` }}/>
-                {l.text}
-              </div>
-            ))}
-          </div>
-
-          {/* SLOTS */}
-          {loadingSlots ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>Cargando disponibilidad...</div>
-          ) : cerradoHoy ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '2rem', color: '#64748b', fontWeight: 600, fontSize: '0.9rem' }}>
-              <Ban size={20} style={{ flexShrink: 0 }} />
-              El club está cerrado hoy. No hay horarios disponibles.
-            </div>
-          ) : (
-            <div className="rs-slots-grid" style={{ gap: '0.5rem', marginBottom: '1.5rem' }}>
-              {slots.map(slot => {
-                const isSelected = selectedSlot === slot.hora
-                const isExt = duracion === 2 && selectedSlot && (() => {
-                  const idx = slots.findIndex(s => s.hora === selectedSlot)
-                  return slots[idx + 1]?.hora === slot.hora
-                })()
-                const isPast = parseInt(slot.hora.split(':')[0]) <= new Date().getHours()
-                const valid = slotValido(slot)
-
-                let bg = '#dcfce7', border = '#86efac', color = '#166534'
-                if (!slot.libre) {
-                  if (slot.motivo === 'sesion') { bg = '#dbeafe'; border = '#93c5fd'; color = '#1e40af' }
-                  else { bg = '#fee2e2'; border = '#fca5a5'; color = '#991b1b' }
-                }
-                if (isPast) { bg = '#f1f5f9'; border = '#e2e8f0'; color = '#94a3b8' }
-                if (isSelected || isExt) { bg = '#0f2146'; border = '#0f2146'; color = 'white' }
-                if (!isPast && slot.libre && !valid && !isSelected) { bg = '#f8fafc'; border = '#e2e8f0'; color = '#cbd5e1' }
-
-                return (
-                  <button key={slot.hora}
-                    onClick={() => handleSelectSlot(slot)}
-                    disabled={!valid && !isSelected}
-                    style={{
-                      padding: '0.65rem 0.5rem', borderRadius: '10px',
-                      border: `2px solid ${border}`, background: bg, color,
-                      fontWeight: 700, fontSize: '0.78rem', cursor: valid || isSelected ? 'pointer' : 'default',
-                      transition: 'all 0.15s', textAlign: 'center'
-                    }}
-                    title={isPast ? 'Horario pasado' : !slot.libre ? (slot.motivo === 'sesion' ? 'Clase programada' : 'Ya reservado') : ''}
-                  >
-                    {slotLabel(slot.hora)}
-                    {isExt && <div style={{ fontSize: '0.65rem', opacity: 0.8, marginTop: '2px' }}>+1h</div>}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
-          {/* BOTÓN RESERVAR */}
-          {canReserve && (
-            <div className="rs-final-action">
-              <button className="rs-book-btn" onClick={() => setModal(true)}>
-                <Zap size={20} fill="currentColor"/>
-                <span>
-                  Reservar {selectedSlot} – {String(Number(selectedSlot.split(':')[0]) + duracion).padStart(2,'0')}:00
-                </span>
-              </button>
-            </div>
-          )}
-        </section>
-      )}
+      </Stack>
 
       {/* MODAL CONFIRMACIÓN */}
       {modal && (
-        <div className="rs-modal-overlay">
-          <div className="rs-modal">
-            <button className="close-btn" onClick={() => setModal(false)}>&times;</button>
-            <div className="modal-header"><h3>Confirmar Reserva</h3></div>
-            <div className="modal-body">
-              <p><MapPin size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />Cancha: <strong>{selectedEspacio?.nombre}</strong></p>
-              <p><CalendarDays size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />Fecha: <strong>Hoy, {todayLabel()}</strong></p>
-              <p><Clock size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />Horario: <strong>{selectedSlot} – {String(Number(selectedSlot.split(':')[0]) + duracion).padStart(2,'0')}:00</strong> ({duracion}h)</p>
-            </div>
-            <footer className="modal-footer">
-              <button className="modal-btn confirm" onClick={handleConfirmar} disabled={saving}>
+        <Modal
+          isOpen
+          onClose={() => setModal(false)}
+          title="Confirmar Reserva"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setModal(false)}>Cancelar</Button>
+              <Button onClick={handleConfirmar} disabled={saving}>
                 {saving ? 'Procesando...' : 'Confirmar'}
-              </button>
-              <button className="modal-btn cancel" onClick={() => setModal(false)}>Cancelar</button>
-            </footer>
-          </div>
-        </div>
+              </Button>
+            </>
+          }
+        >
+          <Dato icon={<MapPin size={14} />}>Cancha: <strong>{selectedEspacio?.nombre}</strong></Dato>
+          <Dato icon={<CalendarDays size={14} />}>Fecha: <strong>Hoy, {todayLabel()}</strong></Dato>
+          <Dato icon={<Clock size={14} />}>
+            Horario: <strong>{selectedSlot} – {String(Number(selectedSlot.split(':')[0]) + duracion).padStart(2,'0')}:00</strong> ({duracion}h)
+          </Dato>
+        </Modal>
       )}
 
     </SocioLayout>

@@ -10,3 +10,6 @@ export { Stack } from './Stack';
 export { Text } from './Text';
 export { StatCard } from './StatCard';
 export { Card } from './Card';
+export { Avatar } from './Avatar';
+export { Chip } from './Chip';
+export { Checkbox } from './Checkbox';

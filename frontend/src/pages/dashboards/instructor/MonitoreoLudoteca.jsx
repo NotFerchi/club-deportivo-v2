@@ -10,11 +10,15 @@ import {
 } from 'lucide-react';
 import { apiRequest, unwrapList } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
+import { Alert, Avatar, Badge, Button, Card, ProgressBar, Stack, StatCard, Text } from '../../../components/ui';
 
 const TICK_MS = 1000;
 const POLL_MS = 10000;
 const WARNING_MS = 90 * 60 * 1000;
 const LIMIT_MS = 120 * 60 * 1000;
+
+// semáforo → variante de Badge del kit
+const BADGE_SEMAFORO = { verde: 'success', amarillo: 'warning', rojo: 'danger' };
 
 function getElapsedMs(nino, now, lastSyncMs) {
   const segundosBase = Number(nino.segundos_transcurridos);
@@ -93,60 +97,47 @@ function getNombrePadre(nino) {
 function LudotecaCard({ nino, now, lastSyncMs, saliendo, onSalida }) {
   const elapsedMs = getElapsedMs(nino, now, lastSyncMs);
   const elapsedMinutes = Math.floor(elapsedMs / 60000);
-  const progreso = Math.min(100, (elapsedMs / LIMIT_MS) * 100);
   const semaforo = getSemaforo(elapsedMs);
 
   return (
-    <article className={`ludo-monitor-card ${semaforo.key}`}>
-      <div className="ludo-monitor-progress">
-        <span style={{ width: `${progreso}%` }} />
-      </div>
+    <Card
+      title={nino.nombre_hijo}
+      action={
+        <Badge variant={BADGE_SEMAFORO[semaforo.key]}>
+          {semaforo.icon}
+          {semaforo.label}
+        </Badge>
+      }
+    >
+      <Stack gap={12}>
+        <Stack direction="row" gap={8} align="center">
+          <Avatar name={nino.nombre_hijo} size="sm" />
+          <Text variant="small" muted>{getNombrePadre(nino)}</Text>
+        </Stack>
 
-      <div className="ludo-monitor-card-body">
-        <div className="ludo-monitor-card-head">
-          <div className="ludo-monitor-avatar" aria-hidden="true">
-            {(nino.nombre_hijo || '?').trim().charAt(0).toUpperCase()}
-          </div>
+        <ProgressBar value={elapsedMinutes} max={LIMIT_MS / 60000} label="Minutos" />
 
-          <div className="ludo-monitor-name-wrap">
-            <h5>{nino.nombre_hijo}</h5>
-            <p>{getNombrePadre(nino)}</p>
-          </div>
+        <Stack direction="row" gap={16} justify="between" wrap>
+          <Stack gap={0}>
+            <Text variant="caption" muted>Entrada</Text>
+            <Text variant="small">{formatHora(nino.hora_entrada_local || nino.hora_entrada)}</Text>
+          </Stack>
 
-          <span className="ludo-monitor-status">
-            {semaforo.icon}
-            {semaforo.label}
-          </span>
-        </div>
+          <Stack gap={0}>
+            <Text variant="caption" muted>Transcurrido</Text>
+            <Text variant="small">{formatDuracion(elapsedMs)}</Text>
+          </Stack>
+        </Stack>
 
-        <div className="ludo-monitor-time-row">
-          <div>
-            <span>Entrada</span>
-            <strong>{formatHora(nino.hora_entrada_local || nino.hora_entrada)}</strong>
-          </div>
-
-          <div>
-            <span>Transcurrido</span>
-            <strong>{formatDuracion(elapsedMs)}</strong>
-          </div>
-
-          <div>
-            <span>Minutos</span>
-            <strong>{elapsedMinutes}/120</strong>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="ludo-monitor-exit"
+        <Button
           disabled={saliendo}
           onClick={() => onSalida(nino.registro_id)}
         >
           <LogOut size={16} />
           {saliendo ? 'Registrando...' : 'Dar salida'}
-        </button>
-      </div>
-    </article>
+        </Button>
+      </Stack>
+    </Card>
   );
 }
 
@@ -259,87 +250,48 @@ function MonitoreoLudoteca() {
   };
 
   if (loading) {
-    return (
-      <div className="chart-box ludo-monitor-loading">
-        <Clock size={22} />
-        <span>Cargando ludoteca...</span>
-      </div>
-    );
+    return <Text muted>Cargando ludoteca...</Text>;
   }
 
   return (
-    <section className="chart-box ludo-monitor">
-      {toast && (
-        <div className={`ludo-monitor-toast ${toast.type}`}>
-          {toast.type === 'warning' ? (
-            <AlertCircle size={18} />
-          ) : (
-            <CheckCircle size={18} />
-          )}
-          <span>{toast.message}</span>
-        </div>
-      )}
+    <Stack gap={24}>
+      {toast && <Alert variant={toast.type}>{toast.message}</Alert>}
 
-      <div className="ludo-monitor-header">
-        <div>
-          <h4>Monitoreo de Ludoteca</h4>
-          <p>
+      <Stack direction="row" gap={16} align="center" justify="between" wrap>
+        <Stack gap={4}>
+          <Text variant="heading">Monitoreo de Ludoteca</Text>
+          <Text variant="small" muted>
             {ninos.length} activos · Última sincronización {formatSync(lastSync)}
-          </p>
-        </div>
+          </Text>
+        </Stack>
 
-        <button
-          type="button"
-          className="ludo-monitor-refresh"
+        <Button
+          variant="secondary"
           onClick={() => fetchActivos()}
           disabled={loading}
         >
           <RefreshCw size={16} />
           Actualizar
-        </button>
-      </div>
+        </Button>
+      </Stack>
 
-      <div className="ludo-monitor-kpis">
-        <div className="ludo-monitor-kpi total">
-          <Users size={18} />
-          <strong>{ninos.length}</strong>
-          <span>En ludoteca</span>
-        </div>
+      <Stack direction="row" gap={16} grow minChild={150}>
+        <StatCard label="En ludoteca" value={ninos.length} tone="neutral" icon={<Users size={20} />} />
+        <StatCard label="Verde" value={stats.verde} tone="success" icon={<CheckCircle size={20} />} />
+        <StatCard label="Amarillo" value={stats.amarillo} tone="warning" icon={<Clock size={20} />} />
+        <StatCard label="Rojo" value={stats.rojo} tone="danger" icon={<AlertCircle size={20} />} />
+      </Stack>
 
-        <div className="ludo-monitor-kpi verde">
-          <CheckCircle size={18} />
-          <strong>{stats.verde}</strong>
-          <span>Verde</span>
-        </div>
-
-        <div className="ludo-monitor-kpi amarillo">
-          <Clock size={18} />
-          <strong>{stats.amarillo}</strong>
-          <span>Amarillo</span>
-        </div>
-
-        <div className="ludo-monitor-kpi rojo">
-          <AlertCircle size={18} />
-          <strong>{stats.rojo}</strong>
-          <span>Rojo</span>
-        </div>
-      </div>
-
-      {error && (
-        <div className="ludo-monitor-error">
-          <AlertCircle size={16} />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {ninos.length === 0 ? (
-        <div className="ludo-monitor-empty">
+        <Stack gap={4} align="center" padding={32}>
           <Baby size={34} />
-          <strong>No hay niños en ludoteca</strong>
-          <span>Los ingresos activos aparecerán aquí.</span>
-        </div>
+          <Text variant="subheading">No hay niños en ludoteca</Text>
+          <Text variant="small" muted>Los ingresos activos aparecerán aquí.</Text>
+        </Stack>
       ) : (
-        <div className="ludo-monitor-grid">
+        <Stack direction="row" gap={16} grow minChild={260}>
           {ninos.map((nino) => (
             <LudotecaCard
               key={nino.registro_id}
@@ -350,9 +302,9 @@ function MonitoreoLudoteca() {
               onSalida={handleSalida}
             />
           ))}
-        </div>
+        </Stack>
       )}
-    </section>
+    </Stack>
   );
 }
 

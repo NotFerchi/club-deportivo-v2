@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Avatar, Badge, Button, Card, Checkbox, Chip, Input, Modal, ProgressBar, Select, StatCard, Table } from '../components/ui';
+import { Alert, Avatar, Badge, Button, Card, Checkbox, Chip, Input, Modal, ProgressBar, Select, StatCard, Table, Textarea } from '../components/ui';
 import './UIKitPlayground.css';
 
 /**
@@ -52,6 +52,7 @@ export default function UIKitPlayground() {
   const [nombre, setNombre] = useState('');
   const [socio, setSocio] = useState('');
   const [disciplina, setDisciplina] = useState('');
+  const [comentario, setComentario] = useState('');
 
   const closeModal = () => setIsModalOpen(false);
 
@@ -85,6 +86,21 @@ export default function UIKitPlayground() {
           />
           <Input label="Nombre completo" defaultValue="Juan Pé" error="Este campo es obligatorio" />
           <Input label="Nombre completo" placeholder="Ej. Juan Pérez" helperText="Campo no editable" disabled />
+        </div>
+      </Section>
+
+      <Section title="Textarea">
+        <div className="uikit-grid uikit-grid--inputs">
+          <Textarea
+            label="Comentario"
+            placeholder="Cuéntanos cómo fue la clase"
+            maxLength={500}
+            showCount
+            value={comentario}
+            onChange={(event) => setComentario(event.target.value)}
+          />
+          <Textarea label="Comentario" defaultValue="Muy corto" error="El comentario es obligatorio" />
+          <Textarea label="Comentario" placeholder="Campo no editable" helperText="Texto de ayuda" disabled />
         </div>
       </Section>
 

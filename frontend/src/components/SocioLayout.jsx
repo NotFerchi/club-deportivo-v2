@@ -10,8 +10,6 @@ import { useNotificacionesSocio } from '../hooks/useNotificacionesSocio'
 import '../../css/socio/DashboardSocio.css'
 import '../../css/socio/Reservas.css'
 import '../../css/socio/Ludoteca.css'
-import '../../css/socio/Sanciones.css'
-import '../../css/socio/Torneos.css'
 import '../../css/socio/Clases.css'
 
 /* ── Toast individual ─────────────────────────────────────── */

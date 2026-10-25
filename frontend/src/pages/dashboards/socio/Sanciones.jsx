@@ -3,10 +3,23 @@ import SocioLayout from '../../../components/SocioLayout'
 import {
   AlertTriangle, CheckCircle, Shield,
   Calendar, Clock, FileText,
-  Info, AlertCircle as AlertIcon, Ban
+  AlertCircle as AlertIcon, Ban
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
-import '../../../../css/socio/Sanciones.css'
+import { Alert, Badge, Button, Card, Modal, Stack, StatCard, Text } from '../../../components/ui'
+
+// color de estatus → variante de Badge del kit
+const BADGE_ESTATUS = { verde: 'success', naranja: 'warning', rojo: 'danger' }
+
+// Ícono + texto secundario en una línea
+function Dato({ icon, children }) {
+  return (
+    <Stack direction="row" gap={8} align="center">
+      {icon}
+      <Text variant="small" muted as="span">{children}</Text>
+    </Stack>
+  )
+}
 
 function Sanciones() {
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
@@ -59,10 +72,11 @@ function Sanciones() {
     return 'Cuenta Limpia'
   }
 
+  // gravedad → variante de Badge del kit
   const getGravedadColor = (gravedad) => {
-    if (gravedad === 'Grave') return 'grave'
-    if (gravedad === 'Moderada') return 'media'
-    return 'leve'
+    if (gravedad === 'Grave') return 'danger'
+    if (gravedad === 'Moderada') return 'warning'
+    return 'info'
   }
 
   // Usa el campo booleano `activa` del backend; fallback: compara estado para compatibilidad
@@ -93,194 +107,143 @@ function Sanciones() {
 
   return (
     <SocioLayout activeTab="sanciones" title="Club Social | Estado de Cuenta">
+      <Stack gap={24}>
 
-      {/* HEADER */}
-      <section className="rs-welcome-card">
-        <div className="rs-welcome-info">
-          <h2 className="rs-title-serif">Estado de Cuenta</h2>
-          <p className="rs-subtitle">Historial de sanciones y cumplimiento de reglas</p>
-        </div>
-        <div className="rs-status-tags">
-          <div className={`estatus-cuenta ${estatusColor}`}>
-            {estatusColor === 'verde' && <CheckCircle size={18} />}
-            {estatusColor === 'naranja' && <AlertTriangle size={18} />}
-            {estatusColor === 'rojo' && <Ban size={18} />}
-            <span>{getEstatusLabel()}</span>
-          </div>
-        </div>
-      </section>
+        {/* HEADER */}
+        <Stack direction="row" gap={16} align="start" justify="between" wrap>
+          <Stack gap={4}>
+            <Text variant="heading">Estado de Cuenta</Text>
+            <Text variant="small" muted>Historial de sanciones y cumplimiento de reglas</Text>
+          </Stack>
+          <Badge variant={BADGE_ESTATUS[estatusColor]}>
+            {estatusColor === 'verde' && <CheckCircle size={16} />}
+            {estatusColor === 'naranja' && <AlertTriangle size={16} />}
+            {estatusColor === 'rojo' && <Ban size={16} />}
+            {getEstatusLabel()}
+          </Badge>
+        </Stack>
 
-      {/* ESTADÍSTICAS */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <Shield size={24} className="stat-icon" />
-          <div className="stat-content">
-            <span className="stat-value">{sancionesActivas}</span>
-            <span className="stat-label">Sanciones Activas</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <AlertTriangle size={24} className="stat-icon" />
-          <div className="stat-content">
-            <span className="stat-value">{sanciones.length}</span>
-            <span className="stat-label">Total Historial</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <CheckCircle size={24} className="stat-icon" />
-          <div className="stat-content">
-            <span className="stat-value">{sancionesResueltas}</span>
-            <span className="stat-label">Resueltas</span>
-          </div>
-        </div>
-      </div>
+        {/* ESTADÍSTICAS */}
+        <Stack direction="row" gap={16} grow minChild={160}>
+          <StatCard label="Sanciones Activas" value={sancionesActivas} tone={sancionesActivas > 0 ? 'danger' : 'neutral'} icon={<Shield size={20} />} />
+          <StatCard label="Total Historial" value={sanciones.length} tone="neutral" icon={<AlertTriangle size={20} />} />
+          <StatCard label="Resueltas" value={sancionesResueltas} tone="success" icon={<CheckCircle size={20} />} />
+        </Stack>
 
-      {/* LEYENDA */}
-      <div className="leyenda-section">
-        <h4>Gravedad de Sanciones</h4>
-        <div className="leyenda-grid">
-          <div className="leyenda-item">
-            <span className="badge-gravedad leve">Leve</span>
-            <span>Advertencia (1 día)</span>
-          </div>
-          <div className="leyenda-item">
-            <span className="badge-gravedad media">Moderada</span>
-            <span>Suspensión temporal (7 días)</span>
-          </div>
-          <div className="leyenda-item">
-            <span className="badge-gravedad grave">Grave</span>
-            <span>Suspensión prolongada (30 días)</span>
-          </div>
-        </div>
-      </div>
+        {/* LEYENDA */}
+        <Card title="Gravedad de Sanciones">
+          <Stack direction="row" gap={24} wrap>
+            <Stack direction="row" gap={8} align="center">
+              <Badge variant="info">Leve</Badge>
+              <Text variant="small" muted as="span">Advertencia (1 día)</Text>
+            </Stack>
+            <Stack direction="row" gap={8} align="center">
+              <Badge variant="warning">Moderada</Badge>
+              <Text variant="small" muted as="span">Suspensión temporal (7 días)</Text>
+            </Stack>
+            <Stack direction="row" gap={8} align="center">
+              <Badge variant="danger">Grave</Badge>
+              <Text variant="small" muted as="span">Suspensión prolongada (30 días)</Text>
+            </Stack>
+          </Stack>
+        </Card>
 
-      {/* LISTADO */}
-      <div className="sanciones-list">
-        <h3>Historial de Sanciones</h3>
+        {/* LISTADO */}
+        <Stack gap={16}>
+          <Text variant="subheading">Historial de Sanciones</Text>
 
-        {loading ? (
-          <div className="loading-state">Cargando...</div>
-        ) : error ? (
-          <div className="empty-state">
-            <AlertIcon size={48} style={{ color: '#ef4444' }} />
-            <h3>Error al cargar</h3>
-            <p>{error}</p>
-          </div>
-        ) : sanciones.length === 0 ? (
-          <div className="empty-state">
-            <CheckCircle size={48} />
-            <h3>¡Excelente!</h3>
-            <p>No tienes sanciones registradas</p>
-          </div>
-        ) : (
-          <div className="sanciones-grid">
-            {sanciones.map(sancion => {
-              const estadoNorm = getNormalizedEstado(sancion)
-              return (
-                <div key={sancion.sancion_id} className="sancion-card">
-                  <div className="sancion-header">
-                    <span className={`badge-gravedad ${getGravedadColor(sancion.gravedad)}`}>
-                      {sancion.gravedad || 'Leve'}
-                    </span>
-                    <span className={`sancion-status ${estadoNorm}`}>
-                      {estadoNorm === 'activa' ? <AlertIcon size={16} /> : <CheckCircle size={16} />}
-                      {estadoNorm === 'activa' ? ' Activa' : ' Resuelta'}
-                    </span>
-                  </div>
-
-                  <h4 className="sancion-tipo">{sancion.origen || 'Sanción'}</h4>
-                  <p className="sancion-desc">{sancion.motivo}</p>
-
-                  <div className="sancion-detalles">
-                    <div className="detalle-item">
-                      <Calendar size={14} />
-                      <span>{formatFecha(sancion.fecha_inicio || sancion.fecha)}</span>
-                    </div>
-                    {sancion.fecha_fin && (
-                      <div className="detalle-item">
-                        <Clock size={14} />
-                        <span>Hasta: {formatFecha(sancion.fecha_fin)}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    className="btn-ver-detalle"
-                    onClick={() => handleVerDetalle(sancion)}
+          {loading ? (
+            <Text muted>Cargando...</Text>
+          ) : error ? (
+            <Alert variant="error" title="Error al cargar">{error}</Alert>
+          ) : sanciones.length === 0 ? (
+            <Stack gap={4} align="center" padding={32}>
+              <CheckCircle size={48} />
+              <Text variant="subheading">¡Excelente!</Text>
+              <Text variant="small" muted>No tienes sanciones registradas</Text>
+            </Stack>
+          ) : (
+            <Stack direction="row" gap={16} grow minChild={280}>
+              {sanciones.map(sancion => {
+                const estadoNorm = getNormalizedEstado(sancion)
+                return (
+                  <Card
+                    key={sancion.sancion_id}
+                    title={sancion.origen || 'Sanción'}
+                    action={
+                      <Badge variant={getGravedadColor(sancion.gravedad)}>
+                        {sancion.gravedad || 'Leve'}
+                      </Badge>
+                    }
                   >
-                    <FileText size={16} /> Ver Detalle
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                    <Stack gap={12}>
+                      <Stack direction="row">
+                        <Badge variant={estadoNorm === 'activa' ? 'danger' : 'success'}>
+                          {estadoNorm === 'activa' ? <AlertIcon size={14} /> : <CheckCircle size={14} />}
+                          {estadoNorm === 'activa' ? 'Activa' : 'Resuelta'}
+                        </Badge>
+                      </Stack>
+
+                      <Text variant="small">{sancion.motivo}</Text>
+
+                      <Dato icon={<Calendar size={14} />}>{formatFecha(sancion.fecha_inicio || sancion.fecha)}</Dato>
+                      {sancion.fecha_fin && (
+                        <Dato icon={<Clock size={14} />}>Hasta: {formatFecha(sancion.fecha_fin)}</Dato>
+                      )}
+
+                      <Button variant="secondary" onClick={() => handleVerDetalle(sancion)}>
+                        <FileText size={16} /> Ver Detalle
+                      </Button>
+                    </Stack>
+                  </Card>
+                )
+              })}
+            </Stack>
+          )}
+        </Stack>
+      </Stack>
 
       {/* MODAL DETALLE */}
       {showModalDetalle && sancionSeleccionada && (
-        <div className="rs-modal-overlay">
-          <div className="rs-modal modal-detalle">
-            <header className="modal-header">
-              <h3>Detalle de Sanción</h3>
-              <button className="close-btn" onClick={() => setShowModalDetalle(false)}>&times;</button>
-            </header>
-            <div className="modal-body">
-              <div className="detalle-sancion">
-                <div className="detalle-header">
-                  <span className={`badge-gravedad ${getGravedadColor(sancionSeleccionada.gravedad)}`}>
-                    {sancionSeleccionada.gravedad || 'Leve'}
-                  </span>
-                  <span className={`sancion-status ${getNormalizedEstado(sancionSeleccionada)}`}>
-                    {getNormalizedEstado(sancionSeleccionada) === 'activa' ? ' Activa' : ' Resuelta'}
-                  </span>
-                </div>
+        <Modal
+          isOpen
+          onClose={() => setShowModalDetalle(false)}
+          title="Detalle de Sanción"
+          footer={<Button onClick={() => setShowModalDetalle(false)}>Cerrar</Button>}
+        >
+          <Stack direction="row" gap={8} wrap>
+            <Badge variant={getGravedadColor(sancionSeleccionada.gravedad)}>
+              {sancionSeleccionada.gravedad || 'Leve'}
+            </Badge>
+            <Badge variant={getNormalizedEstado(sancionSeleccionada) === 'activa' ? 'danger' : 'success'}>
+              {getNormalizedEstado(sancionSeleccionada) === 'activa' ? 'Activa' : 'Resuelta'}
+            </Badge>
+          </Stack>
 
-                <h2>{sancionSeleccionada.origen || 'Sanción'}</h2>
-                <p className="detalle-desc">{sancionSeleccionada.motivo}</p>
+          <Stack gap={4}>
+            <Text variant="subheading">{sancionSeleccionada.origen || 'Sanción'}</Text>
+            <Text variant="small" muted>{sancionSeleccionada.motivo}</Text>
+          </Stack>
 
-                <div className="detalle-info-grid">
-                  <div className="info-item">
-                    <Calendar size={20} />
-                    <div>
-                      <strong>Fecha de Inicio</strong>
-                      <span>{formatFecha(sancionSeleccionada.fecha_inicio || sancionSeleccionada.fecha)}</span>
-                    </div>
-                  </div>
-                  {sancionSeleccionada.fecha_fin && (
-                    <div className="info-item">
-                      <Clock size={20} />
-                      <div>
-                        <strong>Fecha de Fin</strong>
-                        <span>{formatFecha(sancionSeleccionada.fecha_fin)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+          <Stack gap={8}>
+            <Dato icon={<Calendar size={16} />}>
+              <strong>Fecha de Inicio:</strong> {formatFecha(sancionSeleccionada.fecha_inicio || sancionSeleccionada.fecha)}
+            </Dato>
+            {sancionSeleccionada.fecha_fin && (
+              <Dato icon={<Clock size={16} />}>
+                <strong>Fecha de Fin:</strong> {formatFecha(sancionSeleccionada.fecha_fin)}
+              </Dato>
+            )}
+          </Stack>
 
-                <div className="detalle-explicacion">
-                  <h4><Info size={18} /> Motivo de la Sanción</h4>
-                  <p>{sancionSeleccionada.motivo}</p>
-                </div>
+          <Alert variant="info" title="Motivo de la Sanción">{sancionSeleccionada.motivo}</Alert>
 
-                {getNormalizedEstado(sancionSeleccionada) === 'activa' && (
-                  <div className="detalle-pago">
-                    <AlertIcon size={20} />
-                    <div>
-                      <strong>Sanción Vigente</strong>
-                      <p>Esta sanción está activa. Acude a recepción para más información sobre cómo resolverla.</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <footer className="modal-footer">
-              <button className="modal-btn confirm" onClick={() => setShowModalDetalle(false)}>
-                Cerrar
-              </button>
-            </footer>
-          </div>
-        </div>
+          {getNormalizedEstado(sancionSeleccionada) === 'activa' && (
+            <Alert variant="warning" title="Sanción Vigente">
+              Esta sanción está activa. Acude a recepción para más información sobre cómo resolverla.
+            </Alert>
+          )}
+        </Modal>
       )}
 
     </SocioLayout>

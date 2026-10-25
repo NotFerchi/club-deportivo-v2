@@ -206,4 +206,39 @@ export default function UIKitPlayground() {
 
       <Section title="Modal">
         <div>
-          <Button onClick={()
+          <Button onClick={() => setIsModalOpen(true)}>Abrir modal</Button>
+        </div>
+      </Section>
+
+      <Section title="Relleno para probar el bloqueo de scroll">
+        <div className="uikit-filler">
+          {Array.from({ length: 30 }, (_, index) => (
+            <p key={index} className="uikit-filler__item">
+              Bloque de relleno {index + 1}. Abre el modal y comprueba que la página no se desplaza.
+            </p>
+          ))}
+        </div>
+      </Section>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title="Nueva reserva"
+        footer={(
+          <>
+            <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
+            <Button onClick={closeModal}>Guardar</Button>
+          </>
+        )}
+      >
+        <p className="uikit-modal-text">Completa los datos para registrar la reserva del espacio.</p>
+        <Input
+          label="Socio"
+          placeholder="Ej. Juan Pérez"
+          value={socio}
+          onChange={(event) => setSocio(event.target.value)}
+        />
+      </Modal>
+    </main>
+  );
+}

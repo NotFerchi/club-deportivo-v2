@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Badge, Button, Modal, Select, Stack, Table, Text } from '../ui';
-import { obtenerReporte } from '../../mocks/torneos';
+import { obtenerReporte } from '../../services/torneosApi';
 import { estadoTorneo, formatFechaHora } from './torneoEstado';
 import {
   estadoEncuentro,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Badge, Button, Input, Modal, ProgressBar, Select, Table, Textarea } from '../components/ui';
+import { Alert, Avatar, Badge, Button, Card, Checkbox, Chip, Input, Modal, ProgressBar, Select, StatCard, Table, Textarea } from '../components/ui';
 import './UIKitPlayground.css';
 
 /**
@@ -25,6 +25,18 @@ const DISCIPLINAS = [
   { value: 2, label: 'Pádel' },
   { value: 3, label: 'Natación' },
 ];
+
+function ChipsDemo() {
+  const [sel, setSel] = useState(['Yoga']);
+  const toggle = (n) => setSel((p) => (p.includes(n) ? p.filter((x) => x !== n) : [...p, n]));
+  return (
+    <div className="uikit-grid">
+      {['Natación', 'Yoga', 'Tenis'].map((n) => (
+        <Chip key={n} selected={sel.includes(n)} onClick={() => toggle(n)}>{n}</Chip>
+      ))}
+    </div>
+  );
+}
 
 function Section({ title, children }) {
   return (
@@ -138,6 +150,47 @@ export default function UIKitPlayground() {
         </div>
       </Section>
 
+      <Section title="StatCard">
+        <div className="uikit-grid uikit-grid--inputs">
+          <StatCard label="Total socios" value={248} hint="231 activos" tone="primary" />
+          <StatCard label="Confirmadas" value={8} tone="success" />
+          <StatCard label="No-Show" value={2} tone="warning" />
+          <StatCard label="Canceladas" value={1} tone="danger" selected onClick={() => {}} />
+          <StatCard label="Acceso directo" value={12} tone="neutral" onClick={() => {}} />
+        </div>
+      </Section>
+
+      <Section title="Card">
+        <div className="uikit-grid uikit-grid--inputs">
+          <Card title="Visitas activas" action={<Button variant="secondary">Ver todo</Button>}>
+            Contenido del panel con margen interior.
+          </Card>
+          <Card title="Con tabla a ras del borde" flush>
+            <Table columns={[{ key: 'a', header: 'Socio' }, { key: 'b', header: 'Número' }]} data={[{ id: 1, a: 'Ana López', b: 'S-001' }]} />
+          </Card>
+        </div>
+      </Section>
+
+      <Section title="Avatar">
+        <div className="uikit-grid">
+          <Avatar name="Carlos López" size="sm" />
+          <Avatar name="María Fernanda Hernández" size="md" />
+          <Avatar name="Ana Gil" size="lg" />
+        </div>
+      </Section>
+
+      <Section title="Chip">
+        <ChipsDemo />
+      </Section>
+
+      <Section title="Checkbox">
+        <div className="uikit-grid">
+          <Checkbox label="Instructor activo" defaultChecked />
+          <Checkbox label="Opción sin marcar" />
+          <Checkbox label="Deshabilitada" disabled />
+        </div>
+      </Section>
+
       <Section title="Table · con datos">
         <Table columns={COLUMNS} data={RESERVAS} />
       </Section>
@@ -153,39 +206,4 @@ export default function UIKitPlayground() {
 
       <Section title="Modal">
         <div>
-          <Button onClick={() => setIsModalOpen(true)}>Abrir modal</Button>
-        </div>
-      </Section>
-
-      <Section title="Relleno para probar el bloqueo de scroll">
-        <div className="uikit-filler">
-          {Array.from({ length: 30 }, (_, index) => (
-            <p key={index} className="uikit-filler__item">
-              Bloque de relleno {index + 1}. Abre el modal y comprueba que la página no se desplaza.
-            </p>
-          ))}
-        </div>
-      </Section>
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title="Nueva reserva"
-        footer={(
-          <>
-            <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
-            <Button onClick={closeModal}>Guardar</Button>
-          </>
-        )}
-      >
-        <p className="uikit-modal-text">Completa los datos para registrar la reserva del espacio.</p>
-        <Input
-          label="Socio"
-          placeholder="Ej. Juan Pérez"
-          value={socio}
-          onChange={(event) => setSocio(event.target.value)}
-        />
-      </Modal>
-    </main>
-  );
-}
+          <Button onClick={()

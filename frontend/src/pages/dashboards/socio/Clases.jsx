@@ -7,53 +7,15 @@ import {
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
 import { useNotification } from '../../../context/NotificationContext'
-import '../../../../css/socio/Clases.css'
+import { Alert, Avatar, Badge, Button, Card, Chip, Modal, Stack, Text } from '../../../components/ui'
 
-// ── Avatar de instructor con iniciales ──────────────────────────────────────
-const AVATAR_COLORES = [
-  { bg: '#dbeafe', color: '#1e40af' },
-  { bg: '#dcfce7', color: '#166534' },
-  { bg: '#ede9fe', color: '#5b21b6' },
-  { bg: '#fce7f3', color: '#9d174d' },
-  { bg: '#fef3c7', color: '#92400e' },
-  { bg: '#e0f2fe', color: '#0369a1' },
-  { bg: '#ffedd5', color: '#c2410c' },
-  { bg: '#f0fdf4', color: '#15803d' },
-]
-
-function InstructorAvatar({ nombre, foto, size = 40 }) {
-  const partes = (nombre || '').trim().split(/\s+/).filter(Boolean)
-  const iniciales = partes.length >= 2
-    ? partes[0][0].toUpperCase() + partes[1][0].toUpperCase()
-    : partes[0]?.[0]?.toUpperCase() || '?'
-
-  const hash = (nombre || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  const { bg, color } = AVATAR_COLORES[hash % AVATAR_COLORES.length]
-
-  if (foto) {
-    return (
-      <img
-        src={foto}
-        alt={nombre || 'Instructor'}
-        style={{
-          width: size, height: size, borderRadius: '50%',
-          objectFit: 'cover', flexShrink: 0,
-          border: `2px solid ${color}40`,
-        }}
-      />
-    )
-  }
-
+// Ícono + texto secundario en una línea
+function Dato({ icon, children }) {
   return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%',
-      background: bg, color: color,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontWeight: 800, fontSize: Math.round(size * 0.38), letterSpacing: '-0.5px',
-      flexShrink: 0, border: `2px solid ${color}40`,
-    }}>
-      {iniciales}
-    </div>
+    <Stack direction="row" gap={8} align="center">
+      {icon}
+      <Text variant="small" muted as="span">{children}</Text>
+    </Stack>
   )
 }
 
@@ -224,19 +186,19 @@ function Clases() {
   const tmpFilterCount    = filtrosTmp.disciplinas.length + filtrosTmp.dias.length + filtrosTmp.instructores.length
 
   function getEstatusBadge(estatus) {
-    if (estatus === 'confirmado') return <span className="badge-confirmado"><CheckCircle size={14} /> Confirmado</span>
-    if (estatus === 'pendiente')  return <span className="badge-pendiente"><AlertCircle size={14} /> Pendiente</span>
-    if (estatus === 'cambio')     return <span className="badge-cambio"><AlertCircle size={14} /> Cambio</span>
+    if (estatus === 'confirmado') return <Badge variant="success"><CheckCircle size={14} /> Confirmado</Badge>
+    if (estatus === 'pendiente')  return <Badge variant="warning"><AlertCircle size={14} /> Pendiente</Badge>
+    if (estatus === 'cambio')     return <Badge variant="info"><AlertCircle size={14} /> Cambio</Badge>
     return null
   }
 
   function getCupoIndicator(cupos) {
-    if (!cupos) return <span className="badge-disponible">Consultar</span>
+    if (!cupos) return <Badge>Consultar</Badge>
     const { total, disponibles } = cupos
     const pct = total > 0 ? disponibles / total : 0
-    if (disponibles === 0)   return <span className="badge-lleno"><XCircle size={14} /> Lleno</span>
-    if (pct <= 0.15)         return <span className="badge-casi-lleno"><AlertCircle size={14} /> Casi lleno ({disponibles})</span>
-    return <span className="badge-disponible">{disponibles} de {total}</span>
+    if (disponibles === 0)   return <Badge variant="danger"><XCircle size={14} /> Lleno</Badge>
+    if (pct <= 0.15)         return <Badge variant="warning"><AlertCircle size={14} /> Casi lleno ({disponibles})</Badge>
+    return <Badge variant="success">{disponibles} de {total}</Badge>
   }
 
   // ── Handlers de filtros ───────────────────────────────────────────────────
@@ -312,344 +274,294 @@ function Clases() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <SocioLayout activeTab="clases" title="Club Social | Mis Clases">
+      <Stack gap={24}>
 
-      {/* HEADER */}
-      <section className="rs-welcome-card">
-        <div className="rs-welcome-info">
-          <h2 className="rs-title-serif">Clases y Actividades</h2>
-          <p className="rs-subtitle">Gestiona tus clases inscritas o explora nuevas opciones</p>
-        </div>
-        <div className="rs-status-tags">
-          <span className="tag-category">Socio: {userName}</span>
-        </div>
-      </section>
+        {/* HEADER */}
+        <Stack direction="row" gap={16} align="start" justify="between" wrap>
+          <Stack gap={4}>
+            <Text variant="heading">Clases y Actividades</Text>
+            <Text variant="small" muted>Gestiona tus clases inscritas o explora nuevas opciones</Text>
+          </Stack>
+          <Badge>Socio: {userName}</Badge>
+        </Stack>
 
-      {/* TABS */}
-      <div className="clases-tabs-container">
-        <button
-          className={`clases-tab-btn ${vista === 'mis-clases' ? 'active' : ''}`}
-          onClick={() => setVista('mis-clases')}
-        >
-          <BookOpen size={18} /> Mis Clases ({misClases.length})
-        </button>
-        <button
-          className={`clases-tab-btn ${vista === 'catalogo' ? 'active' : ''}`}
-          onClick={() => setVista('catalogo')}
-        >
-          <Search size={18} /> Explorar Catálogo
-        </button>
-      </div>
+        {/* TABS */}
+        <Stack direction="row" gap={8} wrap role="tablist">
+          <Button
+            role="tab"
+            aria-selected={vista === 'mis-clases'}
+            variant={vista === 'mis-clases' ? 'primary' : 'secondary'}
+            onClick={() => setVista('mis-clases')}
+          >
+            <BookOpen size={18} /> Mis Clases ({misClases.length})
+          </Button>
+          <Button
+            role="tab"
+            aria-selected={vista === 'catalogo'}
+            variant={vista === 'catalogo' ? 'primary' : 'secondary'}
+            onClick={() => setVista('catalogo')}
+          >
+            <Search size={18} /> Explorar Catálogo
+          </Button>
+        </Stack>
 
-      {/* ===== MIS CLASES ===== */}
-      {vista === 'mis-clases' && (
-        <div className="mis-clases-view">
-          {loading ? (
-            <div className="loading-state">Cargando tus clases...</div>
+        {/* ===== MIS CLASES ===== */}
+        {vista === 'mis-clases' && (
+          loading ? (
+            <Text muted>Cargando tus clases...</Text>
           ) : misClases.length === 0 ? (
-            <div className="empty-state">
+            <Stack gap={8} align="center" padding={32}>
               <Calendar size={48} />
-              <h3>No tienes clases inscritas</h3>
-              <p>Explora el catálogo para encontrar clases que te interesen</p>
-              <button className="btn-primary" onClick={() => setVista('catalogo')}>Ver Catálogo</button>
-            </div>
+              <Text variant="subheading">No tienes clases inscritas</Text>
+              <Text variant="small" muted>Explora el catálogo para encontrar clases que te interesen</Text>
+              <Button onClick={() => setVista('catalogo')}>Ver Catálogo</Button>
+            </Stack>
           ) : (
-            <div className="mis-clases-grid">
+            <Stack direction="row" gap={16} grow minChild={280}>
               {misClases.map(clase => (
-                <div key={clase.id} className="mi-clase-card">
-                  <div className="mi-clase-header">
-                    <span className="clase-disciplina">{clase.disciplina}</span>
-                    {getEstatusBadge(clase.estatus)}
-                  </div>
-                  <h3 className="mi-clase-nombre">{clase.nombre}</h3>
-                  <div className="mi-clase-info">
-                    <div className="info-row"><User size={16} /><span>{clase.instructor}</span></div>
-                    <div className="info-row"><Clock size={16} /><span>{clase.horario} · {clase.dias}</span></div>
-                    <div className="info-row"><MapPin size={16} /><span>{clase.salon}</span></div>
-                    <div className="info-row"><Timer size={16} /><span>{clase.duracion} · Intensidad {clase.intensidad}</span></div>
-                  </div>
-                  <div className="mi-clase-materiales">
-                    <Info size={14} />
-                    <span>Materiales: {clase.materiales}</span>
-                  </div>
-                  <button className="btn-baja-clase" onClick={() => handleCancelarInscripcion(clase)}>
-                    Cancelar Inscripción
-                  </button>
-                </div>
+                <Card key={clase.id} title={clase.nombre} action={getEstatusBadge(clase.estatus)}>
+                  <Stack gap={12}>
+                    <Text variant="overline" muted>{clase.disciplina}</Text>
+                    <Dato icon={<User size={16} />}>{clase.instructor}</Dato>
+                    <Dato icon={<Clock size={16} />}>{clase.horario} · {clase.dias}</Dato>
+                    <Dato icon={<MapPin size={16} />}>{clase.salon}</Dato>
+                    <Dato icon={<Timer size={16} />}>{clase.duracion} · Intensidad {clase.intensidad}</Dato>
+                    <Dato icon={<Info size={14} />}>Materiales: {clase.materiales}</Dato>
+                    <Button variant="error" onClick={() => handleCancelarInscripcion(clase)}>
+                      Cancelar Inscripción
+                    </Button>
+                  </Stack>
+                </Card>
               ))}
-            </div>
-          )}
-        </div>
-      )}
+            </Stack>
+          )
+        )}
 
-      {/* ===== CATÁLOGO ===== */}
-      {vista === 'catalogo' && (
-        <div className="catalogo-view">
-          {/* Botón filtros */}
-          <div className="filtros-btn-row">
-            <button
-              className={`btn-filtros ${activeFilterCount > 0 ? 'active' : ''}`}
-              onClick={handleOpenFiltros}
-            >
-              <Filter size={16} />
-              Filtros
-              {activeFilterCount > 0 && <span className="filtros-badge">{activeFilterCount}</span>}
-            </button>
-            {activeFilterCount > 0 && (
-              <button className="btn-limpiar-filtros" onClick={handleLimpiarFiltros}>Limpiar</button>
+        {/* ===== CATÁLOGO ===== */}
+        {vista === 'catalogo' && (
+          <Stack gap={16}>
+            {/* Botón filtros */}
+            <Stack direction="row" gap={8} align="center">
+              <Button variant={activeFilterCount > 0 ? 'primary' : 'secondary'} onClick={handleOpenFiltros}>
+                <Filter size={16} />
+                Filtros
+                {activeFilterCount > 0 && ` (${activeFilterCount})`}
+              </Button>
+              {activeFilterCount > 0 && (
+                <Button variant="secondary" onClick={handleLimpiarFiltros}>Limpiar</Button>
+              )}
+            </Stack>
+
+            {/* Grid de clases */}
+            <Stack direction="row" gap={16} grow minChild={280}>
+              {catalogoFiltrado.map(clase => {
+                const yaInscrito = misInscripcionIds.has(Number(clase.sesion_id))
+                return (
+                  <Card key={clase.id} title={clase.nombre} action={getCupoIndicator(clase.cupos)}>
+                    <Stack gap={12}>
+                      <Stack direction="row">
+                        <Badge variant="info">{clase.dias}</Badge>
+                      </Stack>
+                      <Text variant="small" muted>{clase.descripcion}</Text>
+                      <Stack direction="row" gap={8} align="center">
+                        <Avatar name={clase.instructor} src={clase.instructor_foto} />
+                        <Text variant="small" as="span">{clase.instructor || 'Por asignar'}</Text>
+                      </Stack>
+                      <Dato icon={<Clock size={14} />}>{clase.horario}</Dato>
+                      <Dato icon={<Calendar size={14} />}>{clase.dias}</Dato>
+                      <Dato icon={<MapPin size={14} />}>{clase.salon}</Dato>
+                      <Dato icon={<Timer size={14} />}>{clase.duracion}</Dato>
+                      <Dato icon={<Info size={14} />}>{clase.materiales}</Dato>
+
+                      {/* Botón según estado */}
+                      {yaInscrito ? (
+                        <Button variant="secondary" disabled>
+                          <CheckCircle size={16} /> Ya inscrito
+                        </Button>
+                      ) : clase.cupos?.disponibles === 0 ? (
+                        <Button disabled>
+                          Clase Llena
+                        </Button>
+                      ) : (
+                        <Button onClick={() => handleInscribirse(clase)}>
+                          <Zap size={16} /> Inscribirme
+                        </Button>
+                      )}
+                    </Stack>
+                  </Card>
+                )
+              })}
+            </Stack>
+
+            {catalogoFiltrado.length === 0 && (
+              <Stack gap={8} align="center" padding={32}>
+                <Search size={48} />
+                <Text variant="subheading">No se encontraron clases</Text>
+                <Text variant="small" muted>Intenta con otros filtros o limpia los actuales</Text>
+              </Stack>
             )}
-          </div>
-
-          {/* Grid de clases */}
-          <div className="catalogo-grid">
-            {catalogoFiltrado.map(clase => {
-              const yaInscrito = misInscripcionIds.has(Number(clase.sesion_id))
-              return (
-                <div key={clase.id} className="clase-card">
-                  <div className="clase-card-header">
-                    <span className="clase-nivel">{clase.dias}</span>
-                    {getCupoIndicator(clase.cupos)}
-                  </div>
-                  <h3 className="clase-nombre">{clase.nombre}</h3>
-                  <p className="clase-descripcion">{clase.descripcion}</p>
-                  <div className="clase-instructor">
-                    <InstructorAvatar nombre={clase.instructor} foto={clase.instructor_foto} size={38} />
-                    <span>{clase.instructor || 'Por asignar'}</span>
-                  </div>
-                  <div className="clase-detalles">
-                    <div className="detalle-item"><Clock size={14} /><span>{clase.horario}</span></div>
-                    <div className="detalle-item"><Calendar size={14} /><span>{clase.dias}</span></div>
-                    <div className="detalle-item"><MapPin size={14} /><span>{clase.salon}</span></div>
-                    <div className="detalle-item"><Timer size={14} /><span>{clase.duracion}</span></div>
-                  </div>
-                  <div className="clase-materiales">
-                    <Info size={14} />
-                    <span>{clase.materiales}</span>
-                  </div>
-
-                  {/* Botón según estado */}
-                  {yaInscrito ? (
-                    <button
-                      className="btn-inscribirse"
-                      disabled
-                      style={{ background: '#dcfce7', color: '#166534', border: '2px solid #86efac', cursor: 'default', opacity: 1 }}
-                    >
-                      <CheckCircle size={16} /> Ya inscrito
-                    </button>
-                  ) : clase.cupos?.disponibles === 0 ? (
-                    <button className="btn-inscribirse disabled" disabled>
-                      Clase Llena
-                    </button>
-                  ) : (
-                    <button className="btn-inscribirse" onClick={() => handleInscribirse(clase)}>
-                      <Zap size={16} /> Inscribirme
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {catalogoFiltrado.length === 0 && (
-            <div className="empty-state">
-              <Search size={48} />
-              <h3>No se encontraron clases</h3>
-              <p>Intenta con otros filtros o limpia los actuales</p>
-            </div>
-          )}
-        </div>
-      )}
+          </Stack>
+        )}
+      </Stack>
 
       {/* ===== MODAL: INSCRIPCIÓN ===== */}
       {showModalInscripcion && claseSeleccionada && (
-        <div className="rs-modal-overlay">
-          <div className="rs-modal modal-ficha">
-            <header className="modal-header">
-              <h3>Confirmar Inscripción</h3>
-              <button className="close-btn" onClick={() => setShowModalInscripcion(false)}>&times;</button>
-            </header>
-
-            <div className="modal-body">
-              {/* Feedback inline (reemplaza alert) */}
-              {feedbackModal && (
-                <div style={{
-                  display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
-                  padding: '0.75rem 1rem', borderRadius: '10px', marginBottom: '1rem',
-                  background: feedbackModal.tipo === 'error' ? '#fee2e2' : '#dcfce7',
-                  color:      feedbackModal.tipo === 'error' ? '#991b1b' : '#166534',
-                  fontWeight: 600, fontSize: '0.85rem'
-                }}>
-                  <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                  {feedbackModal.msg}
-                </div>
-              )}
-
-              <div className="ficha-clase">
-                <h2>{claseSeleccionada.nombre}</h2>
-                <span className="ficha-disciplina">{claseSeleccionada.disciplina}</span>
-
-                <div className="ficha-instructor">
-                  <InstructorAvatar nombre={claseSeleccionada.instructor} foto={claseSeleccionada.instructor_foto} size={52} />
-                  <div>
-                    <strong>{claseSeleccionada.instructor}</strong>
-                    <span>Instructor</span>
-                  </div>
-                </div>
-
-                <div className="ficha-detalles">
-                  <div className="ficha-detalle">
-                    <Clock size={18} />
-                    <div><strong>Horario</strong><span>{claseSeleccionada.horario} · {claseSeleccionada.dias}</span></div>
-                  </div>
-                  <div className="ficha-detalle">
-                    <MapPin size={18} />
-                    <div><strong>Ubicación</strong><span>{claseSeleccionada.salon}</span></div>
-                  </div>
-                  <div className="ficha-detalle">
-                    <Timer size={18} />
-                    <div><strong>Duración</strong><span>{claseSeleccionada.duracion}</span></div>
-                  </div>
-                  <div className="ficha-detalle">
-                    <Zap size={18} />
-                    <div><strong>Intensidad</strong><span>{claseSeleccionada.intensidad}</span></div>
-                  </div>
-                </div>
-
-                <div className="ficha-materiales">
-                  <h4>Materiales necesarios:</h4>
-                  <p>{claseSeleccionada.materiales}</p>
-                </div>
-
-                <div className="ficha-cupos">
-                  <span>Lugares disponibles: </span>
-                  <strong>{claseSeleccionada.cupos.disponibles} de {claseSeleccionada.cupos.total}</strong>
-                </div>
-              </div>
-            </div>
-
-            <footer className="modal-footer">
-              <button
-                className="modal-btn confirm"
-                onClick={handleConfirmarInscripcion}
-                disabled={saving}
-              >
-                {saving ? 'Inscribiendo...' : 'Confirmar Inscripción'}
-              </button>
-              <button className="modal-btn cancel" onClick={() => setShowModalInscripcion(false)}>
+        <Modal
+          isOpen
+          onClose={() => setShowModalInscripcion(false)}
+          title="Confirmar Inscripción"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setShowModalInscripcion(false)}>
                 Cancelar
-              </button>
-            </footer>
-          </div>
-        </div>
+              </Button>
+              <Button onClick={handleConfirmarInscripcion} disabled={saving}>
+                {saving ? 'Inscribiendo...' : 'Confirmar Inscripción'}
+              </Button>
+            </>
+          }
+        >
+          {/* Feedback inline (reemplaza alert) */}
+          {feedbackModal && (
+            <Alert variant={feedbackModal.tipo === 'error' ? 'error' : 'success'}>{feedbackModal.msg}</Alert>
+          )}
+
+          <Stack gap={4} align="start">
+            <Text variant="subheading">{claseSeleccionada.nombre}</Text>
+            <Badge variant="info">{claseSeleccionada.disciplina}</Badge>
+          </Stack>
+
+          <Stack direction="row" gap={12} align="center">
+            <Avatar name={claseSeleccionada.instructor} src={claseSeleccionada.instructor_foto} size="lg" />
+            <Stack gap={0}>
+              <Text variant="small"><strong>{claseSeleccionada.instructor}</strong></Text>
+              <Text variant="caption" muted>Instructor</Text>
+            </Stack>
+          </Stack>
+
+          <Stack gap={8}>
+            <Dato icon={<Clock size={18} />}><strong>Horario:</strong> {claseSeleccionada.horario} · {claseSeleccionada.dias}</Dato>
+            <Dato icon={<MapPin size={18} />}><strong>Ubicación:</strong> {claseSeleccionada.salon}</Dato>
+            <Dato icon={<Timer size={18} />}><strong>Duración:</strong> {claseSeleccionada.duracion}</Dato>
+            <Dato icon={<Zap size={18} />}><strong>Intensidad:</strong> {claseSeleccionada.intensidad}</Dato>
+          </Stack>
+
+          <Stack gap={4}>
+            <Text variant="small"><strong>Materiales necesarios:</strong></Text>
+            <Text variant="small" muted>{claseSeleccionada.materiales}</Text>
+          </Stack>
+
+          <Text variant="small">
+            Lugares disponibles: <strong>{claseSeleccionada.cupos.disponibles} de {claseSeleccionada.cupos.total}</strong>
+          </Text>
+        </Modal>
       )}
 
       {/* ===== MODAL: CONFIRMACIÓN EXITOSA ===== */}
       {showModalConfirmacion && (
-        <div className="rs-modal-overlay">
-          <div className="rs-modal modal-small">
-            <header className="modal-header">
-              <h3>¡Inscripción Exitosa!</h3>
-            </header>
-            <div className="modal-body text-center">
-              <CheckCircle size={64} className="success-icon" />
-              <p>Te has inscrito correctamente en <strong>{claseSeleccionada?.nombre}</strong></p>
-              <p className="text-muted">Puedes ver tus clases inscritas en la pestaña "Mis Clases"</p>
-            </div>
-            <footer className="modal-footer">
-              <button className="modal-btn confirm" onClick={() => {
-                setShowModalConfirmacion(false)
-                setVista('mis-clases')
-              }}>
-                Ver Mis Clases
-              </button>
-            </footer>
-          </div>
-        </div>
+        <Modal
+          isOpen
+          onClose={() => setShowModalConfirmacion(false)}
+          title="¡Inscripción Exitosa!"
+          footer={
+            <Button onClick={() => {
+              setShowModalConfirmacion(false)
+              setVista('mis-clases')
+            }}>
+              Ver Mis Clases
+            </Button>
+          }
+        >
+          <Alert variant="success">
+            Te has inscrito correctamente en <strong>{claseSeleccionada?.nombre}</strong>
+          </Alert>
+          <Text variant="small" muted>Puedes ver tus clases inscritas en la pestaña "Mis Clases"</Text>
+        </Modal>
       )}
 
       {/* ===== MODAL: BAJA ===== */}
       {showModalBaja && claseABaja && (
-        <div className="rs-modal-overlay">
-          <div className="rs-modal modal-small">
-            <header className="modal-header">
-              <h3>Cancelar Inscripción</h3>
-              <button className="close-btn" onClick={() => setShowModalBaja(false)}>&times;</button>
-            </header>
-            <div className="modal-body text-center">
-              <AlertCircle size={48} className="warning-icon" />
-              <p>¿Estás seguro de que deseas cancelar tu inscripción a <strong>{claseABaja.nombre}</strong>?</p>
-              <p className="text-muted">Liberarás tu lugar para otro socio</p>
-            </div>
-            <footer className="modal-footer">
-              <button className="modal-btn confirm" onClick={handleConfirmarBaja}>
-                Sí, Cancelar
-              </button>
-              <button className="modal-btn cancel" onClick={() => setShowModalBaja(false)}>
+        <Modal
+          isOpen
+          onClose={() => setShowModalBaja(false)}
+          title="Cancelar Inscripción"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setShowModalBaja(false)}>
                 Mantener Inscripción
-              </button>
-            </footer>
-          </div>
-        </div>
+              </Button>
+              <Button variant="error" onClick={handleConfirmarBaja}>
+                Sí, Cancelar
+              </Button>
+            </>
+          }
+        >
+          <Alert variant="warning">
+            ¿Estás seguro de que deseas cancelar tu inscripción a <strong>{claseABaja.nombre}</strong>?
+          </Alert>
+          <Text variant="small" muted>Liberarás tu lugar para otro socio</Text>
+        </Modal>
       )}
 
       {/* ===== PANEL: FILTROS ===== */}
       {showFiltros && (
-        <div className="filtros-overlay" onClick={() => setShowFiltros(false)}>
-          <div className="filtros-panel" onClick={e => e.stopPropagation()}>
-            <div className="filtros-panel-header">
-              <h3>Filtros</h3>
-              <button className="filtros-reset" onClick={handleLimpiarTmp}>Limpiar</button>
-            </div>
-            <div className="filtros-panel-body">
-              <div className="filtro-section">
-                <span className="filtro-section-label">Disciplina</span>
-                <div className="filtro-chips">
-                  {disciplinas.map(d => (
-                    <button
-                      key={d.disciplina_id}
-                      className={`filtro-chip ${filtrosTmp.disciplinas.includes(d.nombre) ? 'selected' : ''}`}
-                      onClick={() => toggleChip('disciplinas', d.nombre)}
-                    >
-                      {d.nombre}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="filtro-section">
-                <span className="filtro-section-label">Día de la semana</span>
-                <div className="filtro-chips">
-                  {DIAS_SEMANA.map(d => (
-                    <button
-                      key={d.valor}
-                      className={`filtro-chip ${filtrosTmp.dias.includes(String(d.valor)) ? 'selected' : ''}`}
-                      onClick={() => toggleChip('dias', String(d.valor))}
-                    >
-                      {d.nombre}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="filtro-section">
-                <span className="filtro-section-label">Instructor</span>
-                <div className="filtro-chips">
-                  {instructores.map(i => (
-                    <button
-                      key={i.instructor_id}
-                      className={`filtro-chip ${filtrosTmp.instructores.includes(i.nombre) ? 'selected' : ''}`}
-                      onClick={() => toggleChip('instructores', i.nombre)}
-                    >
-                      {i.nombre}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="filtros-panel-footer">
-              <button className="btn-aplicar-filtros" onClick={handleAplicarFiltros}>
+        <Modal
+          isOpen
+          onClose={() => setShowFiltros(false)}
+          closeOnOverlayClick
+          title="Filtros"
+          footer={
+            <>
+              <Button variant="secondary" onClick={handleLimpiarTmp}>Limpiar</Button>
+              <Button onClick={handleAplicarFiltros}>
                 Aplicar filtros{tmpFilterCount > 0 ? ` (${tmpFilterCount})` : ''}
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </>
+          }
+        >
+          <Stack gap={8}>
+            <Text variant="overline" muted>Disciplina</Text>
+            <Stack direction="row" gap={8} wrap>
+              {disciplinas.map(d => (
+                <Chip
+                  key={d.disciplina_id}
+                  selected={filtrosTmp.disciplinas.includes(d.nombre)}
+                  onClick={() => toggleChip('disciplinas', d.nombre)}
+                >
+                  {d.nombre}
+                </Chip>
+              ))}
+            </Stack>
+          </Stack>
+          <Stack gap={8}>
+            <Text variant="overline" muted>Día de la semana</Text>
+            <Stack direction="row" gap={8} wrap>
+              {DIAS_SEMANA.map(d => (
+                <Chip
+                  key={d.valor}
+                  selected={filtrosTmp.dias.includes(String(d.valor))}
+                  onClick={() => toggleChip('dias', String(d.valor))}
+                >
+                  {d.nombre}
+                </Chip>
+              ))}
+            </Stack>
+          </Stack>
+          <Stack gap={8}>
+            <Text variant="overline" muted>Instructor</Text>
+            <Stack direction="row" gap={8} wrap>
+              {instructores.map(i => (
+                <Chip
+                  key={i.instructor_id}
+                  selected={filtrosTmp.instructores.includes(i.nombre)}
+                  onClick={() => toggleChip('instructores', i.nombre)}
+                >
+                  {i.nombre}
+                </Chip>
+              ))}
+            </Stack>
+          </Stack>
+        </Modal>
       )}
 
     </SocioLayout>

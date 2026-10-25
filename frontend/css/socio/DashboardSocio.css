@@ -180,23 +180,6 @@ html, body {
 .ds-content-wrapper { max-width: 1000px; margin: 0 auto; }
 
 /* Alias for rs- prefixed classes used by views */
-.rs-welcome-card {
-    background: white;
-    padding: 2.5rem;
-    border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-}
-
-.rs-welcome-info { flex: 1; }
-.rs-title-serif { font-family: 'Playfair Display', serif; font-size: 1.75rem; color: var(--ds-navy); margin: 0; }
-.rs-subtitle { color: var(--ds-text-light); font-size: 0.85rem; margin-top: 0.5rem; }
-.rs-status-tags { display: flex; gap: 0.75rem; }
-
-.tag-category { border: 1px solid var(--ds-border); padding: 0.4rem 0.8rem; border-radius: 20px; font-weight: 700; font-size: 0.75rem; color: var(--ds-navy); }
 
 .stat-label { font-size: 0.75rem; color: var(--ds-text-light); font-weight: 600; }
 

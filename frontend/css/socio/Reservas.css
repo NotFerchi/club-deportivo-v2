@@ -25,55 +25,7 @@ body {
     overflow-y: auto !important; /* Aseguramos scroll */
 }
 
-/* Welcome Card Mobile-First */
-.rs-welcome-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 20px;
-    box-shadow: var(--rs-shadow);
-    text-align: center;
-    margin-bottom: 1.5rem;
-}
-
-.rs-title-serif { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--rs-navy); margin: 0; }
-.rs-subtitle { color: var(--rs-text-light); font-size: 0.8rem; margin: 0.5rem 0 0; }
-.tag-category { display: inline-block; margin-top: 1rem; font-size: 0.7rem; font-weight: 700; color: var(--rs-cyan); }
-
-/* --- VENTANA EMERGENTE (MODAL) PREMIUM --- */
-
-.rs-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 33, 70, 0.6); /* Navy con transparencia */
-    backdrop-filter: blur(4px); /* Efecto de desenfoque de fondo */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 3000;
-    padding: 1.5rem;
-}
-
-.rs-modal {
-    background: #ffffff;
-    width: 100%;
-    max-width: 400px;
-    border-radius: 24px;
-    padding: 2rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-    position: relative;
-    animation: modalSlideUp 0.3s ease-out;
-    display: flex;
-    flex-direction: column;
-    max-height: 90vh;
-}
-
-@keyframes modalSlideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
+/* --- MODAL: clases globales que aún usan components/shared/Modal.jsx y admin --- */
 
 .modal-header {
     margin-bottom: 1.5rem;
@@ -86,29 +38,6 @@ body {
     color: var(--ds-navy);
     font-size: 1.5rem;
     margin: 0;
-}
-
-.close-btn {
-    position: absolute;
-    top: 1.2rem;
-    right: 1.2rem;
-    background: #f1f5f9;
-    border: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--ds-text-light);
-    font-size: 1.2rem;
-    transition: all 0.2s;
-}
-
-.close-btn:hover {
-    background: var(--ds-danger);
-    color: white;
 }
 
 .modal-body {
@@ -142,59 +71,13 @@ body {
     padding-top: 0.5rem;
 }
 
-.modal-btn {
-    border: none;
-    padding: 1rem;
-    border-radius: 14px;
-    font-weight: 700;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
-.modal-btn.confirm {
-    background: var(--ds-navy);
-    color: white;
-    box-shadow: 0 4px 12px rgba(15, 33, 70, 0.2);
-}
-
-.modal-btn.confirm:hover {
-    transform: translateY(-2px);
-    background: #1a2e5a;
-}
-
-.modal-btn.cancel {
-    background: #f1f5f9;
-    color: var(--ds-text-light);
-}
-
-.modal-btn.cancel:hover {
-    background: #e2e8f0;
-    color: var(--ds-navy);
-}
-
 /* --- MEDIA QUERY PARA PC (DESKTOP) --- */
 @media (min-width: 768px) {
 
-    .rs-welcome-card {
-        flex-direction: row;
-        justify-content: space-between;
-        text-align: left;
-        padding: 2.5rem;
-    }
-
-    .rs-title-serif { font-size: 1.75rem; }
-
-    .rs-modal-overlay { align-items: center; }
-    .rs-modal { border-radius: 20px; max-width: 450px; }
-    .modal-footer {
+.modal-footer {
         flex-direction: row; /* En PC uno al lado del otro */
     }
     
-    .modal-btn {
-        flex: 1;
-    }
 }
 
 /* --- COMPORTAMIENTO MOBILE-FIRST (ABAJO) --- */

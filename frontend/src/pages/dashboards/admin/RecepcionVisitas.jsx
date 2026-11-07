@@ -185,6 +185,10 @@ function RecepcionVisitas() {
       } else {
         showToast('Visita registrada correctamente');
       }
+
+      if (!correoGuardado) {
+        toast('Registrado sin correo: no se enviará la confirmación por email', 'warning');
+      }
     } catch (error) {
       toast(error.message || 'Error al registrar visita', 'error');
     } finally {

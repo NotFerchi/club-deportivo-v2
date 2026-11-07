@@ -682,13 +682,13 @@ export default function Reservas({ readOnly = false }) {
                       </div>
                     )}
 
-                    {!enMantenimiento && isStart && reserva && meta && (
+                    {!enMantenimiento && reserva && meta && (
                       <div
                         className="grid-block"
                         style={{ background: meta.color }}
                         title={`${reserva.socio_nombre} — ${toTimeInputValue(reserva.hora_inicio)} a ${toTimeInputValue(reserva.hora_fin)}`}
                       >
-                        <Clock size={11} color="#fff" />
+                        {isStart && <Clock size={11} color="#fff" />}
                       </div>
                     )}
 

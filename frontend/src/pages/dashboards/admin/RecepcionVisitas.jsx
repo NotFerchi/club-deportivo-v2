@@ -6,7 +6,7 @@ import {
 import { adminApi } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
 import { ErrorState, FilterSelect, LoadingState, ModuleHeader, SearchInput, StatCard } from '../../../components/admin/AdminUI';
-import { Button, Input, Modal, Table } from '../../../components/ui';
+import { Alert, Button, Input, Modal, Table } from '../../../components/ui';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
 const MX_TIMEZONE = 'America/Mexico_City';
@@ -511,6 +511,9 @@ function RecepcionVisitas() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
           <p style={{ margin: 0, fontWeight: 600, fontSize: 16, color: '#1e3a5f' }}>{qrModal.nombre}</p>
+          {!qrModal.correo && (
+            <Alert variant="warning">Registrado sin correo: no se enviará la confirmación por email</Alert>
+          )}
           <img ref={qrPrintRef} src={qrModal.qrImage} alt="QR de acceso" style={{ width: 220, height: 220, border: '4px solid #dbeafe', borderRadius: 12 }} />
           <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
             Válido hasta: {qrModal.expiraEn ? new Date(qrModal.expiraEn).toLocaleString('es-MX', { timeZone: MX_TIMEZONE }) : '24 horas'}

@@ -11,7 +11,11 @@
    Nota: radios y sombras llevan prefijo --ui- porque css/main.css e
    css/instructor.css ya definen --radius-sm/md/lg y --shadow-sm/md/lg
    con otros valores y se cargan después.
-   Fuentes: Plus Jakarta Sans y Playfair Display se cargan en index.html.
+   Fuente: Plus Jakarta Sans se carga en index.html (sin Playfair Display).
+
+   Rediseño M0 (SC-03): valores tomados de docs/rediseno/stitch/ (Muestra de
+   Estilo y Componentes base M0). Donde el valor de Stitch no cumple contraste
+   WCAG AA se usa el valor accesible y queda anotado junto al token.
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
@@ -28,28 +32,38 @@
     --slate-800: #1e293b;
     --slate-900: #0f172a;
     --white: #ffffff; /* base/white */
+    --base-neutral: #f2f3f5; /* Muestra de Estilo: fondo de la app */
 
     /* brand/* */
     --navy-900: #0f2146; /* brand/navy */
-    --sky-500: #0ea5e9;  /* brand/primary */
-    --sky-600: #0284c7;  /* brand/primary-hover */
+    --navy-700: #1a3466; /* hover del botón primario */
+    --ice-300: #bae6fd;  /* Ice Blue (Stitch) */
+    --sky-300: #7dd3fc;  /* Sky acento (Stitch) */
+    --sky-500: #0ea5e9;
+    --sky-600: #0284c7;
+    --sky-700: #0369a1;
     --cyan-500: #06b6d4; /* brand/cyan */
 
+    --green-50: #ecfdf5;
     --green-100: #dcfce7;
     --green-200: #bbf7d0;
     --green-500: #22c55e;
     --green-700: #15803d;
 
+    --amber-50: #fffbeb;
     --amber-100: #fef3c7;
     --amber-200: #fde68a;
     --amber-500: #f59e0b;
     --amber-700: #b45309;
 
+    --red-50: #fef2f2;
     --red-100: #fee2e2;
     --red-200: #fecaca;
     --red-500: #ef4444;
+    --red-600: #dc2626;
     --red-700: #b91c1c;
 
+    --blue-50: #f0f9ff;
     --blue-100: #dbeafe;
     --blue-200: #bfdbfe;
     --blue-500: #3b82f6;
@@ -66,49 +80,62 @@
     --orange-700: #c2410c;
 
     /* ─── SEMANTIC · COLOR ───────────────────────────────────── */
-    /* TODO: contraste blanco sobre sky-500 ≈ 2.8:1, no cumple WCAG AA para
-       texto normal (4.5:1). Revisar (p. ej. sky-600/700) antes de producción. */
-    --color-primary: var(--sky-500);
-    --color-primary-hover: var(--sky-600);
+    /* Primario = azul marino de Stitch (botón primario). Blanco sobre navy 15.8:1.
+       (Antes sky-500, 2.8:1: no cumplía AA.) */
+    --color-primary: var(--navy-900);
+    --color-primary-hover: var(--navy-700);
     --color-accent: var(--cyan-500);
     --color-brand-navy: var(--navy-900);
+    /* Azul hielo y sky: relleno de Chip/Badge/botón secundario. SIEMPRE con texto navy
+       (navy sobre ice 11.9:1, sobre sky 9.5:1). Nunca texto blanco encima. */
+    --color-ice: var(--ice-300);
+    --color-sky: var(--sky-300);
+    /* Anillo de foco: sky-300 sobre blanco da 1.6:1 (<3:1), por eso el anillo es sky-600 (4.1:1)
+       y el sky claro queda solo como brillo alrededor. */
+    --color-focus-ring: var(--sky-600);
+    --color-focus-glow: rgb(125 211 252 / 0.45);
 
-    --color-text-primary: var(--slate-900);
+    --color-text-primary: var(--navy-900);
     --color-text-secondary: var(--slate-600);
-    --color-text-muted: var(--slate-500);
+    /* Stitch usa slate-500; sobre #F2F3F5 da 4.3:1 (<4.5). Se usa slate-600 (6.8:1). */
+    --color-text-muted: var(--slate-600);
     --color-text-disabled: var(--slate-400);
     --color-text-inverse: var(--white);
 
     --color-icon-default: var(--slate-500);
     --color-icon-muted: var(--slate-400);
 
-    --color-bg-app: var(--slate-100);
+    --color-bg-app: var(--base-neutral);
     --color-bg-surface: var(--white);
     --color-bg-subtle: var(--slate-50);
-    --color-bg-sidebar: var(--slate-900);
+    --color-bg-sidebar: var(--navy-900);
 
     --color-border-default: var(--slate-200);
     --color-border-strong: var(--slate-300);
 
-    --color-feedback-success-bg: var(--green-100);
+    --color-feedback-success-bg: var(--green-50);
+    /* Textos de estado: se conservan los tonos 700 (cumplen AA); los de Stitch
+       (#059669, #d97706, #0284c7) quedan por debajo de 4.5:1. */
     --color-feedback-success-text: var(--green-700);
     --color-feedback-success-border: var(--green-200);
     --color-feedback-success-solid: var(--green-500);
 
-    --color-feedback-warning-bg: var(--amber-100);
+    --color-feedback-warning-bg: var(--amber-50);
     --color-feedback-warning-text: var(--amber-700);
     --color-feedback-warning-border: var(--amber-200);
     --color-feedback-warning-solid: var(--amber-500);
 
-    --color-feedback-danger-bg: var(--red-100);
+    --color-feedback-danger-bg: var(--red-50);
     --color-feedback-danger-text: var(--red-700);
     --color-feedback-danger-border: var(--red-200);
     --color-feedback-danger-solid: var(--red-500);
     --color-feedback-danger-solid-hover: var(--red-700);
+    /* Fondo de botón destructivo: blanco sobre red-500 da 3.8:1; red-600 da 4.8:1 */
+    --color-feedback-danger-action: var(--red-600);
 
-    --color-feedback-info-bg: var(--blue-100);
-    --color-feedback-info-text: var(--blue-700);
-    --color-feedback-info-border: var(--blue-200);
+    --color-feedback-info-bg: var(--blue-50);
+    --color-feedback-info-text: var(--sky-700);
+    --color-feedback-info-border: var(--ice-300);
     --color-feedback-info-solid: var(--blue-500);
 
     --color-tag-purple-bg: var(--violet-100);
@@ -117,7 +144,33 @@
     --color-tag-orange-text: var(--orange-700);
 
     /* Solo en código (no existe en Figma): fondo del modal = slate-900 al 48 % */
-    --color-overlay: rgb(15 23 42 / 0.48);
+    --color-overlay: rgb(15 33 70 / 0.48);
+
+    /* ─── DEGRADADOS POR ÁREA (Muestra de Estilo, 135deg) ────────
+       Colores exactos de Stitch; solo el amarillo #facc15 de Clases pasó a teal #0d9488.
+       Blanco sobre estos tramos NO cumple AA por sí solo (2.4–3.9:1 en los claros),
+       por eso las tarjetas llevan el velo --gradient-veil (navy 0.25 → 0.40):
+       con el velo todos los tramos dan ≥3.7:1 (números grandes) y ≥4.9:1 abajo (texto chico). */
+    --gradient-reservas: linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #06b6d4 100%);
+    --gradient-clases: linear-gradient(135deg, #059669 0%, #10b981 50%, #0d9488 100%);
+    --gradient-torneos: linear-gradient(135deg, #ea580c 0%, #f97316 48%, #ec4899 100%);
+    --gradient-ludoteca: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #f472b6 100%);
+    --gradient-veil: linear-gradient(180deg, rgb(15 33 70 / 0.25) 0%, rgb(15 33 70 / 0.4) 100%);
+
+    /* ─── VIDRIO (Liquid Glass de la Muestra) ───────────────────── */
+    --glass-bg: rgb(255 255 255 / 0.65);
+    --glass-blur: blur(24px) saturate(180%);
+    --glass-border: 1px solid rgb(255 255 255 / 0.8);
+    --glass-shadow: 0 20px 40px -15px rgb(15 33 70 / 0.12), inset 0 0 1px 1px rgb(255 255 255 / 0.9);
+    /* vidrio suave: botones/chips sobre degradados */
+    --glass-soft-bg: rgb(255 255 255 / 0.45);
+    --glass-soft-blur: blur(16px);
+    --glass-soft-border: 1px solid rgb(255 255 255 / 0.6);
+
+    /* ─── ORBES AMBIENTALES (solo ice/sky; sin lima) ────────────── */
+    --orb-ice: radial-gradient(circle, rgb(186 230 253 / 0.45) 0%, rgb(125 211 252 / 0.2) 50%, transparent 70%);
+    --orb-emerald: radial-gradient(circle, rgb(16 185 129 / 0.14) 0%, rgb(16 185 129 / 0.06) 50%, transparent 75%);
+    --orb-blur: 55px;
 
     /* ─── SPACING ────────────────────────────────────────────── */
     --space-0: 0px;
@@ -143,7 +196,9 @@
     --ui-radius-lg: 12px;
     --ui-radius-xl: 16px;
     --ui-radius-2xl: 24px;
+    --ui-radius-card: 28px;  /* tarjetas y modales */
     --ui-radius-full: 999px;
+    --ui-radius-pill: 999px; /* botones, chips y campos */
 
     /* ─── SHADOWS (estilos de efecto) ────────────────────────── */
     --ui-shadow-xs: 0 2px 8px rgb(0 0 0 / 0.04);
@@ -151,10 +206,14 @@
     --ui-shadow-md: 0 4px 12px rgb(0 0 0 / 0.08);
     --ui-shadow-lg: 0 8px 24px rgb(0 0 0 / 0.10);
     --ui-shadow-xl: 0 24px 56px rgb(0 0 0 / 0.16);
+    /* niveles de elevación de DESIGN.md */
+    --ui-shadow-card: 0 1px 3px 0 rgb(15 33 70 / 0.04), 0 1px 2px -1px rgb(15 33 70 / 0.04);
+    --ui-shadow-hover: 0 10px 15px -3px rgb(15 33 70 / 0.06), 0 4px 6px -4px rgb(15 33 70 / 0.04);
+    --ui-shadow-modal: 0 20px 25px -5px rgb(15 33 70 / 0.09), 0 8px 10px -6px rgb(15 33 70 / 0.04);
+    --ui-shadow-mesh: 0 25px 50px -12px rgb(15 33 70 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.8);
 
     /* ─── TYPOGRAPHY (estilos de texto) ──────────────────────── */
     --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
-    --font-serif: 'Playfair Display', Georgia, serif;
 
     /* font: weight size/line-height family */
     --font-display-hero: 800 78px/1.02 var(--font-sans);
@@ -163,7 +222,6 @@
     --font-heading-h2: 800 24px/1.2 var(--font-sans);
     --font-heading-h3: 800 20px/1.2 var(--font-sans);
     --font-heading-h4: 800 16px/1.3 var(--font-sans);
-    --font-serif-title: 700 28px/1.2 var(--font-serif);
     --font-body-lg: 400 15px/1.6 var(--font-sans);
     --font-body-md: 400 14px/1.5 var(--font-sans);
     --font-body-sm: 400 13px/1.5 var(--font-sans);

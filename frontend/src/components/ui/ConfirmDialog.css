@@ -1,0 +1,54 @@
+/* ConfirmDialog — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-confirm__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-8);
+    text-align: center;
+}
+
+.ui-confirm__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: var(--space-8);
+    border-radius: 50%;
+}
+
+.ui-confirm__icon--ice {
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+}
+
+.ui-confirm__icon--danger {
+    background: var(--color-feedback-danger-bg);
+    color: var(--color-feedback-danger-text);
+}
+
+.ui-confirm .ui-confirm__title {
+    margin: 0;
+    font: var(--font-heading-h3);
+    color: var(--color-text-primary);
+}
+
+.ui-confirm .ui-confirm__message {
+    margin: 0;
+    font: var(--font-body-md);
+    color: var(--color-text-muted);
+}
+
+.ui-confirm__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-12);
+    justify-content: center;
+    width: 100%;
+    margin-top: var(--space-16);
+}
+
+.ui-confirm__actions .ui-button {
+    flex: 1 1 120px;
+}

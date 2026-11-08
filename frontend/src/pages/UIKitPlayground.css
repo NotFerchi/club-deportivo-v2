@@ -38,8 +38,8 @@
     padding: var(--space-24);
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border-default);
-    border-radius: var(--ui-radius-xl);
-    box-shadow: var(--ui-shadow-xs);
+    border-radius: var(--ui-radius-card);
+    box-shadow: var(--ui-shadow-card);
 }
 
 .uikit-section__title {
@@ -86,4 +86,38 @@
     border-radius: var(--ui-radius-md);
     font: var(--font-body-md);
     color: var(--color-text-secondary);
+}
+
+/* fondo con orbes ambientales para probar vidrio y degradados */
+.uikit-stage {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: var(--space-16);
+    border-radius: var(--ui-radius-card);
+    background: var(--color-bg-app);
+}
+
+.uikit-stage::before,
+.uikit-stage::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    filter: blur(var(--orb-blur));
+    pointer-events: none;
+}
+
+.uikit-stage::before {
+    top: -120px;
+    left: -80px;
+    background: var(--orb-ice);
+}
+
+.uikit-stage::after {
+    right: -100px;
+    bottom: -140px;
+    background: var(--orb-emerald);
 }

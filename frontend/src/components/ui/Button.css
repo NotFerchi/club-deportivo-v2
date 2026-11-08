@@ -5,18 +5,24 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-8);
-    padding: var(--space-10) var(--space-16);
+    min-height: 44px;
+    padding: var(--space-10) var(--space-24);
     border: 0;
-    border-radius: var(--ui-radius-md);
+    border-radius: var(--ui-radius-pill);
     font: var(--font-label-button);
     white-space: nowrap;
     cursor: pointer;
-    transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+    transition: background-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 
 .ui-button:focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--color-focus-glow);
+}
+
+.ui-button:active:not(:disabled) {
+    transform: scale(0.98);
 }
 
 /* primary */
@@ -41,9 +47,19 @@
     color: var(--color-text-primary);
 }
 
+/* soft — azul hielo de la Muestra: texto navy (11.9:1) */
+.ui-button--soft {
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+}
+
+.ui-button--soft:hover:not(:disabled) {
+    background: var(--color-sky);
+}
+
 /* error */
 .ui-button--error {
-    background: var(--color-feedback-danger-solid);
+    background: var(--color-feedback-danger-action);
     color: var(--color-text-inverse);
 }
 
@@ -53,6 +69,7 @@
 
 .ui-button--error:focus-visible {
     outline-color: var(--color-feedback-danger-solid);
+    box-shadow: 0 0 0 5px rgb(239 68 68 / 0.25);
 }
 
 /* disabled — igual para todas las variantes */

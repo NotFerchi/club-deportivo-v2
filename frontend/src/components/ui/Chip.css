@@ -4,7 +4,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-4);
-    padding: var(--space-4) var(--space-12);
+    padding: var(--space-6) var(--space-16);
     border: 1px solid var(--color-border-strong);
     border-radius: var(--ui-radius-full);
     background: var(--color-bg-surface);
@@ -15,18 +15,18 @@
 }
 
 .ui-chip:hover:not(:disabled) {
-    border-color: var(--color-primary);
+    border-color: var(--color-brand-navy);
 }
 
 .ui-chip:focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
 .ui-chip--selected {
-    border-color: var(--color-feedback-info-solid);
-    background: var(--color-feedback-info-bg);
-    color: var(--color-feedback-info-text);
+    border-color: var(--color-ice);
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
 }
 
 .ui-chip:disabled {

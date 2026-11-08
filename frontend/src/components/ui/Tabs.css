@@ -1,0 +1,73 @@
+/* Tabs (segmented control) — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-tabs {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-bg-surface);
+    box-shadow: var(--ui-shadow-card);
+    font-family: var(--font-sans);
+}
+
+.ui-tabs--full {
+    display: flex;
+}
+
+.ui-tabs--full .ui-tabs__tab {
+    flex: 1 1 0;
+    justify-content: center;
+}
+
+.ui-tabs__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    min-height: 36px;
+    padding: var(--space-6) var(--space-16);
+    border: 0;
+    border-radius: var(--ui-radius-pill);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font: var(--font-label-button);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.ui-tabs__tab:hover:not(:disabled):not(.ui-tabs__tab--selected) {
+    background: var(--color-bg-app);
+    color: var(--color-text-primary);
+}
+
+.ui-tabs__tab:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+}
+
+/* activa: navy con texto blanco (15.8:1), como "Todos los socios" en el tablero */
+.ui-tabs__tab--selected {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+}
+
+.ui-tabs__tab:disabled {
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
+}
+
+.ui-tabs__icon {
+    display: inline-flex;
+}
+
+.ui-tabs__count {
+    padding: 0 var(--space-8);
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+    font: var(--font-caption);
+}

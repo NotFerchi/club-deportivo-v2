@@ -47,6 +47,8 @@ function getFocusable(container) {
  *   footer   - contenido del footer (normalmente Button secondary + primary); opcional
  *   maxWidth - ancho máximo del diálogo (default 480px, como en Figma)
  *   className - clase extra del diálogo; opcional
+ *   hideHeader - true omite el encabezado (y la X): lo usa ConfirmDialog; `title` pasa a ser
+ *              solo el nombre accesible del diálogo. Escape sigue cerrando
  *   closeOnOverlayClick - true cierra también con clic en el fondo (default false)
  *   portal   - false renderiza en el lugar en vez de en document.body, para heredar
  *              estilos con ámbito (p. ej. `.dashboard-root …`); default true
@@ -60,6 +62,7 @@ export function Modal({
   maxWidth,
   className,
   closeOnOverlayClick = false,
+  hideHeader = false,
   portal = true,
   children,
 }) {
@@ -145,8 +148,10 @@ export function Modal({
         style={maxWidth ? { maxWidth } : undefined}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? titleId : undefined}
+        aria-labelledby={title && !hideHeader ? titleId : undefined}
+        aria-label={title && hideHeader ? title : undefined}
       >
+        {!hideHeader && (
         <header className="ui-modal__header">
           {(title || subtitle) && (
             <div className="ui-modal__heading">
@@ -158,6 +163,7 @@ export function Modal({
             <X size={20} />
           </button>
         </header>
+        )}
         <div className="ui-modal__body">{children}</div>
         {footer && <footer className="ui-modal__footer">{footer}</footer>}
       </div>

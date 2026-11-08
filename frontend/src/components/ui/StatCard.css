@@ -1,7 +1,7 @@
 /* StatCard — solo tokens semánticos (src/styles/tokens.css) */
 
 .ui-stat {
-    --ui-stat-accent: var(--color-primary);
+    --ui-stat-accent: var(--color-focus-ring);
     --ui-stat-soft: var(--color-bg-subtle);
     display: flex;
     align-items: flex-start;
@@ -13,9 +13,9 @@
     padding: var(--space-16);
     border: 1px solid var(--color-border-default);
     border-top: 4px solid var(--ui-stat-accent);
-    border-radius: var(--ui-radius-lg);
+    border-radius: var(--ui-radius-2xl);
     background: var(--color-bg-surface);
-    box-shadow: var(--ui-shadow-xs);
+    box-shadow: var(--ui-shadow-card);
     font-family: var(--font-sans);
     color: var(--color-text-primary);
     text-align: left;
@@ -72,11 +72,80 @@
 }
 
 .ui-stat--clickable:focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
 .ui-stat--selected {
     border-color: var(--ui-stat-accent);
     background: var(--ui-stat-soft);
+}
+
+/* ─── Variante con degradado por área (Muestra de Estilo) ───────────
+   Colores exactos de Stitch (tokens --gradient-*) + velo navy .25→.40 encima para
+   que el texto blanco cumpla contraste. El contenido va sobre el velo (z-index 1). */
+.ui-stat--gradient {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: var(--space-16);
+    min-height: 180px;
+    padding: var(--space-24);
+    border: 0;
+    border-radius: var(--ui-radius-card);
+    box-shadow: var(--ui-shadow-hover);
+    color: var(--color-text-inverse);
+}
+
+.ui-stat--gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--gradient-veil), var(--ui-stat-gradient);
+}
+
+.ui-stat--reservas { --ui-stat-gradient: var(--gradient-reservas); }
+.ui-stat--clases   { --ui-stat-gradient: var(--gradient-clases); }
+.ui-stat--torneos  { --ui-stat-gradient: var(--gradient-torneos); }
+.ui-stat--ludoteca { --ui-stat-gradient: var(--gradient-ludoteca); }
+
+.ui-stat--gradient .ui-stat__value {
+    font: var(--font-display-section);
+    font-size: 44px;
+    letter-spacing: var(--tracking-heading-h1);
+}
+
+.ui-stat--gradient .ui-stat__label,
+.ui-stat--gradient .ui-stat__hint {
+    color: var(--color-text-inverse);
+}
+
+.ui-stat--gradient .ui-stat__icon {
+    order: -1;
+    border: var(--glass-soft-border);
+    border-radius: var(--ui-radius-pill);
+    background: var(--glass-soft-bg);
+    backdrop-filter: var(--glass-soft-blur);
+    -webkit-backdrop-filter: var(--glass-soft-blur);
+    color: var(--color-text-inverse);
+}
+
+.ui-stat--gradient:focus-visible {
+    outline-offset: 3px;
+}
+
+.ui-stat__tag {
+    position: absolute;
+    top: var(--space-16);
+    right: var(--space-16);
+    padding: var(--space-2) var(--space-12);
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+    font: var(--font-overline);
+    letter-spacing: var(--tracking-overline);
+    text-transform: uppercase;
 }

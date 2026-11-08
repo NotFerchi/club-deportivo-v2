@@ -5,7 +5,7 @@
     overflow-x: auto;
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border-default);
-    border-radius: var(--ui-radius-lg);
+    border-radius: var(--ui-radius-2xl);
     font-family: var(--font-sans);
 }
 

@@ -16,9 +16,9 @@
 
 .ui-select .ui-select__field {
     width: 100%;
-    padding: var(--space-10) var(--space-12);
+    padding: var(--space-12) var(--space-20);
     border: 1px solid var(--color-border-strong);
-    border-radius: var(--ui-radius-md);
+    border-radius: var(--ui-radius-pill);
     background: var(--color-bg-surface);
     color: var(--color-text-primary);
     font: var(--font-body-md);
@@ -26,11 +26,11 @@
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-/* focus — borde de 2px sin mover el layout: 1px de borde + 1px de sombra */
+/* focus — borde sky-600 más brillo sky claro (Stitch) */
 .ui-select .ui-select__field:focus {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 1px var(--color-primary);
+    border-color: var(--color-focus-ring);
+    box-shadow: 0 0 0 3px var(--color-focus-glow);
 }
 
 .ui-select__message {
@@ -46,7 +46,7 @@
 }
 
 .ui-select--error .ui-select__field:focus {
-    box-shadow: 0 0 0 1px var(--color-feedback-danger-solid);
+    box-shadow: 0 0 0 3px rgb(239 68 68 / 0.2);
 }
 
 .ui-select--error .ui-select__message {

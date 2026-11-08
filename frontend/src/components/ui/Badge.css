@@ -34,6 +34,12 @@
     color: var(--color-feedback-danger-text);
 }
 
+.ui-badge--ice {
+    background: var(--color-ice);
+    border-color: var(--color-ice);
+    color: var(--color-brand-navy);
+}
+
 .ui-badge--info {
     background: var(--color-feedback-info-bg);
     border-color: var(--color-feedback-info-border);

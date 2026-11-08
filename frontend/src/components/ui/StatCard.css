@@ -38,6 +38,13 @@
     line-height: 1;
 }
 
+.ui-stat__caption {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+}
+
 .ui-stat__label {
     font: var(--font-body-sm);
     font-weight: 600;
@@ -83,7 +90,9 @@
 
 /* ─── Variante con degradado por área (Muestra de Estilo) ───────────
    Malla de Stitch (tokens --gradient-*) + brillo blanco arriba a la izquierda + velo navy
-   ≤0.18 solo en la franja inferior. El número grande lleva text-shadow en vez de velo.
+   ≤0.18 solo en la franja inferior. El número grande lleva text-shadow (EXCEPCIÓN DE CONTRASTE
+   CONOCIDA: 2.0–2.9:1 sobre los tramos claros de Stitch). El texto chico va en una pastilla de
+   vidrio oscuro (--glass-dark-*): ≥4.97:1 en el peor punto medido de las 4 áreas.
    El contenido va sobre las capas (z-index 1). */
 .ui-stat--gradient {
     position: relative;
@@ -92,7 +101,7 @@
     flex-direction: column;
     justify-content: flex-end;
     gap: var(--space-16);
-    min-height: 180px;
+    min-height: 216px;
     padding: var(--space-24);
     border: 0;
     border-radius: var(--ui-radius-card);
@@ -120,10 +129,23 @@
     text-shadow: var(--text-shadow-on-gradient);
 }
 
+.ui-stat--gradient .ui-stat__caption {
+    align-self: stretch;
+    padding: var(--space-8) var(--space-16);
+    border: var(--glass-dark-border);
+    border-radius: var(--ui-radius-2xl);
+    background: var(--glass-dark-bg);
+    backdrop-filter: var(--glass-dark-blur);
+    -webkit-backdrop-filter: var(--glass-dark-blur);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .ui-stat--gradient .ui-stat__caption { background: rgb(15 33 70 / 0.6); }
+}
+
 .ui-stat--gradient .ui-stat__label,
 .ui-stat--gradient .ui-stat__hint {
     color: var(--color-text-inverse);
-    text-shadow: 0 1px 2px rgb(15 33 70 / 0.3);
 }
 
 .ui-stat--gradient .ui-stat__icon {

@@ -189,6 +189,11 @@
     --glass-soft-blur: blur(16px);
     --glass-soft-border: 1px solid rgb(255 255 255 / 0.6);
 
+    /* vidrio oscuro: pastilla del texto chico sobre degradados (blanco encima ≥4.97:1 en las 4 áreas) */
+    --glass-dark-bg: rgb(15 33 70 / 0.45);
+    --glass-dark-blur: blur(12px);
+    --glass-dark-border: 1px solid rgb(255 255 255 / 0.25);
+
     /* ─── ORBES AMBIENTALES (solo ice/sky; sin lima) ────────────── */
     --orb-ice: radial-gradient(circle, rgb(186 230 253 / 0.45) 0%, rgb(125 211 252 / 0.2) 50%, transparent 70%);
     --orb-emerald: radial-gradient(circle, rgb(16 185 129 / 0.14) 0%, rgb(16 185 129 / 0.06) 50%, transparent 75%);

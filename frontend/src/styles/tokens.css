@@ -146,16 +146,38 @@
     /* Solo en código (no existe en Figma): fondo del modal = slate-900 al 48 % */
     --color-overlay: rgb(15 33 70 / 0.48);
 
-    /* ─── DEGRADADOS POR ÁREA (Muestra de Estilo, 135deg) ────────
-       Colores exactos de Stitch; solo el amarillo #facc15 de Clases pasó a teal #0d9488.
-       Blanco sobre estos tramos NO cumple AA por sí solo (2.4–3.9:1 en los claros),
-       por eso las tarjetas llevan el velo --gradient-veil (navy 0.25 → 0.40):
-       con el velo todos los tramos dan ≥3.7:1 (números grandes) y ≥4.9:1 abajo (texto chico). */
-    --gradient-reservas: linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #06b6d4 100%);
-    --gradient-clases: linear-gradient(135deg, #059669 0%, #10b981 50%, #0d9488 100%);
-    --gradient-torneos: linear-gradient(135deg, #ea580c 0%, #f97316 48%, #ec4899 100%);
-    --gradient-ludoteca: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #f472b6 100%);
-    --gradient-veil: linear-gradient(180deg, rgb(15 33 70 / 0.25) 0%, rgb(15 33 70 / 0.4) 100%);
+    /* ─── DEGRADADOS POR ÁREA (Muestra de Estilo) ───────────────
+       Receta de malla de Stitch tomada del style="" inline de cada tarjeta del .html (es lo
+       que muestran los .png; las clases .gradient-* del <style> las pisa el inline):
+       linear 135deg + dos radiales de color (80% 20% y 20% 80%).
+       Cambio propio: en Clases el radial amarillo (#fde047) pasa a teal; se añade un tinte
+       tenue en la esquina inferior derecha. */
+    --gradient-reservas:
+        radial-gradient(circle at 92% 96%, rgb(34 211 238 / 0.3) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, rgb(125 211 252) 0%, transparent 60%),
+        radial-gradient(circle at 20% 80%, rgb(56 189 248) 0%, transparent 60%),
+        linear-gradient(135deg, rgb(30 64 175) 0%, rgb(59 130 246) 50%, rgb(96 165 250) 100%);
+    --gradient-clases:
+        radial-gradient(circle at 92% 96%, rgb(20 184 166 / 0.3) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, rgb(45 212 191) 0%, transparent 55%),
+        radial-gradient(circle at 20% 80%, rgb(52 211 153) 0%, transparent 60%),
+        linear-gradient(135deg, rgb(5 150 105) 0%, rgb(16 185 129) 50%, rgb(52 211 153) 100%);
+    --gradient-torneos:
+        radial-gradient(circle at 92% 96%, rgb(251 113 133 / 0.3) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, rgb(244 114 182) 0%, transparent 55%),
+        radial-gradient(circle at 20% 80%, rgb(251 146 60) 0%, transparent 60%),
+        linear-gradient(135deg, rgb(234 88 12) 0%, rgb(249 115 22) 50%, rgb(251 113 133) 100%);
+    --gradient-ludoteca:
+        radial-gradient(circle at 92% 96%, rgb(232 121 249 / 0.3) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, rgb(244 114 182) 0%, transparent 55%),
+        radial-gradient(circle at 20% 80%, rgb(167 139 250) 0%, transparent 60%),
+        linear-gradient(135deg, rgb(124 58 237) 0%, rgb(139 92 246) 50%, rgb(192 132 252) 100%);
+    /* Brillo de malla: luz blanca suave en la esquina superior izquierda */
+    --gradient-glow: radial-gradient(circle at 12% 8%, rgb(255 255 255 / 0.35) 0%, transparent 38%);
+    /* Velo: SOLO la franja inferior (donde va el texto chico), navy hasta 0.18; nada arriba */
+    --gradient-veil: linear-gradient(to top, rgb(15 33 70 / 0.18) 0%, transparent 40%);
+    /* Sombra del número grande (en lugar de oscurecer la tarjeta) */
+    --text-shadow-on-gradient: 0 1px 2px rgb(15 33 70 / 0.35), 0 2px 12px rgb(15 33 70 / 0.25);
 
     /* ─── VIDRIO (Liquid Glass de la Muestra) ───────────────────── */
     --glass-bg: rgb(255 255 255 / 0.65);

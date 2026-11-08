@@ -82,8 +82,9 @@
 }
 
 /* ─── Variante con degradado por área (Muestra de Estilo) ───────────
-   Colores exactos de Stitch (tokens --gradient-*) + velo navy .25→.40 encima para
-   que el texto blanco cumpla contraste. El contenido va sobre el velo (z-index 1). */
+   Malla de Stitch (tokens --gradient-*) + brillo blanco arriba a la izquierda + velo navy
+   ≤0.18 solo en la franja inferior. El número grande lleva text-shadow en vez de velo.
+   El contenido va sobre las capas (z-index 1). */
 .ui-stat--gradient {
     position: relative;
     isolation: isolate;
@@ -104,7 +105,7 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    background: var(--gradient-veil), var(--ui-stat-gradient);
+    background: var(--gradient-veil), var(--gradient-glow), var(--ui-stat-gradient);
 }
 
 .ui-stat--reservas { --ui-stat-gradient: var(--gradient-reservas); }
@@ -116,11 +117,13 @@
     font: var(--font-display-section);
     font-size: 44px;
     letter-spacing: var(--tracking-heading-h1);
+    text-shadow: var(--text-shadow-on-gradient);
 }
 
 .ui-stat--gradient .ui-stat__label,
 .ui-stat--gradient .ui-stat__hint {
     color: var(--color-text-inverse);
+    text-shadow: 0 1px 2px rgb(15 33 70 / 0.3);
 }
 
 .ui-stat--gradient .ui-stat__icon {

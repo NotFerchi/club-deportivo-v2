@@ -121,3 +121,10 @@
     bottom: -140px;
     background: var(--orb-emerald);
 }
+
+.uikit-brand-dark {
+    margin-top: var(--space-12);
+    padding: var(--space-16);
+    border-radius: var(--ui-radius-2xl);
+    background: var(--color-bg-sidebar);
+}

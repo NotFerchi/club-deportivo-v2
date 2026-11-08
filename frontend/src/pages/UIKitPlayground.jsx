@@ -3,6 +3,7 @@ import {
   Alert, Avatar, Badge, Button, Card, Checkbox, Chip, ConfirmDialog, EmptyState, ErrorState, Input, LoadingState, Modal,
   PageHeader, ProgressBar, Select, SocioPicker, Spinner, StatCard, Table, Tabs, Textarea, Toast, ToastViewport,
 } from '../components/ui';
+import { brand } from '../config/brand';
 import './UIKitPlayground.css';
 
 /**
@@ -105,6 +106,22 @@ export default function UIKitPlayground() {
         <p className="uikit-overline">Solo desarrollo · /ui-kit</p>
         <h1 className="uikit-title">UI Kit Playground</h1>
       </header>
+
+      <Section title="Marca · config/brand.js">
+        <div className="uikit-stage">
+          <div className="uikit-row">
+            {[brand.logos.principalA.logotipo.azul, brand.logos.principalA.simbolo.azul, brand.logos.atleta.logotipo.azul, brand.logos.atleta.simbolo.azul].map((src) => (
+              <img key={src} src={src} alt="" height={40} />
+            ))}
+          </div>
+          <div className="uikit-row uikit-brand-dark">
+            {[brand.logos.principalA.logotipo.blanco, brand.logos.principalA.simbolo.blanco, brand.logos.atleta.logotipo.blanco, brand.logos.atleta.simbolo.blanco].map((src) => (
+              <img key={src} src={src} alt="" height={40} />
+            ))}
+          </div>
+        </div>
+        <p className="uikit-modal-text">{brand.nombre} · {brand.club}{brand.contacto.esDemo ? ' · contacto y horario son datos de demostración' : ''}</p>
+      </Section>
 
       <Section title="Button">
         <div className="uikit-grid uikit-grid--buttons">

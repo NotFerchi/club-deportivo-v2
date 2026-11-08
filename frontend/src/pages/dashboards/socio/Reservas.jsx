@@ -26,6 +26,14 @@ function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
+// Hora actual (0-23) en Ciudad de México, sin depender de la zona del navegador
+function horaActualMexico() {
+  const hora = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric', hourCycle: 'h23', timeZone: 'America/Mexico_City',
+  }).format(new Date())
+  return Number(hora)
+}
+
 function todayLabel() {
   return new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Mexico_City' })
 }
@@ -186,7 +194,7 @@ export default function Reservas() {
   }
 
   const slotValido = (slot) => {
-    const horaActual = new Date().getHours()
+    const horaActual = horaActualMexico()
     const horaSlot = parseInt(slot.hora.split(':')[0])
     if (horaSlot <= horaActual) return false
     if (!slot.libre) return false
@@ -409,7 +417,7 @@ export default function Reservas() {
                         const idx = slots.findIndex(s => s.hora === selectedSlot)
                         return slots[idx + 1]?.hora === slot.hora
                       })()
-                      const isPast = parseInt(slot.hora.split(':')[0]) <= new Date().getHours()
+                      const isPast = parseInt(slot.hora.split(':')[0]) <= horaActualMexico()
                       const valid = slotValido(slot)
                       const estadoTexto = isPast ? 'Pasado'
                         : !slot.libre ? (slot.motivo === 'sesion' ? 'Clase' : 'Reservado')

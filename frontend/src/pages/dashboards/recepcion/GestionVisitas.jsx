@@ -17,6 +17,7 @@ import {
 import { adminApi } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
 import { FilterSelect, ModuleHeader, SearchInput } from '../../../components/admin/AdminUI';
+import { Alert } from '../../../components/ui';
 import { formatDateTime, normalizeText } from '../../../utils/adminData';
 
 const MX_TIMEZONE = 'America/Mexico_City';
@@ -274,6 +275,10 @@ function GestionVisitas() {
         });
       } else {
         showToast('Pase registrado correctamente');
+      }
+
+      if (!correoGuardado) {
+        toast('Registrado sin correo: no se enviará la confirmación por email', 'warning');
       }
     } catch (error) {
       toast(error.message || 'No se pudo registrar el pase.', 'error');
@@ -680,6 +685,9 @@ function GestionVisitas() {
 
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
               <p style={{ margin: 0, fontWeight: 600, fontSize: 16, color: '#1e3a5f' }}>{qrModal.nombre}</p>
+              {!qrModal.correo && (
+                <Alert variant="warning">Registrado sin correo: no se enviará la confirmación por email</Alert>
+              )}
               <img
                 ref={qrPrintRef}
                 src={qrModal.qrImage}

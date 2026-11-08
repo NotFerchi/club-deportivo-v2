@@ -20,3 +20,4 @@ export { ConfirmDialog } from './ConfirmDialog';
 export { Tabs } from './Tabs';
 export { Toast, ToastViewport } from './Toast';
 export { SocioPicker } from './SocioPicker';
+export { FloatingPanel } from './FloatingPanel';

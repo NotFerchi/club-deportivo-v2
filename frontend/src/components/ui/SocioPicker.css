@@ -1,4 +1,5 @@
 /* SocioPicker — solo tokens semánticos (src/styles/tokens.css)
+   El panel de resultados vive en un portal para no recortarse dentro de un Modal.
    Selectores del campo con 2 clases para ganar a `.dashboard-root input`. */
 
 .ui-socio-picker {
@@ -81,13 +82,8 @@
 
 /* panel de resultados — vidrio */
 .ui-socio-picker__panel {
-    position: absolute;
-    top: calc(100% + var(--space-4));
-    left: 0;
-    z-index: 20;
+    z-index: 1200; /* se dibuja en un portal (FloatingPanel), sobre Modal (1000) */
     box-sizing: border-box;
-    width: 100%;
-    max-height: 288px;
     overflow-y: auto;
     padding: var(--space-8);
     border: var(--glass-border);

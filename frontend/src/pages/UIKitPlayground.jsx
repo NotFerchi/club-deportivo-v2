@@ -147,7 +147,7 @@ export default function UIKitPlayground() {
         </div>
       </Section>
 
-      <Section title="Select">
+      <Section title="Select · listbox propio (↑ ↓ Enter Esc, letras para buscar)">
         <div className="uikit-grid uikit-grid--inputs">
           <Select
             label="Disciplina"
@@ -353,6 +353,15 @@ export default function UIKitPlayground() {
           value={socio}
           onChange={(event) => setSocio(event.target.value)}
         />
+        <Select
+          label="Disciplina (el panel no se recorta dentro del modal)"
+          placeholder="Elige una disciplina"
+          name="disciplina"
+          options={DISCIPLINAS}
+          value={disciplina}
+          onChange={(event) => setDisciplina(event.target.value)}
+        />
+        <SocioPickerDemo />
       </Modal>
       <ConfirmDialog
         isOpen={isConfirmOpen}

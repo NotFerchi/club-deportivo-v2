@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { Avatar } from './Avatar';
+import { FloatingPanel } from './FloatingPanel';
 import { Badge } from './Badge';
 import './SocioPicker.css';
 
@@ -59,6 +60,8 @@ export function SocioPicker({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const rootRef = useRef(null);
+  const controlRef = useRef(null);
+  const panelRef = useRef(null);
   const onSearchRef = useRef(onSearch);
 
   useEffect(() => {
@@ -76,7 +79,8 @@ export function SocioPicker({
   useEffect(() => {
     if (!open) return undefined;
     const handle = (event) => {
-      if (rootRef.current && !rootRef.current.contains(event.target)) setOpen(false);
+      if (rootRef.current?.contains(event.target) || panelRef.current?.contains(event.target)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
@@ -156,7 +160,7 @@ export function SocioPicker({
   return (
     <div className={classes} ref={rootRef}>
       {labelNode}
-      <div className="ui-socio-picker__control">
+      <div className="ui-socio-picker__control" ref={controlRef}>
         <Search size={16} className="ui-socio-picker__search-icon" aria-hidden="true" />
         <input
           id={baseId}
@@ -181,8 +185,8 @@ export function SocioPicker({
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
         />
-        {showPanel && (
-          <div className="ui-socio-picker__panel">
+        <FloatingPanel anchorRef={controlRef} panelRef={panelRef} open={showPanel} className="ui-socio-picker__panel">
+          <>
             {loading ? (
               <p className="ui-socio-picker__status" role="status">Buscando…</p>
             ) : options.length === 0 ? (
@@ -213,8 +217,8 @@ export function SocioPicker({
                 ))}
               </ul>
             )}
-          </div>
-        )}
+          </>
+        </FloatingPanel>
       </div>
       {message && <p id={messageId} className="ui-socio-picker__message">{message}</p>}
     </div>

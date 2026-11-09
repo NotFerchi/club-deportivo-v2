@@ -121,6 +121,7 @@
 .ui-stat--clases   { --ui-stat-gradient: var(--gradient-clases); }
 .ui-stat--torneos  { --ui-stat-gradient: var(--gradient-torneos); }
 .ui-stat--ludoteca { --ui-stat-gradient: var(--gradient-ludoteca); }
+.ui-stat--sanciones { --ui-stat-gradient: var(--gradient-sanciones); }
 
 .ui-stat--gradient .ui-stat__value {
     font: var(--font-display-section);

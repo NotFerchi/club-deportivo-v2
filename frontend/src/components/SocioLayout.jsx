@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { apiRequest } from '../services/api'
 import { useNotificacionesSocio } from '../hooks/useNotificacionesSocio'
+import { MemberTabBar } from './ui'
 import '../../css/socio/DashboardSocio.css'
 import '../../css/socio/Reservas.css'
 import '../../css/socio/Ludoteca.css'
@@ -254,6 +255,12 @@ function SocioLayout({ children, activeTab = 'inicio', title }) {
     { id: 'sanciones', label: 'Historial', icon: AlertCircle,     path: '/sanciones' },
   ]
 
+  /* Barra flotante móvil (D3): 4 accesos + "Más" con Evaluar, Ludoteca e Historial */
+  const barItems = tabs.filter(t => ['inicio', 'reservas', 'clases', 'torneos'].includes(t.id))
+    .map(t => ({ id: t.id, label: t.label, icon: t.icon, to: t.path }))
+  const barMore = tabs.filter(t => ['evaluar', 'ludoteca', 'sanciones'].includes(t.id))
+    .map(t => ({ id: t.id, label: t.label, icon: t.icon, to: t.path }))
+
   return (
     <div className="ds-wrapper">
 
@@ -356,6 +363,8 @@ function SocioLayout({ children, activeTab = 'inicio', title }) {
           })}
         </div>
       </nav>
+
+      <MemberTabBar items={barItems} moreItems={barMore} activeId={activeTab} />
 
       {/* ── MAIN CONTENT ────────────────────────────────────── */}
       <main className="ds-body">

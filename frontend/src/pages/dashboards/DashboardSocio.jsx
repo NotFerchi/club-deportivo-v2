@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../components/SocioLayout'
-import { CheckCircle, AlertTriangle, Trophy, Clock, Baby, CalendarDays, ShieldAlert, Camera } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { CheckCircle, AlertTriangle, Ban, Trophy, Clock, Baby, CalendarDays, ShieldAlert, Camera } from 'lucide-react'
 import { apiRequest, API_BASE_URL } from '../../services/api'
 import { useNotification } from '../../context/NotificationContext'
-import { Alert, Avatar, Badge, Button, Card, Stack, StatCard, Text } from '../../components/ui'
+import { Alert, Avatar, Badge, Button, Card, EmptyState, LoadingState, PageHeader, Stack, StatCard, Text } from '../../components/ui'
 
 function todayISO() {
   const d = new Date()
@@ -25,6 +26,7 @@ function Fila({ titulo, detalle, children }) {
 
 export default function DashboardSocio() {
   const { toast } = useNotification()
+  const navigate  = useNavigate()
   const usuario   = JSON.parse(localStorage.getItem('usuario') || '{}')
   const socioId   = usuario?.socio_id
   const fullName  = [usuario?.nombres, usuario?.apellido_paterno].filter(Boolean).join(' ') || usuario?.email?.split('@')[0] || 'Socio'
@@ -115,11 +117,11 @@ export default function DashboardSocio() {
   })
 
   const kpis = [
-    { icon: <CalendarDays size={20} />, valor: loading ? '…' : reservasHoy.length,     label: 'Reservas hoy',      tone: 'primary' },
-    { icon: <Trophy size={20} />,       valor: loading ? '…' : torneosActivos.length,   label: 'Torneos activos',   tone: 'success' },
-    { icon: <Baby size={20} />,         valor: loading ? '…' : niosActivos.length,      label: 'Niños en ludoteca', tone: 'warning' },
+    { icon: <CalendarDays size={20} />, valor: loading ? '…' : reservasHoy.length,     label: 'Reservas hoy',      gradient: 'reservas', tag: 'Hoy' },
+    { icon: <Trophy size={20} />,       valor: loading ? '…' : torneosActivos.length,   label: 'Torneos activos',   gradient: 'torneos' },
+    { icon: <Baby size={20} />,         valor: loading ? '…' : niosActivos.length,      label: 'Niños en ludoteca', gradient: 'ludoteca' },
     { icon: <ShieldAlert size={20} />,  valor: loading ? '…' : sancionesActivas.length, label: 'Sanciones activas',
-      tone: sancionesActivas.length > 0 ? 'danger' : 'success' },
+      gradient: sancionesActivas.length > 0 ? 'sanciones' : 'clases' },
   ]
 
   return (
@@ -152,13 +154,10 @@ export default function DashboardSocio() {
 
           {/* Info */}
           <Stack gap={8}>
-            <Stack gap={4}>
-              <Text variant="heading">Buen día, {fullName}</Text>
-              <Text variant="small" muted>{fechaLabel}</Text>
-            </Stack>
+            <PageHeader title={`Buen día, ${fullName}`} subtitle={fechaLabel} />
             <Stack direction="row" gap={8} wrap>
               <Badge variant={estadoCuenta === 'sancionado' ? 'danger' : estadoCuenta === 'advertencia' ? 'warning' : 'success'}>
-                <CheckCircle size={14} />
+                {estadoCuenta === 'activo' ? <CheckCircle size={14} /> : estadoCuenta === 'advertencia' ? <AlertTriangle size={14} /> : <Ban size={14} />}
                 {estadoCuenta === 'activo' ? 'Al corriente' : estadoCuenta === 'advertencia' ? 'Advertencia' : 'Sancionado'}
               </Badge>
               {usuario.numero_socio && (
@@ -179,7 +178,7 @@ export default function DashboardSocio() {
         {/* KPIs */}
         <Stack direction="row" gap={16} grow minChild={160}>
           {kpis.map((k, i) => (
-            <StatCard key={i} label={k.label} value={k.valor} tone={k.tone} icon={k.icon} />
+            <StatCard key={i} label={k.label} value={k.valor} tone={k.tone} gradient={k.gradient} tag={k.tag} icon={k.icon} />
           ))}
         </Stack>
 
@@ -187,9 +186,14 @@ export default function DashboardSocio() {
         <Card title="Reservas de hoy" icon={<CalendarDays size={18} />}>
           <Stack gap={12}>
             {loading ? (
-              <Text variant="small" muted>Cargando…</Text>
+              <LoadingState rows={1} />
             ) : reservasHoy.length === 0 ? (
-              <Fila titulo="Sin reservas hoy" detalle="Ve a Reservas para apartar una cancha" />
+              <EmptyState
+                icon={<CalendarDays size={24} />}
+                title="Sin reservas hoy"
+                message="Aparta una cancha para jugar hoy."
+                action={<Button variant="secondary" onClick={() => navigate('/reservas')}>Ir a Reservas</Button>}
+              />
             ) : (
               reservasHoy.map(r => (
                 <Fila
@@ -208,9 +212,14 @@ export default function DashboardSocio() {
         <Card title="Mis torneos" icon={<Trophy size={18} />}>
           <Stack gap={12}>
             {loading ? (
-              <Text variant="small" muted>Cargando…</Text>
+              <LoadingState rows={1} />
             ) : torneos.length === 0 ? (
-              <Fila titulo="Sin participaciones" detalle="Inscríbete en Torneos para ver tus competencias" />
+              <EmptyState
+                icon={<Trophy size={24} />}
+                title="Sin participaciones"
+                message="Inscríbete en un torneo para ver tus competencias aquí."
+                action={<Button variant="secondary" onClick={() => navigate('/torneos')}>Ver torneos</Button>}
+              />
             ) : (
               torneos.slice(0, 4).map(t => {
                 const estadoVariante = t.estado === 'Finalizado'
@@ -243,7 +252,7 @@ export default function DashboardSocio() {
           >
             <Stack gap={12}>
               {niosActivos.length === 0 ? (
-                <Fila titulo="Sin niños activos" />
+                <EmptyState icon={<Baby size={24} />} title="Sin niños activos" />
               ) : (
                 niosActivos.map(r => (
                   <Fila

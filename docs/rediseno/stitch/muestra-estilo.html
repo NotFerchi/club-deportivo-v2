@@ -1,0 +1,364 @@
+<!DOCTYPE html><html lang="es" style="width: 1280px; height: 1770px; overflow: hidden; position: relative;"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Muestra de Estilo - Club Social y Deportivo</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Playfair+Display:ital,wght@1,600&amp;display=swap" rel="stylesheet">
+<style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #F2F3F5;
+      color: #0F2146;
+    }
+    .font-serif-accent {
+      font-family: 'Playfair Display', serif;
+    }
+    .rounded-28 {
+      border-radius: 28px;
+    }
+    .rounded-32 {
+      border-radius: 32px;
+    }
+    /* Liquid glass styling */
+    .glass-bar {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 20px 40px -15px rgba(15, 33, 70, 0.12), 0 0 1px 1px rgba(255, 255, 255, 0.9) inset;
+    }
+    .glass-card-overlay {
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+    /* Gradient Mesh Cards */
+    .gradient-reservas {
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #06b6d4 100%);
+    }
+    .gradient-clases {
+      background: linear-gradient(135deg, #059669 0%, #10b981 50%, #facc15 100%);
+    }
+    .gradient-torneos {
+      background: linear-gradient(135deg, #ea580c 0%, #f97316 48%, #ec4899 100%);
+    }
+    .gradient-ludoteca {
+      background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #f472b6 100%);
+    }
+    /* Decorative glowing orbs */
+    .glow-orb-primary {
+      position: absolute;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(14, 165, 233, 0.28) 0%, rgba(99, 102, 241, 0.15) 50%, transparent 70%);
+      filter: blur(55px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-orb-secondary {
+      position: absolute;
+      width: 420px;
+      height: 420px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(198, 244, 50, 0.25) 0%, rgba(16, 185, 129, 0.12) 50%, transparent 75%);
+      filter: blur(50px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .mesh-subtle-glow {
+      box-shadow: 0 25px 50px -12px rgba(15, 33, 70, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+    }
+  </style>
+</head>
+<body class="relative min-h-screen overflow-x-hidden p-6 md:p-12 selection:bg-[#C6F432] selection:text-[#0F2146]">
+<!-- Ambient Glowing Orbs Background -->
+<div class="glow-orb-primary -top-24 -left-20" style="background: radial-gradient(circle, rgba(186, 230, 253, 0.45) 0%, rgba(125, 211, 252, 0.2) 50%, transparent 70%);"></div>
+<div class="glow-orb-secondary top-1/3 -right-20"></div>
+<div class="glow-orb-primary bottom-10 left-1/4" style="background: radial-gradient(circle, rgba(186, 230, 253, 0.4) 0%, rgba(125, 211, 252, 0.18) 50%, transparent 70%);"></div>
+<main class="relative z-10 max-w-7xl mx-auto space-y-12">
+<!-- Top Header -->
+<header class="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-[#0F2146]/10"><div>
+<div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#BAE6FD]/80 backdrop-blur-md text-[#0F2146] font-bold text-xs tracking-wider uppercase shadow-sm border mb-3 border-white/20"><span class="w-2 h-2 rounded-full bg-[#0F2146] animate-pulse"></span>Sistema de Diseño Actualizado • iOS 26</div>
+<h1 class="text-4xl md:text-5xl font-extrabold text-[#0F2146] tracking-tight">
+          Club Social <span class="font-serif-accent font-normal italic">&amp;</span> Deportivo
+        </h1>
+<p class="text-base text-slate-500 font-medium mt-1">
+          Guía de componentes de muestra: Mesh Gradients difuminados pastel, Orbe de iluminación, Acentos Ice Blue #BAE6FD &amp; Sky #7DD3FC y Barra Glass flotante.
+        </p>
+</div>
+<div class="flex items-center gap-3"><span class="px-4 py-2 rounded-full bg-white/60 backdrop-blur-md text-xs font-semibold text-slate-600 shadow-sm border flex items-center gap-2 border-white/20"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Base Neutral (#F2F3F5)</span><span class="px-4 py-2 rounded-full bg-[#0F2146]/95 backdrop-blur-md text-xs font-semibold text-white shadow-sm border border-white/20 flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#7DD3FC]"></span> Sky Acento (#7DD3FC)</span><span class="px-4 py-2 rounded-full bg-[#BAE6FD]/80 backdrop-blur-md text-xs font-bold text-[#0F2146] shadow-sm border flex items-center gap-2 border-white/20"><span class="w-2.5 h-2.5 rounded-full bg-[#0F2146]"></span> Ice Blue (#BAE6FD)</span></div></header>
+<!-- Section 1: The 4 Highlight Gradient Cards -->
+<section class="space-y-5">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-2xl font-extrabold text-[#0F2146] tracking-tight">
+            Tarjetas Destacadas con Mesh Gradient
+          </h2>
+<p class="text-sm text-slate-500">
+            Gradientes difuminados reservados exclusivamente para métricas hero y destacados, con cifras de alto contraste.
+          </p>
+</div>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-400">4 Categorías Clave</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Card 1: Reservas / Alberca (Blue to Cyan) -->
+<article class="gradient-reservas rounded-28 p-7 text-white shadow-xl shadow-blue-900/15 relative overflow-hidden flex flex-col justify-between h-[320px] transition-transform duration-300 hover:-translate-y-1" style="background: radial-gradient(circle at 80% 20%, rgb(125, 211, 252) 0%, transparent 60%), radial-gradient(circle at 20% 80%, rgb(56, 189, 248) 0%, transparent 60%), linear-gradient(135deg, rgb(30, 64, 175) 0%, rgb(59, 130, 246) 50%, rgb(96, 165, 250) 100%);">
+<!-- Subtle inner soft orb glow -->
+<div class="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-white/20 blur-2xl pointer-events-none"></div>
+<div class="flex items-start justify-between relative z-10">
+<div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner">
+<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<!-- Pill tag -->
+<span class="px-3 py-1 rounded-full bg-[#BAE6FD] text-[#0F2146] text-xs font-bold uppercase tracking-wider shadow-sm">Hoy</span>
+</div>
+<div class="relative z-10 space-y-1">
+<span class="text-xs uppercase font-bold tracking-widest text-white/80">Reservas • Alberca Olímpica</span>
+<div class="text-6xl font-black tracking-tight text-white leading-none">
+              14<span class="text-2xl font-bold text-cyan-200">/20</span>
+</div>
+<p class="text-sm font-medium text-white/90 pt-1">
+              Carriles disponibles en turno vespertino
+            </p>
+</div>
+<div class="relative z-10 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
+<span class="text-white/80">Temperatura: 27.5°C</span>
+<button class="px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold border border-white/40 shadow-sm transition-all duration-300 cursor-pointer">Ver horarios →</button>
+</div>
+</article>
+<!-- Card 2: Clases / Actividad (Green to Yellow) -->
+<article class="gradient-clases rounded-28 p-7 text-white shadow-xl shadow-emerald-900/15 relative overflow-hidden flex flex-col justify-between h-[320px] transition-transform duration-300 hover:-translate-y-1 border border-white/40 backdrop-blur-md mesh-subtle-glow" style="background: radial-gradient(circle at 80% 20%, rgb(253, 224, 71) 0%, transparent 55%), radial-gradient(circle at 20% 80%, rgb(52, 211, 153) 0%, transparent 60%), linear-gradient(135deg, rgb(5, 150, 105) 0%, rgb(16, 185, 129) 50%, rgb(52, 211, 153) 100%);">
+<div class="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-yellow-200/25 blur-2xl pointer-events-none"></div>
+<div class="flex items-start justify-between relative z-10">
+<div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner">
+<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="px-3 py-1 rounded-full bg-[#BAE6FD] text-[#0F2146] text-xs font-bold uppercase tracking-wider shadow-sm border border-white/40">En Vivo</span>
+</div>
+<div class="relative z-10 space-y-1">
+<span class="text-xs uppercase font-bold tracking-widest text-white/80">Clases • Actividad Física</span>
+<div class="text-6xl font-black tracking-tight text-white leading-none">
+              38
+            </div>
+<p class="text-sm font-medium text-white/95 pt-1">
+              Sesiones de Pádel, Yoga &amp; Spinning
+            </p>
+</div>
+<div class="relative z-10 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
+<span class="text-white/90">92% cupo confirmado</span>
+<button class="px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold border border-white/40 shadow-sm transition-all duration-300 cursor-pointer">Inscribirme →</button>
+</div>
+</article>
+<!-- Card 3: Torneos (Orange to Pink) -->
+<article class="gradient-torneos rounded-28 p-7 text-white shadow-xl shadow-orange-900/15 relative overflow-hidden flex flex-col justify-between h-[320px] transition-transform duration-300 hover:-translate-y-1" style="background: radial-gradient(circle at 80% 20%, rgb(244, 114, 182) 0%, transparent 55%), radial-gradient(circle at 20% 80%, rgb(251, 146, 60) 0%, transparent 60%), linear-gradient(135deg, rgb(234, 88, 12) 0%, rgb(249, 115, 22) 50%, rgb(251, 113, 133) 100%);">
+<div class="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-pink-300/30 blur-2xl pointer-events-none"></div>
+<div class="flex items-start justify-between relative z-10">
+<div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner">
+<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="px-3 py-1 rounded-full bg-[#BAE6FD] text-[#0F2146] text-xs font-bold uppercase tracking-wider shadow-sm">Nuevo</span>
+</div>
+<div class="relative z-10 space-y-1">
+<span class="text-xs uppercase font-bold tracking-widest text-white/80">Torneos • Primavera 2026</span>
+<div class="text-6xl font-black tracking-tight text-white leading-none">
+              08
+            </div>
+<p class="text-sm font-medium text-white/95 pt-1">
+              Cuadros abiertos de Tenis y Pádel
+            </p>
+</div>
+<div class="relative z-10 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
+<span class="text-white/85">Cierre: 18 de Abril</span>
+<button class="px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold border border-white/40 shadow-sm transition-all duration-300 cursor-pointer">Ver bases →</button>
+</div>
+</article>
+<!-- Card 4: Ludoteca (Lilac to Pink) -->
+<article class="gradient-ludoteca rounded-28 p-7 text-white shadow-xl shadow-purple-900/15 relative overflow-hidden flex flex-col justify-between h-[320px] transition-transform duration-300 hover:-translate-y-1" style="background: radial-gradient(circle at 80% 20%, rgb(244, 114, 182) 0%, transparent 55%), radial-gradient(circle at 20% 80%, rgb(167, 139, 250) 0%, transparent 60%), linear-gradient(135deg, rgb(124, 58, 237) 0%, rgb(139, 92, 246) 50%, rgb(192, 132, 252) 100%);">
+<div class="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-pink-200/25 blur-2xl pointer-events-none"></div>
+<div class="flex items-start justify-between relative z-10">
+<div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner">
+<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="px-3 py-1 rounded-full bg-white/90 text-[#7c3aed] text-xs font-bold uppercase tracking-wider shadow-sm">
+              Familia
+            </span>
+</div>
+<div class="relative z-10 space-y-1">
+<span class="text-xs uppercase font-bold tracking-widest text-white/80">Ludoteca • Club Kids</span>
+<div class="text-6xl font-black tracking-tight text-white leading-none">
+              25<span class="text-2xl font-bold text-pink-200"> lug</span>
+</div>
+<p class="text-sm font-medium text-white/95 pt-1">
+              Talleres creativos y estimulación
+            </p>
+</div>
+<div class="relative z-10 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
+<span class="text-white/85">3 a 11 años • Supervisado</span>
+<button class="px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold border border-white/40 shadow-sm transition-all duration-300 cursor-pointer">Registrar →</button>
+</div>
+</article>
+</div>
+</section>
+<!-- Section 2: Details Showcase (Solid White Cards + Lime Tags + Decorative Orb Highlight) -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- Left Column: Neutral White Cards with Lime Tag System -->
+<div class="lg:col-span-7 space-y-6">
+<div class="glass-bar rounded-28 p-8 mesh-subtle-glow space-y-6 relative overflow-hidden">
+<div class="flex items-center justify-between border-b border-white/40 pb-5">
+<div>
+<h3 class="text-xl font-bold text-[#0F2146]">Sistema de Tags Ice Blue (#BAE6FD) &amp; Sky (#7DD3FC)</h3>
+<p class="text-xs text-slate-600 font-medium mt-0.5">Micro-etiquetas de alta legibilidad sobre base neutral con contraste en Deep Navy (#0F2146).</p>
+</div>
+<span class="px-3 py-1 rounded-full bg-[#7DD3FC] text-[#0F2146] text-xs font-extrabold uppercase shadow-sm border border-white/40">
+              Activo
+            </span>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<span class="px-4 py-1.5 rounded-full bg-[#BAE6FD]/90 backdrop-blur-md text-[#0F2146] text-xs font-extrabold shadow-sm border border-white/60 flex items-center gap-1.5">
+<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" fill-rule="evenodd"></path></svg>
+              Nuevo Torneo
+            </span>
+<span class="px-4 py-1.5 rounded-full bg-[#BAE6FD]/90 backdrop-blur-md text-[#0F2146] text-xs font-extrabold shadow-sm border border-white/60">
+              Hoy • 18:00 hrs
+            </span>
+<span class="px-4 py-1.5 rounded-full bg-[#BAE6FD]/90 backdrop-blur-md text-[#0F2146] text-xs font-extrabold shadow-sm border border-white/60">
+              Cancha 3 Libre
+            </span>
+<span class="px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-md text-[#0F2146] text-xs font-bold border border-white shadow-sm">Inactivo</span>
+<span class="px-4 py-1.5 rounded-full bg-blue-50/80 backdrop-blur-md text-blue-800 text-xs font-bold border border-blue-200/60 shadow-sm">
+              Socio VIP Platino
+            </span>
+</div>
+<div class="grid grid-cols-3 gap-4 pt-2"><div class="p-4 rounded-2xl bg-white/90 backdrop-blur-md border border-white text-center shadow-md hover:shadow-lg hover:bg-white transition-all"><span class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Socios Activos</span><div class="text-3xl font-extrabold text-[#0F2146] mt-1">1,420</div></div><div class="p-4 rounded-2xl bg-white/90 backdrop-blur-md border border-white text-center shadow-md hover:shadow-lg hover:bg-white transition-all"><span class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Canchas Reservadas</span><div class="text-3xl font-extrabold text-[#0F2146] mt-1">86%</div></div><div class="p-4 rounded-2xl bg-white/90 backdrop-blur-md border border-white text-center shadow-md hover:shadow-lg hover:bg-white transition-all"><span class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Puntos Club</span><div class="text-3xl font-extrabold text-[#0F2146] mt-1">2,850</div></div></div>
+<div class="pt-2 flex flex-wrap items-center gap-4">
+<button class="px-6 py-3 rounded-full bg-[#0F2146]/95 backdrop-blur-md text-white text-sm font-bold shadow-md hover:bg-[#0F2146] border border-white/20 transition-all">
+              Reservar Actividad
+            </button>
+<button class="px-6 py-3 rounded-full bg-[#BAE6FD]/80 backdrop-blur-md text-[#0F2146] text-sm font-extrabold shadow-sm hover:bg-[#7DD3FC] border border-white/60 transition-all">
+              Renovar Membresía
+            </button>
+<button class="px-6 py-3 rounded-full bg-white/90 backdrop-blur-md text-[#0F2146] text-sm font-bold border border-white shadow-md hover:bg-white hover:shadow-lg transition-all">Consultar Reglamento</button>
+</div></div>
+</div>
+<!-- Right Column: Interactive Orb Card & Visual Demonstration -->
+<div class="lg:col-span-5 space-y-6">
+<div class="bg-white rounded-28 p-8 shadow-sm border border-slate-100 mesh-subtle-glow relative overflow-hidden"><div class="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-gradient-to-tr from-[#38BDF8]/40 via-[#93C5FD]/30 to-[#BAE6FD]/40 blur-3xl pointer-events-none"></div>
+<div class="relative z-10 space-y-4">
+<div class="flex items-center justify-between">
+<span class="px-3 py-1 rounded-full bg-blue-50 text-blue-800 text-xs font-bold uppercase tracking-wider">
+                Orbe Ambiental
+              </span>
+<span class="text-xs font-bold text-slate-400">Atmósfera Apple iOS 26</span>
+</div>
+<h3 class="text-xl font-bold text-[#0F2146]">Luz Difusa &amp; Profundidad</h3>
+<p class="text-sm text-slate-600 leading-relaxed">
+              Los orbes no saturan el fondo de la pantalla: operan como una iluminación sutil con desenfoque de 50px a 70px que brinda calidez óptica sobre la base neutral (<code class="text-xs font-mono bg-slate-100 px-1 py-0.5 rounded">#F2F3F5</code>) sin reducir el contraste de los textos.
+            </p>
+<div class="p-4 rounded-2xl bg-white/60 backdrop-blur-md border border-white/80 flex items-center gap-4 shadow-sm"><div class="w-10 h-10 rounded-full bg-[#7DD3FC]/90 backdrop-blur-md flex items-center justify-center text-[#0F2146] font-bold text-sm shadow-sm flex-shrink-0 border border-white/80">AA</div><p class="text-xs text-slate-600 font-medium leading-normal">Texto en <strong>Deep Navy (#0F2146)</strong> cumple holgadamente WCAG AA tanto en tarjetas blancas como en micro-tags Ice Blue y Sky.</p></div>
+</div></div>
+</div>
+</section>
+<!-- Section 3: Floating Liquid Glass Pill Navigation over Sports Photography -->
+<section class="space-y-4 pt-4">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-2xl font-extrabold text-[#0F2146] tracking-tight">
+            Barra de Navegación Flotante "Liquid Glass"
+          </h2>
+<p class="text-sm text-slate-500">
+            Navegación estilo cápsula (*floating pill*) con desenfoque esmerilado translúcido montada sobre fotografía deportiva.
+          </p>
+</div>
+<span class="px-3 py-1 rounded-full bg-slate-200/80 text-[#0F2146] text-xs font-bold">
+          iOS 26 Frosted Glass
+        </span>
+</div>
+<!-- Hero Photo Container with floating navigation demo -->
+<div class="relative w-full h-[400px] rounded-32 overflow-hidden shadow-2xl border border-white/40"><!-- High-res sports photo background (Padel / Club court) -->
+<img alt="Canchas de Tenis y Pádel Club Social al atardecer" class="absolute inset-0 w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCud5dRS1VBkIiOXpfYIkdiO-AGxW_sj_TxZfCzA3Kg6ul5FJf0iRBFn0pGE5uX1TEseHI_y6_G3U9rHNJocAAR8iDIUyfjzrWAm2tvfS0Jw5aR2Yqde5Gp_YB_EjIL_AtO9PP0klA0CBup5hanYA39MP5J17drQJstiAQalueBradfs4beQ7yzDxKcDsdLSwJuaU-4TA2jGCpp3xnJxqh-aMP_uLox_5U-U6yKOIbjPzAdHOzoxCPu6BnRIjTC6VhYHdqniOwXLl6NJA">
+<!-- Soft gradient veil to preserve high contrast -->
+<div class="absolute inset-0 bg-gradient-to-t from-[#0F2146]/85 via-[#0F2146]/35 to-black/20 backdrop-blur-[1px]"></div>
+<!-- Upper photo metadata badge -->
+<div class="absolute top-6 left-6 z-10 flex items-center gap-3">
+<div class="glass-card-overlay px-4 py-2 rounded-full text-white text-xs font-semibold flex items-center gap-2 shadow-sm">
+<span class="w-2 h-2 rounded-full bg-[#7DD3FC] animate-pulse"></span>
+            Cancha Central de Pádel 1 • En Vivo
+          </div>
+</div>
+<div class="absolute top-6 right-6 z-10">
+<span class="px-3.5 py-1.5 rounded-full bg-[#7DD3FC] text-[#0F2146] text-xs font-extrabold uppercase tracking-wider shadow-md">
+            Torneo Abierto
+          </span>
+</div>
+<!-- Context overlay text on photo -->
+<div class="absolute bottom-28 left-8 right-8 z-10 text-white max-w-xl">
+<span class="text-xs uppercase font-extrabold tracking-widest text-[#BAE6FD]">Instalaciones Exclusivas</span>
+<h4 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-1">
+            Reserva de canchas con iluminación nocturna
+          </h4>
+</div>
+<!-- FLOATING PILL GLASS TAB BAR (Center Bottom over photo) -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-11/12 max-w-2xl">
+<nav class="glass-bar rounded-full px-4 py-2.5 flex items-center justify-between gap-1 sm:gap-3 transition-all duration-300" style="border: 1px solid rgba(255, 255, 255, 0.45); box-shadow: rgba(15, 33, 70, 0.22) 0px 20px 40px -15px, rgba(255, 255, 255, 0.6) 0px 1px 1px 0px inset;">
+<!-- Tab 1: Inicio (Active with Sky #7DD3FC indicator) -->
+<button class="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-full bg-[#0F2146] text-white shadow-md transition-all">
+<svg class="w-5 h-5 text-[#7DD3FC]" fill="currentColor" viewBox="0 0 20 20">
+<path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+</svg>
+<span class="text-[10px] font-bold tracking-tight text-[#7DD3FC] mt-0.5">Inicio</span>
+</button>
+<!-- Tab 2: Reservas -->
+<button class="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-full text-[#0F2146] hover:bg-white/40 transition-all">
+<svg class="w-5 h-5 text-[#0F2146]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-[10px] font-bold tracking-tight text-[#0F2146] mt-0.5">Reservas</span>
+</button>
+<!-- Tab 3: Clases -->
+<button class="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-full text-[#0F2146] hover:bg-white/40 transition-all">
+<svg class="w-5 h-5 text-[#0F2146]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m6.5 6.5 11 11"></path><path d="m21 21-1-1"></path><path d="m3 3 1 1"></path><path d="m18 22 4-4"></path><path d="m2 6 4-4"></path><path d="m3 10 7-7"></path><path d="m14 21 7-7"></path></svg>
+<span class="text-[10px] font-bold tracking-tight text-[#0F2146] mt-0.5">Clases</span>
+</button>
+<!-- Tab 4: Torneos -->
+<button class="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-full text-[#0F2146] hover:bg-white/40 transition-all">
+<svg class="w-5 h-5 text-[#0F2146]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.45 1-1 1H7v4h10v-4h-2c-.55 0-1-.45-1-1v-2.34"></path><path d="M6 4h12v5c0 3.31-2.69 6-6 6s-6-2.69-6-6V4z"></path></svg>
+<span class="text-[10px] font-bold tracking-tight text-[#0F2146] mt-0.5">Torneos</span>
+</button>
+<!-- Tab 5: Mi Perfil -->
+<button class="flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-full text-[#0F2146] hover:bg-white/40 transition-all">
+<svg class="w-5 h-5 text-[#0F2146]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-[10px] font-bold tracking-tight text-[#0F2146] mt-0.5">Perfil</span>
+</button>
+</nav>
+</div></div>
+</section>
+<!-- Footer Summary Specs -->
+<footer class="pt-8 border-t border-[#0F2146]/10 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 font-medium gap-4">
+<div class="">Club Social y Deportivo © 2026 • Especificación de Componentes e Identidad Visual</div>
+<div class="flex items-center gap-4"><span class="">Fondo: <strong class="text-[#0F2146]">#F2F3F5</strong></span>
+<span class="">Acentos: <strong class="text-[#0F2146]">Ice Blue #BAE6FD &amp; Sky #7DD3FC</strong></span>
+<span class="">Texto &amp; Marca: <strong class="text-[#0F2146]">#0F2146</strong></span></div>
+</footer>
+</main>
+
+
+
+
+
+
+
+</body></html>

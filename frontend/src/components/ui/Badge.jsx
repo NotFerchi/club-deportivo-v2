@@ -1,7 +1,7 @@
 import React from 'react';
 import './Badge.css';
 
-const VARIANTS = ['neutral', 'success', 'warning', 'danger', 'info'];
+const VARIANTS = ['neutral', 'success', 'warning', 'danger', 'info', 'ice'];
 
 /**
  * Badge - etiqueta pequeña para estados (p. ej. Abierto, En curso, Cancelado).
@@ -13,7 +13,7 @@ const VARIANTS = ['neutral', 'success', 'warning', 'danger', 'info'];
  * El color no es lo único que comunica el estado: el texto siempre va dentro.
  *
  * Props:
- *   variant   - 'neutral' (default) | 'success' | 'warning' | 'danger' | 'info'
+ *   variant   - 'neutral' (default) | 'success' | 'warning' | 'danger' | 'info' | 'ice' (azul hielo, texto navy)
  *   className - clase extra; opcional
  *   ...rest   - cualquier otro atributo de <span>
  */

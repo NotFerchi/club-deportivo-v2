@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { Alert, Avatar, Badge, Button, Card, Checkbox, Chip, Input, Modal, ProgressBar, Select, StatCard, Table, Textarea } from '../components/ui';
+import {
+  Alert, Avatar, Badge, Button, Card, Checkbox, Chip, ConfirmDialog, EmptyState, ErrorState, Input, LoadingState, Modal,
+  PageHeader, ProgressBar, Select, SocioPicker, Spinner, StatCard, Table, Tabs, Textarea, Toast, ToastViewport,
+} from '../components/ui';
+import { brand } from '../config/brand';
 import './UIKitPlayground.css';
 
 /**
@@ -38,6 +42,41 @@ function ChipsDemo() {
   );
 }
 
+const SOCIOS = [
+  { id: 1, nombre: 'Sofía Torres Ruiz', numero: '3410', detalle: 'Tenis singular', estado: 'Al día' },
+  { id: 2, nombre: 'Carlos Mendoza Ortiz', numero: '1822', detalle: 'Pádel dobles', estado: 'Al día' },
+  { id: 3, nombre: 'Lucía Vega Galindo', numero: '4901', detalle: 'Natación máster', estado: 'Pendiente', estadoVariant: 'warning' },
+];
+
+function SocioPickerDemo() {
+  const [socio, setSocio] = useState(null);
+  const [resultados, setResultados] = useState([]);
+  // simula la consulta del padre: filtra una lista local
+  const buscar = (texto) => {
+    const t = texto.toLowerCase();
+    setResultados(SOCIOS.filter((x) => x.nombre.toLowerCase().includes(t) || x.numero.includes(t)));
+  };
+  return (
+    <SocioPicker label="Socio anfitrión" value={socio} onChange={setSocio} onSearch={buscar} options={resultados} helperText="Prueba con «sof», «mendoza» o «1822»" />
+  );
+}
+
+function TabsDemo() {
+  const [tab, setTab] = useState('todos');
+  return (
+    <Tabs
+      ariaLabel="Filtrar socios"
+      value={tab}
+      onChange={setTab}
+      tabs={[
+        { value: 'todos', label: 'Todos los socios' },
+        { value: 'activos', label: 'Con membresía activa', count: 120 },
+        { value: 'espera', label: 'En lista de espera' },
+      ]}
+    />
+  );
+}
+
 function Section({ title, children }) {
   return (
     <section className="uikit-section">
@@ -53,6 +92,11 @@ export default function UIKitPlayground() {
   const [socio, setSocio] = useState('');
   const [disciplina, setDisciplina] = useState('');
   const [comentario, setComentario] = useState('');
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isDangerOpen, setIsDangerOpen] = useState(false);
+  const [toasts, setToasts] = useState([]);
+  const addToast = (variant, message) => setToasts((prev) => [...prev, { id: Date.now() + Math.random(), variant, message }]);
+  const removeToast = (id) => setToasts((prev) => prev.filter((x) => x.id !== id));
 
   const closeModal = () => setIsModalOpen(false);
 
@@ -63,9 +107,25 @@ export default function UIKitPlayground() {
         <h1 className="uikit-title">UI Kit Playground</h1>
       </header>
 
+      <Section title="Marca · config/brand.js">
+        <div className="uikit-stage">
+          <div className="uikit-row">
+            {[brand.logos.principalA.logotipo.azul, brand.logos.principalA.simbolo.azul, brand.logos.atleta.logotipo.azul, brand.logos.atleta.simbolo.azul].map((src) => (
+              <img key={src} src={src} alt="" height={40} />
+            ))}
+          </div>
+          <div className="uikit-row uikit-brand-dark">
+            {[brand.logos.principalA.logotipo.blanco, brand.logos.principalA.simbolo.blanco, brand.logos.atleta.logotipo.blanco, brand.logos.atleta.simbolo.blanco].map((src) => (
+              <img key={src} src={src} alt="" height={40} />
+            ))}
+          </div>
+        </div>
+        <p className="uikit-modal-text">{brand.nombre} · {brand.club}{brand.contacto.esDemo ? ' · contacto y horario son datos de demostración' : ''}</p>
+      </Section>
+
       <Section title="Button">
         <div className="uikit-grid uikit-grid--buttons">
-          {['primary', 'secondary', 'error'].map((variant) => (
+          {['primary', 'secondary', 'soft', 'error'].map((variant) => (
             <div key={variant} className="uikit-row">
               <span className="uikit-label">{variant}</span>
               <Button variant={variant}>Button</Button>
@@ -104,7 +164,7 @@ export default function UIKitPlayground() {
         </div>
       </Section>
 
-      <Section title="Select">
+      <Section title="Select · listbox propio (↑ ↓ Enter Esc, letras para buscar)">
         <div className="uikit-grid uikit-grid--inputs">
           <Select
             label="Disciplina"
@@ -126,6 +186,7 @@ export default function UIKitPlayground() {
           <Badge variant="warning">Inscripciones cerradas</Badge>
           <Badge variant="danger">Cancelado</Badge>
           <Badge variant="info">En curso</Badge>
+          <Badge variant="ice">Hoy · 18:00 hrs</Badge>
         </div>
       </Section>
 
@@ -150,6 +211,17 @@ export default function UIKitPlayground() {
         </div>
       </Section>
 
+      <Section title="StatCard · degradado por área">
+        <div className="uikit-stage">
+          <div className="uikit-grid uikit-grid--inputs">
+            <StatCard gradient="reservas" tag="Hoy" label="Reservas · Alberca olímpica" value="14" hint="Carriles disponibles en turno vespertino" />
+            <StatCard gradient="clases" tag="En vivo" label="Clases · Actividad física" value="38" hint="Sesiones de pádel, yoga y spinning" />
+            <StatCard gradient="torneos" tag="Nuevo" label="Torneos · Primavera 2026" value="08" hint="Cuadros abiertos de tenis y pádel" onClick={() => {}} />
+            <StatCard gradient="ludoteca" tag="Familia" label="Ludoteca · Club kids" value="25" hint="Talleres creativos y estimulación" />
+          </div>
+        </div>
+      </Section>
+
       <Section title="StatCard">
         <div className="uikit-grid uikit-grid--inputs">
           <StatCard label="Total socios" value={248} hint="231 activos" tone="primary" />
@@ -168,6 +240,66 @@ export default function UIKitPlayground() {
           <Card title="Con tabla a ras del borde" flush>
             <Table columns={[{ key: 'a', header: 'Socio' }, { key: 'b', header: 'Número' }]} data={[{ id: 1, a: 'Ana López', b: 'S-001' }]} />
           </Card>
+        </div>
+      </Section>
+
+      <Section title="Card · vidrio">
+        <div className="uikit-stage">
+          <div className="uikit-grid uikit-grid--inputs">
+            <Card glass title="Luz difusa y profundidad" action={<Badge variant="ice">Activo</Badge>}>
+              Tarjeta de vidrio sobre fondo con orbes (blur 24 px, saturación 180 %).
+            </Card>
+            <Card title="Tarjeta normal">Fondo blanco, radio de 28 px y sombra suave.</Card>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="PageHeader">
+        <PageHeader
+          overline="Módulo oficial del club"
+          title="Torneos y competencias"
+          subtitle="Gestión oficial de cuadros, inscripciones y sedes activas del club."
+          actions={(
+            <>
+              <Input placeholder="Buscar torneo o socio…" aria-label="Buscar torneo o socio" />
+              <Button>Nuevo torneo</Button>
+            </>
+          )}
+        />
+      </Section>
+
+      <Section title="Tabs · segmented control">
+        <TabsDemo />
+      </Section>
+
+      <Section title="Estados · cargando, vacío y error">
+        <div className="uikit-grid uikit-grid--inputs">
+          <LoadingState rows={2} />
+          <EmptyState title="Aún no hay torneos" message="Crea el primer torneo de la temporada para recibir inscripciones." action={<Button>Crear torneo</Button>} />
+          <ErrorState message="Una interrupción de red impidió sincronizar la disponibilidad." onRetry={() => {}} />
+        </div>
+        <div className="uikit-row"><Spinner /><span>Spinner</span></div>
+      </Section>
+
+      <Section title="SocioPicker">
+        <div className="uikit-grid uikit-grid--inputs">
+          <SocioPickerDemo />
+        </div>
+      </Section>
+
+      <Section title="ConfirmDialog">
+        <div className="uikit-row">
+          <Button variant="secondary" onClick={() => setIsConfirmOpen(true)}>Confirmación normal</Button>
+          <Button variant="error" onClick={() => setIsDangerOpen(true)}>Confirmación destructiva</Button>
+        </div>
+      </Section>
+
+      <Section title="Toast">
+        <div className="uikit-row">
+          <Button variant="secondary" onClick={() => addToast('success', 'Inscripción confirmada con éxito')}>Éxito</Button>
+          <Button variant="secondary" onClick={() => addToast('info', 'Tu reserva empieza en 30 minutos')}>Info</Button>
+          <Button variant="secondary" onClick={() => addToast('warning', 'Cupo limitado: quedan solo 2 lugares')}>Advertencia</Button>
+          <Button variant="secondary" onClick={() => addToast('error', 'Error al procesar el pago de la cuota anual')}>Error</Button>
         </div>
       </Section>
 
@@ -238,7 +370,39 @@ export default function UIKitPlayground() {
           value={socio}
           onChange={(event) => setSocio(event.target.value)}
         />
+        <Select
+          label="Disciplina (el panel no se recorta dentro del modal)"
+          placeholder="Elige una disciplina"
+          name="disciplina"
+          options={DISCIPLINAS}
+          value={disciplina}
+          onChange={(event) => setDisciplina(event.target.value)}
+        />
+        <SocioPickerDemo />
       </Modal>
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        title="¿Confirmar la reserva?"
+        message="Cancha 3 · hoy a las 18:00 hrs."
+        confirmLabel="Confirmar"
+        onConfirm={() => setIsConfirmOpen(false)}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
+      <ConfirmDialog
+        isOpen={isDangerOpen}
+        destructive
+        title="¿Eliminar inscripción del torneo?"
+        message="Esta acción liberará el lugar en el cuadro y no se puede deshacer."
+        confirmLabel="Eliminar"
+        onConfirm={() => setIsDangerOpen(false)}
+        onCancel={() => setIsDangerOpen(false)}
+      />
+
+      <ToastViewport>
+        {toasts.map((t) => (
+          <Toast key={t.id} variant={t.variant} onClose={() => removeToast(t.id)}>{t.message}</Toast>
+        ))}
+      </ToastViewport>
     </main>
   );
 }

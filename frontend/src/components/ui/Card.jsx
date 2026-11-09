@@ -13,12 +13,13 @@ import './Card.css';
  *   title     - título del panel; si no hay título ni acción, no se dibuja encabezado
  *   icon      - nodo (ícono) junto al título; opcional
  *   action    - nodo a la derecha del encabezado (p. ej. un Button); opcional
+ *   glass     - true usa el estilo de vidrio (Liquid Glass); úsalo sobre fondos con color
  *   flush     - true quita el margen interior del cuerpo (para tablas o listas a ras del borde)
  *   className - clase extra; opcional
  *   ...rest   - cualquier otro atributo de <section>
  */
-export function Card({ title, icon, action, flush = false, className, children, ...rest }) {
-  const classes = ['ui-card', className].filter(Boolean).join(' ');
+export function Card({ title, icon, action, flush = false, glass = false, className, children, ...rest }) {
+  const classes = ['ui-card', glass && 'ui-card--glass', className].filter(Boolean).join(' ');
   const hasHeader = Boolean(title || action);
 
   return (

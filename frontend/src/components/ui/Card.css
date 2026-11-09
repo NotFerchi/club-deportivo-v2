@@ -4,9 +4,9 @@
     box-sizing: border-box;
     overflow: hidden;
     border: 1px solid var(--color-border-default);
-    border-radius: var(--ui-radius-xl);
+    border-radius: var(--ui-radius-card);
     background: var(--color-bg-surface);
-    box-shadow: var(--ui-shadow-xs);
+    box-shadow: var(--ui-shadow-card);
     font-family: var(--font-sans);
     color: var(--color-text-primary);
 }
@@ -17,7 +17,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-8);
-    padding: var(--space-12) var(--space-16);
+    padding: var(--space-16) var(--space-24);
     border-bottom: 1px solid var(--color-border-default);
 }
 
@@ -34,7 +34,7 @@
 }
 
 .ui-card__body {
-    padding: var(--space-16);
+    padding: var(--space-24);
 }
 
 .ui-card__body--flush {
@@ -53,4 +53,22 @@
 .ui-card__body--flush .ui-table {
     border: 0;
     border-radius: 0;
+}
+
+/* Variante de vidrio (Liquid Glass de la Muestra): se ve sobre fondos con color u orbes */
+.ui-card--glass {
+    border: var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
+}
+
+.ui-card--glass .ui-card__header {
+    border-bottom-color: rgb(15 33 70 / 0.08);
+}
+
+/* Sin soporte de backdrop-filter el vidrio queda casi opaco para no perder legibilidad */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .ui-card--glass { background: rgb(255 255 255 / 0.92); }
 }

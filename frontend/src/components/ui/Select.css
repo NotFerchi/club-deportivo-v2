@@ -1,12 +1,13 @@
-/* Select — solo tokens semánticos (src/styles/tokens.css)
-   Replica el aspecto de Input. Los selectores del campo van como
-   `.ui-select .ui-select__field` (0,2,0) para ganar a `.dashboard-root select`
-   de css/Dashboard.css. */
+/* Select (listbox propio) — solo tokens semánticos (src/styles/tokens.css)
+   El campo replica el aspecto de Input. Los selectores van con 2 clases para ganar a
+   reglas globales de `.dashboard-root button/select` de css/Dashboard.css.
+   El panel se dibuja en un portal (FloatingPanel), por eso sus clases no cuelgan de `.ui-select`. */
 
 .ui-select {
     display: flex;
     flex-direction: column;
     gap: var(--space-6);
+    font-family: var(--font-sans);
 }
 
 .ui-select__label {
@@ -15,22 +16,56 @@
 }
 
 .ui-select .ui-select__field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
     width: 100%;
-    padding: var(--space-10) var(--space-12);
+    box-sizing: border-box;
+    min-height: 44px;
+    margin: 0;
+    padding: var(--space-12) var(--space-16) var(--space-12) var(--space-20);
     border: 1px solid var(--color-border-strong);
-    border-radius: var(--ui-radius-md);
+    border-radius: var(--ui-radius-pill);
     background: var(--color-bg-surface);
     color: var(--color-text-primary);
     font: var(--font-body-md);
+    text-align: left;
     cursor: pointer;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-/* focus — borde de 2px sin mover el layout: 1px de borde + 1px de sombra */
-.ui-select .ui-select__field:focus {
+.ui-select .ui-select__field:hover:not(:disabled) {
+    border-color: var(--color-brand-navy);
+}
+
+/* focus y abierto — borde sky-600 más brillo sky claro (Stitch) */
+.ui-select .ui-select__field:focus-visible,
+.ui-select--open .ui-select__field {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 1px var(--color-primary);
+    border-color: var(--color-focus-ring);
+    box-shadow: 0 0 0 3px var(--color-focus-glow);
+}
+
+.ui-select__value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ui-select__value--placeholder {
+    color: var(--color-text-muted);
+}
+
+.ui-select__chevron {
+    flex-shrink: 0;
+    color: var(--color-icon-default);
+    transition: transform 0.15s;
+}
+
+.ui-select--open .ui-select__chevron {
+    transform: rotate(180deg);
 }
 
 .ui-select__message {
@@ -41,12 +76,14 @@
 
 /* error */
 .ui-select--error .ui-select__field,
-.ui-select--error .ui-select__field:focus {
+.ui-select--error .ui-select__field:focus-visible,
+.ui-select--error.ui-select--open .ui-select__field {
     border-color: var(--color-feedback-danger-solid);
 }
 
-.ui-select--error .ui-select__field:focus {
-    box-shadow: 0 0 0 1px var(--color-feedback-danger-solid);
+.ui-select--error .ui-select__field:focus-visible,
+.ui-select--error.ui-select--open .ui-select__field {
+    box-shadow: 0 0 0 3px rgb(239 68 68 / 0.2);
 }
 
 .ui-select--error .ui-select__message {
@@ -68,4 +105,68 @@
 
 .ui-select__required {
     color: var(--color-feedback-danger-text);
+}
+
+/* ─── Panel de vidrio (portal) ───────────────────────────────── */
+.ui-select__panel {
+    z-index: 1200; /* sobre Modal (1000) y Toast (1100) */
+    box-sizing: border-box;
+    overflow-y: auto;
+    padding: var(--space-8);
+    border: var(--glass-border);
+    border-radius: var(--ui-radius-2xl);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--ui-shadow-hover), var(--glass-shadow);
+    font-family: var(--font-sans);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .ui-select__panel { background: rgb(255 255 255 / 0.97); }
+}
+
+.ui-select__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ui-select__option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+    padding: var(--space-10) var(--space-16);
+    border-radius: var(--ui-radius-pill);
+    color: var(--color-text-primary);
+    font: var(--font-body-md);
+    cursor: pointer;
+}
+
+.ui-select__option--placeholder {
+    color: var(--color-text-muted);
+}
+
+.ui-select__option--active {
+    background: var(--color-bg-app);
+}
+
+/* elegida: azul hielo con texto navy y palomita (como en el tablero) */
+.ui-select__option--selected {
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+    font-weight: 700;
+}
+
+.ui-select__option--selected.ui-select__option--active {
+    background: var(--color-sky);
+}
+
+.ui-select__option--disabled {
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
 }

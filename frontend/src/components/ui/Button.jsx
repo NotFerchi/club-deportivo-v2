@@ -1,7 +1,7 @@
 import React from 'react';
 import './Button.css';
 
-const VARIANTS = ['primary', 'secondary', 'error'];
+const VARIANTS = ['primary', 'secondary', 'soft', 'error'];
 
 /**
  * Button - botón del UI Kit (Figma: Button, variant × state).
@@ -13,7 +13,7 @@ const VARIANTS = ['primary', 'secondary', 'error'];
  * El estado hover lo resuelve el CSS; disabled es el atributo nativo.
  *
  * Props:
- *   variant   - 'primary' (default) | 'secondary' | 'error'
+ *   variant   - 'primary' (default, navy) | 'secondary' (blanco con borde) | 'soft' (azul hielo) | 'error'
  *   disabled  - deshabilita el botón
  *   type      - atributo type (default 'button', para no enviar formularios por accidente)
  *   className - clase extra; opcional

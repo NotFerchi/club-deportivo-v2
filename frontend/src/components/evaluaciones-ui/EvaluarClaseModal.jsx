@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Button, Modal, Stack, Text, Textarea } from '../ui';
+import { Alert, Button, Modal, Stack, StarRating, Text, Textarea } from '../ui';
 import { COMENTARIO_MAX, ETIQUETAS_CALIFICACION, validarEvaluacion } from './evaluacionUtils';
 
 /**
@@ -61,20 +61,7 @@ export default function EvaluarClaseModal({ clase, onConfirmar, onClose }) {
 
         <Stack gap={8}>
           <Text variant="small" as="span" id="evaluacion-calificacion">Calificación *</Text>
-          <Stack direction="row" gap={8} wrap role="radiogroup" aria-labelledby="evaluacion-calificacion">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Button
-                key={n}
-                role="radio"
-                aria-checked={calificacion === n}
-                variant={calificacion === n ? 'primary' : 'secondary'}
-                onClick={() => setCalificacion(n)}
-                disabled={enviando}
-              >
-                {n}
-              </Button>
-            ))}
-          </Stack>
+          <StarRating value={calificacion} onChange={setCalificacion} disabled={enviando} labelledBy="evaluacion-calificacion" />
           <Text variant="caption" muted>
             {calificacion ? `${calificacion} de 5 · ${ETIQUETAS_CALIFICACION[calificacion]}` : '1 = muy mala · 5 = excelente'}
           </Text>

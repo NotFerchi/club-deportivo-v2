@@ -21,3 +21,5 @@ export { Tabs } from './Tabs';
 export { Toast, ToastViewport } from './Toast';
 export { SocioPicker } from './SocioPicker';
 export { FloatingPanel } from './FloatingPanel';
+export { MemberTabBar } from './MemberTabBar';
+export { StarRating } from './StarRating';

@@ -1,0 +1,119 @@
+/* MemberTabBar — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-memberbar {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--space-16) + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    width: min(calc(100vw - var(--space-24)), 420px);
+    padding: var(--space-6);
+    border: var(--glass-border);
+    border-radius: 999px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
+    font-family: var(--font-sans);
+}
+
+.ui-memberbar__item {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-8) var(--space-4);
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-text-muted);
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.ui-memberbar__item:hover {
+    color: var(--color-text-primary);
+}
+
+.ui-memberbar__item:focus-visible,
+.ui-memberbar__sheet-item:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+}
+
+.ui-memberbar__item.is-active {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+}
+
+.ui-memberbar__label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+/* Hoja de "Más" */
+.ui-memberbar__sheet {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + var(--space-12));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    min-width: 208px;
+    padding: var(--space-8);
+    border: var(--glass-border);
+    border-radius: var(--ui-radius-2xl);
+    background: rgb(255 255 255 / 0.94);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
+}
+
+.ui-memberbar__sheet-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-12) var(--space-16);
+    border-radius: var(--ui-radius-xl);
+    color: var(--color-text-primary);
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.ui-memberbar__sheet-item:hover {
+    background: var(--glass-soft-bg);
+}
+
+.ui-memberbar__sheet-item.is-active {
+    background: var(--color-ice);
+}
+
+/* Solo móvil: en escritorio el socio usa las pestañas de arriba (SocioLayout). */
+@media (min-width: 769px) {
+    .ui-memberbar {
+        display: none;
+    }
+}
+
+/* Las pestañas viejas de abajo (css/socio/DashboardSocio.css) dejan su lugar a esta barra. */
+@media (max-width: 768px) {
+    .ds-nav-tabs {
+        display: none;
+    }
+}

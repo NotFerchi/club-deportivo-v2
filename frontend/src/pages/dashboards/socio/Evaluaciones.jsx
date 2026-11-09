@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SocioLayout from '../../../components/SocioLayout';
-import { Alert, Badge, Button, Stack, Table, Text } from '../../../components/ui';
+import { Alert, Badge, Button, ErrorState, LoadingState, PageHeader, Stack, Table, Text } from '../../../components/ui';
 import EvaluarClaseModal from '../../../components/evaluaciones-ui/EvaluarClaseModal';
 import {
   horaCorta,
@@ -119,11 +119,11 @@ export default function Evaluaciones() {
 
   return (
     <SocioLayout activeTab="evaluar" title="Club Social | Evaluaciones">
-      <Stack gap={24} padding={24}>
-        <Stack gap={4}>
-          <Text variant="title">Evaluar instructores</Text>
-          <Text muted>Califica las clases en las que estás inscrito. Evaluaciones de {nombreMes(periodo)}.</Text>
-        </Stack>
+      <Stack gap={24}>
+        <PageHeader
+          title="Evaluar instructores"
+          subtitle={`Califica las clases en las que estás inscrito. Evaluaciones de ${nombreMes(periodo)}.`}
+        />
 
         <Alert variant="info">
           Tu evaluación es anónima: el instructor ve la calificación y el comentario, pero no quién la hizo.
@@ -136,14 +136,9 @@ export default function Evaluaciones() {
           <Alert variant="warning">No encontramos tu registro de socio. Cierra sesión e inicia de nuevo.</Alert>
         )}
 
-        {socioId && error && (
-          <Stack gap={12} align="start">
-            <Alert variant="error">{error}</Alert>
-            <Button variant="secondary" onClick={recargar}>Reintentar</Button>
-          </Stack>
-        )}
+        {socioId && error && <ErrorState message={error} onRetry={recargar} />}
 
-        {socioId && cargando && !error && <Text role="status" muted>Cargando tus clases…</Text>}
+        {socioId && cargando && !error && <LoadingState rows={3} label="Cargando tus clases…" />}
 
         {socioId && !cargando && !error && (
           <Table

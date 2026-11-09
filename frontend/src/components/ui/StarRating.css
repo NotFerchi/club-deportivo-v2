@@ -1,0 +1,42 @@
+/* StarRating — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-stars {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+}
+
+.ui-stars__star {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--ui-radius-full);
+    background: var(--color-bg-surface);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ui-stars__star:hover:not(:disabled) {
+    border-color: var(--color-brand-navy);
+}
+
+.ui-stars__star:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+}
+
+.ui-stars__star--on {
+    border-color: var(--color-feedback-warning-solid);
+    background: var(--color-feedback-warning-bg);
+    color: var(--color-feedback-warning-solid);
+}
+
+.ui-stars__star:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
 import { useNotification } from '../../../context/NotificationContext'
-import { Alert, Avatar, Badge, Button, Card, Chip, Modal, Stack, Text } from '../../../components/ui'
+import { Alert, Avatar, Badge, Button, Card, Chip, ConfirmDialog, EmptyState, LoadingState, Modal, PageHeader, Stack, Tabs, Text } from '../../../components/ui'
 
 // Ícono + texto secundario en una línea
 function Dato({ icon, children }) {
@@ -277,45 +277,35 @@ function Clases() {
       <Stack gap={24}>
 
         {/* HEADER */}
-        <Stack direction="row" gap={16} align="start" justify="between" wrap>
-          <Stack gap={4}>
-            <Text variant="heading">Clases y Actividades</Text>
-            <Text variant="small" muted>Gestiona tus clases inscritas o explora nuevas opciones</Text>
-          </Stack>
-          <Badge>Socio: {userName}</Badge>
-        </Stack>
+        <PageHeader
+          title="Clases y Actividades"
+          subtitle="Gestiona tus clases inscritas o explora nuevas opciones"
+          actions={<Badge variant="ice">Socio: {userName}</Badge>}
+        />
 
         {/* TABS */}
-        <Stack direction="row" gap={8} wrap role="tablist">
-          <Button
-            role="tab"
-            aria-selected={vista === 'mis-clases'}
-            variant={vista === 'mis-clases' ? 'primary' : 'secondary'}
-            onClick={() => setVista('mis-clases')}
-          >
-            <BookOpen size={18} /> Mis Clases ({misClases.length})
-          </Button>
-          <Button
-            role="tab"
-            aria-selected={vista === 'catalogo'}
-            variant={vista === 'catalogo' ? 'primary' : 'secondary'}
-            onClick={() => setVista('catalogo')}
-          >
-            <Search size={18} /> Explorar Catálogo
-          </Button>
-        </Stack>
+        <Tabs
+          ariaLabel="Mis clases o catálogo"
+          fullWidth
+          value={vista}
+          onChange={setVista}
+          tabs={[
+            { value: 'mis-clases', label: 'Mis Clases', count: misClases.length, icon: <BookOpen size={18} /> },
+            { value: 'catalogo', label: 'Explorar Catálogo', icon: <Search size={18} /> },
+          ]}
+        />
 
         {/* ===== MIS CLASES ===== */}
         {vista === 'mis-clases' && (
           loading ? (
-            <Text muted>Cargando tus clases...</Text>
+            <LoadingState rows={3} label="Cargando tus clases…" />
           ) : misClases.length === 0 ? (
-            <Stack gap={8} align="center" padding={32}>
-              <Calendar size={48} />
-              <Text variant="subheading">No tienes clases inscritas</Text>
-              <Text variant="small" muted>Explora el catálogo para encontrar clases que te interesen</Text>
-              <Button onClick={() => setVista('catalogo')}>Ver Catálogo</Button>
-            </Stack>
+            <EmptyState
+              icon={<Calendar size={24} />}
+              title="No tienes clases inscritas"
+              message="Explora el catálogo para encontrar clases que te interesen."
+              action={<Button onClick={() => setVista('catalogo')}>Ver Catálogo</Button>}
+            />
           ) : (
             <Stack direction="row" gap={16} grow minChild={280}>
               {misClases.map(clase => (
@@ -394,11 +384,11 @@ function Clases() {
             </Stack>
 
             {catalogoFiltrado.length === 0 && (
-              <Stack gap={8} align="center" padding={32}>
-                <Search size={48} />
-                <Text variant="subheading">No se encontraron clases</Text>
-                <Text variant="small" muted>Intenta con otros filtros o limpia los actuales</Text>
-              </Stack>
+              <EmptyState
+                title="No se encontraron clases"
+                message="Intenta con otros filtros o limpia los actuales."
+                action={activeFilterCount > 0 ? <Button variant="secondary" onClick={handleLimpiarFiltros}>Limpiar filtros</Button> : undefined}
+              />
             )}
           </Stack>
         )}
@@ -481,26 +471,17 @@ function Clases() {
 
       {/* ===== MODAL: BAJA ===== */}
       {showModalBaja && claseABaja && (
-        <Modal
+        <ConfirmDialog
           isOpen
-          onClose={() => setShowModalBaja(false)}
-          title="Cancelar Inscripción"
-          footer={
-            <>
-              <Button variant="secondary" onClick={() => setShowModalBaja(false)}>
-                Mantener Inscripción
-              </Button>
-              <Button variant="error" onClick={handleConfirmarBaja}>
-                Sí, Cancelar
-              </Button>
-            </>
-          }
-        >
-          <Alert variant="warning">
-            ¿Estás seguro de que deseas cancelar tu inscripción a <strong>{claseABaja.nombre}</strong>?
-          </Alert>
-          <Text variant="small" muted>Liberarás tu lugar para otro socio</Text>
-        </Modal>
+          destructive
+          icon={<XCircle size={24} />}
+          title="Cancelar inscripción"
+          message={`¿Estás seguro de que deseas cancelar tu inscripción a ${claseABaja.nombre}? Liberarás tu lugar para otro socio.`}
+          confirmLabel="Sí, cancelar"
+          cancelLabel="Mantener inscripción"
+          onConfirm={handleConfirmarBaja}
+          onCancel={() => setShowModalBaja(false)}
+        />
       )}
 
       {/* ===== PANEL: FILTROS ===== */}

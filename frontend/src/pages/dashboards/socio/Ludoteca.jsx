@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import SocioLayout from '../../../components/SocioLayout'
 import {
-  Baby, Clock, QrCode,
+  Baby, QrCode,
   CheckCircle, Plus,
-  Info, LogOut, Timer
+  LogOut, Timer
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
 import { useNotification } from '../../../context/NotificationContext'
-import { Alert, Badge, Button, Card, Chip, Input, Modal, ProgressBar, Stack, Table, Text } from '../../../components/ui'
+import { Alert, Badge, Button, Card, Chip, EmptyState, Input, LoadingState, Modal, PageHeader, ProgressBar, Stack, Table, Tabs, Text } from '../../../components/ui'
 
 const LIMITE_MINUTOS = 120
 const ALERTA_MINUTOS = 90
@@ -221,10 +221,7 @@ function Ludoteca() {
         )}
 
         {/* HEADER */}
-        <Stack gap={4}>
-          <Text variant="heading">Ludoteca</Text>
-          <Text variant="small" muted>Cuida de tus hijos mientras disfrutas del club</Text>
-        </Stack>
+        <PageHeader title="Ludoteca" subtitle="Cuida de tus hijos mientras disfrutas del club" />
 
         {/* AFORO */}
         <Card title="Aforo Actual">
@@ -239,36 +236,17 @@ function Ludoteca() {
         </Card>
 
         {/* TABS */}
-        <Stack direction="row" gap={8} wrap role="tablist">
-          <Button
-            role="tab"
-            aria-selected={vista === 'activos'}
-            variant={vista === 'activos' ? 'primary' : 'secondary'}
-            onClick={() => setVista('activos')}
-          >
-            <Baby size={18} />
-            Activos
-            {registrosActivos.length > 0 && (
-              <Badge variant={tieneAlertaActiva ? 'danger' : 'success'}>{registrosActivos.length}</Badge>
-            )}
-          </Button>
-          <Button
-            role="tab"
-            aria-selected={vista === 'historial'}
-            variant={vista === 'historial' ? 'primary' : 'secondary'}
-            onClick={() => setVista('historial')}
-          >
-            <Clock size={18} /> Historial
-          </Button>
-          <Button
-            role="tab"
-            aria-selected={vista === 'info'}
-            variant={vista === 'info' ? 'primary' : 'secondary'}
-            onClick={() => setVista('info')}
-          >
-            <Info size={18} /> Cómo funciona
-          </Button>
-        </Stack>
+        <Tabs
+          ariaLabel="Secciones de la ludoteca"
+          fullWidth
+          value={vista}
+          onChange={setVista}
+          tabs={[
+            { value: 'activos', label: 'Activos', count: registrosActivos.length > 0 ? registrosActivos.length : undefined },
+            { value: 'historial', label: 'Historial' },
+            { value: 'info', label: 'Cómo funciona' },
+          ]}
+        />
 
         {/* ─── VISTA: ACTIVOS ─── */}
         {vista === 'activos' && (
@@ -281,16 +259,14 @@ function Ludoteca() {
             </Stack>
 
             {loading ? (
-              <Text muted>Cargando...</Text>
+              <LoadingState rows={2} label="Cargando la ludoteca…" />
             ) : registrosActivos.length === 0 ? (
-              <Stack gap={8} align="center" padding={32}>
-                <Baby size={48} />
-                <Text variant="subheading">Sin niños activos</Text>
-                <Text variant="small" muted>Registra la entrada de tu hijo para empezar a contar su tiempo de estancia.</Text>
-                <Button onClick={() => abrirFormulario()}>
-                  <Plus size={18} /> Registrar primera entrada
-                </Button>
-              </Stack>
+              <EmptyState
+                icon={<Baby size={24} />}
+                title="Sin niños activos"
+                message="Registra la entrada de tu hijo para empezar a contar su tiempo de estancia."
+                action={<Button onClick={() => abrirFormulario()}><Plus size={18} /> Registrar primera entrada</Button>}
+              />
             ) : (
               registrosActivos.map(r => {
                 const mins = getLiveMinutos(r)
@@ -354,7 +330,7 @@ function Ludoteca() {
           <Stack gap={16}>
             <Text variant="subheading">Historial de visitas</Text>
             {loading ? (
-              <Text muted>Cargando...</Text>
+              <LoadingState rows={3} label="Cargando el historial…" />
             ) : (
               <Table
                 columns={columnasHistorial}
@@ -375,14 +351,21 @@ function Ludoteca() {
               Registra la entrada de tu hijo desde esta app. El sistema empezará a contar las 2 horas de estancia y te notificará cuando esté por terminar.
             </Alert>
             <Card title="Pasos:">
-              <ol>
-                <li>Ve a la pestaña <strong>Activos</strong> y pulsa <em>Registrar entrada</em></li>
-                <li>Ingresa el nombre y fecha de nacimiento de tu hijo (3–7 años)</li>
-                <li>Deja a tu hijo en la ludoteca con el personal</li>
-                <li>El contador se actualizará en tiempo real</li>
-                <li>Al recogerlo, pulsa <em>Registrar salida</em> desde la app o en recepción</li>
-                <li>Superar las 2 horas genera una sanción automática</li>
-              </ol>
+              <Stack gap={12}>
+                {[
+                  <>Ve a la pestaña <strong>Activos</strong> y pulsa <em>Registrar entrada</em></>,
+                  'Ingresa el nombre y fecha de nacimiento de tu hijo (3–7 años)',
+                  'Deja a tu hijo en la ludoteca con el personal',
+                  'El contador se actualizará en tiempo real',
+                  <>Al recogerlo, pulsa <em>Registrar salida</em> desde la app o en recepción</>,
+                  'Superar las 2 horas genera una sanción automática',
+                ].map((paso, i) => (
+                  <Stack key={i} direction="row" gap={12} align="center">
+                    <Badge variant="ice">{i + 1}</Badge>
+                    <Text variant="small" as="span">{paso}</Text>
+                  </Stack>
+                ))}
+              </Stack>
             </Card>
           </Stack>
         )}

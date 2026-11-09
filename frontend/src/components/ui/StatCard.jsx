@@ -2,7 +2,7 @@ import React from 'react';
 import './StatCard.css';
 
 const TONES = ['primary', 'success', 'warning', 'danger', 'neutral'];
-const GRADIENTS = ['reservas', 'clases', 'torneos', 'ludoteca'];
+const GRADIENTS = ['reservas', 'clases', 'torneos', 'ludoteca', 'sanciones'];
 
 /**
  * StatCard - tarjeta de indicador (KPI): un número grande con su etiqueta.
@@ -17,7 +17,7 @@ const GRADIENTS = ['reservas', 'clases', 'torneos', 'ludoteca'];
  *   hint     - texto de apoyo bajo la etiqueta; opcional
  *   icon     - nodo (ícono) a la derecha del número; opcional
  *   tone     - 'primary' (default) | 'success' | 'warning' | 'danger' | 'neutral'
- *   gradient - 'reservas' | 'clases' | 'torneos' | 'ludoteca': variante destacada con degradado
+ *   gradient - 'reservas' | 'clases' | 'torneos' | 'ludoteca' | 'sanciones': variante destacada con degradado
  *              por área (el texto chico va sobre una pastilla de vidrio oscuro que garantiza ≥4.5:1; el número grande queda con text-shadow, excepción de contraste conocida); ignora `tone`
  *   tag      - etiqueta corta (p. ej. "Hoy") arriba a la derecha, solo con `gradient`; opcional
  *   selected - true resalta la tarjeta y la marca como activa (aria-pressed); úsalo en filtros.

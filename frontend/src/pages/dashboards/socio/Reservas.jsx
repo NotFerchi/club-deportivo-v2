@@ -5,7 +5,7 @@ import {
   Activity, CircleDot, Waves, Target, LayoutGrid, Dumbbell
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
-import { Alert, Badge, Button, Card, Chip, Modal, Stack, Text } from '../../../components/ui'
+import { Alert, Badge, Button, Card, Chip, ConfirmDialog, LoadingState, PageHeader, Stack, Text } from '../../../components/ui'
 
 const DISCIPLINA_ICONO = {
   'Tenis':      Activity,
@@ -292,16 +292,16 @@ export default function Reservas() {
       <Stack gap={24}>
 
         {/* HEADER */}
-        <Stack direction="row" gap={16} align="start" justify="between" wrap>
-          <Stack gap={4}>
-            <Text variant="heading">Reserva de Canchas</Text>
-            <Dato icon={<CalendarDays size={14} />}>Hoy, {todayLabel()} · máx. 2 horas</Dato>
-            {HORARIO_HOY && (
-              <Dato icon={<Clock size={14} />}>Horario de hoy: <strong>{HORARIO_HOY}</strong></Dato>
+        <Stack gap={8}>
+          <PageHeader
+            title="Reserva de Canchas"
+            subtitle={`Hoy, ${todayLabel()} · máx. 2 horas`}
+            actions={misReservas.length > 0 && (
+              <Badge variant="ice">{misReservas.length} reserva{misReservas.length > 1 ? 's' : ''} hoy</Badge>
             )}
-          </Stack>
-          {misReservas.length > 0 && (
-            <Badge variant="info">{misReservas.length} reserva{misReservas.length > 1 ? 's' : ''} hoy</Badge>
+          />
+          {HORARIO_HOY && (
+            <Dato icon={<Clock size={14} />}>Horario de hoy: <strong>{HORARIO_HOY}</strong></Dato>
           )}
         </Stack>
 
@@ -406,7 +406,7 @@ export default function Reservas() {
 
                 {/* SLOTS */}
                 {loadingSlots ? (
-                  <Text variant="small" muted>Cargando disponibilidad...</Text>
+                  <LoadingState rows={2} label="Cargando disponibilidad…" />
                 ) : cerradoHoy ? (
                   <Alert variant="info">El club está cerrado hoy. No hay horarios disponibles.</Alert>
                 ) : (
@@ -457,25 +457,24 @@ export default function Reservas() {
 
       {/* MODAL CONFIRMACIÓN */}
       {modal && (
-        <Modal
+        <ConfirmDialog
           isOpen
-          onClose={() => setModal(false)}
-          title="Confirmar Reserva"
-          footer={
-            <>
-              <Button variant="secondary" onClick={() => setModal(false)}>Cancelar</Button>
-              <Button onClick={handleConfirmar} disabled={saving}>
-                {saving ? 'Procesando...' : 'Confirmar'}
-              </Button>
-            </>
-          }
+          icon={<CalendarDays size={24} />}
+          title="Confirmar reserva"
+          message="Revisa los datos antes de confirmar."
+          confirmLabel={saving ? 'Procesando…' : 'Confirmar'}
+          loading={saving}
+          onConfirm={handleConfirmar}
+          onCancel={() => setModal(false)}
         >
-          <Dato icon={<MapPin size={14} />}>Cancha: <strong>{selectedEspacio?.nombre}</strong></Dato>
-          <Dato icon={<CalendarDays size={14} />}>Fecha: <strong>Hoy, {todayLabel()}</strong></Dato>
-          <Dato icon={<Clock size={14} />}>
-            Horario: <strong>{selectedSlot} – {String(Number(selectedSlot.split(':')[0]) + duracion).padStart(2,'0')}:00</strong> ({duracion}h)
-          </Dato>
-        </Modal>
+          <Stack gap={8} align="start">
+            <Dato icon={<MapPin size={14} />}>Cancha: <strong>{selectedEspacio?.nombre}</strong></Dato>
+            <Dato icon={<CalendarDays size={14} />}>Fecha: <strong>Hoy, {todayLabel()}</strong></Dato>
+            <Dato icon={<Clock size={14} />}>
+              Horario: <strong>{selectedSlot} – {String(Number(selectedSlot.split(':')[0]) + duracion).padStart(2,'0')}:00</strong> ({duracion}h)
+            </Dato>
+          </Stack>
+        </ConfirmDialog>
       )}
 
     </SocioLayout>

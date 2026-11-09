@@ -6,7 +6,7 @@ import {
   AlertCircle as AlertIcon, Ban
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
-import { Alert, Badge, Button, Card, Modal, Stack, StatCard, Text } from '../../../components/ui'
+import { Alert, Badge, Button, Card, EmptyState, ErrorState, LoadingState, Modal, PageHeader, Stack, StatCard, Text } from '../../../components/ui'
 
 // color de estatus → variante de Badge del kit
 const BADGE_ESTATUS = { verde: 'success', naranja: 'warning', rojo: 'danger' }
@@ -110,22 +110,22 @@ function Sanciones() {
       <Stack gap={24}>
 
         {/* HEADER */}
-        <Stack direction="row" gap={16} align="start" justify="between" wrap>
-          <Stack gap={4}>
-            <Text variant="heading">Estado de Cuenta</Text>
-            <Text variant="small" muted>Historial de sanciones y cumplimiento de reglas</Text>
-          </Stack>
-          <Badge variant={BADGE_ESTATUS[estatusColor]}>
-            {estatusColor === 'verde' && <CheckCircle size={16} />}
-            {estatusColor === 'naranja' && <AlertTriangle size={16} />}
-            {estatusColor === 'rojo' && <Ban size={16} />}
-            {getEstatusLabel()}
-          </Badge>
-        </Stack>
+        <PageHeader
+          title="Estado de Cuenta"
+          subtitle="Historial de sanciones y cumplimiento de reglas"
+          actions={(
+            <Badge variant={BADGE_ESTATUS[estatusColor]}>
+              {estatusColor === 'verde' && <CheckCircle size={16} />}
+              {estatusColor === 'naranja' && <AlertTriangle size={16} />}
+              {estatusColor === 'rojo' && <Ban size={16} />}
+              {getEstatusLabel()}
+            </Badge>
+          )}
+        />
 
         {/* ESTADÍSTICAS */}
         <Stack direction="row" gap={16} grow minChild={160}>
-          <StatCard label="Sanciones Activas" value={sancionesActivas} tone={sancionesActivas > 0 ? 'danger' : 'neutral'} icon={<Shield size={20} />} />
+          <StatCard label="Sanciones Activas" value={sancionesActivas} gradient={sancionesActivas > 0 ? 'sanciones' : 'clases'} icon={<Shield size={20} />} />
           <StatCard label="Total Historial" value={sanciones.length} tone="neutral" icon={<AlertTriangle size={20} />} />
           <StatCard label="Resueltas" value={sancionesResueltas} tone="success" icon={<CheckCircle size={20} />} />
         </Stack>
@@ -153,15 +153,15 @@ function Sanciones() {
           <Text variant="subheading">Historial de Sanciones</Text>
 
           {loading ? (
-            <Text muted>Cargando...</Text>
+            <LoadingState rows={3} label="Cargando tus sanciones…" />
           ) : error ? (
-            <Alert variant="error" title="Error al cargar">{error}</Alert>
+            <ErrorState message={error} onRetry={fetchSanciones} />
           ) : sanciones.length === 0 ? (
-            <Stack gap={4} align="center" padding={32}>
-              <CheckCircle size={48} />
-              <Text variant="subheading">¡Excelente!</Text>
-              <Text variant="small" muted>No tienes sanciones registradas</Text>
-            </Stack>
+            <EmptyState
+              icon={<CheckCircle size={24} />}
+              title="¡Excelente!"
+              message="No tienes sanciones registradas."
+            />
           ) : (
             <Stack direction="row" gap={16} grow minChild={280}>
               {sanciones.map(sancion => {

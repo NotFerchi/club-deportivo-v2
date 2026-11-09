@@ -172,6 +172,11 @@
         radial-gradient(circle at 80% 20%, rgb(244 114 182) 0%, transparent 55%),
         radial-gradient(circle at 20% 80%, rgb(167 139 250) 0%, transparent 60%),
         linear-gradient(135deg, rgb(124 58 237) 0%, rgb(139 92 246) 50%, rgb(192 132 252) 100%);
+    --gradient-sanciones:
+        radial-gradient(circle at 92% 96%, rgb(251 146 60 / 0.3) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, rgb(253 164 175) 0%, transparent 55%),
+        radial-gradient(circle at 20% 80%, rgb(248 113 113) 0%, transparent 60%),
+        linear-gradient(135deg, rgb(185 28 28) 0%, rgb(220 38 38) 50%, rgb(244 63 94) 100%);
     /* Brillo de malla: luz blanca suave en la esquina superior izquierda */
     --gradient-glow: radial-gradient(circle at 12% 8%, rgb(255 255 255 / 0.35) 0%, transparent 38%);
     /* Velo: SOLO la franja inferior (donde va el texto chico), navy hasta 0.18; nada arriba */

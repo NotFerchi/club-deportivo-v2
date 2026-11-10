@@ -1,12 +1,24 @@
-/* FocusList — solo tokens semánticos (src/styles/tokens.css)
-   El JS solo escribe --focus (0 a 1) en cada <li>; aquí se calcula el tamaño y la opacidad. */
+/* FocusList — solo tokens semánticos (src/styles/tokens.css) */
 
 .ui-focus-list {
-    position: relative; /* offsetTop/offsetLeft de los <li> relativos a la lista */
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
     margin: 0;
+    /* Deja espacio a los lados para que la primera y la última tarjeta también puedan quedar al centro. */
+    padding: var(--space-8) 6% var(--space-16);
     list-style: none;
-    scrollbar-width: thin;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 6%;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
 }
+
+.ui-focus-list:has(> :only-child) { padding-inline: 0; }
+
+.ui-focus-list::-webkit-scrollbar { display: none; }
 
 .ui-focus-list:focus-visible {
     outline: 2px solid var(--color-focus-ring);
@@ -14,16 +26,30 @@
 }
 
 .ui-focus-list__item {
-    --focus: 1;
+    flex: 0 0 100%;
     box-sizing: border-box;
+    scroll-snap-align: center;
     transform-origin: center;
     will-change: transform, opacity;
 }
 
-/* ── Vertical: lista con scroll (lista de torneos del personal) ───────────────────────────── */
-.ui-focus-list--vertical {
-    display: flex;
+@media (prefers-reduced-motion: reduce) {
+    .ui-focus-list__item { transform: none; opacity: 1; will-change: auto; }
+}
+
+/* La sombra grande se corta en el borde del carrusel; con una más suave no se nota el recorte. */
+.ui-focus-list .ui-event-card { box-shadow: var(--ui-shadow-sm); }
+
+/* Con pocas tarjetas: ocupa el alto libre de la pantalla y deja la tarjeta a la mitad. */
+.ui-focus-list--centered { min-height: calc(100svh - 360px); }
+
+/* ── Vertical (lista de torneos del personal, U4-03) ───────────────────────────────────────
+   Solo aplica con .ui-focus-list--vertical: deshace el carrusel de arriba y usa la variable
+   --focus (0 a 1) que escribe el JS en cada <li>. El carrusel horizontal no cambia. */
+.ui-focus-list.ui-focus-list--vertical {
+    position: relative; /* offsetTop de los <li> relativo a la lista */
     flex-direction: column;
+    align-items: stretch;
     gap: var(--space-12);
     /* Alto propio para que haya scroll dentro de la lista; se puede cambiar con la variable */
     max-height: var(--ui-focus-list-height, min(38rem, 70vh));
@@ -31,9 +57,17 @@
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
+    scroll-snap-type: none;
+    scroll-padding-inline: 0;
+    scrollbar-width: thin;
 }
 
+.ui-focus-list.ui-focus-list--vertical::-webkit-scrollbar { display: initial; }
+
 .ui-focus-list--vertical > .ui-focus-list__item {
+    --focus: 1;
+    flex: none;
+    scroll-snap-align: none;
     transform: scale(calc(0.9 + 0.1 * var(--focus)));
     opacity: calc(0.45 + 0.55 * var(--focus));
 }
@@ -57,39 +91,6 @@
     background: var(--color-border-default);
 }
 
-/* ── Horizontal: carrusel con scroll-snap (mismo comportamiento que el del PR #39) ─────────── */
-.ui-focus-list--horizontal {
-    display: flex;
-    align-items: center;
-    gap: var(--space-12);
-    /* Deja espacio a los lados para que la primera y la última tarjeta también puedan quedar al centro. */
-    padding: var(--space-8) 6% var(--space-16);
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    scroll-padding-inline: 6%;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-}
-
-.ui-focus-list--horizontal:has(> :only-child) { padding-inline: 0; }
-
-.ui-focus-list--horizontal::-webkit-scrollbar { display: none; }
-
-.ui-focus-list--horizontal > .ui-focus-list__item {
-    flex: 0 0 100%;
-    scroll-snap-align: center;
-    transform: scale(calc(0.86 + 0.14 * var(--focus)));
-    opacity: calc(0.55 + 0.45 * var(--focus));
-}
-
-/* Con pocas tarjetas: ocupa el alto libre de la pantalla y deja la tarjeta a la mitad. */
-.ui-focus-list--centered { min-height: calc(100svh - 360px); }
-
 @media (prefers-reduced-motion: reduce) {
-    .ui-focus-list > .ui-focus-list__item {
-        transform: none;
-        opacity: 1;
-        will-change: auto;
-    }
+    .ui-focus-list--vertical > .ui-focus-list__item { transform: none; opacity: 1; will-change: auto; }
 }

@@ -29,4 +29,15 @@ export function Chip({ selected = false, disabled = false, className, children, 
   );
 }
 
+/**
+ * ChipRow - fila de Chips en una sola línea con scroll horizontal (para listas largas, como las
+ * disciplinas). Los chips no se parten en varios renglones.
+ *
+ *   <ChipRow ariaLabel="Disciplina"> ...<Chip/>... </ChipRow>
+ */
+export function ChipRow({ ariaLabel, className, children }) {
+  const classes = ['ui-chip-row', className].filter(Boolean).join(' ');
+  return <div className={classes} role="group" aria-label={ariaLabel}>{children}</div>;
+}
+
 export default Chip;

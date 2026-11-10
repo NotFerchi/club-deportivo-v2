@@ -1,0 +1,56 @@
+/* Stepper — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-stepper {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--font-sans);
+}
+
+.ui-stepper__step {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    color: var(--color-text-muted);
+}
+
+/* Línea que une cada paso con el siguiente */
+.ui-stepper__step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 9px;
+    left: calc(50% + 12px);
+    right: calc(-50% + 12px);
+    height: 2px;
+    background: var(--color-border-default);
+}
+
+.ui-stepper__step--done:not(:last-child)::after { background: var(--color-brand-navy); }
+
+.ui-stepper__dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    border: 2px solid var(--color-border-strong);
+    border-radius: var(--ui-radius-full);
+    background: var(--color-bg-surface);
+    color: var(--color-text-inverse);
+    font: var(--font-overline);
+}
+
+.ui-stepper__step--done .ui-stepper__dot {
+    border-color: var(--color-brand-navy);
+    background: var(--color-brand-navy);
+}
+
+.ui-stepper__step--current .ui-stepper__dot { border-color: var(--color-brand-navy); }
+.ui-stepper__step--current { color: var(--color-text-primary); }
+
+.ui-stepper__label { font: var(--font-overline); text-transform: uppercase; text-align: center; }

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Button, Modal, Stack, StarRating, Text, Textarea } from '../ui';
-import { COMENTARIO_MAX, ETIQUETAS_CALIFICACION, validarEvaluacion } from './evaluacionUtils';
+import { Alert, Avatar, Button, Modal, Stack, StarRating, Text, Textarea } from '../ui';
+import { COMENTARIO_MAX, ETIQUETAS_CALIFICACION, horaCorta, nombreDia, validarEvaluacion } from './evaluacionUtils';
 
 /**
  * EvaluarClaseModal - formulario para que el socio califique al instructor de una clase (§3.1 del contrato).
@@ -44,20 +44,26 @@ export default function EvaluarClaseModal({ clase, onConfirmar, onClose }) {
   return (
     <Modal
       isOpen
+      variant="sheet"
       onClose={onClose}
       title="Evaluar clase"
-      subtitle={`${clase.disciplina} · ${clase.instructor}`}
+      subtitle={`${clase.disciplina} · ${nombreDia(clase.dia_semana)} · ${horaCorta(clase.hora_inicio)}`}
       footer={(
         <>
-          <Button variant="secondary" onClick={onClose} disabled={enviando}>Cancelar</Button>
           <Button onClick={enviar} disabled={enviando}>
             {enviando ? 'Enviando…' : 'Enviar evaluación'}
           </Button>
+          <Button variant="secondary" onClick={onClose} disabled={enviando}>Cancelar</Button>
         </>
       )}
     >
       <Stack gap={16}>
         {error && <Alert variant="error">{error}</Alert>}
+
+        <Stack direction="row" gap={12} align="center">
+          <Avatar name={clase.instructor} src={clase.instructor_foto} size="lg" />
+          <Text variant="subheading" as="span">{clase.instructor}</Text>
+        </Stack>
 
         <Stack gap={8}>
           <Text variant="small" as="span" id="evaluacion-calificacion">Calificación *</Text>
@@ -78,7 +84,7 @@ export default function EvaluarClaseModal({ clase, onConfirmar, onClose }) {
         />
 
         <Text variant="caption" muted>
-          Tu evaluación es anónima: el instructor ve la calificación y el comentario, pero no quién la hizo.
+          Tu evaluación es anónima para el instructor.
         </Text>
       </Stack>
     </Modal>

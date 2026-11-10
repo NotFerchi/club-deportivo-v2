@@ -75,3 +75,56 @@
 .ui-input__required {
     color: var(--color-feedback-danger-text);
 }
+
+/* ícono a la izquierda y botón del ojo (opcionales) */
+.ui-input__control {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.ui-input__icon {
+    position: absolute;
+    left: var(--space-16);
+    display: inline-flex;
+    color: var(--color-icon-default);
+    pointer-events: none;
+}
+
+.ui-input--with-icon .ui-input__field {
+    padding-left: calc(var(--space-16) + 16px + var(--space-12));
+}
+
+.ui-input--with-action .ui-input__field {
+    padding-right: calc(var(--space-12) + 36px);
+}
+
+.ui-input .ui-input__action {
+    position: absolute;
+    right: var(--space-6);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--ui-radius-full);
+    background: transparent;
+    color: var(--color-icon-default);
+    cursor: pointer;
+}
+
+.ui-input .ui-input__action:hover:not(:disabled) {
+    color: var(--color-text-primary);
+}
+
+.ui-input .ui-input__action:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 1px;
+}
+
+.ui-input .ui-input__action:disabled {
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
+}

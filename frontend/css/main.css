@@ -217,6 +217,14 @@ body { background: white; color: #1a1a1a; overflow-x: hidden; }
     gap: 14px;
 }
 
+/* "Hazte Socio" y "Registrarme ahora" son <button> (abren el modal de alta en recepción) */
+button.btn-hero-primary,
+button.btn-cta {
+    border: 0;
+    font-family: inherit;
+    cursor: pointer;
+}
+
 .btn-hero-primary {
     background: white;
     color: var(--dark);

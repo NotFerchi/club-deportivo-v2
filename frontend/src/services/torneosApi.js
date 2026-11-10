@@ -31,3 +31,8 @@ export function inscribirme(torneoId) {
 export function obtenerReporte(torneoId) {
   return apiRequest(`/torneos/${torneoId}/reporte`);
 }
+
+/** GET /api/torneos/:id/bracket → [{ ronda, encuentros: [...] }] (solo lectura). */
+export async function obtenerBracket(torneoId) {
+  return unwrapList(await apiRequest(`/torneos/${torneoId}/bracket`), ['data', 'bracket']);
+}

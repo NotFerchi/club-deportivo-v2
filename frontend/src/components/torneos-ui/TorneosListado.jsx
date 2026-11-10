@@ -1,12 +1,12 @@
 import React from 'react';
-import { Badge, Button, EmptyState, ErrorState, FocusList, LoadingState, EventCard } from '../ui';
+import { Badge, Button, EmptyState, ErrorState, LoadingState, StackDeck, EventCard } from '../ui';
 import { diaMes, estadoTorneo } from './torneoEstado';
 import { iconoDisciplina } from './disciplinaIcono';
 import { fotoDisciplina } from './fotoDisciplina';
 
 /**
- * TorneosListado - torneos como tarjetas con efecto de enfoque al hacer scroll (la del centro se
- * ve más grande), con sus estados de carga, error y vacío.
+ * TorneosListado - torneos como un mazo de tarjetas (StackDeck): la activa al frente y las
+ * siguientes asomándose detrás; se pasa de una a otra deslizando. Con sus estados de carga, error y vacío.
  *
  * Props:
  *   torneos       - arreglo con la forma de GET /api/torneos
@@ -42,7 +42,7 @@ export default function TorneosListado({
   }
 
   return (
-    <FocusList ariaLabel="Torneos del club">
+    <StackDeck ariaLabel="Torneos del club">
       {torneos.map((t) => {
         const estado = estadoTorneo(t.estado);
         const { day, month } = diaMes(t.fecha_inicio);
@@ -68,6 +68,6 @@ export default function TorneosListado({
           />
         );
       })}
-    </FocusList>
+    </StackDeck>
   );
 }

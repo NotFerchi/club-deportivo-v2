@@ -18,6 +18,7 @@ import fotoSquash from '../../../assets/img/deporte-squash.webp'
 import fotoBasquetbol from '../../../assets/img/deporte-basquetbol.webp'
 import fotoFronton from '../../../assets/img/deporte-fronton.webp'
 import fotoVoleibol from '../../../assets/img/deporte-voleibol.webp'
+import fotoEstudio from '../../../assets/img/deporte-estudio.webp'
 
 const DISCIPLINA_ICONO = {
   'Tenis':      Activity,
@@ -33,17 +34,25 @@ const DISCIPLINA_ICONO = {
 }
 const ICONO_DEFAULT = LayoutGrid
 
-// Fotos locales por disciplina; las que no tienen foto muestran su ícono sobre navy
-const DISCIPLINA_FOTO = {
-  'Pádel':    fotoPadel,
-  'Tenis':    fotoTenis,
-  'Fútbol':   fotoFutbol,
-  'Natación': fotoNatacion,
-  'Fitness':  fotoFitness,
-  'Squash':   fotoSquash,
-  'Básquetbol': fotoBasquetbol,
-  'Frontón':  fotoFronton,
-  'Voleibol': fotoVoleibol,
+// Foto local por familia de disciplina (sin acentos ni mayúsculas). El orden importa:
+// "frontenis" contiene "tenis", por eso el frontón va antes. Sin coincidencia → ícono sobre navy.
+// Temporales: spinning/zumba/aerobics usan la del gimnasio y yoga/meditación la del estudio.
+const FOTOS_POR_FAMILIA = [
+  [/padel/,                                                     fotoPadel],
+  [/squash/,                                                    fotoSquash],
+  [/fronton|frontenis/,                                         fotoFronton],
+  [/tenis/,                                                     fotoTenis],
+  [/futbol/,                                                    fotoFutbol],
+  [/basquet/,                                                   fotoBasquetbol],
+  [/volei|voley/,                                               fotoVoleibol],
+  [/natacion|alberca/,                                          fotoNatacion],
+  [/fitness|gimnasio|acondicionamiento|funcional|spinning|zumba|aerobic/, fotoFitness],
+  [/yoga|pilates|meditacion|barre|higiene/,                     fotoEstudio],
+]
+
+function fotoDeDisciplina(nombre) {
+  const texto = String(nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  return FOTOS_POR_FAMILIA.find(([patron]) => patron.test(texto))?.[1]
 }
 
 // Grupos de horarios (hora de inicio): mañana < 13, tarde 13–18, noche ≥ 19
@@ -353,7 +362,7 @@ export default function Reservas() {
 
   const canReserve = selectedEspacio && selectedSlot
   const horaFinSeleccion = selectedSlot ? horaFinDe(selectedSlot, duracion) : null
-  const fotoDisc = selectedDisc ? DISCIPLINA_FOTO[selectedDisc.nombre] : undefined
+  const fotoDisc = selectedDisc ? fotoDeDisciplina(selectedDisc.nombre) : undefined
   const horaActual = horaActualMexico()
 
   return (
@@ -419,7 +428,7 @@ export default function Reservas() {
                 <SelectTile
                   key={d.id}
                   media
-                  image={DISCIPLINA_FOTO[d.nombre]}
+                  image={fotoDeDisciplina(d.nombre)}
                   icon={<Icono size={28} />}
                   title={d.nombre}
                   meta={`${canchas} cancha${canchas === 1 ? '' : 's'}`}

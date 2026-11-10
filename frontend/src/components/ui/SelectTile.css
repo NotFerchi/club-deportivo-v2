@@ -38,7 +38,11 @@
 }
 
 .ui-tile__title {
+    max-width: 100%;
     font: var(--font-heading-h3);
+    /* nombres largos ("Acondicionamiento Físico") se parten con guion en vez de cortarse */
+    hyphens: auto;
+    overflow-wrap: break-word;
 }
 
 .ui-tile__meta {

@@ -9,8 +9,18 @@ const FORM_VACIO = {
   fecha_inicio: '',
   fecha_fin: '',
   categoria_id: '',
-  tipo_torneo: 'Individual'
+  tipo_torneo: 'Individual',
+  // Periodo de inscripción y cupo (E2.4 / E2.12): opcionales; sin fechas, sin límite
+  fecha_inicio_inscripcion: '',
+  fecha_fin_inscripcion: '',
+  limite_cupo: 'sin',
+  cupo_maximo: ''
 };
+
+// Mismos límites que el backend (torneoComun: CUPO_MINIMO / CUPO_MAXIMO)
+const CUPO_MINIMO = 4;
+const CUPO_MAXIMO = 256;
+const soloFecha = (v) => (v ? String(v).split('T')[0] : '');
 
 /**
  * Estado, cargas y handlers del gestor de torneos. Salió de TournamentBracket tal cual (U4-03) para
@@ -166,7 +176,11 @@ export function useGestionTorneos({ initialDisciplinaId = '', initialEstado = ''
       fecha_inicio: torneo.fecha_inicio ? String(torneo.fecha_inicio).split('T')[0] : '',
       fecha_fin: torneo.fecha_fin ? String(torneo.fecha_fin).split('T')[0] : '',
       categoria_id: torneo.categoria_id ? String(torneo.categoria_id) : '',
-      tipo_torneo: torneo.tipo_torneo || 'Individual'
+      tipo_torneo: torneo.tipo_torneo || 'Individual',
+      fecha_inicio_inscripcion: soloFecha(torneo.fecha_inicio_inscripcion),
+      fecha_fin_inscripcion: soloFecha(torneo.fecha_fin_inscripcion),
+      limite_cupo: Number(torneo.cupo_maximo) > 0 ? 'con' : 'sin',
+      cupo_maximo: Number(torneo.cupo_maximo) > 0 ? String(torneo.cupo_maximo) : ''
     });
     setTorneoFormErrors({});
     setShowTorneoModal(true);
@@ -184,6 +198,18 @@ export function useGestionTorneos({ initialDisciplinaId = '', initialEstado = ''
     if (categoriaRequerida && !formTorneo.categoria_id) errors.categoria_id = 'La categoría es requerida';
     if (formTorneo.fecha_inicio && formTorneo.fecha_fin && formTorneo.fecha_fin < formTorneo.fecha_inicio) {
       errors.fecha_fin = 'La fecha fin no puede ser anterior a la fecha inicio';
+    }
+    // Solo formato: el orden de las fechas y si el cupo se puede cambiar lo decide el backend
+    const apertura = formTorneo.fecha_inicio_inscripcion || '';
+    const cierre = formTorneo.fecha_fin_inscripcion || '';
+    if (apertura && !cierre) errors.fecha_fin_inscripcion = 'Indica también el cierre de inscripciones';
+    if (cierre && !apertura) errors.fecha_inicio_inscripcion = 'Indica también la apertura de inscripciones';
+    if (formTorneo.limite_cupo === 'con') {
+      const texto = String(formTorneo.cupo_maximo ?? '').trim();
+      const cupo = Number(texto);
+      if (!/^\d+$/.test(texto) || cupo < CUPO_MINIMO || cupo > CUPO_MAXIMO) {
+        errors.cupo_maximo = `El cupo debe ser un número entero entre ${CUPO_MINIMO} y ${CUPO_MAXIMO}`;
+      }
     }
     return errors;
   };
@@ -203,7 +229,10 @@ export function useGestionTorneos({ initialDisciplinaId = '', initialEstado = ''
         fecha_inicio: formTorneo.fecha_inicio || null,
         fecha_fin: formTorneo.fecha_fin || null,
         categoria_id: formTorneo.categoria_id ? Number(formTorneo.categoria_id) : null,
-        tipo_torneo: formTorneo.tipo_torneo || 'Individual'
+        tipo_torneo: formTorneo.tipo_torneo || 'Individual',
+        fecha_inicio_inscripcion: formTorneo.fecha_inicio_inscripcion || null,
+        fecha_fin_inscripcion: formTorneo.fecha_fin_inscripcion || null,
+        cupo_maximo: formTorneo.limite_cupo === 'con' ? Number(String(formTorneo.cupo_maximo).trim()) : null
       };
       // apiRequest revisa res.ok y, con la sesión vencida, redirige al login (B-25)
       await apiRequest(editingTorneo ? `/torneos/${editingTorneo.torneo_id}` : '/torneos', {

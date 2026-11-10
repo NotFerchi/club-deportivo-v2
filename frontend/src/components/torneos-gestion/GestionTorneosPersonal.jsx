@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { SplitLayout, Stack } from '../ui';
 import { useGestionTorneos } from '../torneos/useGestionTorneos';
-import TorneoFormModal from '../torneos/TorneoFormModal';
 import TorneoHero from './TorneoHero';
 import ListaTorneos from './ListaTorneos';
 import PanelInscripciones from './PanelInscripciones';
 import DetalleTorneoPersonal from './DetalleTorneoPersonal';
+import FormTorneoModal from './FormTorneoModal';
 import { ordenarPorFecha } from './torneoVista';
 
 const PRIORIDAD_INICIAL = ['En_curso', 'Abierto', 'Inscripciones_cerradas'];
@@ -137,8 +137,7 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
         </Stack>
       )}
 
-      {/* Modal de siempre (se rediseña en el siguiente commit) */}
-      <TorneoFormModal gestion={gestion} />
+      <FormTorneoModal gestion={gestion} />
     </>
   );
 }

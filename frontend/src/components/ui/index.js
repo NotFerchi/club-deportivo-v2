@@ -43,3 +43,8 @@ export { EventCard } from './EventCard';
 export { MatchCard } from './MatchCard';
 export { ChampionCard } from './ChampionCard';
 export { Stepper } from './Stepper';
+export { AuthShell } from './AuthShell';
+export { ImageHero } from './ImageHero';
+export { StepSection } from './StepSection';
+export { SelectTile } from './SelectTile';
+export { ActionBar } from './ActionBar';

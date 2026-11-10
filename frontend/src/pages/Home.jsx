@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Building2, Users, Award } from 'lucide-react'
+import { brand } from '../config/brand'
+import { Alert, Button, Modal, Stack, Text } from '../components/ui'
 import '../../css/main.css'
 import '../../css/home.css'
 
 function Home() {
   const [scrolled, setScrolled] = useState(false)
   const [semiDark, setSemiDark] = useState(false)
+  const [altaAbierta, setAltaAbierta] = useState(false)
 
   useEffect(() => {
     const onScroll = () => {
@@ -50,7 +53,7 @@ function Home() {
               Deporte, comunidad y excelencia en un solo espacio diseñado para todos los niveles.
             </p>
             <div className="hero-buttons">
-              <Link to="/alta-socio" className="btn-hero-primary">Hazte Socio</Link>
+              <button type="button" className="btn-hero-primary" onClick={() => setAltaAbierta(true)}>Hazte Socio</button>
               <Link to="/login" className="btn-hero-secondary">Explorar instalaciones</Link>
             </div>
           </div>
@@ -346,7 +349,7 @@ function Home() {
                 <p>Forma parte de una comunidad apasionada por el deporte y mejora tu rendimiento.</p>
               </div>
               <div className="cta-actions">
-                <Link to="/alta-socio" className="btn-cta">Registrarme ahora</Link>
+                <button type="button" className="btn-cta" onClick={() => setAltaAbierta(true)}>Registrarme ahora</button>
                 <Link to="/login" className="btn-cta-sec">Ya soy socio →</Link>
               </div>
             </div>
@@ -360,7 +363,42 @@ function Home() {
           <p className="footer-text">Club Social y Deportivo © 2026 — Morelia, Michoacán</p>
         </div>
       </footer>
+
+      <AltaEnRecepcionModal isOpen={altaAbierta} onClose={() => setAltaAbierta(false)} />
     </>
+  )
+}
+
+// El alta de socios es presencial (D4, M7): el modal informa horario y contacto de brand.js
+function AltaEnRecepcionModal({ isOpen, onClose }) {
+  const { contacto } = brand
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="El alta se hace en recepción"
+      subtitle={`Visítanos en ${brand.club} con una identificación oficial y te damos de alta en el momento.`}
+      closeOnOverlayClick
+      footer={<Button onClick={onClose}>Entendido</Button>}
+    >
+      <Stack gap={16}>
+        {contacto.esDemo && (
+          <Alert variant="warning">Datos de demostración: el horario y el contacto reales se publicarán pronto.</Alert>
+        )}
+        <Stack gap={4}>
+          <Text variant="overline" muted>Horario de recepción</Text>
+          {contacto.horario.map((h) => (
+            <Text key={h.dias} variant="small"><strong>{h.dias}:</strong> {h.horas}</Text>
+          ))}
+        </Stack>
+        <Stack gap={4}>
+          <Text variant="overline" muted>Contacto</Text>
+          <Text variant="small">{contacto.direccion}</Text>
+          <Text variant="small">Tel. {contacto.telefono}</Text>
+          <Text variant="small">{contacto.correo}</Text>
+        </Stack>
+      </Stack>
+    </Modal>
   )
 }
 

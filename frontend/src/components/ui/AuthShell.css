@@ -1,0 +1,193 @@
+/* AuthShell — solo tokens (src/styles/tokens.css).
+   Móvil primero: foto a pantalla completa y hoja de vidrio claro abajo.
+   ≥ 900px: marca a la izquierda y panel de vidrio oscuro a la derecha. */
+
+.ui-auth {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+    background: var(--color-brand-navy);
+    font-family: var(--font-sans);
+}
+
+.ui-auth__photo,
+.ui-auth__photo img,
+.ui-auth__scrim {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.ui-auth__photo {
+    z-index: -2;
+}
+
+.ui-auth__photo img {
+    object-fit: cover;
+    object-position: center top;
+}
+
+.ui-auth__scrim {
+    z-index: -1;
+    background: var(--scrim-photo-bottom);
+}
+
+.ui-auth__layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+/* ─── Marca y lema ─────────────────────────────────────────── */
+.ui-auth__brand {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-32);
+    padding: var(--space-48) var(--space-24) var(--space-24);
+    color: var(--on-photo-text);
+}
+
+.ui-auth__logo {
+    align-self: center;
+    width: auto;
+    height: 56px;
+}
+
+.ui-auth__hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.ui-auth__title {
+    margin: 0;
+    font: var(--font-heading-h1);
+    color: var(--on-photo-text);
+    text-shadow: var(--text-shadow-on-gradient);
+}
+
+.ui-auth__subtitle {
+    margin: 0;
+    font: var(--font-body-lg);
+    color: var(--on-photo-text-soft);
+    text-shadow: var(--text-shadow-on-gradient);
+}
+
+/* ─── Panel: hoja de vidrio claro en móvil ─────────────────── */
+.ui-auth__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+    padding: var(--space-12) var(--space-24) var(--space-32);
+    border-top: var(--glass-border);
+    border-radius: var(--ui-radius-card) var(--ui-radius-card) 0 0;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
+}
+
+.ui-auth__handle {
+    display: block;
+    align-self: center;
+    width: 40px;
+    height: 4px;
+    border-radius: var(--ui-radius-full);
+    background: var(--color-border-strong);
+}
+
+.ui-auth__intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.ui-auth__footer {
+    display: none;
+    margin: 0;
+}
+
+.ui-auth--desktop-only {
+    display: none;
+}
+
+/* ─── Escritorio ───────────────────────────────────────────── */
+@media (min-width: 900px) {
+    .ui-auth__scrim {
+        background: var(--scrim-photo-side);
+    }
+
+    .ui-auth__photo img {
+        object-position: center;
+    }
+
+    .ui-auth__layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+        align-items: center;
+        gap: var(--space-48);
+        padding: var(--space-80);
+    }
+
+    .ui-auth__brand {
+        flex: none;
+        justify-content: center;
+        gap: var(--space-48);
+        padding: 0;
+    }
+
+    .ui-auth__logo {
+        align-self: flex-start;
+        height: 64px;
+    }
+
+    .ui-auth__title {
+        max-width: 12ch;
+        font: var(--font-display-section);
+    }
+
+    /* Panel de vidrio oscuro: los tokens se redefinen aquí para que el kit se pinte claro */
+    .ui-auth__panel {
+        --color-bg-surface: var(--on-photo-fill);
+        --color-bg-subtle: var(--on-photo-fill-strong);
+        --color-border-default: var(--on-photo-border);
+        --color-border-strong: var(--on-photo-border);
+        --color-text-primary: var(--on-photo-text);
+        --color-text-secondary: var(--on-photo-text-soft);
+        --color-text-muted: var(--on-photo-text-soft);
+        --color-icon-default: var(--on-photo-text-soft);
+        --color-primary: var(--on-photo-text);
+        --color-primary-hover: var(--color-ice);
+        --color-text-inverse: var(--color-brand-navy);
+
+        gap: var(--space-20);
+        padding: var(--space-32);
+        border: var(--glass-dark-border);
+        border-radius: var(--ui-radius-card);
+        background: var(--glass-dark-bg);
+        box-shadow: var(--ui-shadow-xl);
+    }
+
+    .ui-auth__footer {
+        display: block;
+        position: absolute;
+        left: var(--space-80);
+        bottom: var(--space-32);
+        font: var(--font-caption);
+        color: var(--on-photo-text-soft);
+    }
+
+    .ui-auth--desktop-only {
+        display: flex;
+    }
+
+    .ui-auth--mobile-only {
+        display: none;
+    }
+}

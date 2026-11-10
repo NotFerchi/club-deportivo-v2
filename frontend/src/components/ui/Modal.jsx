@@ -50,6 +50,8 @@ function getFocusable(container) {
  *   hideHeader - true omite el encabezado (y la X): lo usa ConfirmDialog; `title` pasa a ser
  *              solo el nombre accesible del diálogo. Escape sigue cerrando
  *   closeOnOverlayClick - true cierra también con clic en el fondo (default false)
+ *   variant  - 'dialog' (default, centrado) | 'sheet': en móvil (≤ 768px) sube desde abajo como
+ *              hoja, con la rayita; en escritorio se ve centrado como el diálogo
  *   portal   - false renderiza en el lugar en vez de en document.body, para heredar
  *              estilos con ámbito (p. ej. `.dashboard-root …`); default true
  */
@@ -63,6 +65,7 @@ export function Modal({
   className,
   closeOnOverlayClick = false,
   hideHeader = false,
+  variant = 'dialog',
   portal = true,
   children,
 }) {
@@ -133,14 +136,15 @@ export function Modal({
 
   if (!isOpen) return null;
 
-  const classes = ['ui-modal', className].filter(Boolean).join(' ');
+  const isSheet = variant === 'sheet';
+  const classes = ['ui-modal', isSheet && 'ui-modal--sheet', className].filter(Boolean).join(' ');
 
   const handleOverlayClick = (event) => {
     if (closeOnOverlayClick && event.target === event.currentTarget) onClose?.();
   };
 
   const content = (
-    <div className="ui-modal-overlay" onClick={handleOverlayClick}>
+    <div className={isSheet ? 'ui-modal-overlay ui-modal-overlay--sheet' : 'ui-modal-overlay'} onClick={handleOverlayClick}>
       <div
         ref={dialogRef}
         tabIndex={-1}

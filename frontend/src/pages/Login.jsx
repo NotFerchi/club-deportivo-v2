@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import '../../css/login.css';
+import { ArrowRight, Lock, Mail } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
+import { brand } from '../config/brand';
+import { Alert, AuthShell, Badge, Button, Input, Stack, Text } from '../components/ui';
+import fondoEscritorio from '../assets/img/login-fondo-escritorio.webp';
+import fondoMovil from '../assets/img/login-fondo-movil.webp';
 
 const rutasPorRol = {
   gerente: '/dashboard-gerente',
@@ -11,41 +15,14 @@ const rutasPorRol = {
   socio: '/dashboard-socio'
 };
 
-const ShieldIcon = () => (
-  <svg className="shield-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2L4 5V11C4 16.55 7.84 21.74 12 22C16.16 21.74 20 16.55 20 11V5L12 2Z" fill="currentColor" />
-    <path d="M17 7L10.5 13.5L7 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const EyeIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" strokeWidth="2" />
-    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
-  </svg>
-);
-
-const EyeOffIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-    <path d="M17.94 17.94C16.18 19.21 14.18 20 12 20C5 20 1 12 1 12C1 12 2.5 9.59 4.47 7.58" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <path d="M6.23 6.23C7.56 5.5 9.24 5 12 5C19 5 23 12 23 12C22.2 13.44 21.07 14.72 19.71 15.77" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <path d="M1 1L23 23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
-const LoginIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
-    <path d="M15 3H5C4.44772 3 4 3.44772 4 4V20C4 20.5523 4.44772 21 5 21H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M20 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <path d="M16 8L20 12L16 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+const ERROR_CREDENCIALES = 'Correo o contraseña incorrectos. Revisa tus datos e intenta de nuevo.';
+const ERROR_SERVIDOR = 'No pudimos conectar con el servidor. Intenta de nuevo en unos minutos.';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [contrasena, setContrasena] = useState('');
-  const [mostrarPass, setMostrarPass] = useState(false);
   const [error, setError] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
     history.pushState(null, '', location.href);
@@ -71,6 +48,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setEnviando(true);
 
     try {
       const respuesta = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -79,10 +57,17 @@ function Login() {
         body: JSON.stringify({ email, contrasena })
       });
 
-      const data = await respuesta.json();
+      // Un proxy o servidor caído puede responder HTML en vez de JSON
+      const data = await respuesta.json().catch(() => null);
+
+      if (respuesta.status >= 500 || !data) {
+        setError(ERROR_SERVIDOR);
+        return;
+      }
 
       if (!respuesta.ok) {
-        setError(data.error || 'Credenciales inválidas');
+        // 401 = credenciales; otros 4xx (p. ej. 403 cuenta desactivada) traen su propio mensaje
+        setError(respuesta.status === 401 ? ERROR_CREDENCIALES : (data.error || ERROR_CREDENCIALES));
         return;
       }
 
@@ -92,94 +77,83 @@ function Login() {
       redirigirPorRol(data.usuario.rol);
     } catch (err) {
       console.error('Error de conexión:', err);
-      setError('Error al conectar con el servidor.');
+      setError(ERROR_SERVIDOR);
+    } finally {
+      setEnviando(false);
     }
   };
 
   return (
-    <div>
-      <header className="main-navbar">
-        <a href="/" className="nav-logo">Club Deportivo</a>
-      </header>
+    <AuthShell
+      imageDesktop={fondoEscritorio}
+      imageMobile={fondoMovil}
+      logo={brand.logos.principalA.logotipo.blanco}
+      logoAlt={brand.nombre}
+      title="Todo tu club, en un solo panel."
+      subtitle="Reservas, clases, torneos y socios en un mismo lugar."
+      mobileTitle="Entrena. Reserva. Compite."
+      mobileSubtitle="Tu club, en la palma de tu mano."
+      panelIntro={
+        <Stack gap={12}>
+          <Stack direction="row" gap={8} wrap>
+            <Badge>Reservas</Badge>
+            <Badge>Clases</Badge>
+            <Badge>Torneos</Badge>
+          </Stack>
+          <Stack gap={4}>
+            <Text variant="heading">Bienvenido de vuelta</Text>
+            <Text variant="small" muted>Accede al panel de tu club.</Text>
+          </Stack>
+        </Stack>
+      }
+      mobilePanelIntro={
+        <Stack align="center">
+          <Text variant="small" muted>Hola, inicia sesión para entrar a tu club</Text>
+        </Stack>
+      }
+      footer={`© ${new Date().getFullYear()} ${brand.nombre}. Todos los derechos reservados.`}
+    >
+      <Stack as="form" gap={12} onSubmit={handleSubmit} aria-label="Iniciar sesión">
+        <Input
+          type="email"
+          aria-label="Correo electrónico"
+          placeholder="Correo electrónico"
+          autoComplete="email"
+          icon={<Mail size={16} />}
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <Input
+          type="password"
+          aria-label="Contraseña"
+          placeholder="Contraseña"
+          autoComplete="current-password"
+          icon={<Lock size={16} />}
+          revealable
+          required
+          value={contrasena}
+          onChange={(e) => setContrasena(e.target.value)}
+        />
 
-      <main className="login-container">
-        <div className="login-card">
-          <div className="brand-header">
-            <a href="/" style={{ textDecoration: 'none' }}>
-              <div className="shield-container">
-                <ShieldIcon />
-              </div>
-            </a>
-            <h1>Club Social y Deportivo</h1>
-            <p className="portal-subtitle">Portal de acceso para socios e instructores</p>
-          </div>
+        {error && <Alert variant="error">{error}</Alert>}
 
-          <form id="form-login" className="login-form" onSubmit={handleSubmit}>
-            <div className="input-field">
-              <label htmlFor="user-email">Correo electrónico</label>
-              <input
-                type="email"
-                id="user-email"
-                placeholder="tu@correo.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+        <Button type="submit" disabled={enviando}>
+          {enviando ? 'Entrando…' : <>Entrar <ArrowRight size={16} /></>}
+        </Button>
+      </Stack>
 
-            <div className="input-field">
-              <label htmlFor="password">Contraseña</label>
-              <div className="password-control">
-                <input
-                  type={mostrarPass ? 'text' : 'password'}
-                  id="password"
-                  placeholder="Tu contraseña"
-                  required
-                  value={contrasena}
-                  onChange={(e) => setContrasena(e.target.value)}
-                />
-                <button
-                  type="button"
-                  id="toggle-pass"
-                  className="eye-btn"
-                  onClick={() => setMostrarPass((prev) => !prev)}
-                  aria-label={mostrarPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                >
-                  {mostrarPass ? <EyeOffIcon /> : <EyeIcon />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div className="error-msg" style={{ color: '#dc2626', textAlign: 'center', marginBottom: 15, fontWeight: 600 }}>
-                {error}
-              </div>
-            )}
-
-            <button type="submit" className="btn-submit">
-              <LoginIcon />
-              Iniciar Sesión
-            </button>
-          </form>
-
-          <div className="test-credentials-box">
-            <span className="test-tag">CREDENCIALES DE PRUEBA</span>
-            <div className="test-item">
-              <strong>Socio:</strong>
-              <span>carlos.mendoza@email.com / socio123</span>
-            </div>
-            <div className="test-item">
-              <strong>Instructor:</strong>
-              <span>ana.torres@club.com / instructor123</span>
-            </div>
-            <div className="test-item">
-              <strong>Administrador:</strong>
-              <span>admin@club.com / admin123</span>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+      {/* Solo en `vite dev`: Vite reemplaza import.meta.env.DEV por false y el bloque se elimina del build */}
+      {import.meta.env.DEV && (
+        <Alert variant="info" title="Credenciales de prueba (solo desarrollo)">
+          <Stack gap={4}>
+            <span><strong>Socio:</strong> carlos.mendoza@email.com / socio123</span>
+            <span><strong>Instructor:</strong> ana.torres@club.com / instructor123</span>
+            <span><strong>Administrador:</strong> admin@club.com / admin123</span>
+          </Stack>
+        </Alert>
+      )}
+    </AuthShell>
   );
 }
 

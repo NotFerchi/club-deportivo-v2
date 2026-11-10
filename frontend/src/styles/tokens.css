@@ -199,6 +199,16 @@
     --glass-dark-blur: blur(12px);
     --glass-dark-border: 1px solid rgb(255 255 255 / 0.25);
 
+    /* ─── SOBRE FOTO (login, héroes con imagen) ─────────────────── */
+    /* Velos navy para que el texto blanco tenga contraste sobre cualquier foto */
+    --scrim-photo-side: linear-gradient(90deg, rgb(15 33 70 / 0.72) 0%, rgb(15 33 70 / 0.35) 45%, rgb(15 33 70 / 0.15) 100%);
+    --scrim-photo-bottom: linear-gradient(180deg, rgb(15 33 70 / 0.35) 0%, rgb(15 33 70 / 0) 22%, rgb(15 33 70 / 0) 40%, rgb(15 33 70 / 0.75) 78%, rgb(15 33 70 / 0.9) 100%);
+    --on-photo-text: var(--white);
+    --on-photo-text-soft: rgb(255 255 255 / 0.85);
+    --on-photo-fill: rgb(255 255 255 / 0.1);
+    --on-photo-fill-strong: rgb(255 255 255 / 0.18);
+    --on-photo-border: rgb(255 255 255 / 0.32);
+
     /* ─── ORBES AMBIENTALES (solo ice/sky; sin lima) ────────────── */
     --orb-ice: radial-gradient(circle, rgb(186 230 253 / 0.45) 0%, rgb(125 211 252 / 0.2) 50%, transparent 70%);
     --orb-emerald: radial-gradient(circle, rgb(16 185 129 / 0.14) 0%, rgb(16 185 129 / 0.06) 50%, transparent 75%);

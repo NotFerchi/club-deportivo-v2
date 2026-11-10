@@ -41,3 +41,14 @@
     flex: 1 1 var(--ui-stack-min-child, 200px);
     min-width: 0;
 }
+
+/* columns: cuadrícula de columnas iguales (p. ej. horarios de 3 en 3) */
+.ui-stack--cols-2,
+.ui-stack--cols-3,
+.ui-stack--cols-4 {
+    display: grid;
+}
+
+.ui-stack--cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ui-stack--cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ui-stack--cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }

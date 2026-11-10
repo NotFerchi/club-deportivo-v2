@@ -1,0 +1,501 @@
+<!DOCTYPE html><html lang="es-MX"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Reservar Cancha · Athlety</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              navy: '#0F2146',
+              sky: '#0EA5E9',
+              ice: '#BAE6FD',
+              bg: '#F2F3F5',
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0F2146;
+      margin: 0;
+      padding: 40px 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .mobile-frame {
+      width: 390px;
+      height: 1600px;
+      background-color: #F2F3F5;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 35px 80px -20px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      border-radius: 54px;
+      border: 8px solid #1a2638;
+      box-sizing: content-box;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 10px 30px -10px rgba(15, 33, 70, 0.07), 0 1px 3px 0 rgba(15, 33, 70, 0.04);
+    }
+    .glass-pill {
+      background: rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+    }
+    .glass-floating-bar {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 18px 40px -10px rgba(15, 33, 70, 0.18), 0 4px 12px 0 rgba(15, 33, 70, 0.06);
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Dynamic Island Indicator */
+    .dynamic-island {
+      width: 120px;
+      height: 32px;
+      background: #000000;
+      border-radius: 20px;
+      position: absolute;
+      top: 11px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 60;
+    }
+  </style>
+</head>
+<body>
+<!-- Mockup Phone Container: 390px × 1600px Full Canvas -->
+<div class="mobile-frame">
+<!-- Dynamic Island -->
+<div class="dynamic-island"></div>
+<!-- Status Bar Elements -->
+<div class="absolute top-0 left-0 right-0 h-11 px-8 pt-3 flex justify-between items-center z-50 text-white text-[13px] font-semibold tracking-tight">
+<span class="">9:41</span>
+<div class="flex items-center space-x-2">
+<svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.25A9.957 9.957 0 012 12C2 6.48 6.48 2 12 2s10 4.48 10 10c0 2.31-.79 4.44-2.12 6.13l-.63-.63C20.35 15.98 21 14.07 21 12c0-4.97-4.03-9-9-9zM12 6c-3.31 0-6 2.69-6 6 0 1.41.49 2.7 1.31 3.73l.71-.71A4.982 4.982 0 017 12c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.15-.39 2.22-1.05 3.06l.71.71C17.51 14.7 18 13.41 18 12c0-3.31-2.69-6-6-6zm0 3a3 3 0 100 6 3 3 0 000-6z"></path></svg>
+<svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 4a8 8 0 00-8 8c0 2.16.86 4.12 2.26 5.56l1.42-1.42A5.96 5.96 0 016 12a6 6 0 0112 0c0 1.62-.64 3.09-1.68 4.14l1.42 1.42A7.96 7.96 0 0020 12a8 8 0 00-8-8z"></path></svg>
+<div class="w-6 h-3 border border-white rounded-sm p-[1px] flex items-center">
+<div class="w-full h-full bg-white rounded-2xs"></div>
+</div>
+</div>
+</div>
+<!-- FULL LENGTH APP CONTAINER -->
+<div class="relative w-full h-full overflow-y-auto no-scrollbar">
+<!-- 1. HERO CON FOTO DEL DEPORTE (Reducido a ~230px tall, Daytime photo) -->
+<div class="relative w-full h-[260px] overflow-hidden bg-brand-navy">
+  <!-- Foto de Pádel diurna -->
+  <img alt="Canchas de pádel de día con sol y pasto azul" class="w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBo8nXzdFMxCBy83nf0n3I0s0Q2fyiv67qimzGcy2lpBeBG491r1xSW8fQSPZc25W8koi9tJ_CVKCETkHk6LKGDAPK7xklz6P_faeHfW9L6ZH8I_ZnOMDkbL2YWn4TZgLZJrn5in1msQ4zVqSqeJjgPiIrSTI1aiWJBBgFW7yarx416_h13c0hbrrHzY8EG6bhFgTmBypB4lViEY64XME9BKZK3zje-fFAMRpZuKPw">
+  <!-- Degradado en la mitad baja de la foto para máxima legibilidad -->
+  <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(15,33,70,0.75) 0%, rgba(15,33,70,0.4) 40%, rgba(15,33,70,0) 70%);"></div>
+  <div class="absolute inset-0 bg-gradient-to-b from-[#0F2146]/50 via-transparent to-transparent"></div>
+  <!-- Fila superior de 44px de alto a 56px del tope -->
+  <div class="absolute top-0 left-0 right-0 pt-[56px] px-5 flex items-center justify-between z-20 h-[44px] box-content"><div class="flex items-center gap-3 min-w-0 flex-1"><div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center shrink-0 shadow-sm"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 000 20M2 12h20"></path></svg></div><div class="flex flex-col truncate"><span class="text-[15px] font-bold text-white truncate tracking-tight drop-shadow-sm">Club Social y Deportivo</span><span class="text-[10px] uppercase tracking-wider text-white/80 font-bold drop-shadow-sm">México • Socio Activo</span></div></div><div class="flex items-center gap-2 shrink-0"><button aria-label="Notificaciones" class="relative w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center text-white hover:text-white active:scale-95 transition-transform shadow-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-brand-navy"></span></button><div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0">CM</div></div></div>
+  <!-- Bloque de texto anclado abajo del hero con margen inferior de 20px (bottom-5 px-5) -->
+  <div class="absolute bottom-5 left-0 right-0 px-5 z-20 flex flex-col">
+    <span class="text-[11px] font-semibold tracking-wider uppercase text-white/80">RESERVAR · HOY, MAR 10 NOV</span>
+    <h1 class="text-white text-[44px] font-extrabold leading-tight mt-1.5 drop-shadow-sm">Pádel</h1>
+    <div class="mt-2.5">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs text-white/95 font-medium shadow-sm">
+        <svg class="w-3.5 h-3.5 text-brand-ice" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <span class="">6:00 – 22:30</span>
+        <span class="text-white/40">·</span>
+        <span class="text-brand-ice font-semibold">Máx. 2 h por socio</span>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- BODY SECTIONS CONTAINER (Fondo #F2F3F5) -->
+<div class="px-4 pt-4 space-y-6">
+<!-- PASO 1: ¿QUÉ QUIERES JUGAR? -->
+<section>
+<div class="flex items-center justify-between mb-3 px-1">
+<div class="flex items-center space-x-2">
+<span class="w-5 h-5 rounded-full bg-brand-navy text-white text-[11px] font-bold flex items-center justify-center">1</span>
+<h2 class="text-brand-navy text-[18px] font-bold tracking-tight">¿Qué quieres jugar?</h2>
+</div>
+<span class="text-xs font-semibold text-brand-sky">9 deportes</span>
+</div>
+<!-- Carrusel Horizontal de Deportes (120×150 px, radio 22 px) -->
+<div class="flex space-x-3 overflow-x-auto no-scrollbar py-1 -mx-4 px-4 scroll-smooth">
+<!-- 1. Pádel (SELECCIONADO: borde celeste #0EA5E9 de 3px y check blanco) -->
+<div class="relative flex-shrink-0 w-[120px] h-[150px] rounded-[22px] overflow-hidden ring-[3px] ring-brand-sky shadow-md active:scale-95 transition-transform cursor-pointer">
+<img alt="Pádel" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBo8nXzdFMxCBy83nf0n3I0s0Q2fyiv67qimzGcy2lpBeBG491r1xSW8fQSPZc25W8koi9tJ_CVKCETkHk6LKGDAPK7xklz6P_faeHfW9L6ZH8I_ZnOMDkbL2YWn4TZgLZJrn5in1msQ4zVqSqeJjgPiIrSTI1aiWJBBgFW7yarx416_h13c0hbrrHzY8EG6bhFgTmBypB4lViEY64XME9BKZK3zje-fFAMRpZuKPw">
+<div class="absolute inset-0 bg-gradient-to-t from-brand-navy/95 via-brand-navy/30 to-transparent"></div>
+<!-- Check en círculo blanco en esquina sup. der. -->
+<div class="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center text-brand-sky">
+<svg class="w-3.5 h-3.5 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<!-- Nombre en blanco abajo -->
+<div class="absolute bottom-2.5 left-3 right-2">
+<span class="block text-white font-bold text-sm leading-tight">Pádel</span>
+<span class="text-[10px] text-brand-ice font-semibold">4 canchas</span>
+</div>
+</div>
+<!-- 2. Tenis -->
+<div class="relative flex-shrink-0 w-[120px] h-[150px] rounded-[22px] overflow-hidden border border-white/80 shadow-sm active:scale-95 transition-transform cursor-pointer">
+<img alt="Tenis" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzYuHYn64MOcSHeqq23wpqNngQnyTZ0EYiAEaaqSE-txLYBEsJ-AAThICQ1PN930G7iGvAWRgXx_2roXwdMA2NyI37p1dB72P4y1TSX_qaZwKzRhSbIOVO4-UQGGgUax7IrFSZ46cXlZBAZ0RQ26sy2AQsLoV7eodsbM7wOOfkEvTSUJUNpbd2A0b8cT1MHDnus5S-pyE4wQWIcAfS54G1IOBdHwnn0BloRD4k8xQ">
+<div class="absolute inset-0 bg-gradient-to-t from-brand-navy/95 via-brand-navy/30 to-transparent"></div>
+<div class="absolute bottom-2.5 left-3 right-2">
+<span class="block text-white font-bold text-sm leading-tight">Tenis</span>
+<span class="text-[10px] text-white/70">6 canchas</span>
+</div>
+</div>
+<!-- 3. Fútbol 7 -->
+<div class="relative flex-shrink-0 w-[120px] h-[150px] rounded-[22px] overflow-hidden border border-white/80 shadow-sm active:scale-95 transition-transform cursor-pointer">
+<img alt="Fútbol 7" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/ALJJyrAVZFuMl_4ZWZGLTpsKX4krO_QKDI3RLVJkKtEsTNJC-e3v5Hq5LEbfb4lmJ1J7tWyyGlH1Gx-6_BNeo50R2KB7APuzSzOYpXaYYSsro8F-HbmGlXFzyFG9zgdsGPGrPOti1en3UoEp1fIXiMyjapdmft46IAKtpKtrJXCCyhyr1dm1oXMH70eQkAObBi8F7TWPPboL0prFLJ1e5ScRfHYkdE2EjaaWZtWYZxgUiyrCDMLesjPMThAJcAs">
+<div class="absolute inset-0 bg-gradient-to-t from-brand-navy/95 via-brand-navy/30 to-transparent"></div>
+<div class="absolute bottom-2.5 left-3 right-2">
+<span class="block text-white font-bold text-sm leading-tight">Fútbol 7</span>
+<span class="text-[10px] text-white/70">2 canchas</span>
+</div>
+</div>
+<!-- 4. Alberca -->
+<div class="relative flex-shrink-0 w-[120px] h-[150px] rounded-[22px] overflow-hidden border border-white/80 shadow-sm active:scale-95 transition-transform cursor-pointer">
+<img alt="Alberca" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApda0ZhmOZOao5XD5WE5sTsaym_78fR_CgpuEu-S7g2dwrXN-LkrRLT7JE2lJY82MnuhxukeuPRWP17szvFbECuhZez_EIyrPc3kkyoMmVK_BGOK5F05QXfsYi7bA0gAubN5mikvPgeX4HiilPAou_AsPKUrHXspecSAv3ibUdo5EHZ8j5-lYWaKPaXwhJ_tVp5mXZs1RAfAPF_jYdoJA-wiIHzfJDjbl4o1Cpnb7js_yoPrj1DrUX">
+<div class="absolute inset-0 bg-gradient-to-t from-brand-navy/95 via-brand-navy/30 to-transparent"></div>
+<div class="absolute bottom-2.5 left-3 right-2">
+<span class="block text-white font-bold text-sm leading-tight">Alberca</span>
+<span class="text-[10px] text-white/70">8 carriles</span>
+</div>
+</div>
+<!-- 5. Gimnasio -->
+<div class="relative flex-shrink-0 w-[120px] h-[150px] rounded-[22px] overflow-hidden border border-white/80 shadow-sm active:scale-95 transition-transform cursor-pointer">
+<img alt="Gimnasio" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/ALJJyrCRPioYa1MRDVPJiF9vjybWKtQW60ZEwtcITI4k48JcA1nMKfWUrUULggJqEer0AuDdtDI2Gm8IA37_r-QN1HT93qSTLvNLeVYr8f86yjjp1SzL3VRyuIoMx26nM5L8br7dnZk3G8mSr1NNcSEFPtaClZO7hJgjgxpX42fOTv3dSJDd5FKHHhZz8b8OoMBLhhzWh3LQRrO-2VzdlETUXMKRNAiiYq7b28fXrT2j42e-NqLWe290uiwkEwg">
+<div class="absolute inset-0 bg-gradient-to-t from-brand-navy/95 via-brand-navy/30 to-transparent"></div>
+<div class="absolute bottom-2.5 left-3 right-2">
+<span class="block text-white font-bold text-sm leading-tight">Gimnasio</span>
+<span class="text-[10px] text-white/70">Sala fitness</span>
+</div>
+</div>
+<!-- 6. Tenis de Arena -->
+<div class="relative flex-shrink-0 w-[120px] h-[150px] rounded-[22px] overflow-hidden border border-white/80 shadow-sm active:scale-95 transition-transform cursor-pointer">
+<img alt="Tenis de Arena" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/ALJJyrAsSfFVdBug_SmQv2tNe0bdbzqDf9O-UWjuhdyjbIukzl0KGoZ0pTbCiVp1kwmsXSWYBAKa2s_Y5y3AOJGdrInNVLBeYEp0CsULoIuY7ZofPcnKpO9I9X9z-NinAHPM6qiMukN01gw28Nv0c87wFOFhR7_h9yyn6nlW4xCLIKSebKuvOlicN7KXV2jfdewZyVXb_LaJyJJg0-VJcvZA0C-GZ8qyUdvjoi1j8BhpZkZxHxD4YmQLir_Cl_U">
+<div class="absolute inset-0 bg-gradient-to-t from-brand-navy/95 via-brand-navy/30 to-transparent"></div>
+<div class="absolute bottom-2.5 left-3 right-2">
+<span class="block text-white font-bold text-sm leading-tight">Tenis Arena</span>
+<span class="text-[10px] text-white/70">2 canchas</span>
+</div>
+</div>
+<!-- 7. Squash -->
+<div class="relative flex-shrink-0 w-[120px] h-[150px] rounded-[22px] overflow-hidden border border-white/80 shadow-sm active:scale-95 transition-transform cursor-pointer">
+<img alt="Squash" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeN1iCDziZ01sgDCgM9hxcd18fhzI4MRfXYUrDIbAH3YhE3-r-eoDG6ZoVHf0I06pBe2zEu6W8FmkFt4FP5AKKeCKOOGXtgOwLItLFLkDrJxffWAoTStYpr8fAk3HvDyYHY9fvbEQWTXUZ12BC42Cy7OtHad6PUaZjyuFE3W86Jj3fLyBlC4BiEhoBB5_cbZH_1_m4gllbJN7V6iWZhZfjluXbh6uOxa1muEk9ucFFmSh4dFLOzHYn">
+<div class="absolute inset-0 bg-gradient-to-t from-brand-navy/95 via-brand-navy/30 to-transparent"></div>
+<div class="absolute bottom-2.5 left-3 right-2">
+<span class="block text-white font-bold text-sm leading-tight">Squash</span>
+<span class="text-[10px] text-white/70">3 canchas</span>
+</div>
+</div>
+</div>
+</section>
+<!-- PASO 2: ELIGE TU CANCHA (Cards simplificadas 2 columnas, radio 22px) -->
+<section>
+<div class="flex items-center justify-between mb-3 px-1">
+<div class="flex items-center space-x-2">
+<span class="w-5 h-5 rounded-full bg-brand-navy text-white text-[11px] font-bold flex items-center justify-center">2</span>
+<h2 class="text-brand-navy text-[18px] font-bold tracking-tight">Elige tu cancha</h2>
+</div>
+<!-- Leyenda: punto verde Libre y punto gris Ocupada -->
+<div class="flex items-center space-x-3 text-xs font-medium text-brand-navy/70">
+<div class="flex items-center space-x-1.5">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="">Libre</span>
+</div>
+<div class="flex items-center space-x-1.5">
+<span class="w-2 h-2 rounded-full bg-gray-400"></span>
+<span class="">Ocupada</span>
+</div>
+</div>
+</div>
+<!-- Cuadrícula 2 columnas -->
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Cancha 1 (Libre, no seleccionada: tag Techada, Cancha 1 20px) -->
+<div class="h-[84px] rounded-[22px] glass-card p-3.5 flex flex-col justify-between cursor-pointer border border-white/80 hover:border-brand-sky/40 transition-all active:scale-98">
+<div>
+<span class="inline-block text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-brand-ice text-brand-navy">
+                  Techada
+                </span>
+</div>
+<div>
+<h3 class="text-brand-navy font-bold text-[20px] leading-tight">Cancha 1</h3>
+</div>
+</div>
+<!-- Cancha 2 (SELECCIONADA: fondo sólido #0F2146, texto blanco, check top right) -->
+<div class="h-[84px] rounded-[22px] bg-brand-navy text-white p-3.5 flex flex-col justify-between shadow-lg shadow-brand-navy/20 cursor-pointer ring-2 ring-brand-sky active:scale-98 relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-brand-sky/30 border border-brand-sky/40 text-brand-ice">
+                  Exterior
+                </span>
+<div class="w-5 h-5 rounded-full bg-brand-sky flex items-center justify-center text-white">
+<svg class="w-3.5 h-3.5 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+<div>
+<h3 class="text-white font-bold text-[20px] leading-tight">Cancha 2</h3>
+</div>
+</div>
+<!-- Cancha 3 (Libre, no seleccionada) -->
+<div class="h-[84px] rounded-[22px] glass-card p-3.5 flex flex-col justify-between cursor-pointer border border-white/80 hover:border-brand-sky/40 transition-all active:scale-98">
+<div>
+<span class="inline-block text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-brand-ice text-brand-navy">
+                  Techada
+                </span>
+</div>
+<div>
+<h3 class="text-brand-navy font-bold text-[20px] leading-tight">Cancha 3</h3>
+</div>
+</div>
+<!-- Cancha 4 (OCUPADA: opacidad 45%, styling neutro limpio, texto gris Ocupada hoy) -->
+<div class="h-[84px] rounded-[22px] bg-white/60 backdrop-blur-sm p-3.5 flex flex-col justify-between opacity-45 border border-gray-200 cursor-not-allowed">
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">
+                  Exterior
+                </span>
+<span class="text-[10px] text-gray-500 font-semibold">Ocupada hoy</span>
+</div>
+<div>
+<h3 class="text-gray-500 font-bold text-[20px] leading-tight">Cancha 4</h3>
+</div>
+</div>
+</div>
+</section>
+<!-- PASO 3: ¿A QUÉ HORA? (TOTALMENTE EXPANDIDO Y VISIBLE) -->
+<section>
+<div class="flex items-center justify-between mb-2.5 px-1">
+<div class="flex items-center space-x-2">
+<span class="w-5 h-5 rounded-full bg-brand-navy text-white text-[11px] font-bold flex items-center justify-center">3</span>
+<h2 class="text-brand-navy text-[18px] font-bold tracking-tight">¿A qué hora?</h2>
+</div>
+<span class="text-xs font-semibold text-brand-navy/60">Mar 10 Nov</span>
+</div>
+<!-- Control segmentado en píldora para la duración -->
+<div class="p-1 rounded-full bg-white/90 backdrop-blur-md border border-white flex shadow-xs mb-4"><button class="flex-1 py-1.5 rounded-full bg-brand-navy text-white font-bold text-xs shadow-xs transition-all">
+              1 h
+            </button>
+<button class="flex-1 py-1.5 rounded-full text-brand-navy/70 font-semibold text-xs hover:text-brand-navy transition-all">
+              2 h
+            </button></div>
+<!-- Cuadrícula de horarios en 3 columnas agrupada por Mañana, Tarde, Noche -->
+<div class="space-y-4">
+<!-- Grupo: Mañana -->
+<div>
+<div class="flex items-center space-x-1.5 text-xs font-bold text-brand-navy/60 uppercase tracking-wider mb-2 px-1">
+<svg class="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path></svg>
+<span class="">Mañana</span>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<!-- 7:00 (Ocupado: gris, line-through) -->
+<div class="py-2.5 px-3 rounded-full bg-white/50 text-gray-400 font-semibold text-xs text-center border border-gray-200 line-through cursor-not-allowed">
+                  7:00
+                </div>
+<!-- 8:00 (Ocupado: line-through) -->
+<div class="py-2.5 px-3 rounded-full bg-white/50 text-gray-400 font-semibold text-xs text-center border border-gray-200 line-through cursor-not-allowed">
+                  8:00
+                </div>
+<!-- 9:00 (Disponible) -->
+<div class="py-2.5 px-3 rounded-full bg-white text-brand-navy font-bold text-xs text-center border border-white shadow-xs hover:border-brand-sky cursor-pointer active:scale-95 transition-all">
+                  9:00
+                </div>
+<!-- 10:00 (Disponible) -->
+<div class="py-2.5 px-3 rounded-full bg-white text-brand-navy font-bold text-xs text-center border border-white shadow-xs hover:border-brand-sky cursor-pointer active:scale-95 transition-all">
+                  10:00
+                </div>
+<!-- 11:00 (SELECCIONADO: fondo sólido #0F2146 con texto blanco y check) -->
+<div class="py-2.5 px-3 rounded-full bg-brand-navy text-white font-extrabold text-xs text-center shadow-md ring-2 ring-brand-sky flex items-center justify-center space-x-1 cursor-pointer">
+<span class="">11:00</span>
+<svg class="w-3 h-3 text-brand-ice" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</div>
+<!-- 12:00 (Disponible) -->
+<div class="py-2.5 px-3 rounded-full bg-white text-brand-navy font-bold text-xs text-center border border-white shadow-xs hover:border-brand-sky cursor-pointer active:scale-95 transition-all">
+                  12:00
+                </div>
+</div>
+</div>
+<!-- Grupo: Tarde -->
+<div>
+<div class="flex items-center space-x-1.5 text-xs font-bold text-brand-navy/60 uppercase tracking-wider mb-2 px-1">
+<svg class="w-3.5 h-3.5 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path clip-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd"></path></svg>
+<span class="">Tarde</span>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<!-- 13:00 (Disponible) -->
+<div class="py-2.5 px-3 rounded-full bg-white text-brand-navy font-bold text-xs text-center border border-white shadow-xs hover:border-brand-sky cursor-pointer active:scale-95 transition-all">
+                  13:00
+                </div>
+<!-- 14:00 (Ocupado) -->
+<div class="py-2.5 px-3 rounded-full bg-white/50 text-gray-400 font-semibold text-xs text-center border border-gray-200 line-through cursor-not-allowed">
+                  14:00
+                </div>
+<!-- 15:00 (Disponible) -->
+<div class="py-2.5 px-3 rounded-full bg-white text-brand-navy font-bold text-xs text-center border border-white shadow-xs hover:border-brand-sky cursor-pointer active:scale-95 transition-all">
+                  15:00
+                </div>
+<!-- 16:00 (Disponible) -->
+<div class="py-2.5 px-3 rounded-full bg-white text-brand-navy font-bold text-xs text-center border border-white shadow-xs hover:border-brand-sky cursor-pointer active:scale-95 transition-all">
+                  16:00
+                </div>
+<!-- 17:00 (Disponible) -->
+<div class="py-2.5 px-3 rounded-full bg-white text-brand-navy font-bold text-xs text-center border border-white shadow-xs hover:border-brand-sky cursor-pointer active:scale-95 transition-all">
+                  17:00
+                </div>
+<!-- 18:00 (Ocupado) -->
+<div class="py-2.5 px-3 rounded-full bg-white/50 text-gray-400 font-semibold text-xs text-center border border-gray-200 line-through cursor-not-allowed">
+                  18:00
+                </div>
+</div>
+</div>
+<!-- Grupo: Noche -->
+<div>
+<div class="flex items-center space-x-1.5 text-xs font-bold text-brand-navy/60 uppercase tracking-wider mb-2 px-1">
+<svg class="w-3.5 h-3.5 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+<span class="">Noche (Iluminación LED)</span>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<!-- 19:00 (Disponible) -->
+<div class="py-2.5 px-3 rounded-full bg-white text-brand-navy font-bold text-xs text-center border border-white shadow-xs hover:border-brand-sky cursor-pointer active:scale-95 transition-all">
+                  19:00
+                </div>
+<!-- 20:00 (Disponible) -->
+<div class="py-2.5 px-3 rounded-full bg-white text-brand-navy font-bold text-xs text-center border border-white shadow-xs hover:border-brand-sky cursor-pointer active:scale-95 transition-all">
+                  20:00
+                </div>
+<!-- 21:00 (Disponible) -->
+<div class="py-2.5 px-3 rounded-full bg-white text-brand-navy font-bold text-xs text-center border border-white shadow-xs hover:border-brand-sky cursor-pointer active:scale-95 transition-all">
+                  21:00
+                </div>
+</div>
+</div>
+</div>
+</section>
+<!-- AVISO DE CANCELACIÓN Y LUZ -->
+<div class="p-3.5 rounded-[22px] bg-brand-ice/40 border border-brand-ice flex items-start space-x-2.5 text-brand-navy">
+<svg class="w-4 h-4 text-brand-sky flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<div class="text-[11px] leading-relaxed">
+<strong class="font-bold">Cancelación sin penalización:</strong> hasta 2 horas antes del inicio del turno. La iluminación nocturna en Cancha 2 se activa de forma automática.
+          </div>
+</div>
+<!-- Clearance exacto de 180px para que las barras flotantes no tapen ningún contenido -->
+<div class="h-[180px] w-full"></div>
+</div>
+</div><!-- Barra compacta colapsable de 56px de vidrio -->
+<div id="collapsed-header-bar" class="h-[56px] bg-white/85 backdrop-blur-xl border-b border-white/40 shadow-sm absolute top-11 left-0 right-0 z-40 px-4 flex items-center justify-between transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-2">
+  <div class="flex items-center space-x-1.5">
+    <div class="w-7 h-7 rounded-full bg-[#0F2146] text-white flex items-center justify-center font-extrabold text-xs">A</div>
+    <span class="text-[#0F2146] font-bold text-sm tracking-tight">athlety</span>
+  </div>
+  <span class="text-[#0F2146] text-[18px] font-bold tracking-tight absolute left-1/2 transform -translate-x-1/2">Pádel</span>
+  <div class="w-8 h-8 rounded-full bg-[#0F2146] flex items-center justify-center text-white font-bold text-[11px]">CM</div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const scrollContainer = document.querySelector('.overflow-y-auto');
+    const collapsedBar = document.getElementById('collapsed-header-bar');
+    if (scrollContainer && collapsedBar) {
+      scrollContainer.addEventListener('scroll', () => {
+        if (scrollContainer.scrollTop > 140) {
+          collapsedBar.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-2');
+          collapsedBar.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+        } else {
+          collapsedBar.classList.add('opacity-0', 'pointer-events-none', '-translate-y-2');
+          collapsedBar.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
+        }
+      });
+    }
+  });
+</script>
+<!-- 5. BARRA DE RESUMEN FIJA (Ubicada exactamente encima de la navegación) -->
+<div class="absolute bottom-[92px] left-4 right-4 z-40 pointer-events-none">
+  <div class="h-[64px] rounded-[28px] bg-white/85 backdrop-blur-xl border border-white/60 shadow-lg px-5 flex items-center justify-between pointer-events-auto">
+    <div class="flex flex-col justify-center">
+      <span class="text-[15px] font-bold text-[#0F2146] leading-snug">Pádel · Cancha 2</span>
+      <span class="text-[12px] font-medium text-[#0F2146]/60">11:00 – 12:00 · 1 h</span>
+    </div>
+    <button class="h-11 px-5 rounded-full bg-[#0F2146] text-white text-sm font-bold flex items-center gap-1.5 shadow-md hover:bg-[#162d5a] transition-colors active:scale-95">
+      <span class="">Reservar</span>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </button>
+  </div>
+</div>
+<!-- 6. BARRA DE NAVEGACIÓN FLOTANTE LIQUID GLASS DEL SOCIO -->
+<div class="absolute bottom-3 left-4 right-4 z-40">
+  <nav class="w-full h-16 bg-[#e6ebf5]/85 backdrop-blur-xl border border-white/60 rounded-full shadow-[0_8px_32px_rgba(15,33,70,0.12)] px-3 flex items-center justify-between">
+    <!-- Tab 1: Inicio -->
+    <a class="flex flex-col items-center justify-center text-[#0F2146]/60 hover:text-[#0F2146] transition-colors py-1 flex-1" href="#">
+      <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+      <span class="text-[11px] font-medium leading-tight">Inicio</span>
+    </a>
+    <!-- Tab 2: Reservar (ACTIVO) -->
+    <a class="bg-[#0F2146] text-white py-1.5 px-3.5 rounded-full flex flex-col items-center justify-center shadow-sm" href="#">
+      <svg class="w-5 h-5 text-white mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+      <span class="text-[11px] font-bold leading-tight">Reservar</span>
+    </a>
+    <!-- Tab 3: Clases -->
+    <a class="flex flex-col items-center justify-center text-[#0F2146]/60 hover:text-[#0F2146] transition-colors py-1 flex-1" href="#">
+      <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M3 10h2a1 1 0 011 1v2a1 1 0 01-1 1H3a1 1 0 01-1-1v-2a1 1 0 011-1zm16 0h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1v-2a1 1 0 011-1zm-13 1h10m-8 2h6M6 8v8m12-8v8" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+      <span class="text-[11px] font-medium leading-tight">Clases</span>
+    </a>
+    <!-- Tab 4: Torneos -->
+    <a class="flex flex-col items-center justify-center text-[#0F2146]/60 hover:text-[#0F2146] transition-colors py-1 flex-1" href="#">
+      <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M16 4v3a4 4 0 01-8 0V4m8 0h3a2 2 0 012 2v1a4 4 0 01-4 4h-1m-8-7H5a2 2 0 00-2 2v1a4 4 0 004 4h1m2 7h4m-2-4v4m-5 4h10" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+      <span class="text-[11px] font-medium leading-tight">Torneos</span>
+    </a>
+    <!-- Tab 5: Perfil -->
+    <a class="flex flex-col items-center justify-center text-[#0F2146]/60 hover:text-[#0F2146] transition-colors py-1 flex-1" href="#">
+      <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+      <span class="text-[11px] font-medium leading-tight">Perfil</span>
+    </a>
+  </nav>
+</div>
+<!-- Home Indicator iOS -->
+<div class="absolute bottom-1 left-0 right-0 h-2 flex justify-center items-center pointer-events-none z-50">
+<div class="w-32 h-1 bg-black/30 rounded-full"></div>
+</div>
+</div>
+
+
+</body></html>

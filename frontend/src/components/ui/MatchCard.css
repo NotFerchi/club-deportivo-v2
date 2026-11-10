@@ -1,0 +1,63 @@
+/* MatchCard — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-match {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    box-sizing: border-box;
+    padding: var(--space-16);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--ui-radius-2xl);
+    background: var(--color-bg-surface);
+    box-shadow: var(--ui-shadow-card);
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+}
+
+.ui-match__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+}
+
+.ui-match__meta { font: var(--font-caption); color: var(--color-text-muted); }
+
+.ui-match__player {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-8) var(--space-12);
+    border-radius: var(--ui-radius-lg);
+    background: var(--color-bg-subtle);
+}
+
+.ui-match__player--winner {
+    background: var(--color-feedback-success-bg);
+    border: 1px solid var(--color-feedback-success-border);
+}
+
+.ui-match__player--muted { opacity: 0.65; }
+
+.ui-match__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: var(--font-body-md);
+}
+
+.ui-match__crown { color: var(--color-feedback-success-text); font: var(--font-label-button); }
+.ui-match__score { min-width: 1.5ch; text-align: right; font: var(--font-heading-h3); }
+
+.ui-match__bye { margin: 0; font: var(--font-caption); color: var(--color-text-muted); text-align: center; }
+
+.ui-match__foot {
+    padding: var(--space-4) var(--space-12);
+    border-radius: var(--ui-radius-full);
+    background: var(--color-feedback-info-bg);
+    color: var(--color-feedback-info-text);
+    font: var(--font-caption);
+    align-self: flex-start;
+}

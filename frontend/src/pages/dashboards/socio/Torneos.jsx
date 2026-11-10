@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import SocioLayout from '../../../components/SocioLayout';
-import TournamentBracket from '../../../components/TournamentBracket';
-import { Alert, Button, Select, Stack, Text } from '../../../components/ui';
+import BracketSocio from '../../../components/torneos-ui/BracketSocio';
+import { Alert, Chip, ChipRow, PageHeader, Select, Stack, Tabs } from '../../../components/ui';
 import TorneosListado from '../../../components/torneos-ui/TorneosListado';
 import TorneoDetalleModal from '../../../components/torneos-ui/TorneoDetalleModal';
 import InscripcionModal from '../../../components/torneos-ui/InscripcionModal';
@@ -16,16 +16,16 @@ import {
 } from '../../../services/torneosApi';
 
 const VISTAS = [
-  { id: 'torneos', label: 'Torneos' },
-  { id: 'mis-participaciones', label: 'Mis participaciones' },
-  { id: 'bracket', label: 'Bracket' },
+  { value: 'torneos', label: 'Torneos' },
+  { value: 'mis-participaciones', label: 'Mis torneos' },
+  { value: 'bracket', label: 'Bracket' },
 ];
 
 /**
  * Torneos (socio) - ruta /torneos. Lista los torneos con filtros, permite inscribirse y ver
  * resultados, y muestra las participaciones del socio. Todo sale del backend (services/torneosApi);
  * los mensajes de error son los que manda el servidor. El bracket gráfico sigue siendo el de
- * components/TournamentBracket (solo lectura) hasta que se migre.
+ * components/torneos-ui/BracketSocio (solo lectura).
  */
 function Torneos() {
   const [vista, setVista] = useState('torneos');
@@ -104,6 +104,12 @@ function Torneos() {
     setFiltros((previos) => ({ ...previos, [campo]: event.target.value }));
   };
 
+  // Chips de disciplina: mismo filtro que antes (disciplina_id), pero tocando una etiqueta.
+  const elegirDisciplina = (id) => {
+    setCargando(true);
+    setFiltros((previos) => ({ ...previos, disciplina_id: id }));
+  };
+
   const limpiarFiltros = () => {
     setCargando(true);
     setFiltros({ disciplina_id: '', estado: '' });
@@ -123,38 +129,38 @@ function Torneos() {
 
   return (
     <SocioLayout activeTab="torneos" title="Club Social | Torneos">
-      <Stack gap={24} padding={24}>
-        <Stack gap={4}>
-          <Text variant="title">Torneos y competencias</Text>
-          <Text muted>Participa en los eventos deportivos del club.</Text>
-        </Stack>
+      <Stack gap={16} padding={24}>
+        <PageHeader
+          overline="Competencias del club"
+          title="Torneos y competencias"
+          subtitle="Participa en los eventos deportivos del club."
+        />
 
         {aviso && <Alert variant="success">{aviso}</Alert>}
 
-        <Stack direction="row" gap={8} wrap role="tablist" aria-label="Secciones de torneos">
-          {VISTAS.map((v) => (
-            <Button
-              key={v.id}
-              role="tab"
-              aria-selected={vista === v.id}
-              variant={vista === v.id ? 'primary' : 'secondary'}
-              onClick={() => setVista(v.id)}
-            >
-              {v.label}
-            </Button>
-          ))}
-        </Stack>
+        <Tabs
+          ariaLabel="Secciones de torneos"
+          tabs={VISTAS}
+          value={vista}
+          onChange={setVista}
+          fullWidth
+        />
 
         {vista === 'torneos' && (
           <Stack gap={16}>
+            <ChipRow ariaLabel="Disciplina">
+              <Chip selected={filtros.disciplina_id === ''} onClick={() => elegirDisciplina('')}>Todos</Chip>
+              {disciplinas.map((d) => (
+                <Chip
+                  key={d.disciplina_id}
+                  selected={String(filtros.disciplina_id) === String(d.disciplina_id)}
+                  onClick={() => elegirDisciplina(d.disciplina_id)}
+                >
+                  {d.nombre}
+                </Chip>
+              ))}
+            </ChipRow>
             <Stack direction="row" gap={16} grow minChild={200}>
-              <Select
-                label="Disciplina"
-                placeholder="Todas"
-                value={filtros.disciplina_id}
-                onChange={cambiarFiltro('disciplina_id')}
-                options={disciplinas.map((d) => ({ value: d.disciplina_id, label: d.nombre }))}
-              />
               <Select
                 label="Estado"
                 placeholder="Todos"
@@ -186,11 +192,7 @@ function Torneos() {
         )}
 
         {vista === 'bracket' && (
-          <TournamentBracket
-            title="Brackets y Resultados"
-            subtitle="Consulta los cruces y resultados de los torneos del club."
-            readOnly
-          />
+          <BracketSocio />
         )}
       </Stack>
 

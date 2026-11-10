@@ -1,0 +1,144 @@
+/* EventCard — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-event-card {
+    --ui-event-bg: var(--gradient-torneos);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-16);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 340px;
+    padding: var(--space-24);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--ui-radius-2xl);
+    background:
+        linear-gradient(0deg, rgb(8 12 28 / 0.85) 0%, rgb(8 12 28 / 0.35) 55%, rgb(8 12 28 / 0.1) 100%),
+        var(--ui-event-bg),
+        var(--color-brand-navy);
+    box-shadow: var(--ui-shadow-xl);
+    color: var(--color-text-inverse);
+    font-family: var(--font-sans);
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.ui-event-card--reservas  { --ui-event-bg: var(--gradient-reservas); }
+.ui-event-card--clases    { --ui-event-bg: var(--gradient-clases); }
+.ui-event-card--ludoteca  { --ui-event-bg: var(--gradient-ludoteca); }
+.ui-event-card--sanciones { --ui-event-bg: var(--gradient-sanciones); }
+
+.ui-event-card:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 3px;
+}
+
+.ui-event-card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-8);
+}
+
+.ui-event-card__date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 52px;
+    padding: var(--space-8) var(--space-12);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--ui-radius-lg);
+    background: var(--glass-dark-bg);
+    line-height: 1.1;
+}
+
+.ui-event-card__date strong { font: var(--font-heading-h2); }
+.ui-event-card__date span { font: var(--font-overline); text-transform: uppercase; }
+
+.ui-event-card__icon {
+    position: absolute;
+    right: calc(var(--space-24) * -1);
+    top: 30%;
+    display: flex;
+    color: var(--color-text-inverse);
+    opacity: 0.16;
+    pointer-events: none;
+}
+
+.ui-event-card--static { min-height: 200px; cursor: default; }
+
+.ui-event-card__pill {
+    padding: var(--space-8) var(--space-12);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--ui-radius-full);
+    background: var(--glass-dark-bg);
+    font: var(--font-overline);
+    text-transform: uppercase;
+}
+
+.ui-event-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.ui-event-card__title { font: var(--font-heading-h1); }
+.ui-event-card__detail { font: var(--font-body-lg); opacity: 0.88; }
+
+.ui-event-card__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+}
+
+.ui-event-card__chip {
+    padding: var(--space-4) var(--space-12);
+    border-radius: var(--ui-radius-full);
+    background: var(--glass-dark-bg);
+    font: var(--font-caption);
+}
+
+.ui-event-card__progress { display: flex; flex-direction: column; gap: var(--space-4); }
+.ui-event-card__progress-label { font: var(--font-caption); opacity: 0.9; }
+
+.ui-event-card__foot {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-12);
+    margin-top: var(--space-8);
+}
+
+.ui-event-card__cta {
+    padding: var(--space-8) var(--space-16);
+    border-radius: var(--ui-radius-full);
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+    font: var(--font-label-button);
+    white-space: nowrap;
+}
+
+/* Con foto: la imagen llena la tarjeta y encima va un degradado oscuro para que el texto se lea. */
+.ui-event-card__photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+.ui-event-card--photo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, rgb(8 12 28 / 0.9) 0%, rgb(8 12 28 / 0.4) 55%, rgb(8 12 28 / 0.15) 100%);
+    pointer-events: none;
+}
+
+.ui-event-card--photo > .ui-event-card__top,
+.ui-event-card--photo > .ui-event-card__body { position: relative; z-index: 1; }

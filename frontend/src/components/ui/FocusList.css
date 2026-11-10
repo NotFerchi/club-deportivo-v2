@@ -1,0 +1,44 @@
+/* FocusList — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-focus-list {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    margin: 0;
+    /* Deja espacio a los lados para que la primera y la última tarjeta también puedan quedar al centro. */
+    padding: var(--space-8) 6% var(--space-16);
+    list-style: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 6%;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ui-focus-list:has(> :only-child) { padding-inline: 0; }
+
+.ui-focus-list::-webkit-scrollbar { display: none; }
+
+.ui-focus-list:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+}
+
+.ui-focus-list__item {
+    flex: 0 0 100%;
+    box-sizing: border-box;
+    scroll-snap-align: center;
+    transform-origin: center;
+    will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ui-focus-list__item { transform: none; opacity: 1; will-change: auto; }
+}
+
+/* La sombra grande se corta en el borde del carrusel; con una más suave no se nota el recorte. */
+.ui-focus-list .ui-event-card { box-shadow: var(--ui-shadow-sm); }
+
+/* Con pocas tarjetas: ocupa el alto libre de la pantalla y deja la tarjeta a la mitad. */
+.ui-focus-list--centered { min-height: calc(100svh - 360px); }

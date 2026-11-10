@@ -85,3 +85,11 @@ export function formatFechaHora(valor) {
   if (!m) return 'Por programar';
   return `${formatFecha(m[1])}, ${m[2]}`;
 }
+
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/** "2026-11-07" → { day: '07', month: 'nov' } sin pasar por Date (evita el desfase de zona). */
+export function diaMes(valor) {
+  const m = String(valor ?? '').match(/^\d{4}-(\d{2})-(\d{2})/);
+  return m ? { day: m[2], month: MESES[Number(m[1]) - 1] } : {};
+}

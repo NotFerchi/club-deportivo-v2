@@ -87,7 +87,7 @@ function Login() {
     <AuthShell
       imageDesktop={fondoEscritorio}
       imageMobile={fondoMovil}
-      logo={brand.logos.atleta.logotipo.blanco}
+      logo={brand.logos.principalA.logotipo.blanco}
       logoAlt={brand.nombre}
       title="Todo tu club, en un solo panel."
       subtitle="Reservas, clases, torneos y socios en un mismo lugar."

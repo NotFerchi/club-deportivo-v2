@@ -56,7 +56,7 @@
 .ui-auth__logo {
     align-self: center;
     width: auto;
-    height: 40px;
+    height: 56px;
 }
 
 .ui-auth__hero {
@@ -144,7 +144,7 @@
 
     .ui-auth__logo {
         align-self: flex-start;
-        height: 44px;
+        height: 64px;
     }
 
     .ui-auth__title {

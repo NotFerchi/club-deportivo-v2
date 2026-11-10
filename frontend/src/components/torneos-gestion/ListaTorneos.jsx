@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, Pencil, Plus, Trophy, Users } from 'lucide-react';
+import { CalendarDays, FilterX, Pencil, Plus, SearchX, Trophy, Users } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -34,6 +34,17 @@ function Inscritos({ torneo }) {
   );
 }
 
+/** Título del vacío con filtros: la búsqueda manda; si no, la disciplina; si no, el estado. */
+function tituloSinResultados({ busqueda, appliedFilters, disciplinas }) {
+  if (busqueda.trim()) return 'No hay torneos con esa búsqueda';
+  if (appliedFilters.disciplina_id) {
+    const d = disciplinas.find((x) => String(x.disciplina_id) === String(appliedFilters.disciplina_id));
+    return d ? `No hay torneos de ${d.nombre}` : 'No hay torneos de esa disciplina';
+  }
+  const estado = DEFAULT_ESTADO_OPTIONS.find((o) => o.value === appliedFilters.estado);
+  return estado ? `No hay torneos en estado ${estado.label}` : 'No hay torneos con ese filtro';
+}
+
 /**
  * Columna izquierda: título con total, "Nuevo torneo" (solo quien edita), búsqueda, filtros de
  * disciplina y estado (los mismos de antes; se aplican al elegir) y la lista agrupada por mes con
@@ -44,6 +55,7 @@ function ListaTorneos({
   torneos,
   busqueda,
   onBuscar,
+  onLimpiarFiltros,
   seleccionadoId,
   onSeleccionar,
   puedeEditar,
@@ -52,7 +64,19 @@ function ListaTorneos({
   onVerInscritos,
   onVerCuadro
 }) {
-  const { filters, setFilters, setAppliedFilters, disciplinas, loadingTorneos, torneosError, cargarTorneos, openCreateModal } = gestion;
+  const {
+    filters,
+    setFilters,
+    appliedFilters,
+    setAppliedFilters,
+    disciplinas,
+    loadingTorneos,
+    torneosError,
+    cargarTorneos,
+    openCreateModal
+  } = gestion;
+  const hayFiltros = Boolean(busqueda.trim() || appliedFilters.disciplina_id || appliedFilters.estado);
+  const sinTorneos = !loadingTorneos && !torneosError && torneos.length === 0;
 
   const cambiarFiltro = (campo) => (e) => {
     const siguiente = { ...filters, [campo]: e.target.value };
@@ -74,7 +98,7 @@ function ListaTorneos({
             {torneos.length}
           </Badge>
         </Stack>
-        {puedeEditar && (
+        {puedeEditar && !(sinTorneos && !hayFiltros) && (
           <Button onClick={openCreateModal}>
             <Plus size={16} aria-hidden="true" />
             Nuevo torneo
@@ -108,11 +132,34 @@ function ListaTorneos({
 
       {loadingTorneos && torneos.length === 0 && <LoadingState rows={4} label="Cargando torneos…" />}
       {!loadingTorneos && torneosError && <ErrorState message={torneosError} onRetry={() => cargarTorneos()} />}
-      {!loadingTorneos && !torneosError && torneos.length === 0 && (
+      {sinTorneos && hayFiltros && (
         <EmptyState
-          icon={<Trophy size={24} />}
-          title="No hay torneos"
-          message={busqueda ? 'Ningún torneo coincide con la búsqueda.' : 'Cuando existan torneos aparecerán aquí.'}
+          compact
+          icon={<SearchX size={20} />}
+          title={tituloSinResultados({ busqueda, appliedFilters, disciplinas })}
+          message="Prueba con otro filtro o limpia la búsqueda."
+          action={
+            <Button variant="secondary" onClick={onLimpiarFiltros}>
+              <FilterX size={16} aria-hidden="true" />
+              Limpiar filtros
+            </Button>
+          }
+        />
+      )}
+      {sinTorneos && !hayFiltros && (
+        <EmptyState
+          compact
+          icon={<Trophy size={20} />}
+          title="Aún no hay torneos"
+          message={puedeEditar ? 'Crea el primero para abrir inscripciones.' : 'Cuando existan torneos aparecerán aquí.'}
+          action={
+            puedeEditar && (
+              <Button onClick={openCreateModal}>
+                <Plus size={16} aria-hidden="true" />
+                Nuevo torneo
+              </Button>
+            )
+          }
         />
       )}
       {!torneosError && torneos.length > 0 && (

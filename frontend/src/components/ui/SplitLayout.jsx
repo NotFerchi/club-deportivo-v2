@@ -10,13 +10,13 @@ import './SplitLayout.css';
  *   </SplitLayout>
  *
  * Props:
- *   aside     - nodo del panel lateral
+ *   aside     - nodo del panel lateral; sin él, el contenido ocupa todo el ancho
  *   children  - contenido principal
  *   className - clase extra; opcional
  */
 export function SplitLayout({ aside, children, className }) {
   return (
-    <div className={['ui-split', className].filter(Boolean).join(' ')}>
+    <div className={['ui-split', !aside && 'ui-split--single', className].filter(Boolean).join(' ')}>
       <div className="ui-split__main">{children}</div>
       {aside && <aside className="ui-split__aside">{aside}</aside>}
     </div>

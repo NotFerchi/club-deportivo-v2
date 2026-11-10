@@ -12,6 +12,10 @@
     min-width: 0;
 }
 
+.ui-split.ui-split--single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 @media (max-width: 1024px) {
     .ui-split {
         grid-template-columns: minmax(0, 1fr);

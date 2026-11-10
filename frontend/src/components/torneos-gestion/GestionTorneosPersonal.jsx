@@ -47,8 +47,14 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
     return ordenados.filter((t) => String(t.nombre || '').toLowerCase().includes(q));
   }, [ordenados, busqueda]);
 
-  // Sin selección todavía: se muestra uno por defecto (sin escribir estado hasta que se use)
-  const seleccionado = selectedTorneo || porDefecto(visibles);
+  // Sin selección todavía: se muestra uno por defecto (sin escribir estado hasta que se use).
+  // Si el filtro o la búsqueda dejan 0, no hay hero ni panel: la lista ocupa todo el ancho.
+  const seleccionado = visibles.length === 0 ? null : selectedTorneo || porDefecto(visibles);
+
+  const limpiarFiltros = () => {
+    setBusqueda('');
+    gestion.handleClearFilters();
+  };
 
   const seleccionar = (t) => {
     if (String(t.torneo_id) !== String(selectedTorneo?.torneo_id)) setSelectedTorneo(t);
@@ -105,6 +111,7 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
               torneos={visibles}
               busqueda={busqueda}
               onBuscar={setBusqueda}
+              onLimpiarFiltros={limpiarFiltros}
               seleccionadoId={seleccionado?.torneo_id}
               onSeleccionar={seleccionar}
               {...acciones}

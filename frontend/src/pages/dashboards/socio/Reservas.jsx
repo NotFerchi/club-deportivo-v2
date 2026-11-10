@@ -15,6 +15,9 @@ import fotoFutbol from '../../../assets/img/deporte-futbol.webp'
 import fotoNatacion from '../../../assets/img/deporte-natacion.webp'
 import fotoFitness from '../../../assets/img/deporte-fitness.webp'
 import fotoSquash from '../../../assets/img/deporte-squash.webp'
+import fotoBasquetbol from '../../../assets/img/deporte-basquetbol.webp'
+import fotoFronton from '../../../assets/img/deporte-fronton.webp'
+import fotoVoleibol from '../../../assets/img/deporte-voleibol.webp'
 
 const DISCIPLINA_ICONO = {
   'Tenis':      Activity,
@@ -38,6 +41,9 @@ const DISCIPLINA_FOTO = {
   'Natación': fotoNatacion,
   'Fitness':  fotoFitness,
   'Squash':   fotoSquash,
+  'Básquetbol': fotoBasquetbol,
+  'Frontón':  fotoFronton,
+  'Voleibol': fotoVoleibol,
 }
 
 // Grupos de horarios (hora de inicio): mañana < 13, tarde 13–18, noche ≥ 19

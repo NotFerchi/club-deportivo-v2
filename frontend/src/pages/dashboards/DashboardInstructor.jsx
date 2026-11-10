@@ -10,7 +10,7 @@ import AgendaDia from './instructor/AgendaDia';
 import MisClases from './instructor/MisClases';
 import MetricasInstructor from './instructor/MetricasInstructor';
 import MonitoreoLudoteca from './instructor/MonitoreoLudoteca';
-import TournamentBracket from '../../components/TournamentBracket';
+import GestionTorneosPersonal from '../../components/torneos-gestion/GestionTorneosPersonal';
 import { API_BASE_URL } from '../../services/api';
 
 function VistaSancionesInstructor() {
@@ -293,11 +293,7 @@ function DashboardInstructor() {
           {activeTab === 'ludoteca' && <MonitoreoLudoteca />}
           {activeTab === 'sanciones' && <VistaSancionesInstructor />}
           {activeTab === 'torneos'  && (
-            <TournamentBracket
-              title="Torneos y brackets"
-              subtitle="Consulta los torneos activos y sus encuentros por ronda."
-              readOnly={true}
-            />
+            <GestionTorneosPersonal puedeEditar={false} />
           )}
         </main>
       </div>

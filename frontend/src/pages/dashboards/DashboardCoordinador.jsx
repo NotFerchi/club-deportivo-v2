@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useNotification } from '../../context/NotificationContext';
 import '../../../css/Dashboard.css';
-import TournamentBracket from '../../components/TournamentBracket';
+import GestionTorneosPersonal from '../../components/torneos-gestion/GestionTorneosPersonal';
 import ControlLudoteca from './recepcion/ControlLudoteca';
 
 import DashboardResumen    from './coordinador/DashboardResumen';
@@ -112,11 +112,7 @@ function DashboardCoordinador() {
     if (activeTab === 'reservas')   return <VistaReservas />;
     if (activeTab === 'sanciones')  return <VistaSanciones />;
     if (activeTab === 'torneos')    return (
-      <TournamentBracket
-        title="Torneos y brackets"
-        subtitle="Supervisa los torneos del club y sus encuentros por ronda."
-        readOnly={false}
-      />
+      <GestionTorneosPersonal puedeEditar etiquetaAccion="Acción del coordinador" />
     );
     if (activeTab === 'ludoteca') return <ControlLudoteca />;
     if (activeTab === 'disciplinas') return (

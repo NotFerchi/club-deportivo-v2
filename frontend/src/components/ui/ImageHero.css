@@ -1,0 +1,94 @@
+/* ImageHero — solo tokens (src/styles/tokens.css) */
+
+.ui-hero {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    border-radius: var(--ui-radius-card);
+    background: var(--color-brand-navy);
+    color: var(--on-photo-text);
+    font-family: var(--font-sans);
+}
+
+.ui-hero--lg { min-height: 200px; }
+.ui-hero--sm { min-height: 128px; }
+
+.ui-hero__photo {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* velo: deja ver la foto arriba y oscurece abajo, donde va el texto */
+.ui-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--scrim-photo-bottom);
+}
+
+.ui-hero__content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-8);
+    padding: var(--space-24);
+}
+
+.ui-hero--sm .ui-hero__content {
+    gap: var(--space-6);
+    padding: var(--space-16);
+}
+
+.ui-hero__eyebrow,
+.ui-hero__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--space-4) var(--space-12);
+    border: var(--glass-dark-border);
+    border-radius: var(--ui-radius-full);
+    background: var(--glass-dark-bg);
+    -webkit-backdrop-filter: var(--glass-dark-blur);
+    backdrop-filter: var(--glass-dark-blur);
+}
+
+.ui-hero__eyebrow {
+    font: var(--font-overline);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ui-hero__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--ui-radius-full);
+    background: var(--color-accent);
+}
+
+.ui-hero__meta {
+    font: var(--font-label-sm);
+}
+
+.ui-hero__title {
+    margin: 0;
+    font: var(--font-display-section);
+    color: var(--on-photo-text);
+    text-shadow: var(--text-shadow-on-gradient);
+}
+
+.ui-hero--sm .ui-hero__title {
+    font: var(--font-heading-h2);
+}
+
+@media (max-width: 768px) {
+    .ui-hero--lg .ui-hero__title {
+        font: var(--font-heading-h1);
+    }
+}

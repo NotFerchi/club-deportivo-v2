@@ -5,6 +5,7 @@ const GAPS = [0, 4, 8, 12, 16, 24, 32];
 const PADDINGS = [0, 8, 16, 24, 32];
 const ALIGN = ['start', 'center', 'end', 'stretch'];
 const JUSTIFY = ['start', 'center', 'end', 'between'];
+const COLUMNS = [2, 3, 4];
 
 /**
  * Stack - acomoda sus hijos en columna o en fila con separación del kit.
@@ -31,6 +32,7 @@ const JUSTIFY = ['start', 'center', 'end', 'between'];
  *   padding   - 0 (default) | 8 | 16 | 24 | 32: margen interior en todos los lados (tokens --space-*)
  *   grow      - en fila, cada hijo crece para llenar la línea
  *   minChild  - ancho mínimo en px de cada hijo cuando se usa `grow` (default 200)
+ *   columns   - 2 | 3 | 4: cuadrícula de columnas iguales (ignora direction/wrap/grow)
  *   as        - etiqueta HTML (default 'div')
  *   className - clase extra; opcional
  *   ...rest   - cualquier otro atributo (role, aria-*, etc.)
@@ -44,6 +46,7 @@ export function Stack({
   padding = 0,
   grow = false,
   minChild = 200,
+  columns,
   as: Tag = 'div',
   className,
   children,
@@ -63,6 +66,7 @@ export function Stack({
     safePadding > 0 && `ui-stack--pad-${safePadding}`,
     wrap && 'ui-stack--wrap',
     grow && 'ui-stack--grow',
+    COLUMNS.includes(columns) && `ui-stack--cols-${columns}`,
     className,
   ].filter(Boolean).join(' ');
 

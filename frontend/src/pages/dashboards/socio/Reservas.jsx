@@ -1,11 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import SocioLayout from '../../../components/SocioLayout'
 import {
-  MapPin, Clock, CheckCircle, Zap, CalendarDays, RotateCcw, XCircle,
-  Activity, CircleDot, Waves, Target, LayoutGrid, Dumbbell
+  Clock, CheckCircle, CalendarDays, RotateCcw, XCircle, ArrowRight,
+  Activity, CircleDot, Waves, Target, LayoutGrid, Dumbbell, Sun, Sunset, Moon
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
-import { Alert, Badge, Button, Card, Chip, ConfirmDialog, LoadingState, PageHeader, Stack, Text } from '../../../components/ui'
+import {
+  ActionBar, Alert, Badge, Button, Card, Chip, ChipRow, EmptyState, ImageHero, LoadingState,
+  Modal, SelectTile, Stack, StepSection, Tabs, Text
+} from '../../../components/ui'
+import fotoPadel from '../../../assets/img/deporte-padel.webp'
+import fotoTenis from '../../../assets/img/deporte-tenis.webp'
+import fotoFutbol from '../../../assets/img/deporte-futbol.webp'
+import fotoNatacion from '../../../assets/img/deporte-natacion.webp'
+import fotoFitness from '../../../assets/img/deporte-fitness.webp'
+import fotoSquash from '../../../assets/img/deporte-squash.webp'
 
 const DISCIPLINA_ICONO = {
   'Tenis':      Activity,
@@ -20,6 +29,23 @@ const DISCIPLINA_ICONO = {
   'Fitness':    Dumbbell,
 }
 const ICONO_DEFAULT = LayoutGrid
+
+// Fotos locales por disciplina; las que no tienen foto muestran su ícono sobre navy
+const DISCIPLINA_FOTO = {
+  'Pádel':    fotoPadel,
+  'Tenis':    fotoTenis,
+  'Fútbol':   fotoFutbol,
+  'Natación': fotoNatacion,
+  'Fitness':  fotoFitness,
+  'Squash':   fotoSquash,
+}
+
+// Grupos de horarios (hora de inicio): mañana < 13, tarde 13–18, noche ≥ 19
+const FRANJAS = [
+  { id: 'manana', label: 'Mañana', Icono: Sun,    incluye: (h) => h < 13 },
+  { id: 'tarde',  label: 'Tarde',  Icono: Sunset, incluye: (h) => h >= 13 && h < 19 },
+  { id: 'noche',  label: 'Noche',  Icono: Moon,   incluye: (h) => h >= 19 },
+]
 
 function todayISO() {
   const d = new Date()
@@ -38,10 +64,19 @@ function todayLabel() {
   return new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Mexico_City' })
 }
 
+// "mar, 10 nov" para el encabezado
+function todayShortLabel() {
+  return new Date().toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'America/Mexico_City' })
+}
+
 function slotLabel(hora) {
   const [h] = hora.split(':')
   const fin = `${String(Number(h) + 1).padStart(2,'0')}:00`
   return `${hora} – ${fin}`
+}
+
+function horaFinDe(horaInicio, duracion) {
+  return `${String(Number(horaInicio.split(':')[0]) + duracion).padStart(2,'0')}:00`
 }
 
 // Ícono + texto secundario en una línea
@@ -50,6 +85,19 @@ function Dato({ icon, children }) {
     <Stack direction="row" gap={8} align="center">
       {icon}
       <Text variant="small" muted as="span">{children}</Text>
+    </Stack>
+  )
+}
+
+// Fila de la hoja de confirmación: ícono, etiqueta y valor
+function Detalle({ icon, label, children }) {
+  return (
+    <Stack direction="row" gap={12} align="center">
+      {icon}
+      <Stack gap={0}>
+        <Text variant="overline" muted as="span">{label}</Text>
+        <Text variant="small" as="span">{children}</Text>
+      </Stack>
     </Stack>
   )
 }
@@ -72,6 +120,7 @@ export default function Reservas() {
   const [modal,           setModal]           = useState(false)
   const [saving,          setSaving]          = useState(false)
   const [feedback,        setFeedback]        = useState(null)
+  const [reservaHecha,    setReservaHecha]    = useState(null)  // resumen para el estado de éxito de la hoja
   const slotsRef = useRef(null)
 
   // getDia: Lun=1, Mar=2 … Sáb=6, Dom=7
@@ -206,6 +255,24 @@ export default function Reservas() {
     return true
   }
 
+  const abrirHoja = () => {
+    setFeedback(null)
+    setModal(true)
+  }
+
+  // Al cerrar después de reservar se limpia la selección (antes pasaba al confirmar)
+  const cerrarHoja = () => {
+    if (saving) return
+    setModal(false)
+    if (reservaHecha) {
+      setReservaHecha(null)
+      setSelectedSlot(null)
+      setSelectedEspacio(null)
+      setSelectedDisc(null)
+      setSlots([])
+    }
+  }
+
   const handleConfirmar = async () => {
     if (!socioId) { setFeedback({ tipo: 'error', msg: 'Debes iniciar sesión nuevamente' }); return }
 
@@ -221,8 +288,8 @@ export default function Reservas() {
       return horaInicioNum < rFin && horaFinNum > rInicio
     })
     if (solapamiento) {
+      // El error se muestra dentro de la hoja, que sigue abierta para cambiar el horario
       setFeedback({ tipo: 'error', msg: 'Ya tienes una reserva activa en ese horario. Elige un horario diferente.' })
-      setModal(false)
       return
     }
 
@@ -239,7 +306,6 @@ export default function Reservas() {
     })
     if (solapamientoClase) {
       setFeedback({ tipo: 'error', msg: 'Tienes una clase inscrita en ese horario. Cancela tu inscripción antes de reservar.' })
-      setModal(false)
       return
     }
 
@@ -255,17 +321,11 @@ export default function Reservas() {
           hora_fin: horaFin,
         })
       })
-      setModal(false)
-      setSelectedSlot(null)
-      setSelectedEspacio(null)
-      setSelectedDisc(null)
-      setSlots([])
-      setFeedback({ tipo: 'exito', msg: `Reserva confirmada: ${selectedEspacio.nombre} ${selectedSlot} – ${horaFin}` })
+      setFeedback(null)
+      setReservaHecha({ espacio: selectedEspacio.nombre, inicio: selectedSlot, fin: horaFin })
       fetchMisReservas()
-      setTimeout(() => setFeedback(null), 5000)
     } catch (err) {
       setFeedback({ tipo: 'error', msg: err.message || 'Error al crear la reserva' })
-      setModal(false)
     } finally {
       setSaving(false)
     }
@@ -286,24 +346,23 @@ export default function Reservas() {
     : []
 
   const canReserve = selectedEspacio && selectedSlot
+  const horaFinSeleccion = selectedSlot ? horaFinDe(selectedSlot, duracion) : null
+  const fotoDisc = selectedDisc ? DISCIPLINA_FOTO[selectedDisc.nombre] : undefined
+  const horaActual = horaActualMexico()
 
   return (
     <SocioLayout activeTab="reservas" title="Club Social | Reserva de Canchas">
       <Stack gap={24}>
 
-        {/* HEADER */}
-        <Stack gap={8}>
-          <PageHeader
-            title="Reserva de Canchas"
-            subtitle={`Hoy, ${todayLabel()} · máx. 2 horas`}
-            actions={misReservas.length > 0 && (
-              <Badge variant="ice">{misReservas.length} reserva{misReservas.length > 1 ? 's' : ''} hoy</Badge>
-            )}
-          />
-          {HORARIO_HOY && (
-            <Dato icon={<Clock size={14} />}>Horario de hoy: <strong>{HORARIO_HOY}</strong></Dato>
-          )}
-        </Stack>
+        {/* ENCABEZADO CON FOTO */}
+        <ImageHero
+          image={fotoDisc}
+          eyebrow={`Reservar · Hoy, ${todayShortLabel()}`}
+          title={selectedDisc?.nombre || 'Reserva de canchas'}
+        >
+          <Clock size={14} aria-hidden="true" />
+          {HORARIO_HOY ? `${HORARIO_HOY} · Máx. 2 h por reserva` : 'Cerrado hoy'}
+        </ImageHero>
 
         {/* BANNER LUNES CERRADO */}
         {hoyEsLunes && (
@@ -312,14 +371,18 @@ export default function Reservas() {
           </Alert>
         )}
 
-        {/* FEEDBACK BANNER */}
-        {feedback && (
+        {/* FEEDBACK (errores fuera de la hoja, p. ej. al cancelar) */}
+        {feedback && !modal && (
           <Alert variant={feedback.tipo === 'exito' ? 'success' : 'error'}>{feedback.msg}</Alert>
         )}
 
         {/* MIS RESERVAS HOY */}
         {misReservas.length > 0 && (
-          <Card title="Mis reservas de hoy" icon={<CheckCircle size={18} />}>
+          <Card
+            title="Mis reservas de hoy"
+            icon={<CheckCircle size={18} />}
+            action={<Badge variant="ice">{misReservas.length} reserva{misReservas.length > 1 ? 's' : ''}</Badge>}
+          >
             <Stack gap={12}>
               {misReservas.map(r => (
                 <Stack key={r.reserva_id} direction="row" gap={12} align="center" justify="between">
@@ -337,145 +400,183 @@ export default function Reservas() {
         )}
 
         {/* PASO 1: DEPORTE */}
-        <Card title="1 · ¿Qué quieres jugar hoy?">
-          <Stack direction="row" gap={8} wrap>
+        <StepSection
+          step={1}
+          title="¿Qué quieres jugar?"
+          aside={disciplinas.length > 0 && `${disciplinas.length} deporte${disciplinas.length > 1 ? 's' : ''}`}
+        >
+          <ChipRow ariaLabel="Deportes">
             {disciplinas.map(d => {
               const Icono = DISCIPLINA_ICONO[d.nombre] || ICONO_DEFAULT
+              const canchas = espacios.filter(e => e.disciplina_id === d.id).length
               return (
-                <Chip key={d.id} selected={selectedDisc?.id === d.id} onClick={() => handleSelectDisc(d)}>
-                  <Icono size={16} />
-                  {d.nombre}
-                </Chip>
+                <SelectTile
+                  key={d.id}
+                  media
+                  image={DISCIPLINA_FOTO[d.nombre]}
+                  icon={<Icono size={28} />}
+                  title={d.nombre}
+                  meta={`${canchas} cancha${canchas === 1 ? '' : 's'}`}
+                  selected={selectedDisc?.id === d.id}
+                  onClick={() => handleSelectDisc(d)}
+                />
               )
             })}
-          </Stack>
-        </Card>
+          </ChipRow>
+        </StepSection>
 
         {/* PASO 2: CANCHA */}
         {selectedDisc && (
-          <Card title={`2 · Elige tu cancha · ${selectedDisc.nombre}`}>
+          <StepSection step={2} title="Elige tu cancha">
             {espaciosFiltrados.length === 0 ? (
               <Text variant="small" muted>No hay canchas disponibles para esta disciplina.</Text>
             ) : (
-              <Stack direction="row" gap={8} wrap>
+              <Stack columns={2} gap={12}>
                 {espaciosFiltrados.map(esp => (
-                  <Chip
+                  <SelectTile
                     key={esp.espacio_id}
+                    title={esp.nombre}
+                    badge={esp.capacidad_maxima ? <Badge variant="ice">Cap. {esp.capacidad_maxima}</Badge> : undefined}
                     selected={selectedEspacio?.espacio_id === esp.espacio_id}
                     onClick={() => handleSelectEspacio(esp)}
-                  >
-                    <MapPin size={14} />
-                    {esp.nombre}
-                    {esp.capacidad_maxima ? ` · Cap. ${esp.capacidad_maxima}` : ''}
-                  </Chip>
+                  />
                 ))}
               </Stack>
             )}
-          </Card>
+          </StepSection>
         )}
 
         {/* PASO 3: HORARIO */}
         {selectedEspacio && (
-          <div ref={slotsRef}>
-            <Card
-              title={`3 · Elige tu horario · ${selectedEspacio.nombre}`}
-              action={
-                <Button variant="secondary" onClick={() => fetchDisponibilidad(selectedEspacio.espacio_id)}>
-                  <RotateCcw size={14} /> Actualizar
-                </Button>
-              }
-            >
-              <Stack gap={16}>
+          <StepSection
+            ref={slotsRef}
+            step={3}
+            title="¿A qué hora?"
+            aside={
+              <Button variant="secondary" onClick={() => fetchDisponibilidad(selectedEspacio.espacio_id)}>
+                <RotateCcw size={14} /> Actualizar
+              </Button>
+            }
+          >
+            <Tabs
+              ariaLabel="Duración de la reserva"
+              fullWidth
+              tabs={[{ value: 1, label: '1 h' }, { value: 2, label: '2 h' }]}
+              value={duracion}
+              onChange={handleDuracionChange}
+            />
 
-                {/* DURACIÓN */}
-                <Stack direction="row" gap={8} align="center" wrap>
-                  <Text variant="small" as="span">Duración:</Text>
-                  {[1, 2].map(d => (
-                    <Chip key={d} selected={duracion === d} onClick={() => handleDuracionChange(d)}>
-                      {d} hora{d > 1 ? 's' : ''}
-                    </Chip>
-                  ))}
-                </Stack>
+            {loadingSlots ? (
+              <LoadingState rows={2} label="Cargando disponibilidad…" />
+            ) : cerradoHoy ? (
+              <Alert variant="info">El club está cerrado hoy. No hay horarios disponibles.</Alert>
+            ) : (
+              FRANJAS.map(({ id, label, Icono, incluye }) => {
+                const enFranja = slots.filter(s => incluye(parseInt(s.hora.split(':')[0])))
+                if (enFranja.length === 0) return null
+                return (
+                  <Stack key={id} gap={8}>
+                    <Stack direction="row" gap={8} align="center">
+                      <Icono size={14} aria-hidden="true" />
+                      <Text variant="overline" muted as="h3">{label}</Text>
+                    </Stack>
+                    <Stack columns={3} gap={8}>
+                      {enFranja.map(slot => {
+                        const isSelected = selectedSlot === slot.hora
+                        const isExt = duracion === 2 && selectedSlot && (() => {
+                          const idx = slots.findIndex(s => s.hora === selectedSlot)
+                          return slots[idx + 1]?.hora === slot.hora
+                        })()
+                        const isPast = parseInt(slot.hora.split(':')[0]) <= horaActual
+                        const valid = slotValido(slot)
+                        const estadoTexto = isPast ? 'pasado'
+                          : !slot.libre ? (slot.motivo === 'sesion' ? 'clase programada' : 'reservado')
+                          : isExt ? 'segunda hora de tu reserva'
+                          : null
 
-                {/* LEYENDA */}
-                <Stack direction="row" gap={8} wrap>
-                  <Badge variant="success">Libre</Badge>
-                  <Badge variant="danger">Reservado</Badge>
-                  <Badge variant="info">Clase/Sesión</Badge>
-                </Stack>
-
-                {/* SLOTS */}
-                {loadingSlots ? (
-                  <LoadingState rows={2} label="Cargando disponibilidad…" />
-                ) : cerradoHoy ? (
-                  <Alert variant="info">El club está cerrado hoy. No hay horarios disponibles.</Alert>
-                ) : (
-                  <Stack direction="row" gap={8} wrap>
-                    {slots.map(slot => {
-                      const isSelected = selectedSlot === slot.hora
-                      const isExt = duracion === 2 && selectedSlot && (() => {
-                        const idx = slots.findIndex(s => s.hora === selectedSlot)
-                        return slots[idx + 1]?.hora === slot.hora
-                      })()
-                      const isPast = parseInt(slot.hora.split(':')[0]) <= horaActualMexico()
-                      const valid = slotValido(slot)
-                      const estadoTexto = isPast ? 'Pasado'
-                        : !slot.libre ? (slot.motivo === 'sesion' ? 'Clase' : 'Reservado')
-                        : null
-
-                      return (
-                        <Chip
-                          key={slot.hora}
-                          selected={Boolean(isSelected || isExt)}
-                          onClick={() => handleSelectSlot(slot)}
-                          disabled={!valid && !isSelected}
-                          title={isPast ? 'Horario pasado' : !slot.libre ? (slot.motivo === 'sesion' ? 'Clase programada' : 'Ya reservado') : ''}
-                        >
-                          {slotLabel(slot.hora)}
-                          {estadoTexto && ` · ${estadoTexto}`}
-                          {isExt && ' · +1h'}
-                        </Chip>
-                      )
-                    })}
+                        return (
+                          <Chip
+                            key={slot.hora}
+                            selected={Boolean(isSelected || isExt)}
+                            onClick={() => handleSelectSlot(slot)}
+                            disabled={!valid && !isSelected}
+                            aria-label={`${slotLabel(slot.hora)}${estadoTexto ? `, ${estadoTexto}` : ''}`}
+                            title={isPast ? 'Horario pasado' : !slot.libre ? (slot.motivo === 'sesion' ? 'Clase programada' : 'Ya reservado') : ''}
+                          >
+                            {String(slot.hora).slice(0, 5)}
+                          </Chip>
+                        )
+                      })}
+                    </Stack>
                   </Stack>
-                )}
+                )
+              })
+            )}
 
-                {/* BOTÓN RESERVAR */}
-                {canReserve && (
-                  <Stack direction="row" justify="end">
-                    <Button onClick={() => setModal(true)}>
-                      <Zap size={18} />
-                      Reservar {selectedSlot} – {String(Number(selectedSlot.split(':')[0]) + duracion).padStart(2,'0')}:00
-                    </Button>
-                  </Stack>
-                )}
-              </Stack>
-            </Card>
-          </div>
+            {HORARIO_HOY && (
+              <Alert variant="info">
+                Hoy el club abre de <strong>{HORARIO_HOY}</strong>. Puedes reservar 1 o 2 horas seguidas; las horas que ya pasaron no se pueden elegir.
+              </Alert>
+            )}
+          </StepSection>
+        )}
+
+        {/* RESUMEN FIJO + RESERVAR */}
+        {canReserve && (
+          <ActionBar
+            ariaLabel="Resumen de la reserva"
+            title={`${selectedDisc.nombre} · ${selectedEspacio.nombre}`}
+            meta={`${selectedSlot} – ${horaFinSeleccion} · ${duracion} h (hoy)`}
+            action={<Button onClick={abrirHoja}>Reservar <ArrowRight size={16} /></Button>}
+          />
         )}
       </Stack>
 
-      {/* MODAL CONFIRMACIÓN */}
-      {modal && (
-        <ConfirmDialog
-          isOpen
-          icon={<CalendarDays size={24} />}
-          title="Confirmar reserva"
-          message="Revisa los datos antes de confirmar."
-          confirmLabel={saving ? 'Procesando…' : 'Confirmar'}
-          loading={saving}
-          onConfirm={handleConfirmar}
-          onCancel={() => setModal(false)}
-        >
-          <Stack gap={8} align="start">
-            <Dato icon={<MapPin size={14} />}>Cancha: <strong>{selectedEspacio?.nombre}</strong></Dato>
-            <Dato icon={<CalendarDays size={14} />}>Fecha: <strong>Hoy, {todayLabel()}</strong></Dato>
-            <Dato icon={<Clock size={14} />}>
-              Horario: <strong>{selectedSlot} – {String(Number(selectedSlot.split(':')[0]) + duracion).padStart(2,'0')}:00</strong> ({duracion}h)
-            </Dato>
-          </Stack>
-        </ConfirmDialog>
-      )}
+      {/* HOJA DE CONFIRMACIÓN Y ÉXITO */}
+      <Modal
+        isOpen={modal}
+        onClose={cerrarHoja}
+        title={reservaHecha ? 'Reserva confirmada' : 'Confirmar reserva'}
+        variant="sheet"
+        hideHeader
+        closeOnOverlayClick
+        footer={!reservaHecha && (
+          <>
+            <Button onClick={handleConfirmar} disabled={saving}>
+              {saving ? 'Procesando…' : <>Confirmar reserva <ArrowRight size={16} /></>}
+            </Button>
+            <Button variant="secondary" onClick={cerrarHoja} disabled={saving}>Cambiar</Button>
+          </>
+        )}
+      >
+        {reservaHecha ? (
+          <EmptyState
+            icon={<CheckCircle size={24} />}
+            title="¡Listo, nos vemos en la cancha!"
+            message={`Reservaste ${reservaHecha.espacio} hoy de ${reservaHecha.inicio} a ${reservaHecha.fin}. La verás en "Mis reservas de hoy".`}
+            action={<Button onClick={cerrarHoja}>Listo</Button>}
+          />
+        ) : selectedEspacio && selectedSlot && (
+          <>
+            <ImageHero
+              size="sm"
+              image={fotoDisc}
+              eyebrow="Cancha seleccionada"
+              title={`${selectedDisc?.nombre} · ${selectedEspacio.nombre}`}
+            />
+            <Card>
+              <Stack gap={16}>
+                <Detalle icon={<CalendarDays size={18} aria-hidden="true" />} label="Fecha">Hoy, {todayLabel()}</Detalle>
+                <Detalle icon={<Clock size={18} aria-hidden="true" />} label="Horario y duración">
+                  {selectedSlot} – {horaFinSeleccion} ({duracion} h)
+                </Detalle>
+                <Detalle icon={<Activity size={18} aria-hidden="true" />} label="Disciplina">{selectedDisc?.nombre}</Detalle>
+              </Stack>
+            </Card>
+            {feedback?.tipo === 'error' && <Alert variant="error">{feedback.msg}</Alert>}
+          </>
+        )}
+      </Modal>
 
     </SocioLayout>
   )

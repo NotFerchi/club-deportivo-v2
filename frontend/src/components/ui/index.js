@@ -29,3 +29,7 @@ export { FocusList, FocusListLabel } from './FocusList';
 export { EventRow } from './EventRow';
 export { HeroCard, HeroPanel, HeroStat } from './HeroCard';
 export { SplitLayout } from './SplitLayout';
+export { DetailHeader } from './DetailHeader';
+export { Bracket } from './Bracket';
+export { SidePanel } from './SidePanel';
+export { ScoreField } from './ScoreField';

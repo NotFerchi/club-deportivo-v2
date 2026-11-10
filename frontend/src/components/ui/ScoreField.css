@@ -1,0 +1,124 @@
+/* ScoreField — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-score-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    padding: var(--space-16) var(--space-20);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--ui-radius-xl);
+    background: var(--color-bg-surface);
+    box-shadow: var(--ui-shadow-xs);
+    font-family: var(--font-sans);
+}
+
+.ui-score-field__top,
+.ui-score-field__bottom {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+}
+
+.ui-score-field__top {
+    justify-content: space-between;
+}
+
+.ui-score-field__name {
+    min-width: 0;
+    overflow: hidden;
+    font: var(--font-body-md);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ui-score-field__tag {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-10);
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+    font: var(--font-caption);
+    font-weight: 700;
+}
+
+.ui-score-field__label {
+    font: var(--font-body-sm);
+    color: var(--color-text-secondary);
+}
+
+/* 2 clases: gana a reglas globales de input de css/Dashboard.css */
+.ui-score-field .ui-score-field__input,
+.ui-score-field__value {
+    box-sizing: border-box;
+    width: 56px;
+    height: 48px;
+    margin: 0;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    font: var(--font-heading-h4);
+    text-align: center;
+    box-shadow: var(--ui-shadow-xs);
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.ui-score-field__value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ui-score-field .ui-score-field__input::-webkit-outer-spin-button,
+.ui-score-field .ui-score-field__input::-webkit-inner-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+}
+
+.ui-score-field .ui-score-field__input:focus-visible {
+    outline: none;
+    border-color: var(--color-focus-ring);
+    box-shadow: 0 0 0 3px var(--color-focus-glow);
+}
+
+.ui-score-field .ui-score-field__input:disabled {
+    background: var(--color-bg-subtle);
+    color: var(--color-text-disabled);
+}
+
+.ui-score-field--error .ui-score-field__input {
+    border-color: var(--color-feedback-danger-solid);
+}
+
+.ui-score-field__winner {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    margin-left: auto;
+    color: var(--color-text-muted);
+    font: var(--font-body-sm);
+}
+
+.ui-score-field__winner--on {
+    color: var(--color-brand-navy);
+    font-weight: 700;
+}
+
+.ui-score-field__check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--color-bg-subtle);
+}
+
+.ui-score-field__winner--on .ui-score-field__check {
+    background: var(--color-brand-navy);
+    color: var(--color-text-inverse);
+}

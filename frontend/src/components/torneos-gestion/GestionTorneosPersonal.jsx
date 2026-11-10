@@ -6,7 +6,7 @@ import ParticipantesModal from '../torneos/ParticipantesModal';
 import TorneoHero from './TorneoHero';
 import ListaTorneos from './ListaTorneos';
 import PanelInscripciones from './PanelInscripciones';
-import VistaCuadro from './VistaCuadro';
+import DetalleTorneoPersonal from './DetalleTorneoPersonal';
 import { ordenarPorFecha } from './torneoVista';
 
 const PRIORIDAD_INICIAL = ['En_curso', 'Abierto', 'Inscripciones_cerradas'];
@@ -21,13 +21,12 @@ function porDefecto(lista) {
 }
 
 /**
- * Lista de torneos del personal (U4-03, diseño de Stitch): hero del torneo seleccionado, lista con
- * enfoque al deslizar y panel de inscripciones. La usan admin y gerente (GestionTorneos), el
- * coordinador y el instructor.
+ * Torneos del personal (U4-03, diseño de Stitch). Lista: hero del torneo seleccionado, lista con
+ * enfoque al deslizar y panel de inscripciones. Detalle (Paso 2): encabezado, cuadro y panel
+ * "Editar encuentro". La usan admin y gerente (GestionTorneos), el coordinador y el instructor.
  *
  * Toda la lógica (llamadas, validaciones, confirmaciones y mensajes) es la de siempre:
- * torneos/useGestionTorneos y torneos/useAccionesTorneo. Los modales de editar e inscritos y el
- * cuadro se reutilizan tal cual (se rediseñan en el Paso 2).
+ * torneos/useGestionTorneos y torneos/useAccionesTorneo.
  *
  * Props:
  *   puedeEditar    - true para admin, gerente y coordinador; false (solo lectura) para el instructor
@@ -35,10 +34,18 @@ function porDefecto(lista) {
  */
 function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguiente acción' }) {
   const gestion = useGestionTorneos({ readOnly: !puedeEditar });
-  const { torneos, selectedTorneo, setSelectedTorneo, openEditModal, handleVerParticipantes, handleTorneoActualizado } =
-    gestion;
+  const {
+    torneos,
+    selectedTorneo,
+    setSelectedTorneo,
+    setSelectedEncuentroId,
+    openEditModal,
+    handleVerParticipantes,
+    handleTorneoActualizado
+  } = gestion;
   const [busqueda, setBusqueda] = useState('');
   const [vista, setVista] = useState('lista');
+  const [pestana, setPestana] = useState('cuadro');
 
   const ordenados = useMemo(() => ordenarPorFecha(torneos), [torneos]);
   const visibles = useMemo(() => {
@@ -49,7 +56,11 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
 
   // Sin selección todavía: se muestra uno por defecto (sin escribir estado hasta que se use).
   // Si el filtro o la búsqueda dejan 0, no hay hero ni panel: la lista ocupa todo el ancho.
-  const seleccionado = visibles.length === 0 ? null : selectedTorneo || porDefecto(visibles);
+  // El elegido se toma de la lista recién cargada (cupo, estado) y, si ya no está, el guardado.
+  const elegido = selectedTorneo
+    ? torneos.find((t) => String(t.torneo_id) === String(selectedTorneo.torneo_id)) || selectedTorneo
+    : null;
+  const seleccionado = visibles.length === 0 ? null : elegido || porDefecto(visibles);
 
   const limpiarFiltros = () => {
     setBusqueda('');
@@ -67,9 +78,16 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
     seleccionar(t);
     handleVerParticipantes(t);
   };
-  const verCuadro = (t) => {
+  const abrirDetalle = (t, enPestana) => {
     seleccionar(t);
-    setVista('cuadro');
+    setSelectedEncuentroId(null);
+    setPestana(enPestana);
+    setVista('detalle');
+  };
+  const verCuadro = (t) => abrirDetalle(t, 'cuadro');
+  const volverALista = () => {
+    setSelectedEncuentroId(null);
+    setVista('lista');
   };
 
   const acciones = {
@@ -82,14 +100,18 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
 
   return (
     <>
-      {vista === 'cuadro' && seleccionado ? (
-        <VistaCuadro
+      {vista === 'detalle' && elegido ? (
+        <DetalleTorneoPersonal
           gestion={gestion}
-          torneo={seleccionado}
+          torneo={elegido}
           puedeEditar={puedeEditar}
-          onVolver={() => setVista('lista')}
+          etiquetaAccion={etiquetaAccion}
+          pestana={pestana}
+          onPestana={setPestana}
+          onVolver={volverALista}
           onEditar={editar}
           onVerInscritos={verInscritos}
+          onActualizar={handleTorneoActualizado}
         />
       ) : (
         <Stack gap={32}>
@@ -120,7 +142,7 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
         </Stack>
       )}
 
-      {/* Modales de siempre (se rediseñan en el Paso 2) */}
+      {/* Modales de siempre (inscritos y editar se rediseñan en los siguientes commits) */}
       <TorneoFormModal gestion={gestion} />
       <ParticipantesModal gestion={gestion} />
     </>

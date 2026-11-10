@@ -1,28 +1,11 @@
 import React from 'react';
-import { CheckCircle, Lock, Network, Trophy } from 'lucide-react';
-import { Button, HeroCard, HeroPanel, HeroStat, Spinner, Stack } from '../ui';
+import { Network } from 'lucide-react';
+import { Button, HeroCard, HeroPanel, HeroStat, Stack } from '../ui';
 import { estadoTorneo } from '../torneos/torneoUtils';
-import { siguienteAccion, useAccionesTorneo } from '../torneos/useAccionesTorneo';
-import { useAvisoAccion } from './useAvisoAccion';
+import { siguienteAccion } from '../torneos/useAccionesTorneo';
+import AccionPrincipal from './AccionPrincipal';
 import MenuTorneo from './MenuTorneo';
 import { cupoDe, rangoFechasLargo, temporadaDe } from './torneoVista';
-
-const ICONO_ACCION = { cerrar: Lock, confirmar: CheckCircle, finalizar: Trophy };
-
-/** Botón con la siguiente acción del torneo (Cerrar inscripciones / Confirmar bracket / Finalizar). */
-function AccionPrincipal({ torneo, onActualizar }) {
-  const { cargando, mensaje, ejecutar } = useAccionesTorneo(torneo, onActualizar);
-  useAvisoAccion(mensaje);
-  const accion = siguienteAccion(torneo.estado);
-  if (!accion) return null;
-  const Icono = ICONO_ACCION[accion.id];
-  return (
-    <Button variant="soft" disabled={cargando} onClick={() => ejecutar(accion)}>
-      {cargando ? <Spinner label={accion.cargandoLabel} /> : <Icono size={16} aria-hidden="true" />}
-      {cargando ? accion.cargandoLabel : accion.label}
-    </Button>
-  );
-}
 
 /**
  * Hero del torneo seleccionado: nombre, temporada, disciplina · categoría · fechas, cupo y fase.

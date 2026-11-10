@@ -1,0 +1,366 @@
+/* Bracket (llave de eliminación) — solo tokens semánticos (src/styles/tokens.css)
+   Columnas de 176 px mínimo separadas 32 px (Bracket.jsx usa los mismos números para decidir si
+   cabe la forma simétrica). Los conectores se dibujan con bordes: cada encuentro saca un tramo
+   hasta la mitad de la separación y cada par lo une con una línea vertical. */
+
+.ui-bracket {
+    --ui-bracket-gap: var(--space-32);
+    --ui-bracket-half: var(--space-16);
+    --ui-bracket-line: 2px solid var(--color-sky);
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+}
+
+.ui-bracket__scroller {
+    overflow-x: auto;
+    padding-bottom: var(--space-8);
+}
+
+.ui-bracket__scroller:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--ui-radius-lg);
+}
+
+/* ─── Fila de rondas ─────────────────────────────────────────── */
+.ui-bracket .ui-bracket__rounds {
+    display: flex;
+    justify-content: safe center;
+    gap: var(--ui-bracket-gap);
+    margin: 0 0 var(--space-24);
+    padding: 0;
+    list-style: none;
+}
+
+.ui-bracket__round {
+    flex: 1 0 176px;
+    max-width: 240px;
+    box-sizing: border-box;
+    padding: var(--space-8) var(--space-12);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-bg-surface);
+    color: var(--color-text-secondary);
+    font: var(--font-overline);
+    text-align: center;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ui-bracket__round--final {
+    border-color: var(--color-brand-navy);
+    background: var(--color-brand-navy);
+    color: var(--color-text-inverse);
+}
+
+/* ─── Columnas ───────────────────────────────────────────────── */
+/* columnas de 176 px como mínimo (sin encogerse): si no caben, el contenedor se desplaza de lado */
+.ui-bracket__grid {
+    display: flex;
+    justify-content: safe center;
+    gap: var(--ui-bracket-gap);
+}
+
+/* llave baja (menos de 4 encuentros por columna): reserva lugar para el campeón bajo la final */
+.ui-bracket__grid--room {
+    padding-bottom: 200px;
+}
+
+.ui-bracket__col {
+    display: flex;
+    flex: 1 0 176px;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 240px;
+}
+
+.ui-bracket__pair {
+    position: relative;
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+}
+
+.ui-bracket__slot {
+    min-width: 0;
+    position: relative;
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    padding: var(--space-8) 0;
+}
+
+/* tramo del encuentro hacia la derecha (mitad de la separación) */
+.ui-bracket__pair > .ui-bracket__slot::after,
+.ui-bracket__col--to-final > .ui-bracket__slot::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: calc(-1 * var(--ui-bracket-half));
+    width: var(--ui-bracket-half);
+    border-top: var(--ui-bracket-line);
+}
+
+/* sin pares (semifinal de cada lado): el tramo cruza toda la separación hasta la final */
+.ui-bracket__col--to-final > .ui-bracket__slot::after {
+    right: calc(-1 * var(--ui-bracket-gap));
+    width: var(--ui-bracket-gap);
+}
+
+/* línea vertical que une el par y tramo hacia la siguiente columna */
+.ui-bracket__pair::before {
+    content: '';
+    position: absolute;
+    top: 25%;
+    bottom: 25%;
+    right: calc(-1 * var(--ui-bracket-half));
+    border-right: var(--ui-bracket-line);
+}
+
+.ui-bracket__pair::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: calc(-1 * var(--ui-bracket-gap));
+    width: var(--ui-bracket-half);
+    border-top: var(--ui-bracket-line);
+}
+
+/* lado derecho de la llave simétrica: los conectores salen hacia la izquierda */
+.ui-bracket__col--rtl .ui-bracket__pair > .ui-bracket__slot::after,
+.ui-bracket__col--rtl.ui-bracket__col--to-final > .ui-bracket__slot::after {
+    right: auto;
+    left: calc(-1 * var(--ui-bracket-half));
+}
+
+.ui-bracket__col--rtl.ui-bracket__col--to-final > .ui-bracket__slot::after {
+    left: calc(-1 * var(--ui-bracket-gap));
+}
+
+.ui-bracket__col--rtl .ui-bracket__pair::before {
+    right: auto;
+    left: calc(-1 * var(--ui-bracket-half));
+    border-right: 0;
+    border-left: var(--ui-bracket-line);
+}
+
+.ui-bracket__col--rtl .ui-bracket__pair::after {
+    right: auto;
+    left: calc(-1 * var(--ui-bracket-gap));
+}
+
+/* ─── Final y campeón ────────────────────────────────────────── */
+/* la final queda centrada como las demás; el campeón cuelga debajo sin moverla */
+.ui-bracket__final {
+    position: relative;
+    width: 100%;
+}
+
+.ui-bracket__slot--final .ui-bracket__match {
+    border: 2px solid var(--color-brand-navy);
+}
+
+.ui-bracket__champion {
+    position: absolute;
+    top: calc(100% + var(--space-24));
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    padding: var(--space-20) var(--space-16);
+    border-radius: var(--ui-radius-2xl);
+    background: var(--color-brand-navy);
+    box-shadow: var(--ui-shadow-lg);
+    text-align: center;
+}
+
+.ui-bracket__champion-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: var(--space-4);
+    border-radius: 50%;
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+}
+
+.ui-bracket__champion-label {
+    font: var(--font-overline);
+    color: var(--color-accent);
+    text-transform: uppercase;
+}
+
+.ui-bracket__champion-name {
+    font: var(--font-heading-h4);
+    color: var(--color-text-inverse);
+    overflow-wrap: anywhere;
+}
+
+/* ─── Encuentro ──────────────────────────────────────────────── */
+/* 2 clases: gana a `.dashboard-root button` de css/Dashboard.css */
+.ui-bracket .ui-bracket__match {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--space-4);
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: var(--space-10) var(--space-10) var(--space-12);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--ui-radius-xl);
+    background: var(--color-bg-surface);
+    box-shadow: var(--ui-shadow-sm);
+    color: var(--color-text-primary);
+    font: var(--font-body-sm);
+    text-align: left;
+}
+
+.ui-bracket .ui-bracket__match--interactive {
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ui-bracket .ui-bracket__match--interactive:hover {
+    border-color: var(--color-brand-navy);
+    box-shadow: var(--ui-shadow-hover);
+}
+
+.ui-bracket .ui-bracket__match--interactive:focus-visible {
+    outline: none;
+    border-color: var(--color-focus-ring);
+    box-shadow: 0 0 0 3px var(--color-focus-glow);
+}
+
+.ui-bracket .ui-bracket__match--selected,
+.ui-bracket__slot--final .ui-bracket__match--selected {
+    border: 2px solid var(--color-brand-navy);
+    box-shadow: var(--ui-shadow-hover);
+}
+
+.ui-bracket__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+    padding: 0 var(--space-2) var(--space-4);
+}
+
+.ui-bracket__label {
+    flex-shrink: 0;
+    font: var(--font-caption);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+}
+
+.ui-bracket__status {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 var(--space-8);
+    border-radius: var(--ui-radius-pill);
+    font: var(--font-caption);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ui-bracket__status--neutral {
+    color: var(--color-text-muted);
+}
+
+.ui-bracket__status--info {
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+}
+
+.ui-bracket__status--success {
+    color: var(--color-feedback-info-text);
+}
+
+.ui-bracket__side {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    min-height: 32px;
+    padding: var(--space-4) var(--space-8);
+    border-radius: var(--ui-radius-pill);
+    color: var(--color-text-secondary);
+}
+
+.ui-bracket__side--winner {
+    background: var(--color-brand-navy);
+    color: var(--color-text-inverse);
+    font-weight: 700;
+}
+
+.ui-bracket__side--empty .ui-bracket__name {
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+.ui-bracket__mark,
+.ui-bracket__seed {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font: var(--font-caption);
+    font-weight: 700;
+}
+
+.ui-bracket__mark {
+    border: 1.5px solid currentColor;
+}
+
+.ui-bracket__mark--idle {
+    border-color: var(--color-border-strong);
+    background: var(--color-bg-app);
+}
+
+.ui-bracket__seed {
+    background: var(--color-bg-app);
+    color: var(--color-text-secondary);
+}
+
+.ui-bracket__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ui-bracket__score {
+    flex-shrink: 0;
+    min-width: 24px;
+    padding: 0 var(--space-6);
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-bg-app);
+    color: var(--color-text-primary);
+    font-weight: 700;
+    text-align: center;
+}
+
+.ui-bracket__side--winner .ui-bracket__score {
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ui-bracket .ui-bracket__match--interactive {
+        transition: none;
+    }
+}

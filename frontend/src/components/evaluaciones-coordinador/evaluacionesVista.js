@@ -111,7 +111,8 @@ export function kpis(instructores, listasMes, listasPrevio, disciplina, filas) {
 /** "+0.2 vs mes anterior", "−0.3 vs mes anterior" o "Igual que el mes anterior". */
 export function textoDiferencia(diferencia) {
   if (diferencia === null) return null;
-  const d = Math.round(diferencia * 10) / 10;
-  if (d === 0) return 'Igual que el mes anterior';
-  return `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} vs mes anterior`;
+  // Redondeo del valor absoluto (−0.25 → −0.3), igual que el promedio (4.25 → 4.3)
+  const abs = Math.round(Math.abs(diferencia) * 10) / 10;
+  if (abs === 0) return 'Igual que el mes anterior';
+  return `${diferencia > 0 ? '+' : '−'}${abs.toFixed(1)} vs mes anterior`;
 }

@@ -13,8 +13,10 @@ import { createPortal } from 'react-dom';
  *   panelRef  - ref al div del panel (para detectar clics dentro/fuera); opcional
  *   className - clase del panel
  *   maxHeight - alto máximo en px (default 288)
+ *   align     - 'stretch' (default: mismo ancho que el ancla) | 'end' (alineado al borde derecho del
+ *               ancla, con el ancho que pida su CSS; útil para menús abiertos desde un botón chico)
  */
-export function FloatingPanel({ anchorRef, open, panelRef, className, maxHeight = 288, children, ...rest }) {
+export function FloatingPanel({ anchorRef, open, panelRef, className, maxHeight = 288, align = 'stretch', children, ...rest }) {
   const [style, setStyle] = useState(null);
 
   useLayoutEffect(() => {
@@ -32,8 +34,7 @@ export function FloatingPanel({ anchorRef, open, panelRef, className, maxHeight 
       const available = Math.max(96, openUp ? above : below);
       setStyle({
         position: 'fixed',
-        left: rect.left,
-        width: rect.width,
+        ...(align === 'end' ? { right: window.innerWidth - rect.right } : { left: rect.left, width: rect.width }),
         maxHeight: Math.min(maxHeight, available),
         ...(openUp ? { bottom: window.innerHeight - rect.top + gap } : { top: rect.bottom + gap }),
       });
@@ -46,7 +47,7 @@ export function FloatingPanel({ anchorRef, open, panelRef, className, maxHeight 
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
     };
-  }, [open, anchorRef, maxHeight]);
+  }, [open, anchorRef, maxHeight, align]);
 
   if (!open || !style) return null;
 

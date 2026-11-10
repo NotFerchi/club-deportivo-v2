@@ -48,7 +48,8 @@ function optionsFromChildren(children) {
  *   id           - id del campo; si se omite se genera uno
  *   className    - clase extra del contenedor; opcional
  *   ref          - ref al botón del campo (React 19 la recibe como prop)
- *   ...rest      - otros atributos para el botón del campo (aria-*, data-*, etc.)
+ *   ...rest      - otros atributos para el botón del campo (aria-*, data-*, etc.); sin `label`,
+ *                  un `aria-label` da el nombre accesible del campo
  */
 export function Select({
   label,
@@ -230,7 +231,8 @@ export function Select({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
-        aria-labelledby={label ? `${labelId} ${valueId}` : valueId}
+        // Sin label visible, un aria-label (p. ej. "Estado") nombra el campo en vez del valor elegido
+        aria-labelledby={label ? `${labelId} ${valueId}` : rest['aria-label'] ? undefined : valueId}
         aria-activedescendant={open && active >= 0 ? `${baseId}-opt-${active}` : undefined}
         aria-required={required ? true : undefined}
         aria-invalid={error ? true : undefined}

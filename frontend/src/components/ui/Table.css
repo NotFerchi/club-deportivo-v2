@@ -60,6 +60,17 @@ tbody .ui-table__row:last-child .ui-table__cell {
     cursor: pointer;
 }
 
+.ui-table__row--clickable:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
+}
+
+/* fila elegida (p. ej. la que abre un panel de detalle) */
+tbody .ui-table__row--selected,
+tbody .ui-table__row--selected:hover {
+    background: var(--color-ice);
+}
+
 /* estado vacío */
 .ui-table__empty {
     display: flex;

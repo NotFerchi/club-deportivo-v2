@@ -1,0 +1,48 @@
+/* RatingDistribution — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-rating-dist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-10);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--font-sans);
+}
+
+.ui-rating-dist__row {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr) 5.5rem;
+    align-items: center;
+    gap: var(--space-12);
+}
+
+.ui-rating-dist__label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    color: var(--color-text-secondary);
+    font: var(--font-body-sm);
+}
+
+.ui-rating-dist__track {
+    display: block;
+    height: 8px;
+    overflow: hidden;
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-bg-subtle);
+}
+
+.ui-rating-dist__fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-brand-navy);
+}
+
+.ui-rating-dist__value {
+    color: var(--color-text-primary);
+    font: var(--font-body-sm);
+    text-align: right;
+    white-space: nowrap;
+}

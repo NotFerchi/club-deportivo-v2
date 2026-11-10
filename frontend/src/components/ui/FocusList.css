@@ -42,3 +42,55 @@
 
 /* Con pocas tarjetas: ocupa el alto libre de la pantalla y deja la tarjeta a la mitad. */
 .ui-focus-list--centered { min-height: calc(100svh - 360px); }
+
+/* ── Vertical (lista de torneos del personal, U4-03) ───────────────────────────────────────
+   Solo aplica con .ui-focus-list--vertical: deshace el carrusel de arriba y usa la variable
+   --focus (0 a 1) que escribe el JS en cada <li>. El carrusel horizontal no cambia. */
+.ui-focus-list.ui-focus-list--vertical {
+    position: relative; /* offsetTop de los <li> relativo a la lista */
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-12);
+    /* Alto propio para que haya scroll dentro de la lista; se puede cambiar con la variable */
+    max-height: var(--ui-focus-list-height, min(38rem, 70vh));
+    padding: var(--space-8) var(--space-6);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-snap-type: none;
+    scroll-padding-inline: 0;
+    scrollbar-width: thin;
+}
+
+.ui-focus-list.ui-focus-list--vertical::-webkit-scrollbar { display: initial; }
+
+.ui-focus-list--vertical > .ui-focus-list__item {
+    --focus: 1;
+    flex: none;
+    scroll-snap-align: none;
+    transform: scale(calc(0.9 + 0.1 * var(--focus)));
+    opacity: calc(0.45 + 0.55 * var(--focus));
+}
+
+/* Rótulo de grupo ("NOVIEMBRE 2026") */
+.ui-focus-list__label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-16);
+    padding: var(--space-12) var(--space-4) 0;
+    color: var(--color-text-secondary);
+    font: var(--font-label-sm);
+    letter-spacing: var(--tracking-overline);
+    text-transform: uppercase;
+}
+
+.ui-focus-list__label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-border-default);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ui-focus-list--vertical > .ui-focus-list__item { transform: none; opacity: 1; will-change: auto; }
+}

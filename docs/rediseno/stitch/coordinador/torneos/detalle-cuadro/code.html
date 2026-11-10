@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"on-secondary":"#ffffff","surface-variant":"#e1e2e4","on-primary-fixed-variant":"#36466d","outline":"#75777f","on-tertiary-container":"#769500","on-tertiary-fixed":"#161f00","on-primary-fixed":"#061a3f","on-background":"#191c1e","surface":"#f8f9fb","on-secondary-fixed-variant":"#3a475d","primary-fixed":"#d9e2ff","text-primary":"#0F2146","border-subtle":"#E5E7EB","surface-tint":"#4e5e86","surface-container-high":"#e7e8ea","surface-container":"#edeef0","inverse-on-surface":"#f0f1f3","glass-border":"rgba(255, 255, 255, 0.65)","surface-card":"#FFFFFF","inverse-primary":"#b6c6f4","surface-container-lowest":"#ffffff","on-error":"#ffffff","glass-bg":"rgba(255, 255, 255, 0.88)","secondary":"#525f76","surface-container-low":"#f3f4f6","on-surface-variant":"#45464e","surface-dim":"#d9dadc","mesh-torneos-start":"#F97316","text-muted":"#687690","mesh-clases-end":"#FBBF24","mesh-ludoteca-end":"#F472B6","mesh-reservas-end":"#06B6D4","on-tertiary":"#ffffff","on-primary":"#ffffff","mesh-reservas-start":"#2563EB","background":"#f8f9fb","error":"#ba1a1a","primary-fixed-dim":"#b6c6f4","inverse-surface":"#2e3132","primary-container":"#0F2146","on-tertiary-fixed-variant":"#3b4d00","surface-container-highest":"#e1e2e4","error-container":"#ffdad6","on-secondary-container":"#56637a","tertiary":"#090e00","surface-bright":"#f8f9fb","mesh-clases-start":"#10B981","mesh-ludoteca-start":"#A855F7","secondary-fixed":"#d6e3fe","on-primary-container":"#7989b4","outline-variant":"#c5c6cf","on-surface":"#191c1e","tertiary-container":"#1c2600","on-secondary-fixed":"#0e1c2f","secondary-container":"#d3e0fb","secondary-fixed-dim":"#bac7e1","on-error-container":"#93000a","mesh-torneos-end":"#EC4899","primary":"#000b27"},"borderRadius":{"DEFAULT":"1rem","lg":"2rem","xl":"3rem","full":"9999px"},"spacing":{"gutter":"1.5rem","margin":"2rem","space-md":"1rem","space-sm":"0.5rem","space-xs":"0.25rem","space-xl":"2rem","gutter-mobile":"0.75rem","space-lg":"1.5rem","margin-mobile":"1rem"},"fontFamily":{"headline-lg":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"headline-hero-mobile":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"label-lg":["Plus Jakarta Sans"],"headline-hero":["Plus Jakarta Sans"]}}}}</script></head>
+<body class="bg-[#F8F9FB] font-['Plus_Jakarta_Sans'] text-on-surface antialiased overflow-x-hidden">
+<!-- SIDEBAR OFICIAL ATHLETY EN DEEP NAVY (#0F2146) -->
+<aside class="fixed left-0 top-0 h-full w-[280px] bg-[#0F2146] text-white z-50 flex flex-col justify-between p-space-lg select-none">
+<div class="flex flex-col gap-space-lg">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[20px]">sports_tennis</span>
+</div>
+<span class="text-xl text-white font-extrabold tracking-tight">Athlety</span>
+</div>
+<span class="px-space-sm py-space-xs rounded-full bg-white/10 text-secondary-fixed text-[10px] font-bold tracking-wider uppercase">STAFF</span>
+</div>
+<div>
+<p class="text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-space-sm">COORDINACIÓN DEPORTIVA</p>
+<nav class="flex flex-col gap-space-xs">
+<a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-slate-300 hover:bg-white/10 hover:text-white transition-all text-sm font-semibold" href="#">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+<span>Inicio</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-slate-300 hover:bg-white/10 hover:text-white transition-all text-sm font-semibold" href="#">
+<span class="material-symbols-outlined text-[20px]">fitness_center</span>
+<span>Clases</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-slate-300 hover:bg-white/10 hover:text-white transition-all text-sm font-semibold" href="#">
+<span class="material-symbols-outlined text-[20px]">event_available</span>
+<span>Reservas</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-slate-300 hover:bg-white/10 hover:text-white transition-all text-sm font-semibold" href="#">
+<span class="material-symbols-outlined text-[20px]">stadium</span>
+<span>Espacios</span>
+</a>
+<a aria-current="page" class="flex items-center justify-between px-space-md py-space-sm rounded-full bg-white text-[#0F2146] shadow-lg font-bold text-sm" href="#">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[20px]">emoji_events</span>
+<span>Torneos</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-[#2563EB]"></span>
+</a>
+<a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-slate-300 hover:bg-white/10 hover:text-white transition-all text-sm font-semibold" href="#">
+<span class="material-symbols-outlined text-[20px]">assignment_turned_in</span>
+<span>Evaluaciones</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-slate-300 hover:bg-white/10 hover:text-white transition-all text-sm font-semibold" href="#">
+<span class="material-symbols-outlined text-[20px]">query_stats</span>
+<span>Reportes</span>
+</a>
+</nav>
+</div>
+</div>
+<div class="bg-white/5 rounded-2xl p-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-10 h-10 rounded-full bg-[#BAE6FD] flex items-center justify-center text-[#0F2146] font-bold"><span class="material-symbols-outlined text-[#0F2146] text-[20px]">person</span></div><div class="flex flex-col"><span class="text-white text-xs font-bold leading-tight">Carlos Méndez</span><span class="text-[#BAE6FD] text-[11px] leading-tight font-medium">Coordinador</span></div></div><div class="px-2.5 py-0.5 rounded-full bg-white/10 text-white text-[10px] font-bold uppercase border border-white/15">Staff</div></div>
+</aside>
+<!-- CONTENIDO PRINCIPAL -->
+<div class="pl-[280px]">
+<!-- CABECERA -->
+<header class="fixed top-0 left-[280px] right-0 h-16 bg-[#F8F9FB]/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-space-lg flex items-center justify-between">
+<div class="flex items-center gap-space-xs text-text-muted text-xs font-semibold">
+<span class="hover:text-text-primary transition-colors cursor-pointer">Panel Athlety</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-text-primary font-bold">Operaciones &amp; Deportes</span>
+</div>
+<div class="flex items-center gap-space-md">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-text-muted text-[18px]">search</span>
+<input class="w-64 pl-9 pr-space-md py-1.5 bg-white rounded-full text-xs text-text-primary placeholder:text-text-muted outline-none border border-slate-200 shadow-sm focus:ring-2 focus:ring-[#0F2146]/20 transition-all" placeholder="Buscar torneo o jugador..." type="text"/>
+</div>
+<button aria-label="Notificaciones" class="w-9 h-9 rounded-full bg-white text-text-muted hover:text-text-primary flex items-center justify-center border border-slate-200 shadow-sm hover:shadow transition-all relative" type="button">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#2563EB]"></span>
+</button>
+<div class="w-8 h-8 rounded-full bg-[#0F2146] text-white flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">person</span>
+</div>
+</div>
+</header>
+<main class="relative pt-20 px-space-lg pb-16 min-h-screen">
+<div class="max-w-[1440px] mx-auto flex flex-col gap-6">
+<!-- 1. HERO DEL TORNEO -->
+<section class="relative w-full bg-white rounded-[28px] p-space-lg shadow-[0_12px_36px_-10px_rgba(15,33,70,0.06)] border border-slate-100 overflow-hidden">
+<div class="absolute -right-20 -top-20 w-72 h-72 bg-gradient-to-br from-[#7DD3FC]/25 to-[#BAE6FD]/15 rounded-full blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
+<div class="flex items-start gap-space-md">
+<div class="w-16 h-16 rounded-[22px] bg-[#0F2146] text-white flex items-center justify-center shadow-md flex-shrink-0">
+<span class="material-symbols-outlined text-[32px]">emoji_events</span>
+</div>
+<div class="flex flex-col"><div class="flex items-center gap-space-sm flex-wrap"><a class="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-[#0F2146] transition-colors mr-2" href="#"><span class="material-symbols-outlined text-[16px]">arrow_back</span><span>Torneos</span></a><span class="px-3 py-1 rounded-full bg-[#BAE6FD] text-[#0F2146] text-xs font-bold tracking-wide">Temporada 2026</span><span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#BAE6FD]/40 text-[#0F2146] text-xs font-bold"><span class="w-2 h-2 rounded-full bg-[#0F2146] animate-pulse"></span>En curso</span></div><h1 class="text-[26px] font-extrabold text-[#0F2146] tracking-tight mt-1">Copa del Rey 2026</h1><div class="flex items-center gap-space-md mt-1 text-text-muted text-xs flex-wrap"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-text-primary">calendar_month</span>15 al 22 Nov 2026</span></div></div>
+</div>
+<!-- Metadatos de Cupo y Acciones -->
+<div class="flex items-center gap-space-md flex-wrap lg:flex-nowrap justify-between lg:justify-end">
+<div class="flex items-center gap-space-sm bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-full">
+<div class="flex flex-col">
+<span class="text-text-muted text-[10px] font-bold uppercase leading-none">Cupo General</span>
+<div class="flex items-baseline gap-1 mt-0.5">
+<span class="text-sm font-extrabold text-[#0F2146]">12</span>
+<span class="text-xs text-text-muted">/ 16 participantes</span>
+</div>
+</div>
+<svg class="w-7 h-7 -rotate-90 ml-1" viewbox="0 0 36 36">
+<path class="text-slate-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+<path class="text-[#0F2146]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="75, 100" stroke-linecap="round" stroke-width="3.5"></path>
+</svg>
+</div>
+<button class="h-11 px-6 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0F2146] font-bold text-xs shadow-sm transition-all flex items-center gap-2 group" type="button">
+<span class="material-symbols-outlined text-[18px] text-slate-500 group-hover:text-[#0F2146] transition-colors">check_circle</span>
+                Finalizar torneo
+              </button>
+</div>
+</div>
+</section>
+<!-- REQUERIMIENTO 1: MENOS PESTAÑAS (ÚNICAMENTE 3 PESTAÑAS: 'Cuadro', 'Inscritos', 'Bitácora') -->
+<div class="flex items-center justify-between flex-wrap gap-4">
+<nav class="flex items-center gap-1.5 p-1 bg-white border border-slate-200/80 rounded-full shadow-sm">
+<button class="px-5 py-2 rounded-full text-xs font-bold bg-[#0F2146] text-white shadow-sm flex items-center gap-2 transition-all">
+<span>Cuadro</span>
+<span class="w-1.5 h-1.5 rounded-full bg-[#7DD3FC]"></span>
+</button>
+<button class="px-5 py-2 rounded-full text-xs font-bold text-text-muted hover:text-[#0F2146] hover:bg-slate-50 flex items-center gap-1.5 transition-all">
+<span>Inscritos</span>
+<span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-[#0F2146] text-[10px]">12</span>
+</button>
+<button class="px-5 py-2 rounded-full text-xs font-bold text-text-muted hover:text-[#0F2146] hover:bg-slate-50 transition-all">
+<span>Bitácora</span>
+</button>
+</nav>
+<div class="flex items-center gap-2 text-xs text-text-muted font-semibold">
+<span class="inline-flex items-center gap-1.5 text-text-muted">
+<span class="w-2.5 h-2.5 rounded-full bg-[#0F2146]"></span> Victoria clasificada
+            </span>
+<span class="text-slate-300">·</span>
+<span class="inline-flex items-center gap-1.5 text-text-muted">
+<span class="w-2 h-2 rounded-full bg-[#7DD3FC]"></span> Conexión de cruce
+            </span>
+</div>
+</div>
+<!-- REQUERIMIENTO 3: LISTA DE TORNEOS CON EFECTO FOCAL VERTICAL (CENTERED FOCUS) -->
+<!-- REQUERIMIENTO 2: BRACKET SIMÉTRICO OFICIAL CONVERGENTE AL CENTRO -->
+<!-- Lado Izquierdo: Octavos -> Cuartos -> Semifinal | Centro: Final + Campeón | Lado Derecho: Semifinal <- Cuartos <- Octavos -->
+<section class="relative bg-white rounded-[28px] p-6 shadow-sm border border-slate-100 overflow-x-auto">
+<div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+<div>
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#0F2146]"></span>
+<h2 class="text-base font-extrabold text-[#0F2146] tracking-tight">Cuadro Eliminatorio Simétrico Convergente</h2>
+</div>
+<p class="text-xs text-text-muted mt-0.5">Haz clic sobre cualquier cruce para abrir el panel lateral de edición de marcador y cancha</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[11px] font-bold text-text-muted uppercase tracking-wider bg-slate-100 px-3 py-1 rounded-full">Modalidad Oficial Singles · 8vos a Final</span>
+</div>
+</div>
+<!-- ENCABEZADOS DE RONDA SIMÉTRICOS -->
+<div class="min-w-[1180px] grid grid-cols-7 gap-2 text-center mb-4">
+<span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 py-1.5 bg-slate-50 rounded-full border border-slate-100">Ronda 1 (Octavos)</span>
+<span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 py-1.5 bg-slate-50 rounded-full border border-slate-100">Cuartos de Final</span>
+<span class="text-[11px] font-extrabold uppercase tracking-widest text-[#0F2146] py-1.5 bg-[#BAE6FD]/40 rounded-full font-bold">Semifinal Izq.</span>
+<span class="text-[11px] font-extrabold uppercase tracking-widest text-white py-1.5 bg-[#0F2146] rounded-full shadow-sm">Gran Final</span>
+<span class="text-[11px] font-extrabold uppercase tracking-widest text-[#0F2146] py-1.5 bg-[#BAE6FD]/40 rounded-full font-bold">Semifinal Der.</span>
+<span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 py-1.5 bg-slate-50 rounded-full border border-slate-100">Cuartos de Final</span>
+<span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 py-1.5 bg-slate-50 rounded-full border border-slate-100">Ronda 1 (Octavos)</span>
+</div>
+<!-- CONTENEDOR DEL BRACKET CON CONECTORES SVG -->
+<div class="relative min-w-[1180px] grid grid-cols-7 gap-2 items-center py-2">
+<!-- SVG CONECTORES SKY #7DD3FC QUE UNEN EL BRACKET CONVERGENTE HACIA EL CENTRO -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0" preserveaspectratio="none">
+<!-- Lado izquierdo: Octavos -> Cuartos -->
+<path d="M 165 72 H 180 V 152 H 195" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M 165 232 H 180 V 152 H 195" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M 165 372 H 180 V 452 H 195" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M 165 532 H 180 V 452 H 195" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<!-- Lado izquierdo: Cuartos -> Semifinal -->
+<path d="M 335 152 H 350 V 302 H 365" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M 335 452 H 350 V 302 H 365" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<!-- Semifinal Izq -> Gran Final Centro -->
+<path d="M 505 302 H 535" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<!-- Semifinal Der -> Gran Final Centro -->
+<path d="M 675 302 H 645" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<!-- Lado derecho: Cuartos -> Semifinal -->
+<path d="M 845 152 H 830 V 302 H 815" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M 845 452 H 830 V 302 H 815" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<!-- Lado derecho: Octavos -> Cuartos -->
+<path d="M 1015 72 H 1000 V 152 H 985" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M 1015 232 H 1000 V 152 H 985" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M 1015 372 H 1000 V 452 H 985" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M 1015 532 H 1000 V 452 H 985" fill="none" stroke="#7DD3FC" stroke-linecap="round" stroke-width="2.5"></path>
+</svg>
+<!-- COLUMNA 1: OCTAVOS IZQUIERDA (4 partidos) -->
+<div class="relative z-10 flex flex-col justify-around h-[600px] gap-4"><div class="bg-white/95 backdrop-blur-md rounded-2xl p-2.5 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between p-1 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">1</span><span class="truncate">Sofía Torres</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">16</span><span class="truncate">Carla Rivas</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">2</span></div></div><div class="bg-white/95 backdrop-blur-md rounded-2xl p-2.5 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between p-1 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">8</span><span class="truncate">Patricia Flores</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">9</span><span class="truncate">Lucía Gómez</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">4</span></div></div><div class="bg-white/95 backdrop-blur-md rounded-2xl p-2.5 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between p-1 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">4</span><span class="truncate">Carlos Mendoza</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">13</span><span class="truncate">Mateo Ruiz</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">3</span></div></div><div class="bg-white/95 backdrop-blur-md rounded-2xl p-2.5 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between p-1 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">5</span><span class="truncate">Diego Morales</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">12</span><span class="truncate">Iván Castro</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">4</span></div></div></div>
+<!-- COLUMNA 2: CUARTOS IZQUIERDA (2 partidos) -->
+<div class="relative z-10 flex flex-col justify-around h-[600px] gap-8"><div class="bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-md border-2 border-[#0F2146] text-[11px] flex flex-col gap-1.5 cursor-pointer hover:scale-[1.02] transition-all relative"><div class="flex items-center justify-between text-[10px] text-text-muted pb-1 border-b border-slate-100"><span class="font-bold text-[#0F2146]">Match #04</span><span class="text-[#0F2146] font-bold">En edición →</span></div><div class="flex items-center justify-between p-1.5 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="material-symbols-outlined text-[14px] text-[#7DD3FC]">check_circle</span><span class="truncate">Sofía Torres</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1.5 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-4 h-4 rounded-full bg-slate-200"></span><span class="truncate">Patricia Flores</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">4</span></div></div><div class="bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1.5 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between text-[10px] text-text-muted pb-1 border-b border-slate-100"><span class="font-bold">Match #05</span><span class="text-[#2563EB] font-bold">Finalizado</span></div><div class="flex items-center justify-between p-1.5 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="material-symbols-outlined text-[14px] text-[#7DD3FC]">check</span><span class="truncate">Carlos Mendoza</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1.5 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-4 h-4 rounded-full bg-slate-200"></span><span class="truncate">Diego Morales</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">3</span></div></div></div>
+<!-- COLUMNA 3: SEMIFINAL IZQUIERDA (1 partido) -->
+<div class="relative z-10 flex flex-col justify-center h-[600px]"><div class="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 shadow-md border border-[#BAE6FD] text-[11px] flex flex-col gap-2 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between text-[10px] text-text-muted pb-1 border-b border-slate-100"><span class="font-extrabold text-[#0F2146]">Semifinal A</span><span class="bg-[#BAE6FD] text-[#0F2146] px-2 py-0.5 rounded-full font-bold">Sáb 18:00</span></div><div class="flex items-center justify-between p-1.5 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="material-symbols-outlined text-[14px] text-[#7DD3FC]">check_circle</span><span class="truncate">Sofía Torres</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1.5 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-4 h-4 rounded-full bg-slate-200"></span><span class="truncate">Carlos Mendoza</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">3</span></div></div></div>
+<!-- COLUMNA 4: CENTRO EXACTO (GRAN FINAL + TARJETA DESTACADA CAMPEÓN) -->
+<div class="relative z-20 flex flex-col items-center justify-center h-[600px] gap-4"><div class="w-full bg-white rounded-[24px] p-4 shadow-[0_12px_32px_rgba(15,33,70,0.12)] border-2 border-[#0F2146] text-xs flex flex-col gap-2 relative"><div class="flex items-center justify-between text-[11px] pb-1 border-b border-slate-100"><span class="font-extrabold text-[#0F2146] uppercase">Gran Final Oficial</span><span class="bg-[#0F2146] text-white px-2.5 py-0.5 rounded-full font-bold text-[10px]">Cancha Central</span></div><div class="flex items-center justify-between p-2 rounded-xl bg-[#0F2146] text-white font-bold shadow-sm"><div class="flex items-center gap-2 min-w-0"><div class="w-6 h-6 rounded-full bg-[#7DD3FC] text-[#0F2146] flex items-center justify-center font-bold text-[11px] flex-shrink-0">A</div><span class="truncate text-xs">Sofía Torres</span></div><span class="px-2.5 py-0.5 rounded-lg bg-white/20 font-mono text-xs font-bold">6</span></div><div class="flex items-center justify-between p-2 rounded-xl bg-slate-100 text-slate-700 font-medium"><div class="flex items-center gap-2 min-w-0"><div class="w-6 h-6 rounded-full bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-[11px] flex-shrink-0">B</div><span class="truncate text-xs">Mariana Garza</span></div><span class="px-2.5 py-0.5 rounded-lg bg-white text-slate-500 font-mono text-xs">4</span></div><div class="pt-1 text-[10px] text-center text-text-muted font-bold">Domingo 22 Nov · 12:00 hrs</div></div><div class="w-full bg-[#0F2146] text-white rounded-[24px] p-5 shadow-[0_12px_28px_rgba(15,33,70,0.18)] border border-[#7DD3FC]/40 flex flex-col items-center text-center gap-2 relative"><div class="w-12 h-12 rounded-full bg-[#BAE6FD] text-[#0F2146] flex items-center justify-center shadow-md"><span class="material-symbols-outlined text-[28px]">emoji_events</span></div><div><span class="text-[11px] font-extrabold uppercase tracking-widest text-[#7DD3FC] block">Campeón</span><h4 class="text-base font-extrabold text-white mt-0.5">Sofía Torres</h4></div></div></div>
+<!-- COLUMNA 5: SEMIFINAL DERECHA (1 partido) -->
+<div class="relative z-10 flex flex-col justify-center h-[600px]"><div class="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 shadow-md border border-[#BAE6FD] text-[11px] flex flex-col gap-2 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between text-[10px] text-text-muted pb-1 border-b border-slate-100"><span class="font-extrabold text-[#0F2146]">Semifinal B</span><span class="bg-[#BAE6FD] text-[#0F2146] px-2 py-0.5 rounded-full font-bold">Sáb 19:30</span></div><div class="flex items-center justify-between p-1.5 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="material-symbols-outlined text-[14px] text-[#7DD3FC]">check_circle</span><span class="truncate">Mariana Garza</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1.5 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-4 h-4 rounded-full bg-slate-200"></span><span class="truncate">Rodrigo Salgado</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">3</span></div></div></div>
+<!-- COLUMNA 6: CUARTOS DERECHA (2 partidos) -->
+<div class="relative z-10 flex flex-col justify-around h-[600px] gap-8"><div class="bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1.5 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between text-[10px] text-text-muted pb-1 border-b border-slate-100"><span class="font-bold">Match #06</span><span class="text-slate-500">Cancha 1</span></div><div class="flex items-center justify-between p-1.5 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="material-symbols-outlined text-[14px] text-[#7DD3FC]">check</span><span class="truncate">Rodrigo Salgado</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1.5 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-4 h-4 rounded-full bg-slate-200"></span><span class="truncate">Alejandro Rivas</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">2</span></div></div><div class="bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1.5 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between text-[10px] text-text-muted pb-1 border-b border-slate-100"><span class="font-bold">Match #07</span><span class="text-slate-500">Cancha 3</span></div><div class="flex items-center justify-between p-1.5 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="material-symbols-outlined text-[14px] text-[#7DD3FC]">check</span><span class="truncate">Mariana Garza</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1.5 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-4 h-4 rounded-full bg-slate-200"></span><span class="truncate">Esteban Silva</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">1</span></div></div></div>
+<!-- COLUMNA 7: OCTAVOS DERECHA (4 partidos) -->
+<div class="relative z-10 flex flex-col justify-around h-[600px] gap-4"><div class="bg-white/95 backdrop-blur-md rounded-2xl p-2.5 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between p-1 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">3</span><span class="truncate">Rodrigo Salgado</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">14</span><span class="truncate">Bernardo Gil</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">1</span></div></div><div class="bg-white/95 backdrop-blur-md rounded-2xl p-2.5 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between p-1 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">6</span><span class="truncate">Alejandro Rivas</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">11</span><span class="truncate">Hugo Estrada</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">3</span></div></div><div class="bg-white/95 backdrop-blur-md rounded-2xl p-2.5 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between p-1 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">7</span><span class="truncate">Esteban Silva</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">10</span><span class="truncate">Arturo Peña</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">2</span></div></div><div class="bg-white/95 backdrop-blur-md rounded-2xl p-2.5 shadow-[0_4px_16px_rgba(15,33,70,0.06)] border border-slate-200/90 text-[11px] flex flex-col gap-1 cursor-pointer hover:border-[#0F2146] transition-all"><div class="flex items-center justify-between p-1 rounded-xl bg-[#0F2146] text-white font-bold"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">2</span><span class="truncate">Mariana Garza</span></div><span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-mono font-bold">6</span></div><div class="flex items-center justify-between p-1 rounded-xl text-slate-600 font-medium"><div class="flex items-center gap-1.5 truncate"><span class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">15</span><span class="truncate">Sara Domínguez</span></div><span class="px-2 py-0.5 text-slate-400 text-[11px] font-mono">1</span></div></div></div>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- REQUERIMIENTO 1: PANEL LATERAL DERECHO FLOTANTE / DESPLEGABLE DE EDICIÓN DE ENCUENTRO -->
+<!-- Se abre al interactuar con un partido (mostrado activo con Match #04) -->
+<aside class="fixed right-6 top-20 w-[380px] max-h-[calc(100vh-5rem)] bg-white rounded-[28px] p-6 shadow-[0_20px_50px_-10px_rgba(15,33,70,0.22)] border border-slate-200/90 z-50 overflow-y-auto flex flex-col gap-4">
+<!-- Header del Panel Desplegable -->
+<div class="flex items-start justify-between pb-2 border-b border-slate-100">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#0F2146]"></span>
+<h3 class="text-base font-extrabold text-[#0F2146]">
+            Editar encuentro
+          </h3>
+</div>
+<span class="text-xs text-text-muted mt-0.5">
+          Cuartos de final · Match #04 (Arcilla Central)
+        </span>
+</div>
+<button aria-label="Cerrar panel" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-[#0F2146] flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Formulario de Edición -->
+<form class="flex flex-col gap-4" onsubmit="event.preventDefault();"><div class="p-3.5 rounded-[20px] bg-slate-50 border border-slate-200/80 flex flex-col gap-2"><div class="flex items-center justify-between"><span class="text-xs font-bold text-[#0F2146]">Sofía Torres</span><span class="px-2 py-0.5 rounded-full bg-[#BAE6FD] text-[#0F2146] text-[10px] font-bold">Jugadora A</span></div><div class="flex items-center justify-between gap-2 pt-1"><div class="flex items-center gap-2"><label class="text-xs text-text-muted font-medium">Marcador:</label><input class="w-11 h-10 text-center bg-white rounded-full font-bold text-sm text-[#0F2146] border border-slate-200 outline-none shadow-sm focus:border-[#0F2146]" maxlength="2" type="text" value="6"/></div><label class="flex items-center gap-1.5 cursor-pointer select-none"><input checked="" class="sr-only peer" type="checkbox"/><div class="w-5 h-5 rounded-full bg-[#0F2146] flex items-center justify-center text-white shadow-sm"><span class="material-symbols-outlined text-[14px]">check</span></div><span class="text-xs text-[#0F2146] font-bold">Ganador</span></label></div></div><div class="p-3.5 rounded-[20px] bg-slate-50 border border-slate-200/80 flex flex-col gap-2"><div class="flex items-center justify-between"><span class="text-xs font-bold text-[#0F2146]">Patricia Flores</span><span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 text-[10px] font-bold">Jugadora B</span></div><div class="flex items-center justify-between gap-2 pt-1"><div class="flex items-center gap-2"><label class="text-xs text-text-muted font-medium">Marcador:</label><input class="w-11 h-10 text-center bg-white rounded-full font-bold text-sm text-[#0F2146] border border-slate-200 outline-none shadow-sm focus:border-[#0F2146]" maxlength="2" type="text" value="4"/></div><label class="flex items-center gap-1.5 cursor-pointer select-none opacity-50"><input class="sr-only peer" type="checkbox"/><div class="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-transparent"><span class="material-symbols-outlined text-[14px]">check</span></div><span class="text-xs text-text-muted font-medium">Ganador</span></label></div></div><div class="grid grid-cols-2 gap-2"><div class="flex flex-col gap-1"><label class="text-[10px] font-bold text-text-muted uppercase">Fecha</label><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-text-muted text-[16px]">calendar_today</span><input class="w-full pl-8 pr-2 h-10 bg-slate-50 border border-slate-200 rounded-full text-xs text-[#0F2146] outline-none" type="text" value="18 Nov 2026"/></div></div><div class="flex flex-col gap-1"><label class="text-[10px] font-bold text-text-muted uppercase">Hora</label><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-text-muted text-[16px]">schedule</span><input class="w-full pl-8 pr-2 h-10 bg-slate-50 border border-slate-200 rounded-full text-xs text-[#0F2146] outline-none" type="text" value="10:00 hrs"/></div></div></div><div class="flex flex-col gap-1.5"><label class="text-[10px] font-bold text-text-muted uppercase">Asignación de Cancha</label><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-text-muted text-[16px]">stadium</span><select class="w-full pl-8 pr-8 h-10 bg-slate-50 border border-slate-200 rounded-full text-xs text-[#0F2146] outline-none appearance-none cursor-pointer"><option selected="">Cancha Central Arcilla</option><option>Cancha 1</option><option>Cancha 2</option><option>Cancha 3</option></select><span class="material-symbols-outlined absolute right-3 text-text-muted text-[16px] pointer-events-none">expand_more</span></div><div class="p-3 rounded-2xl bg-[#DC2626]/10 border border-[#DC2626]/20 text-[#DC2626] flex items-start gap-2 mt-0.5"><span class="material-symbols-outlined text-[18px] flex-shrink-0 mt-0.5">warning</span><div class="flex flex-col text-xs leading-snug"><span class="font-bold text-[11px]">Conflicto de horario</span><span>La cancha ya está reservada a esa hora (Reserva previa: Torneo Juvenil 09:30 - 11:30 hrs).</span></div></div></div><div class="flex flex-col gap-1"><label class="text-[10px] font-bold text-text-muted uppercase">Árbitro</label><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-text-muted text-[16px]">sports</span><select class="w-full pl-8 pr-8 h-10 bg-slate-50 border border-slate-200 rounded-full text-xs text-[#0F2146] outline-none appearance-none cursor-pointer"><option selected="">Roberto Alemán</option><option>Mariana Soria</option><option>Esteban Carranza</option><option>Sin árbitro asignado</option></select><span class="material-symbols-outlined absolute right-3 text-text-muted text-[16px] pointer-events-none">expand_more</span></div></div><div class="flex items-center gap-2 pt-2"><button class="w-1/2 h-11 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0F2146] font-bold text-xs transition-all" type="button">Cancelar</button><button class="w-1/2 h-11 rounded-full bg-[#0F2146] hover:bg-[#1a356d] text-white font-bold text-xs shadow-md transition-all active:scale-[0.98]" type="submit">Guardar cambios</button></div></form>
+</aside>
+</body></html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"on-secondary":"#ffffff","surface-variant":"#e1e2e4","on-primary-fixed-variant":"#36466d","outline":"#75777f","on-tertiary-container":"#769500","on-tertiary-fixed":"#161f00","on-primary-fixed":"#061a3f","on-background":"#191c1e","surface":"#f8f9fb","on-secondary-fixed-variant":"#3a475d","primary-fixed":"#d9e2ff","text-primary":"#0F2146","border-subtle":"#E5E7EB","surface-tint":"#4e5e86","surface-container-high":"#e7e8ea","surface-container":"#edeef0","inverse-on-surface":"#f0f1f3","glass-border":"rgba(255, 255, 255, 0.45)","surface-card":"#FFFFFF","inverse-primary":"#b6c6f4","surface-container-lowest":"#ffffff","on-error":"#ffffff","glass-bg":"rgba(255, 255, 255, 0.72)","secondary":"#525f76","surface-container-low":"#f3f4f6","on-surface-variant":"#45464e","surface-dim":"#d9dadc","mesh-torneos-start":"#F97316","text-muted":"#687690","mesh-clases-end":"#FBBF24","tertiary-fixed-dim":"#aad600","mesh-ludoteca-end":"#F472B6","mesh-reservas-end":"#06B6D4","on-tertiary":"#ffffff","on-primary":"#ffffff","mesh-reservas-start":"#2563EB","background":"#f8f9fb","error":"#ba1a1a","primary-fixed-dim":"#b6c6f4","inverse-surface":"#2e3132","primary-container":"#0f2146","on-tertiary-fixed-variant":"#3b4d00","surface-container-highest":"#e1e2e4","error-container":"#ffdad6","tertiary-fixed":"#c5f331","on-secondary-container":"#56637a","tertiary":"#090e00","surface-bright":"#f8f9fb","mesh-clases-start":"#10B981","mesh-ludoteca-start":"#A855F7","secondary-fixed":"#d6e3fe","on-primary-container":"#7989b4","outline-variant":"#c5c6cf","on-surface":"#191c1e","tertiary-container":"#1c2600","on-secondary-fixed":"#0e1c2f","secondary-container":"#d3e0fb","secondary-fixed-dim":"#bac7e1","on-error-container":"#93000a","mesh-torneos-end":"#EC4899","primary":"#000b27"},"borderRadius":{"DEFAULT":"1rem","lg":"2rem","xl":"3rem","full":"9999px"},"spacing":{"gutter":"1.5rem","margin":"2rem","space-md":"1rem","space-sm":"0.5rem","space-xs":"0.25rem","space-xl":"2rem","gutter-mobile":"0.75rem","space-lg":"1.5rem","margin-mobile":"1rem"},"fontFamily":{"headline-lg":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"headline-hero-mobile":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"label-lg":["Plus Jakarta Sans"],"headline-hero":["Plus Jakarta Sans"]},"fontSize":{"headline-lg":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"800"}],"headline-md":["20px",{"lineHeight":"26px","letterSpacing":"-0.01em","fontWeight":"700"}],"headline-lg-mobile":["24px",{"lineHeight":"32px","letterSpacing":"-0.02em","fontWeight":"800"}],"headline-hero-mobile":["30px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"800"}],"body-md":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"headline-sm":["17px",{"lineHeight":"22px","letterSpacing":"0em","fontWeight":"700"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"700"}],"label-sm":["10px",{"lineHeight":"12px","letterSpacing":"0.04em","fontWeight":"800"}],"body-lg":["16px",{"lineHeight":"24px","letterSpacing":"0em","fontWeight":"400"}],"body-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.01em","fontWeight":"400"}],"label-lg":["14px",{"lineHeight":"18px","letterSpacing":"0.01em","fontWeight":"700"}],"headline-hero":["40px",{"lineHeight":"48px","letterSpacing":"-0.03em","fontWeight":"800"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-[280px] bg-primary-container text-on-primary z-50 flex flex-col justify-between p-space-lg select-none"><div class="flex flex-col gap-space-lg"><div class="flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-full bg-surface-container-lowest/15 flex items-center justify-center"><span class="material-symbols-outlined text-surface-container-lowest text-[20px]">sports_tennis</span></div><span class="font-headline-md text-headline-md text-surface-container-lowest font-extrabold tracking-tight">Athlety</span></div><span class="px-space-sm py-space-xs rounded-full bg-surface-container-lowest/10 text-secondary-fixed text-label-sm font-label-sm tracking-wider uppercase">STAFF</span></div><div><p class="text-on-primary-container text-label-sm font-label-sm uppercase tracking-wider mb-space-sm">COORDINACIÓN DEPORTIVA</p><nav class="flex flex-col gap-space-xs" data-active-classes="bg-surface-card text-text-primary shadow-lg font-bold"><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-on-primary-container hover:bg-surface-container-lowest/10 hover:text-surface-container-lowest transition-all" data-path="inicio" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="font-label-lg text-label-lg">Inicio</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-on-primary-container hover:bg-surface-container-lowest/10 hover:text-surface-container-lowest transition-all" data-path="clases" href="#"><span class="material-symbols-outlined text-[20px]">fitness_center</span><span class="font-label-lg text-label-lg">Clases</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-on-primary-container hover:bg-surface-container-lowest/10 hover:text-surface-container-lowest transition-all" data-path="reservas" href="#"><span class="material-symbols-outlined text-[20px]">event_available</span><span class="font-label-lg text-label-lg">Reservas</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-on-primary-container hover:bg-surface-container-lowest/10 hover:text-surface-container-lowest transition-all" data-path="espacios" href="#"><span class="material-symbols-outlined text-[20px]">stadium</span><span class="font-label-lg text-label-lg">Espacios</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-on-primary-container hover:bg-surface-container-lowest/10 hover:text-surface-container-lowest transition-all" data-path="torneos" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[20px]">emoji_events</span><span class="font-label-lg text-label-lg">Torneos</span></div><span class="w-2 h-2 rounded-full bg-mesh-reservas-start"></span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-on-primary-container hover:bg-surface-container-lowest/10 hover:text-surface-container-lowest transition-all" data-path="evaluaciones" href="#"><span class="material-symbols-outlined text-[20px]">assignment_turned_in</span><span class="font-label-lg text-label-lg">Evaluaciones</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-full text-on-primary-container hover:bg-surface-container-lowest/10 hover:text-surface-container-lowest transition-all" data-path="reportes" href="#"><span class="material-symbols-outlined text-[20px]">query_stats</span><span class="font-label-lg text-label-lg">Reportes</span></a></nav></div></div><div class="pt-space-md bg-surface-container-lowest/5 rounded-2xl p-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center text-primary-container font-headline-sm text-headline-sm"><span class="material-symbols-outlined text-primary-container text-[20px]">person</span></div><div class="flex flex-col"><span class="text-surface-container-lowest font-label-md text-label-md leading-tight">Carlos Méndez</span><span class="text-secondary-fixed text-label-sm font-label-sm leading-tight">Coordinador</span></div></div><div class="px-space-xs py-0.5 rounded-full bg-primary-container text-secondary-fixed text-label-sm font-label-sm uppercase">Staff</div></div></aside><div class="pl-[280px]"><header class="fixed top-0 left-[280px] right-0 h-16 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-space-lg flex items-center justify-between"><div class="flex items-center gap-space-xs text-text-muted font-label-md text-label-md"><span class="hover:text-text-primary transition-colors cursor-pointer">Panel Athlety</span><span class="material-symbols-outlined text-[16px]">chevron_right</span><span class="text-text-primary font-bold">Operaciones &amp; Deportes</span></div><div class="flex items-center gap-space-md"><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-text-muted text-[18px]">search</span><input class="w-64 pl-9 pr-space-md py-1.5 bg-surface-card rounded-full font-body-sm text-body-sm text-text-primary placeholder:text-text-muted outline-none shadow-sm focus:ring-2 focus:ring-primary-container/20 transition-all" placeholder="Buscar torneo..." type="text"/></div><button aria-label="Notificaciones" class="w-9 h-9 rounded-full bg-surface-card text-text-muted hover:text-text-primary flex items-center justify-center shadow-sm hover:shadow transition-all relative" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-mesh-reservas-start"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-16 bg-surface min-h-screen px-space-lg py-space-lg"><div class="flex flex-col w-full gap-space-lg text-on-surface">
+<!-- TOP BAR: Título, Subtítulo y Controles en Píldora -->
+<header class="flex flex-col xl:flex-row xl:items-end justify-between gap-space-md">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-1.5 text-secondary text-label-md font-label-md">
+<span>Panel Athlety</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-primary-container font-semibold">Coordinación Deportiva</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-primary-container font-semibold">Evaluaciones</span>
+</div>
+<h1 class="text-headline-lg font-headline-md tracking-tight text-primary-container">
+        Evaluaciones de instructores
+      </h1>
+<p class="text-body-md font-body-md text-secondary max-w-2xl">
+        Métricas de satisfacción de socios, desempeño docente y retroalimentación mensual en instalaciones deportivas.
+      </p>
+</div>
+<!-- Píldoras de Filtros y Controles -->
+<div class="flex flex-wrap items-center gap-space-sm">
+<!-- Selector de Mes -->
+<div class="inline-flex items-center gap-space-xs bg-surface-container-lowest px-4 py-2 rounded-full shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-secondary">calendar_today</span>
+<span class="text-label-md font-label-md text-primary-container">Noviembre 2026</span>
+<button aria-label="Cambiar mes" class="hover:bg-surface-container rounded-full p-0.5 text-secondary hover:text-primary-container transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+</div>
+<!-- Filtro de Disciplina -->
+<div class="inline-flex items-center gap-space-xs bg-surface-container-lowest px-4 py-2 rounded-full shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-secondary">sports_tennis</span>
+<span class="text-label-md font-label-md text-primary-container">Todas las disciplinas</span>
+<span class="material-symbols-outlined text-[16px] text-secondary">expand_more</span>
+</div>
+<!-- Buscador de Instructor -->
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-[18px] text-secondary">search</span>
+<input class="w-48 xl:w-56 pl-9 pr-4 py-2 bg-surface-container-lowest text-primary-container rounded-full text-label-md font-label-md placeholder:text-secondary focus:outline-none shadow-sm transition-all focus:w-64" placeholder="Buscar instructor..." type="text"/>
+</div>
+<!-- Botón Exportar Reporte -->
+<button class="inline-flex items-center gap-2 bg-primary-container text-on-primary hover:bg-primary-container/90 px-5 py-2 rounded-full shadow-sm text-label-md font-label-md transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Exportar</span>
+</button>
+</div>
+</header>
+<!-- 3 TARJETAS KPI (Radio 28px) -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-space-lg">
+<!-- KPI 1: Promedio General -->
+<div class="bg-surface-container-lowest rounded-[28px] p-space-lg shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md uppercase tracking-wider text-secondary">Promedio general</span>
+<span class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[18px]">star</span>
+</span>
+</div>
+<div class="my-space-sm flex items-baseline gap-space-sm">
+<span class="text-headline-lg font-headline-md font-extrabold text-primary-container">4.8</span>
+<div class="flex items-center text-[#F59E0B]">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">star_half</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm text-secondary">
+<span>Calificación promedio del club</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-low text-primary-container font-semibold text-label-sm font-label-sm">
+          +0.2 vs mes ant.
+        </span>
+</div>
+</div>
+<!-- KPI 2: Evaluaciones del Mes -->
+<div class="bg-surface-container-lowest rounded-[28px] p-space-lg shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md uppercase tracking-wider text-secondary">Evaluaciones del mes</span>
+<span class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[18px]">rate_review</span>
+</span>
+</div>
+<div class="my-space-sm flex items-baseline gap-space-sm">
+<span class="text-headline-lg font-headline-md font-extrabold text-primary-container">148</span>
+<span class="text-body-sm font-body-sm text-secondary">opiniones enviadas</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm text-secondary">
+<span>Evaluaciones completadas</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-low text-primary-container font-semibold text-label-sm font-label-sm">
+          86% participación
+        </span>
+</div>
+</div>
+<!-- KPI 3: Docente Mejor Calificado -->
+<div class="bg-surface-container-lowest rounded-[28px] p-space-lg shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md uppercase tracking-wider text-secondary">Instructor mejor calificado</span>
+<span class="px-2.5 py-0.5 rounded-full bg-primary-container text-surface-container-lowest text-label-sm font-label-sm uppercase tracking-wider">
+          Top #1
+        </span>
+</div>
+<div class="my-space-sm flex items-center gap-space-md">
+<div class="relative w-12 h-12 rounded-full overflow-hidden bg-surface-container-high shrink-0 shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Retrato profesional de mujer instructora de tenis mexicana en ropa deportiva blanca, iluminación suave y limpia, fondo sutil de cancha de tenis con atmósfera premium de club deportivo." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjh7F6nAJplwKDXXLtcHi3evrom6GtvMlWw9_9Xvylqfyb-hsoHHDlwCVep9aQg99IoQRZat4h53WyZkgLFXL0xOo_GvcNb-Mks7Ma3FlrHcYNCu2_I_hRWoRk6WP4rzzyrKDnXVsx7j8NYTeSjvypOXUZoCNYCmNzsMh1h1D9MvSqcS8DDb2HtuT2h_7Nthptnx5i7SntEnSe1FtpZF8uz4d7wPPl02H3LjrdES8"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-headline-sm font-headline-sm text-primary-container truncate font-bold">Sofía Torres Ruiz</span>
+<span class="text-body-sm font-body-sm text-secondary truncate">Tenis · Cancha Central</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm text-secondary">
+<span>42 evaluaciones recibidas</span>
+<span class="text-label-md font-label-md text-primary-container font-bold flex items-center gap-1">
+          4.9 <span class="material-symbols-outlined text-[16px] text-[#F59E0B]" style="font-variation-settings: 'FILL' 1;">star</span>
+</span>
+</div>
+</div>
+</section>
+<!-- CONTENEDOR A DOS COLUMNAS (~65% Ranking / ~35% Detalle Lateral) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+<!-- COLUMNA IZQUIERDA (~65% = 8 cols) -->
+<section class="lg:col-span-7 xl:col-span-8 flex flex-col gap-space-md">
+<!-- Encabezado de la Sección de Ranking -->
+<div class="flex items-center justify-between px-2">
+<div class="flex items-center gap-space-sm">
+<h2 class="text-headline-md font-headline-md text-primary-container">Ranking de instructores</h2>
+<span class="px-3 py-0.5 rounded-full bg-surface-container-low text-primary-container text-label-sm font-label-sm font-semibold">
+            8 docentes evaluados
+          </span>
+</div>
+<div class="inline-flex items-center gap-1 text-secondary text-label-md font-label-md">
+<span>Ordenar por:</span>
+<button class="font-bold text-primary-container flex items-center gap-0.5 hover:underline" type="button">
+            Mayor calificación
+            <span class="material-symbols-outlined text-[16px]">arrow_drop_down</span>
+</button>
+</div>
+</div>
+<!-- Contenedor de la Tabla / Lista (28px de radio) -->
+<div class="bg-surface-container-lowest rounded-[28px] shadow-sm p-space-md flex flex-col gap-space-xs">
+<!-- Cabecera de Columnas (Sin columna de tendencia) -->
+<div class="grid grid-cols-12 px-4 py-2.5 text-secondary text-label-sm font-label-sm uppercase tracking-wider">
+<div class="col-span-1">#</div>
+<div class="col-span-6">Instructor / Especialidad</div>
+<div class="col-span-3 text-right">Promedio</div>
+<div class="col-span-2 text-right">Muestreo</div>
+</div>
+<!-- FILA 1 (Seleccionada / Activa) -->
+<div class="grid grid-cols-12 items-center px-4 py-3.5 rounded-2xl bg-surface-container-low/70 cursor-pointer shadow-sm transition-all" onclick="selectInstructor('sofia')">
+<div class="col-span-1 font-headline-sm font-headline-sm text-primary-container font-extrabold">
+            01
+          </div>
+<div class="col-span-6 flex items-center gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Retrato deportivo de Sofía Torres, instructora senior de tenis, sonriente y atenta, vistiendo polo azul navy deportivo en luz diurna de club." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjbg8h_TqulDY9mwHhA8E5EXE7GxrCq6CPP5qhwBlooGk_UFzUSPov0cVF5pfbm5MJmjqSeg1cXN9cbnyoIm93cIDP0DJv-daLFTlxYhU2JFoBZgIIcJ5ADLq38e5q1LyLbAm3dYbLPBwJ32RkLir_NGzLbXliM8EmlN57Pgbs5fRSATR1xgF42KzxfJDlxLa4GlTbyPA6BNEXZoWyezTer5NdGXcMIfzZsa3jOko"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-body-md font-body-md font-bold text-primary-container truncate">Sofía Torres Ruiz</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="inline-block px-2 py-0.2 rounded-full bg-surface-container-lowest text-primary-container text-label-sm font-label-sm">
+                  Tenis
+                </span>
+<span class="text-body-sm font-body-sm text-secondary text-xs truncate">Cancha Central</span>
+</div>
+</div>
+</div>
+<div class="col-span-3 text-right">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-lowest shadow-xs">
+<span class="text-label-lg font-label-lg text-primary-container font-bold">4.9</span>
+<span class="material-symbols-outlined text-[16px] text-[#F59E0B]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="col-span-2 text-right text-body-sm font-body-sm text-secondary font-medium">
+            42 eval.
+          </div>
+</div>
+<!-- FILA 2 -->
+<div class="grid grid-cols-12 items-center px-4 py-3.5 rounded-2xl hover:bg-surface-container-low/40 cursor-pointer transition-all" onclick="selectInstructor('carlos')">
+<div class="col-span-1 font-headline-sm font-headline-sm text-secondary font-bold">
+            02
+          </div>
+<div class="col-span-6 flex items-center gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Retrato de entrenador de pádel mexicano, hombre en sus 30s con uniforme deportivo moderno de club, sonrisa profesional y serena." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRi1Z8x9JWDvjZYQHyTusz3ILs091p8NC26M6M9F3g1_IIl1ROAX7wkfgo-TvBOshTRsR87PpilKmMKnb4kI4aXnBCGEZ3tX0A5gFtUyrEMG53E4t81C154tRoHmR6apqdMjwaYmspejX6I0_xJ8nEnDa8B0E_AaaXI2j8gmspPlG_mC_9vJ__my510nwYmBiDYnSZAPtxnwTPHUNICLx0VPHlNcLm7TmGzfp362w"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-body-md font-body-md font-bold text-primary-container truncate">Carlos Mendoza Ortiz</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="inline-block px-2 py-0.2 rounded-full bg-surface-container-low text-primary-container text-label-sm font-label-sm">
+                  Pádel
+                </span>
+<span class="text-body-sm font-body-sm text-secondary text-xs truncate">Pista Cristal 1-4</span>
+</div>
+</div>
+</div>
+<div class="col-span-3 text-right">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low/60">
+<span class="text-label-lg font-label-lg text-primary-container font-bold">4.8</span>
+<span class="material-symbols-outlined text-[16px] text-[#F59E0B]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="col-span-2 text-right text-body-sm font-body-sm text-secondary font-medium">
+            38 eval.
+          </div>
+</div>
+<!-- FILA 3 -->
+<div class="grid grid-cols-12 items-center px-4 py-3.5 rounded-2xl hover:bg-surface-container-low/40 cursor-pointer transition-all" onclick="selectInstructor('laura')">
+<div class="col-span-1 font-headline-sm font-headline-sm text-secondary font-bold">
+            03
+          </div>
+<div class="col-span-6 flex items-center gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Retrato de entrenadora de natación competitiva, mujer con gorro acuático o indumentaria deportiva de alberca, mirada inspiradora y amigable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDeuW4HiaFvV2OesqT63pCizDGcbj57kxa7T2wBmdxw1YMznegigm0-aKNb0IK3lHAxf3SzI_VYxQHTnbASb36pNTEV8pXwiuRqkFyMlby68aulopTxAQ0duziEL78vJyYXx-tLlx2-DqS3Wel3GHuYwCZcI4RpFyA7HbSbe4kT4CAV3cLtH-6sqlqUwuXRTd4KhK52SgPnrj5VsIyZPpRQGOd3iq8qSScAbMVjTEg"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-body-md font-body-md font-bold text-primary-container truncate">Laura Vega Galindo</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="inline-block px-2 py-0.2 rounded-full bg-surface-container-low text-primary-container text-label-sm font-label-sm">
+                  Natación
+                </span>
+<span class="text-body-sm font-body-sm text-secondary text-xs truncate">Alberca Olímpica</span>
+</div>
+</div>
+</div>
+<div class="col-span-3 text-right">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low/60">
+<span class="text-label-lg font-label-lg text-primary-container font-bold">4.7</span>
+<span class="material-symbols-outlined text-[16px] text-[#F59E0B]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="col-span-2 text-right text-body-sm font-body-sm text-secondary font-medium">
+            29 eval.
+          </div>
+</div>
+<!-- FILA 4 -->
+<div class="grid grid-cols-12 items-center px-4 py-3.5 rounded-2xl hover:bg-surface-container-low/40 cursor-pointer transition-all" onclick="selectInstructor('ricardo')">
+<div class="col-span-1 font-headline-sm font-headline-sm text-secondary font-bold">
+            04
+          </div>
+<div class="col-span-6 flex items-center gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-surface-container-high flex items-center justify-center font-bold text-primary-container text-label-md">
+              RC
+            </div>
+<div class="flex flex-col min-w-0">
+<span class="text-body-md font-body-md font-bold text-primary-container truncate">Ricardo Cano</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="inline-block px-2 py-0.2 rounded-full bg-surface-container-low text-primary-container text-label-sm font-label-sm">
+                  Atletismo
+                </span>
+<span class="text-body-sm font-body-sm text-secondary text-xs truncate">Pista de Tartán</span>
+</div>
+</div>
+</div>
+<div class="col-span-3 text-right">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low/60">
+<span class="text-label-lg font-label-lg text-primary-container font-bold">4.6</span>
+<span class="material-symbols-outlined text-[16px] text-[#F59E0B]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="col-span-2 text-right text-body-sm font-body-sm text-secondary font-medium">
+            24 eval.
+          </div>
+</div>
+<!-- FILA 5 -->
+<div class="grid grid-cols-12 items-center px-4 py-3.5 rounded-2xl hover:bg-surface-container-low/40 cursor-pointer transition-all" onclick="selectInstructor('diego')">
+<div class="col-span-1 font-headline-sm font-headline-sm text-secondary font-bold">
+            05
+          </div>
+<div class="col-span-6 flex items-center gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-surface-container-high flex items-center justify-center font-bold text-primary-container text-label-md">
+              DM
+            </div>
+<div class="flex flex-col min-w-0">
+<span class="text-body-md font-body-md font-bold text-primary-container truncate">Diego Morales Valdés</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="inline-block px-2 py-0.2 rounded-full bg-surface-container-low text-primary-container text-label-sm font-label-sm">
+                  Fitness &amp; Yoga
+                </span>
+<span class="text-body-sm font-body-sm text-secondary text-xs truncate">Estudio Polivalente</span>
+</div>
+</div>
+</div>
+<div class="col-span-3 text-right">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low/60">
+<span class="text-label-lg font-label-lg text-primary-container font-bold">4.5</span>
+<span class="material-symbols-outlined text-[16px] text-[#F59E0B]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="col-span-2 text-right text-body-sm font-body-sm text-secondary font-medium">
+            15 eval.
+          </div>
+</div>
+</div>
+<!-- COMPONENTE EMPTY STATE OFICIAL M0 (Sutil al pie de tabla) -->
+<div class="bg-surface-container-lowest rounded-[28px] p-space-lg shadow-sm flex flex-col sm:flex-row items-center gap-space-lg text-center sm:text-left">
+<div class="w-14 h-14 rounded-full bg-surface-container-low flex items-center justify-center text-primary-container shrink-0">
+<span class="material-symbols-outlined text-[28px]">mark_email_unread</span>
+</div>
+<div class="flex flex-col gap-1 grow">
+<h3 class="text-headline-sm font-headline-sm text-primary-container font-bold">
+            Aún no hay evaluaciones este mes
+          </h3>
+<p class="text-body-sm font-body-sm text-secondary max-w-lg">
+            Las opiniones enviadas por los socios tras completar sus sesiones se reflejarán automáticamente aquí conforme finalicen sus reservaciones.
+          </p>
+</div>
+<button class="shrink-0 px-5 py-2.5 rounded-full bg-surface-container-low text-primary-container hover:bg-surface-container text-label-md font-label-md font-semibold transition-all" type="button">
+          Ver histórico anterior
+        </button>
+</div>
+</section>
+<!-- COLUMNA DERECHA (~35% = 4-5 cols): PANEL DETALLE DE INSTRUCTOR -->
+<aside class="lg:col-span-5 xl:col-span-4 bg-surface-container-lowest rounded-[28px] p-space-lg shadow-sm flex flex-col gap-space-lg sticky top-20">
+<!-- Cabecera del Panel -->
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-md">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-container-high shrink-0 shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Detalle en primer plano de Sofía Torres Ruiz, instructora titular de tenis, expresión profesional y cálida con uniforme azul navy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeyM4_UYNC7GedjQTAiV6jQZVdDTIAbKsMzIriFfd0fWdrbdfa_tIDNlPhSUnHiHfel5EJDwXmfuUlevfddM64wkF9KxwAC2K5HvSOD3uCKzVyopKjAmgJuHmxCNsQQMJI1-TKjhu1WIszPLiSR7aai5YQa2NUTAza0Sdfk6Otavkr3UckHiibdNAQeGU7dIT0xGNu333fJVAl3Wu9xQCIvWzoxSGvj6C9R_zeKxE"/>
+</div>
+<div class="flex flex-col">
+<span class="text-headline-sm font-headline-sm text-primary-container font-bold">Sofía Torres Ruiz</span>
+<span class="text-body-sm font-body-sm text-secondary">Tenis Adultos &amp; Infantil</span>
+</div>
+</div>
+<button aria-label="Cerrar panel" class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-secondary hover:text-primary-container transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Puntuación Destacada y Muestreo -->
+<div class="bg-surface-container-low/60 rounded-2xl p-space-md flex flex-col gap-1.5">
+<div class="flex items-baseline justify-between">
+<div class="flex items-baseline gap-2">
+<span class="text-headline-lg font-headline-md font-extrabold text-primary-container">4.9</span>
+<span class="text-body-sm font-body-sm text-secondary">de 5.0</span>
+</div>
+<div class="flex items-center text-[#F59E0B]">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<p class="text-body-sm font-body-sm text-secondary">
+          42 evaluaciones recibidas en Noviembre 2026
+        </p>
+</div>
+<!-- SECCIÓN: Distribución de Calificaciones (Barras horizontales) -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between text-label-md font-label-md text-primary-container">
+<span>Distribución de calificaciones</span>
+<span class="text-label-sm font-label-sm text-secondary">100% verificado</span>
+</div>
+<div class="flex flex-col gap-2">
+<!-- 5 Estrellas -->
+<div class="flex items-center gap-space-sm text-body-sm font-body-sm text-secondary">
+<span class="w-12 text-xs font-semibold">5 ★</span>
+<div class="grow h-2.5 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 88%;"></div>
+</div>
+<span class="w-16 text-right text-xs font-medium text-primary-container">88% (37)</span>
+</div>
+<!-- 4 Estrellas -->
+<div class="flex items-center gap-space-sm text-body-sm font-body-sm text-secondary">
+<span class="w-12 text-xs font-semibold">4 ★</span>
+<div class="grow h-2.5 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-secondary-container rounded-full" style="width: 10%;"></div>
+</div>
+<span class="w-16 text-right text-xs font-medium text-primary-container">10% (4)</span>
+</div>
+<!-- 3 Estrellas -->
+<div class="flex items-center gap-space-sm text-body-sm font-body-sm text-secondary">
+<span class="w-12 text-xs font-semibold">3 ★</span>
+<div class="grow h-2.5 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-outline-variant rounded-full" style="width: 2%;"></div>
+</div>
+<span class="w-16 text-right text-xs font-medium text-primary-container">2% (1)</span>
+</div>
+<!-- 2 Estrellas -->
+<div class="flex items-center gap-space-sm text-body-sm font-body-sm text-secondary">
+<span class="w-12 text-xs font-semibold">2 ★</span>
+<div class="grow h-2.5 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-outline-variant rounded-full" style="width: 0%;"></div>
+</div>
+<span class="w-16 text-right text-xs font-medium text-secondary">0% (0)</span>
+</div>
+<!-- 1 Estrella -->
+<div class="flex items-center gap-space-sm text-body-sm font-body-sm text-secondary">
+<span class="w-12 text-xs font-semibold">1 ★</span>
+<div class="grow h-2.5 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-outline-variant rounded-full" style="width: 0%;"></div>
+</div>
+<span class="w-16 text-right text-xs font-medium text-secondary">0% (0)</span>
+</div>
+</div>
+</div>
+<!-- SECCIÓN: Comentarios Anónimos Recientes -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between text-label-md font-label-md text-primary-container">
+<span>Comentarios anónimos recientes</span>
+<span class="text-label-sm font-label-sm text-secondary">3 más recientes</span>
+</div>
+<div class="flex flex-col gap-space-sm max-h-72 overflow-y-auto pr-1">
+<!-- Comentario 1 -->
+<div class="bg-surface-container-low/50 rounded-2xl p-space-md flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-lowest text-secondary text-label-sm font-label-sm">
+                Socio Anónimo · Nov 2026
+              </span>
+<div class="flex items-center text-[#F59E0B]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<p class="text-body-sm font-body-sm text-primary-container leading-relaxed">
+              "Excelente técnica para corregir el revés a dos manos. Muy puntual y paciente con los ejercicios de calentamiento."
+            </p>
+</div>
+<!-- Comentario 2 -->
+<div class="bg-surface-container-low/50 rounded-2xl p-space-md flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-lowest text-secondary text-label-sm font-label-sm">
+                Socio Anónimo · Nov 2026
+              </span>
+<div class="flex items-center text-[#F59E0B]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<p class="text-body-sm font-body-sm text-primary-container leading-relaxed">
+              "Gran clase de tenis avanzado, el ritmo de entrenamiento es exigente pero muy motivador."
+            </p>
+</div>
+<!-- Comentario 3 -->
+<div class="bg-surface-container-low/50 rounded-2xl p-space-md flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-lowest text-secondary text-label-sm font-label-sm">
+                Socio Anónimo · Nov 2026
+              </span>
+<div class="flex items-center text-[#F59E0B]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<p class="text-body-sm font-body-sm text-primary-container leading-relaxed">
+              "Muy buena instructora, explica claramente las tácticas de saque y juego en red."
+            </p>
+</div>
+</div>
+</div>
+<!-- Pie del Panel: Acciones en Píldora -->
+<div class="pt-space-sm flex flex-col gap-space-xs">
+<button class="w-full h-11 bg-primary-container text-on-primary hover:bg-primary-container/90 rounded-full font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98]" type="button">
+<span class="material-symbols-outlined text-[18px]">file_download</span>
+<span>Descargar informe mensual</span>
+</button>
+<button class="w-full h-11 bg-surface-container-low text-primary-container hover:bg-surface-container rounded-full font-label-lg text-label-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]" type="button">
+<span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
+<span>Enviar retroalimentación</span>
+</button>
+</div>
+</aside>
+</div>
+<!-- SCRIPT PARA INTERACCIÓN DEL CLIENTE -->
+<script>
+    function selectInstructor(id) {
+      // Micro-interacción ligera para alternar selección visual
+      console.log('Instructor seleccionado:', id);
+    }
+  </script>
+</div></main></div></body></html>

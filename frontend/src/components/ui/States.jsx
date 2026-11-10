@@ -55,10 +55,12 @@ export function LoadingState({ rows = 3, label = 'Cargando…', className }) {
 /**
  * EmptyState - no hay datos. Siempre con texto y, si aplica, una acción.
  *   title, message, icon (nodo; por defecto una lupa), action (nodo)
+ *   compact - true: una sola fila (ícono, texto y acción a la derecha), de la altura de una fila
+ *             de lista; para un filtro o una búsqueda sin resultados
  */
-export function EmptyState({ title, message, icon, action, className }) {
+export function EmptyState({ title, message, icon, action, compact = false, className }) {
   return (
-    <div className={['ui-state', className].filter(Boolean).join(' ')}>
+    <div className={['ui-state', compact && 'ui-state--compact', className].filter(Boolean).join(' ')}>
       <span className="ui-state__icon ui-state__icon--ice" aria-hidden="true">{icon || <SearchX size={24} />}</span>
       {title && <p className="ui-state__title">{title}</p>}
       {message && <p className="ui-state__message">{message}</p>}

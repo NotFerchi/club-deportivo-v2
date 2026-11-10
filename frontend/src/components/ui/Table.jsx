@@ -19,7 +19,8 @@ import './Table.css';
  *   emptyTitle   - título del estado vacío (default 'Sin resultados')
  *   emptyAction  - nodo bajo el mensaje vacío (p. ej. <Button variant="secondary">); opcional
  *   getRowKey    - (row, index) => key; default row.id ?? index
- *   onRowClick   - (row) => void; opcional, hace la fila clicable
+ *   onRowClick   - (row) => void; opcional, hace la fila clicable (también con Enter o Espacio)
+ *   selectedKey  - key (getRowKey) de la fila marcada como elegida; opcional
  *   minWidth     - ancho mínimo en px de la tabla; por debajo de ese ancho el contenedor se
  *                  desplaza de lado en vez de apretar las columnas (pantallas pequeñas); opcional
  *   className    - clase extra del contenedor; opcional
@@ -32,6 +33,7 @@ export function Table({
   emptyAction,
   getRowKey = (row, index) => row?.id ?? index,
   onRowClick,
+  selectedKey,
   minWidth,
   className,
 }) {
@@ -70,6 +72,7 @@ export function Table({
                 row={row}
                 index={index}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
+                selected={selectedKey !== undefined && selectedKey !== null && String(getRowKey(row, index)) === String(selectedKey)}
               />
             ))
           )}
@@ -87,13 +90,31 @@ export function Table({
  *   columns - mismas columnas que Table
  *   row     - objeto de la fila
  *   index   - posición de la fila (se pasa a column.render)
- *   onClick - opcional; si existe la fila es clicable
+ *   onClick  - opcional; si existe la fila es clicable y se activa también con Enter o Espacio
+ *   selected - true la marca como elegida (aria-selected)
  */
-export function TableRow({ columns, row, index, onClick }) {
-  const classes = onClick ? 'ui-table__row ui-table__row--clickable' : 'ui-table__row';
+export function TableRow({ columns, row, index, onClick, selected = false }) {
+  const classes = ['ui-table__row', onClick && 'ui-table__row--clickable', selected && 'ui-table__row--selected']
+    .filter(Boolean)
+    .join(' ');
+  const onKeyDown = onClick
+    ? (e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }
+    : undefined;
 
   return (
-    <tr className={classes} onClick={onClick}>
+    <tr
+      className={classes}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      tabIndex={onClick ? 0 : undefined}
+      aria-selected={onClick ? selected : undefined}
+    >
       {columns.map((column) => (
         <td key={column.key} className="ui-table__cell">
           {column.render ? column.render(row, index) : row?.[column.key]}

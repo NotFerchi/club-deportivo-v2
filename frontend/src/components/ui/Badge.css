@@ -45,3 +45,25 @@
     border-color: var(--color-feedback-info-border);
     color: var(--color-feedback-info-text);
 }
+
+/* Sky claro con texto navy (9.5:1). Nunca texto blanco encima. */
+.ui-badge--sky {
+    background: var(--color-sky);
+    border-color: var(--color-sky);
+    color: var(--color-brand-navy);
+}
+
+/* Vidrio blanco: para pastillas sobre fondos claros o con color */
+.ui-badge--glass {
+    background: var(--glass-bg);
+    border-color: var(--color-border-default);
+    color: var(--color-text-primary);
+    backdrop-filter: var(--glass-soft-blur);
+}
+
+/* Gris del fondo de la app (#F2F3F5) con texto secundario */
+.ui-badge--muted {
+    background: var(--color-bg-app);
+    border-color: var(--color-bg-app);
+    color: var(--color-text-secondary);
+}

@@ -1,0 +1,195 @@
+/* HeroCard — solo tokens semánticos (src/styles/tokens.css)
+   Selectores dobles (0,2,0) en los textos para ganar a reglas globales de h2/p de los CSS viejos. */
+
+.ui-hero {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: var(--space-24);
+    min-height: 20rem;
+    padding: var(--space-32) var(--space-32) var(--space-32) var(--space-32);
+    overflow: hidden;
+    border-radius: var(--ui-radius-card);
+    /* Sin foto: degradado navy con un brillo azul hielo arriba a la derecha */
+    background:
+        radial-gradient(circle at 85% 10%, var(--color-focus-glow) 0%, transparent 45%),
+        linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-brand-navy) 60%);
+    color: var(--color-text-inverse);
+    box-shadow: var(--ui-shadow-xl);
+    font-family: var(--font-sans);
+}
+
+.ui-hero__image {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Con foto: velo navy para que el texto blanco se lea */
+.ui-hero--image::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(90deg, var(--color-brand-navy) 0%, var(--color-overlay) 100%);
+}
+
+/* La pastilla queda arriba y el título abajo */
+.ui-hero__content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: var(--space-12);
+    min-width: 0;
+}
+
+.ui-hero__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    margin-bottom: auto;
+    padding: var(--space-6) var(--space-16);
+    border: var(--glass-dark-border);
+    border-radius: var(--ui-radius-full);
+    background: var(--glass-dark-bg);
+    font: var(--font-label-sm);
+    letter-spacing: var(--tracking-overline);
+    text-transform: uppercase;
+    backdrop-filter: var(--glass-dark-blur);
+}
+
+.ui-hero__eyebrow::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: var(--ui-radius-full);
+    background: var(--color-sky);
+}
+
+.ui-hero .ui-hero__title {
+    margin: var(--space-24) 0 0;
+    color: var(--color-text-inverse);
+    font: var(--font-display-section);
+    letter-spacing: var(--tracking-display-section);
+    overflow-wrap: anywhere;
+}
+
+.ui-hero .ui-hero__subtitle {
+    margin: 0;
+    color: var(--color-ice);
+    font: var(--font-body-lg);
+}
+
+/* Los paneles se alinean abajo, a la altura del título */
+.ui-hero__panels {
+    align-self: end;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: var(--space-16);
+}
+
+/* ── Panel de vidrio oscuro ─────────────────────────────────────────── */
+.ui-hero-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-10);
+    min-width: 15rem;
+    padding: var(--space-20) var(--space-24);
+    border: var(--glass-dark-border);
+    border-radius: var(--ui-radius-2xl);
+    background: var(--glass-dark-bg);
+    backdrop-filter: var(--glass-dark-blur);
+}
+
+.ui-hero-panel__label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    color: var(--color-ice);
+    font: var(--font-label-sm);
+    letter-spacing: var(--tracking-overline);
+    text-transform: uppercase;
+}
+
+.ui-hero-panel__label--dot {
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.ui-hero-panel__label--dot::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: var(--ui-radius-full);
+    background: var(--color-sky);
+}
+
+.ui-hero-panel__title {
+    color: var(--color-text-inverse);
+    font: var(--font-heading-h4);
+}
+
+/* ── Cifra con barra ────────────────────────────────────────────────── */
+.ui-hero-stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-10);
+}
+
+.ui-hero-stat__value {
+    color: var(--color-text-inverse);
+    font: var(--font-heading-h2);
+}
+
+.ui-hero-stat__max {
+    color: var(--color-ice);
+    font: var(--font-body-lg);
+}
+
+.ui-hero-stat__track {
+    display: block;
+    width: 100%;
+    height: var(--space-6);
+    overflow: hidden;
+    border-radius: var(--ui-radius-full);
+    background: var(--color-primary-hover);
+}
+
+.ui-hero-stat__fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--ui-radius-full);
+    background: var(--color-sky);
+    transition: width 0.3s;
+}
+
+.ui-hero-stat__caption {
+    color: var(--color-ice);
+    font: var(--font-label-sm);
+}
+
+/* ≤ 1024 px: los paneles bajan debajo del título */
+@media (max-width: 1024px) {
+    .ui-hero {
+        grid-template-columns: minmax(0, 1fr);
+        min-height: 0;
+        padding: var(--space-24);
+    }
+
+    .ui-hero .ui-hero__title {
+        font: var(--font-heading-h1);
+        letter-spacing: var(--tracking-heading-h1);
+    }
+
+    .ui-hero-panel {
+        flex: 1 1 15rem;
+    }
+}

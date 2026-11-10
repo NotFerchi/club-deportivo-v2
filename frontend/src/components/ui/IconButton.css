@@ -1,0 +1,46 @@
+/* IconButton — solo tokens semánticos (src/styles/tokens.css)
+   Selectores dobles (0,2,0) para ganar a reglas globales de `button` de los CSS viejos. */
+
+.ui-icon-button.ui-icon-button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--ui-radius-full);
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.ui-icon-button.ui-icon-button:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--color-focus-glow);
+}
+
+.ui-icon-button--ghost:hover:not(:disabled) {
+    background: var(--color-bg-app);
+    color: var(--color-text-primary);
+}
+
+/* Vidrio sobre fondos navy: ícono blanco */
+.ui-icon-button.ui-icon-button--glass {
+    background: var(--glass-dark-bg);
+    border: var(--glass-dark-border);
+    color: var(--color-text-inverse);
+    backdrop-filter: var(--glass-dark-blur);
+}
+
+.ui-icon-button--glass:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+}
+
+.ui-icon-button.ui-icon-button:disabled {
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
+}

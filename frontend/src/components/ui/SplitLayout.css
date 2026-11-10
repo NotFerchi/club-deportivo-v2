@@ -1,0 +1,20 @@
+/* SplitLayout — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+    align-items: start;
+    gap: var(--space-32);
+}
+
+.ui-split__main,
+.ui-split__aside {
+    min-width: 0;
+}
+
+@media (max-width: 1024px) {
+    .ui-split {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-24);
+    }
+}

@@ -1,7 +1,7 @@
 import React from 'react';
 import './Badge.css';
 
-const VARIANTS = ['neutral', 'success', 'warning', 'danger', 'info', 'ice'];
+const VARIANTS = ['neutral', 'success', 'warning', 'danger', 'info', 'ice', 'sky', 'glass', 'muted'];
 
 /**
  * Badge - etiqueta pequeña para estados (p. ej. Abierto, En curso, Cancelado).
@@ -14,6 +14,7 @@ const VARIANTS = ['neutral', 'success', 'warning', 'danger', 'info', 'ice'];
  *
  * Props:
  *   variant   - 'neutral' (default) | 'success' | 'warning' | 'danger' | 'info' | 'ice' (azul hielo, texto navy)
+ *               | 'sky' (sky claro, texto navy) | 'glass' (vidrio blanco con borde) | 'muted' (gris del fondo de la app)
  *   className - clase extra; opcional
  *   ...rest   - cualquier otro atributo de <span>
  */

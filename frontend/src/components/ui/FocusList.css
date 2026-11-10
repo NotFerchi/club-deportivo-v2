@@ -33,18 +33,6 @@
     overscroll-behavior: contain;
 }
 
-/* Con scroll: alto fijo y espacio arriba/abajo para poder centrar el primer y el último elemento */
-.ui-focus-list--vertical[data-scroll] {
-    height: var(--ui-focus-list-height, min(38rem, 70vh));
-}
-
-.ui-focus-list--vertical[data-scroll]::before,
-.ui-focus-list--vertical[data-scroll]::after {
-    content: '';
-    flex: none;
-    height: calc(50% - 3rem);
-}
-
 .ui-focus-list--vertical > .ui-focus-list__item {
     transform: scale(calc(0.9 + 0.1 * var(--focus)));
     opacity: calc(0.45 + 0.55 * var(--focus));

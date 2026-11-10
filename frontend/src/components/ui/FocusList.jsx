@@ -26,9 +26,9 @@ export function FocusListLabel({ children }) {
  * `--focus` (0 a 1). El CSS calcula `transform: scale()` y `opacity`: no se anima ancho ni alto y
  * no hay relayout. Con "reducir movimiento" no hay escalado.
  *
- * Vertical: el punto de enfoque es siempre el centro del contenedor. Si el contenido no cabe, la
- * lista deja espacio arriba y abajo para que cualquier elemento, también el primero y el último,
- * pueda quedar en el centro. Si todo cabe, no hay escalado.
+ * Vertical: sin espacios vacíos arriba ni abajo. El punto de enfoque acompaña al scroll: arriba del
+ * todo está en el primer elemento, a la mitad del recorrido en el centro y al final en el último.
+ * Si todo cabe, no hay escalado.
  * Al hacer clic o enfocar con el teclado un elemento, la lista lo centra (solo la lista, no la
  * página) y llama a `onActivate(key)`.
  *
@@ -81,10 +81,15 @@ export function FocusList({
         lis.forEach((li) => li.style.setProperty('--focus', '1'));
         return;
       }
-      // Punto de enfoque = centro del contenedor. El más cercano queda en 1 y los demás bajan según
-      // su distancia (a media altura del contenedor ya están en 0). Los rótulos no cuentan para el mínimo.
+      // Punto de enfoque: baja con el scroll, del centro del primer elemento (arriba del todo) al del
+      // último (al final), pasando por el centro a la mitad. El más cercano queda en 1 y los demás bajan
+      // según su distancia (a media altura del contenedor ya están en 0). Los rótulos no cuentan.
       const mitad = caja.height / 2;
-      const centro = caja.top + mitad;
+      const recorrido = list.scrollHeight - list.clientHeight;
+      const avance = recorrido > 0 ? clamp(list.scrollTop / recorrido, 0, 1) : 0.5;
+      const items = lis.filter((li) => li.classList.contains('ui-focus-list__item'));
+      const alto = items.length ? items[0].offsetHeight : 0;
+      const centro = caja.top + alto / 2 + avance * (caja.height - alto);
       const distancias = lis.map((li) => {
         const r = li.getBoundingClientRect();
         return Math.abs(r.top + r.height / 2 - centro);
@@ -97,8 +102,7 @@ export function FocusList({
       });
     };
 
-    // Vertical: si el contenido no cabe, la lista toma su alto fijo y deja espacio arriba y abajo
-    // para que cualquier elemento (también el primero y el último) pueda quedar en el centro.
+    // Vertical: marca si el contenido no cabe (entonces hay scroll y enfoque).
     // Solo se mide al montar, al cambiar los hijos o el tamaño; nunca en cada scroll.
     const medir = () => {
       if (!vertical) return;

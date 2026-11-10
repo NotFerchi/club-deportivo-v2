@@ -1,0 +1,77 @@
+/* StackDeck — solo tokens semánticos (src/styles/tokens.css)
+   El JS escribe --pos en cada <li> (0 activa, 1 y 2 detrás, -1 ya pasada) y --drag en el mazo
+   (-1 a 1, fracción del ancho arrastrada; negativo = hacia la izquierda = siguiente). */
+
+.ui-stack-deck {
+    /* Ajustes del mazo; se pueden cambiar desde fuera */
+    --ui-deck-offset: var(--space-16);   /* cuánto se asoma cada tarjeta de atrás */
+    --ui-deck-scale-step: 0.08;          /* 1 → .92 → .84 */
+    --ui-deck-max-width: 360px;          /* ancho máximo de la tarjeta en escritorio */
+    --ui-deck-duration: 320ms;
+    --ui-deck-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --drag: 0;
+
+    position: relative;
+    touch-action: pan-y; /* el scroll vertical de la página sigue siendo del navegador */
+}
+
+.ui-stack-deck__list {
+    display: grid;
+    /* Tarjeta + el hueco de las 2 que se asoman a la derecha */
+    width: min(100%, calc(var(--ui-deck-max-width) + 2 * var(--ui-deck-offset)));
+    margin: 0 auto;
+    padding: 0;
+    list-style: none;
+}
+
+.ui-stack-deck__item {
+    --pos: 0;
+    /* Posición efectiva: la de reposo más lo que se lleva arrastrado */
+    --e: calc(var(--pos) + var(--drag));
+    --salida: clamp(-1, var(--e), 0);   /* -1..0: saliendo por la izquierda */
+    --fondo: clamp(0, var(--e), 3);     /*  0..3: detrás, a la derecha */
+
+    grid-area: 1 / 1;
+    display: flex;
+    box-sizing: border-box;
+    width: calc(100% - 2 * var(--ui-deck-offset));
+    margin: 0;
+    z-index: calc(10 - var(--pos));
+    transform-origin: 100% 50%; /* al achicarse, el borde derecho se queda: así se asoma */
+    transform:
+        translateX(calc(var(--salida) * 105% + min(var(--fondo), 2) * var(--ui-deck-offset)))
+        scale(calc(1 - var(--ui-deck-scale-step) * var(--fondo)));
+    /* 1 → .6 → .35 → 0 detrás; al salir sigue opaca la primera mitad y luego se desvanece */
+    opacity: calc(
+        1 + clamp(-1, 2 * var(--salida) + 1, 0)
+        - 0.4 * clamp(0, var(--e), 1)
+        - 0.25 * clamp(0, var(--e) - 1, 1)
+        - 0.35 * clamp(0, var(--e) - 2, 1)
+    );
+    transition:
+        transform var(--ui-deck-duration) var(--ui-deck-ease),
+        opacity var(--ui-deck-duration) var(--ui-deck-ease);
+    will-change: transform, opacity;
+}
+
+.ui-stack-deck__item:not(.is-active) { pointer-events: none; }
+
+/* Mientras se arrastra, la tarjeta sigue al dedo sin retraso */
+.ui-stack-deck[data-dragging] { user-select: none; cursor: grabbing; }
+.ui-stack-deck[data-dragging] .ui-stack-deck__item { transition: none; }
+
+/* Una sola tarjeta: sin hueco para las de atrás */
+.ui-stack-deck--single .ui-stack-deck__list { width: min(100%, var(--ui-deck-max-width)); }
+.ui-stack-deck--single .ui-stack-deck__item { width: 100%; }
+
+/* Tarjeta vertical (3:4). Si el contenido no cabe, crece; todas miden lo que la más alta. */
+.ui-stack-deck .ui-event-card {
+    flex: 1;
+    aspect-ratio: 3 / 4;
+    min-height: auto;
+    box-shadow: var(--ui-shadow-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ui-stack-deck__item { transition: none; will-change: auto; }
+}

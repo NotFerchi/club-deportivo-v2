@@ -26,6 +26,7 @@ export { StarRating } from './StarRating';
 export { IconButton } from './IconButton';
 export { Menu } from './Menu';
 export { FocusList, FocusListLabel } from './FocusList';
+export { StackDeck } from './StackDeck';
 export { EventRow } from './EventRow';
 export { HeroCard, HeroPanel, HeroStat } from './HeroCard';
 export { SplitLayout } from './SplitLayout';

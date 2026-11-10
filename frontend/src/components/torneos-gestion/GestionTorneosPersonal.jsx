@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { SplitLayout, Stack } from '../ui';
 import { useGestionTorneos } from '../torneos/useGestionTorneos';
 import TorneoFormModal from '../torneos/TorneoFormModal';
-import ParticipantesModal from '../torneos/ParticipantesModal';
 import TorneoHero from './TorneoHero';
 import ListaTorneos from './ListaTorneos';
 import PanelInscripciones from './PanelInscripciones';
@@ -22,8 +21,9 @@ function porDefecto(lista) {
 
 /**
  * Torneos del personal (U4-03, diseño de Stitch). Lista: hero del torneo seleccionado, lista con
- * enfoque al deslizar y panel de inscripciones. Detalle (Paso 2): encabezado, cuadro y panel
- * "Editar encuentro". La usan admin y gerente (GestionTorneos), el coordinador y el instructor.
+ * enfoque al deslizar y panel de inscripciones. Detalle (Paso 2): encabezado y pestañas Cuadro
+ * (con "Editar encuentro"), Inscritos y Bitácora. La usan admin y gerente (GestionTorneos), el
+ * coordinador y el instructor.
  *
  * Toda la lógica (llamadas, validaciones, confirmaciones y mensajes) es la de siempre:
  * torneos/useGestionTorneos y torneos/useAccionesTorneo.
@@ -40,7 +40,6 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
     setSelectedTorneo,
     setSelectedEncuentroId,
     openEditModal,
-    handleVerParticipantes,
     handleTorneoActualizado
   } = gestion;
   const [busqueda, setBusqueda] = useState('');
@@ -74,10 +73,6 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
     seleccionar(t);
     openEditModal(t);
   };
-  const verInscritos = (t) => {
-    seleccionar(t);
-    handleVerParticipantes(t);
-  };
   const abrirDetalle = (t, enPestana) => {
     seleccionar(t);
     setSelectedEncuentroId(null);
@@ -85,6 +80,7 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
     setVista('detalle');
   };
   const verCuadro = (t) => abrirDetalle(t, 'cuadro');
+  const verInscritos = (t) => abrirDetalle(t, 'inscritos');
   const volverALista = () => {
     setSelectedEncuentroId(null);
     setVista('lista');
@@ -110,7 +106,6 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
           onPestana={setPestana}
           onVolver={volverALista}
           onEditar={editar}
-          onVerInscritos={verInscritos}
           onActualizar={handleTorneoActualizado}
         />
       ) : (
@@ -142,9 +137,8 @@ function GestionTorneosPersonal({ puedeEditar = false, etiquetaAccion = 'Siguien
         </Stack>
       )}
 
-      {/* Modales de siempre (inscritos y editar se rediseñan en los siguientes commits) */}
+      {/* Modal de siempre (se rediseña en el siguiente commit) */}
       <TorneoFormModal gestion={gestion} />
-      <ParticipantesModal gestion={gestion} />
     </>
   );
 }

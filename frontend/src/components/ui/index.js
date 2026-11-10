@@ -33,3 +33,5 @@ export { DetailHeader } from './DetailHeader';
 export { Bracket } from './Bracket';
 export { SidePanel } from './SidePanel';
 export { ScoreField } from './ScoreField';
+export { SegmentedControl } from './SegmentedControl';
+export { Timeline } from './Timeline';

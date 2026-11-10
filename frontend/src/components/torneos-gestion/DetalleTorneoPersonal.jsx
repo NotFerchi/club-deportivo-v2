@@ -5,6 +5,8 @@ import { siguienteAccion } from '../torneos/useAccionesTorneo';
 import AccionPrincipal from './AccionPrincipal';
 import MenuTorneo from './MenuTorneo';
 import CuadroPersonal from './CuadroPersonal';
+import InscritosTorneo from './InscritosTorneo';
+import BitacoraTorneo from './BitacoraTorneo';
 import { IconoDisciplina, pastillaDe, rangoFechasLargo, temporadaDe } from './torneoVista';
 
 /** Panel derecho del encabezado: la misma siguiente acción y el mismo ⋯ de la lista. */
@@ -43,12 +45,18 @@ function PanelAccion({ torneo, etiquetaAccion, onActualizar, onEditar, onVerInsc
  *   torneo         - torneo abierto (el más reciente de la lista)
  *   puedeEditar    - admin, gerente y coordinador; el instructor solo ve
  *   etiquetaAccion - rótulo del panel de acción
- *   pestana / onPestana - pestaña activa ('cuadro')
- *   onVolver, onEditar, onVerInscritos, onActualizar
+ *   pestana / onPestana - pestaña activa: 'cuadro' | 'inscritos' | 'bitacora' (la bitácora solo
+ *                         para quien edita: el backend no la da al instructor)
+ *   onVolver, onEditar, onActualizar
  */
-function DetalleTorneoPersonal({ gestion, torneo, puedeEditar, etiquetaAccion, pestana, onPestana, onVolver, onEditar, onVerInscritos, onActualizar }) {
+function DetalleTorneoPersonal({ gestion, torneo, puedeEditar, etiquetaAccion, pestana, onPestana, onVolver, onEditar, onActualizar }) {
   const pastilla = pastillaDe(torneo);
-  const pestanas = [{ value: 'cuadro', label: 'Cuadro' }];
+  const pestanas = [
+    { value: 'cuadro', label: 'Cuadro' },
+    { value: 'inscritos', label: 'Inscritos', count: Number(torneo.total_participantes) || 0 },
+    ...(puedeEditar ? [{ value: 'bitacora', label: 'Bitácora' }] : [])
+  ];
+  const activa = pestanas.some((p) => p.value === pestana) ? pestana : 'cuadro';
 
   return (
     <Stack gap={24}>
@@ -76,7 +84,7 @@ function DetalleTorneoPersonal({ gestion, torneo, puedeEditar, etiquetaAccion, p
               etiquetaAccion={etiquetaAccion}
               onActualizar={onActualizar}
               onEditar={onEditar}
-              onVerInscritos={onVerInscritos}
+              onVerInscritos={() => onPestana('inscritos')}
               onVerCuadro={() => onPestana('cuadro')}
             />
           )
@@ -85,11 +93,13 @@ function DetalleTorneoPersonal({ gestion, torneo, puedeEditar, etiquetaAccion, p
 
       {/* en fila: la barra de pestañas mide lo que sus pestañas, no todo el ancho */}
       <Stack direction="row">
-        <Tabs ariaLabel="Secciones del torneo" idPrefix="torneo-detalle" tabs={pestanas} value={pestana} onChange={onPestana} />
+        <Tabs ariaLabel="Secciones del torneo" idPrefix="torneo-detalle" tabs={pestanas} value={activa} onChange={onPestana} />
       </Stack>
 
-      <div role="tabpanel" id={`torneo-detalle-panel-${pestana}`} aria-labelledby={`torneo-detalle-tab-${pestana}`}>
-        {pestana === 'cuadro' && <CuadroPersonal gestion={gestion} torneo={torneo} puedeEditar={puedeEditar} />}
+      <div role="tabpanel" id={`torneo-detalle-panel-${activa}`} aria-labelledby={`torneo-detalle-tab-${activa}`}>
+        {activa === 'cuadro' && <CuadroPersonal gestion={gestion} torneo={torneo} puedeEditar={puedeEditar} />}
+        {activa === 'inscritos' && <InscritosTorneo gestion={gestion} torneo={torneo} puedeEditar={puedeEditar} />}
+        {activa === 'bitacora' && <BitacoraTorneo torneo={torneo} disciplinas={gestion.disciplinas} categorias={gestion.categorias} />}
       </div>
     </Stack>
   );

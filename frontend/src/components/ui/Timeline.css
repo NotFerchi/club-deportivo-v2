@@ -1,0 +1,103 @@
+/* Timeline — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-20);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--font-sans);
+}
+
+.ui-timeline__item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: var(--space-16);
+}
+
+/* línea vertical entre puntos */
+.ui-timeline__item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    top: 40px;
+    bottom: calc(-1 * var(--space-20) + var(--space-4));
+    left: 17px;
+    border-left: 2px solid var(--color-border-default);
+}
+
+.ui-timeline__dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    background: var(--color-bg-app);
+    color: var(--color-icon-default);
+}
+
+.ui-timeline__dot--info {
+    background: var(--color-ice);
+    color: var(--color-brand-navy);
+}
+
+.ui-timeline__dot--danger {
+    background: var(--color-feedback-danger-bg);
+    color: var(--color-feedback-danger-text);
+}
+
+.ui-timeline__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+    padding: var(--space-12) var(--space-16);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--ui-radius-xl);
+    background: var(--color-bg-surface);
+}
+
+.ui-timeline__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+}
+
+.ui-timeline__title {
+    font: var(--font-body-md);
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.ui-timeline__when {
+    padding: var(--space-2) var(--space-10);
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-bg-app);
+    color: var(--color-text-secondary);
+    font: var(--font-caption);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ui-timeline__who {
+    font: var(--font-body-sm);
+    color: var(--color-text-secondary);
+}
+
+.ui-timeline .ui-timeline__details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    list-style: none;
+    font: var(--font-body-sm);
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+}

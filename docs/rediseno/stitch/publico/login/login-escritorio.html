@@ -1,0 +1,137 @@
+<!DOCTYPE html><html class="h-full" lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Athlety | Acceso al Club</title>
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS v3 with Forms & Container Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              navy: '#0F2146',
+              lightBlue: '#BAE6FD',
+              accentCyan: '#7DD3FC',
+              bgGray: '#F2F3F5',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-glassmorphism">
+    .custom-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-[#F2F3F5] text-slate-800 font-sans antialiased h-screen overflow-hidden selection:bg-[#7DD3FC] selection:text-[#0F2146]">
+<!-- BEGIN: OuterViewportWrapper -->
+<div class="h-screen w-screen p-6 box-border flex flex-col justify-center">
+<!-- BEGIN: MainInnerFrame -->
+<main class="relative w-full h-screen overflow-hidden flex items-center justify-between px-16 rounded-[28px] shadow-2xl" data-purpose="club-portal-viewport">
+<!-- Background Image Layer (IMAGE_5) -->
+<img alt="Athlety Background" class="w-full h-full object-cover object-center absolute inset-0 z-0 pointer-events-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmzoUwPazz54KopkPuZsP-FIzuOtLmMeHEujTN_fqER5AHGveU5s6Lzq3YD5aG17WVOd0ZDbCTvZlNndw8LZcbpdd_cUxM1Eqrh4s3nxprGeJeCWl-jLMjoIlKFAM2u9Kkn9f7nUO08E7w4cbJCvD7wWi_AW34JCHrIrgILPojqska7nY2eVETX4Y4ErKsLDtoY-U_cdG5AavDCg477fC3WJFCSHvM2QWyUO6swCXUnVSUimv4O5ax">
+<!-- Subtle horizontal gradient overlay: rgba(15, 33, 70, 0.6) from left (0%) to transparent at ~50-55% -->
+<div class="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-r from-[rgba(15,33,70,0.6)] via-[rgba(15,33,70,0.3)] to-transparent" style="background: linear-gradient(90deg, rgba(15, 33, 70, 0.6) 0%, rgba(15, 33, 70, 0) 55%);"></div>
+<!-- Left Side: Editorial Brand Identity & Negative Space (aligned to the left with px-16 margin) -->
+<div class="relative z-10 flex flex-col justify-between h-full py-12 max-w-[560px]" data-purpose="brand-hero-zone">
+<!-- Top spacing anchor or empty to keep copyright at bottom -->
+<div></div>
+<!-- Vertically Centered Brand Identity -->
+<div class="my-auto flex flex-col items-start select-none">
+<!-- Athlety Official Logo (IMAGE_7) ~72px height -->
+<img alt="Athlety" class="h-[72px] max-w-[420px] w-auto object-contain select-none" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSMJbbIMTmyA50_8SKzhpArorQOg2tBSQL46tw5-97ZmZNPU2ExCHK7v03MMJszEEkvZff5v6tlOKwv1tixe1z6RBx4fpcU5PX00mdOAHyVZEqJq9fVsncxmAVPxqEGVhqk2fgZQYhL7VW2DQgKPuBFdNDUJeHBI3RgYKd4iBohcI17gadIUoy99EBVDWeJQMx6sFEeVaNpzNYwjql8j-KLPpaLhv0yU2Uj_FNlU0NuF6p--6eGjib">
+<!-- Headline in pure white, 700 weight, 44px in exactly 2 lines -->
+<h1 class="mt-6 text-[#FFFFFF] font-bold text-[44px] leading-tight tracking-tight">
+      Todo tu club,<br>en un solo panel.
+    </h1>
+<!-- Descriptive Text: white 75% opacity, 16px -->
+<p class="mt-4 text-white/75 text-[16px] leading-relaxed max-w-[460px]">
+      Reservas, clases, torneos y socios en un mismo lugar.
+    </p>
+</div>
+<!-- Bottom Left: Institutional Copyright -->
+<div class="pt-6">
+<p class="text-xs text-white/70 font-medium tracking-wide">
+      © 2026 Athlety. Todos los derechos reservados.
+    </p>
+</div>
+</div>
+<!-- Right Side: Login Glass Panel (w-[420px], h-auto, p-[40px], backdrop-blur-[24px]) -->
+<div class="relative z-10 flex items-center justify-end" data-purpose="login-glass-card-container">
+<div class="w-[420px] h-auto p-[40px] rounded-[28px] border border-white/20 shadow-2xl backdrop-blur-[24px] text-white" style="background-color: rgba(15, 33, 70, 0.35); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);">
+<!-- Chips de categoría -->
+<div class="flex items-center gap-2 mb-6 flex-wrap" data-purpose="service-pills">
+<span class="bg-[#BAE6FD]/20 text-[#BAE6FD] border border-[#BAE6FD]/30 text-[13px] font-medium py-[6px] px-[14px] rounded-full shadow-sm">
+        Reservas
+      </span>
+<span class="bg-[#BAE6FD]/20 text-[#BAE6FD] border border-[#BAE6FD]/30 text-[13px] font-medium py-[6px] px-[14px] rounded-full shadow-sm">
+        Clases
+      </span>
+<span class="bg-[#BAE6FD]/20 text-[#BAE6FD] border border-[#BAE6FD]/30 text-[13px] font-medium py-[6px] px-[14px] rounded-full shadow-sm">
+        Torneos
+      </span>
+</div>
+<!-- Título: Bienvenido de vuelta -->
+<h2 class="text-[32px] leading-tight font-bold tracking-tight text-white">
+      Bienvenido de vuelta
+    </h2>
+<!-- Subtítulo: Del título al subtítulo a 8px (mt-2), blanco al 80%, text-[15px] -->
+<p class="mt-2 text-white/80 text-[15px] font-normal">
+      Accede al panel de tu club.
+    </p>
+<!-- Authentication Form: De subtítulo a campos exactamente 32px (mt-8) -->
+<form action="#login" class="mt-8 space-y-3" data-purpose="staff-login-form" method="POST">
+<!-- Input: Email -->
+<div>
+<label class="sr-only" for="email">Correo electrónico</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-white/60">
+<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<input class="w-full rounded-full py-3.5 pl-12 pr-5 bg-white/10 border border-white/20 text-white placeholder-white/50 text-[14px] backdrop-blur-sm focus:border-white/50 focus:bg-white/15 outline-none transition-all" id="email" name="email" placeholder="Correo electrónico" required="" type="email">
+</div>
+</div>
+<!-- Input: Password (12px gap handled by space-y-3) -->
+<div>
+<label class="sr-only" for="password">Contraseña</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-white/60">
+<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<input class="w-full rounded-full py-3.5 pl-12 pr-5 bg-white/10 border border-white/20 text-white placeholder-white/50 text-[14px] backdrop-blur-sm focus:border-white/50 focus:bg-white/15 outline-none transition-all" id="password" name="password" placeholder="Contraseña" required="" type="password">
+</div>
+</div>
+<!-- Botón CTA: Del campo al botón exactamente 24px (pt-3 inside form or mt-6) -->
+<div class="pt-3">
+<button class="w-full rounded-full bg-white text-[#0F2146] font-semibold text-[15px] py-3.5 px-6 flex items-center justify-center gap-2 shadow-lg hover:bg-slate-100 transition-all active:scale-[0.98]" data-purpose="login-submit-button" type="submit">
+<span class="">Entrar →</span>
+</button>
+</div>
+</form>
+</div>
+</div>
+</main>
+<!-- END: MainInnerFrame -->
+</div>
+<!-- END: OuterViewportWrapper -->
+
+
+</body></html>

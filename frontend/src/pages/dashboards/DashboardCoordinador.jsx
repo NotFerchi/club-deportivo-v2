@@ -18,7 +18,8 @@ import GestionInstructores from './coordinador/GestionInstructores';
 import GestionDisciplinas  from './coordinador/GestionDisciplinas';
 import VistaEspacios from './coordinador/VistaEspacios';
 import { API_BASE_URL } from '../../services/api';
-import ResultadosInstructor from '../../components/evaluaciones-ui/ResultadosInstructor';
+// U4-20: la vista nueva; evaluaciones-ui/ResultadosInstructor (E5.2) queda sin montar, pendiente de decidir con Aaron
+import EvaluacionesCoordinador from '../../components/evaluaciones-coordinador/EvaluacionesCoordinador';
 
 
 const TABS = [
@@ -140,7 +141,7 @@ function DashboardCoordinador() {
       </>
     );
     if (activeTab === 'espacios') return <VistaEspacios />;
-    if (activeTab === 'evaluaciones') return <ResultadosInstructor />;
+    if (activeTab === 'evaluaciones') return <EvaluacionesCoordinador />;
   };
 
   return (

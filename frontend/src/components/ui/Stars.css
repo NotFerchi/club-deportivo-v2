@@ -1,0 +1,30 @@
+/* Stars — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-rating-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    line-height: 0;
+    vertical-align: middle;
+}
+
+.ui-rating-stars__star {
+    flex-shrink: 0;
+    color: var(--color-border-strong);
+}
+
+.ui-rating-stars__star--full {
+    color: var(--color-feedback-warning-solid);
+    fill: var(--color-feedback-warning-solid);
+}
+
+/* media estrella: la mitad llena encima de una estrella vacía */
+.ui-rating-stars__half {
+    position: relative;
+    display: inline-flex;
+}
+
+.ui-rating-stars__half-fill {
+    position: absolute;
+    inset: 0;
+}

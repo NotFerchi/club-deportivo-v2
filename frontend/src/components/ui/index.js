@@ -35,3 +35,6 @@ export { SidePanel } from './SidePanel';
 export { ScoreField } from './ScoreField';
 export { SegmentedControl } from './SegmentedControl';
 export { Timeline } from './Timeline';
+export { Stars } from './Stars';
+export { RatingDistribution } from './RatingDistribution';
+export { KpiCard } from './KpiCard';

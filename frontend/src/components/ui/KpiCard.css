@@ -1,0 +1,84 @@
+/* KpiCard — solo tokens semánticos (src/styles/tokens.css) */
+
+.ui-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+    min-width: 0;
+    box-sizing: border-box;
+    padding: var(--space-24);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--ui-radius-2xl);
+    background: var(--color-bg-surface);
+    box-shadow: var(--ui-shadow-card);
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+}
+
+.ui-kpi__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-12);
+}
+
+.ui-kpi__label {
+    font: var(--font-overline);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+}
+
+.ui-kpi__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-bg-app);
+    color: var(--color-brand-navy);
+}
+
+.ui-kpi__main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-12);
+}
+
+.ui-kpi__value {
+    font: var(--font-heading-h1);
+    color: var(--color-brand-navy);
+}
+
+.ui-kpi__addon {
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-text-secondary);
+    font: var(--font-body-md);
+}
+
+.ui-kpi__bottom {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+    margin-top: auto;
+}
+
+.ui-kpi__caption {
+    font: var(--font-body-sm);
+    color: var(--color-text-secondary);
+}
+
+.ui-kpi__badge {
+    padding: var(--space-4) var(--space-12);
+    border-radius: var(--ui-radius-pill);
+    background: var(--color-bg-app);
+    color: var(--color-text-primary);
+    font: var(--font-caption);
+    font-weight: 700;
+    white-space: nowrap;
+}

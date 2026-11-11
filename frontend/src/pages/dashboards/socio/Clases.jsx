@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import SocioLayout from '../../../components/SocioLayout'
-import {
-  Calendar, Clock, User, Search, Filter,
-  AlertCircle, CheckCircle, XCircle,
-  MapPin, Zap, Info, BookOpen, Timer
-} from 'lucide-react'
+import { Calendar, Check, Clock, Filter, MapPin, Timer, XCircle, Zap } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
 import { useNotification } from '../../../context/NotificationContext'
-import { Alert, Avatar, Badge, Button, Card, Chip, ConfirmDialog, EmptyState, LoadingState, Modal, PageHeader, Stack, Tabs, Text } from '../../../components/ui'
+import { Alert, Avatar, AvatarRow, Badge, Button, Card, Chip, ConfirmDialog, DayStrip, EmptyState, EventCard, LoadingState, Modal, PageHeader, Stack, StackDeck, Tabs, Text } from '../../../components/ui'
+import { iconoDisciplina } from '../../../components/torneos-ui/disciplinaIcono'
+import { fotoClase } from '../../../components/clases-ui/fotoClase'
+import { diaSemanaDe, diasDeLaSemana, minutosDeClase, ordenProxima } from '../../../components/clases-ui/semana'
 
 // Ícono + texto secundario en una línea
+const ACENTOS = ['blue', 'violet', 'green', 'amber', 'cyan']
+
 function Dato({ icon, children }) {
   return (
     <Stack direction="row" gap={8} align="center">
@@ -60,6 +61,8 @@ function transformarInscripcion(i) {
     instructor_foto: i.instructor_foto || null,
     horario: `${i.hora_inicio?.slice(0, 5)} - ${i.hora_fin?.slice(0, 5)}`,
     dias: getNombreDia(i.dia_semana),
+    dia_semana: i.dia_semana,
+    hora_inicio: i.hora_inicio,
     salon: i.espacio,
     estatus: 'confirmado',
     materiales: 'Ropa deportiva, toalla, agua',
@@ -89,7 +92,8 @@ function Clases() {
   const [instructores, setInstructores] = useState([])
 
   // Filtros del catálogo
-  const [filtros,    setFiltros]    = useState({ disciplinas: [], dias: [], instructores: [] })
+  // El día arranca en hoy (tira de días); tocar el día elegido lo quita y muestra todos.
+  const [filtros,    setFiltros]    = useState(() => ({ disciplinas: [], dias: [String(diaSemanaDe(new Date()))], instructores: [] }))
   const [filtrosTmp, setFiltrosTmp] = useState({ disciplinas: [], dias: [], instructores: [] })
   const [showFiltros, setShowFiltros] = useState(false)
 
@@ -182,33 +186,22 @@ function Clases() {
   }, [vista])
 
   // ── Helpers de UI ─────────────────────────────────────────────────────────
-  const activeFilterCount = filtros.disciplinas.length + filtros.dias.length + filtros.instructores.length
-  const tmpFilterCount    = filtrosTmp.disciplinas.length + filtrosTmp.dias.length + filtrosTmp.instructores.length
-
-  function getEstatusBadge(estatus) {
-    if (estatus === 'confirmado') return <Badge variant="success"><CheckCircle size={14} /> Confirmado</Badge>
-    if (estatus === 'pendiente')  return <Badge variant="warning"><AlertCircle size={14} /> Pendiente</Badge>
-    if (estatus === 'cambio')     return <Badge variant="info"><AlertCircle size={14} /> Cambio</Badge>
-    return null
-  }
-
-  function getCupoIndicator(cupos) {
-    if (!cupos) return <Badge>Consultar</Badge>
-    const { total, disponibles } = cupos
-    const pct = total > 0 ? disponibles / total : 0
-    if (disponibles === 0)   return <Badge variant="danger"><XCircle size={14} /> Lleno</Badge>
-    if (pct <= 0.15)         return <Badge variant="warning"><AlertCircle size={14} /> Casi lleno ({disponibles})</Badge>
-    return <Badge variant="success">{disponibles} de {total}</Badge>
-  }
+  // El día se elige en la tira, no en la hoja de Filtros: no cuenta en el contador de la hoja.
+  const activeFilterCount = filtros.disciplinas.length + filtros.instructores.length
+  const tmpFilterCount    = filtrosTmp.disciplinas.length + filtrosTmp.instructores.length
+  const semana = diasDeLaSemana()
+  const diaElegido = filtros.dias.length === 1 ? Number(filtros.dias[0]) : null
 
   // ── Handlers de filtros ───────────────────────────────────────────────────
   const handleOpenFiltros = () => {
     setFiltrosTmp({ disciplinas: [...filtros.disciplinas], dias: [...filtros.dias], instructores: [...filtros.instructores] })
     setShowFiltros(true)
   }
-  const handleAplicarFiltros = () => { setFiltros({ ...filtrosTmp }); setShowFiltros(false) }
-  const handleLimpiarFiltros = () => setFiltros({ disciplinas: [], dias: [], instructores: [] })
-  const handleLimpiarTmp     = () => setFiltrosTmp({ disciplinas: [], dias: [], instructores: [] })
+  // Aplicar/limpiar solo tocan deporte e instructor; el día elegido en la tira se conserva.
+  const handleAplicarFiltros = () => { setFiltros(prev => ({ ...filtrosTmp, dias: prev.dias })); setShowFiltros(false) }
+  const handleLimpiarFiltros = () => setFiltros(prev => ({ disciplinas: [], dias: prev.dias, instructores: [] }))
+  const handleLimpiarTmp     = () => setFiltrosTmp(prev => ({ ...prev, disciplinas: [], instructores: [] }))
+  const handleElegirDia      = (dia) => setFiltros(prev => ({ ...prev, dias: dia ? [String(dia)] : [] }))
   const toggleChip = (campo, valor) => setFiltrosTmp(prev => {
     const lista = prev[campo]
     return { ...prev, [campo]: lista.includes(valor) ? lista.filter(x => x !== valor) : [...lista, valor] }
@@ -271,17 +264,35 @@ function Clases() {
     return true
   })
 
+  // ── Derivados de presentación ─────────────────────────────────────────────
+  // Estado del botón de cada clase del catálogo: inscrito > llena > disponible.
+  const estadoDe = (clase) => {
+    if (misInscripcionIds.has(Number(clase.sesion_id))) return 'inscrito'
+    if (clase.cupos?.disponibles === 0) return 'llena'
+    return 'disponible'
+  }
+  const CTA = { inscrito: 'Ya inscrito', llena: 'Clase llena', disponible: 'Inscribirme' }
+
+  // Las 2 clases inscritas más próximas (de hoy en adelante, por día y hora).
+  const proximas = [...misClases]
+    .sort((a, b) => ordenProxima(a.dia_semana, a.hora_inicio) - ordenProxima(b.dia_semana, b.hora_inicio))
+    .slice(0, 2)
+
+  // "Hoy", "Mañana" o el día de la semana, según cuántos días faltan.
+  const cuando = (c) => {
+    const dias = Math.floor(ordenProxima(c.dia_semana, c.hora_inicio) / 1440)
+    return dias === 0 ? 'Hoy' : dias === 1 ? 'Mañana' : c.dias
+  }
+
+  const detalleClase = (c) => `${c.dias} · ${c.horario} · ${c.salon}`
+
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <SocioLayout activeTab="clases" title="Club Social | Mis Clases">
       <Stack gap={24}>
 
         {/* HEADER */}
-        <PageHeader
-          title="Clases y Actividades"
-          subtitle="Gestiona tus clases inscritas o explora nuevas opciones"
-          actions={<Badge variant="ice">Socio: {userName}</Badge>}
-        />
+        <PageHeader title="Clases" />
 
         {/* TABS */}
         <Tabs
@@ -290,8 +301,8 @@ function Clases() {
           value={vista}
           onChange={setVista}
           tabs={[
-            { value: 'mis-clases', label: 'Mis Clases', count: misClases.length, icon: <BookOpen size={18} /> },
-            { value: 'catalogo', label: 'Explorar Catálogo', icon: <Search size={18} /> },
+            { value: 'mis-clases', label: 'Mis clases' },
+            { value: 'catalogo', label: 'Catálogo' },
           ]}
         />
 
@@ -304,25 +315,43 @@ function Clases() {
               icon={<Calendar size={24} />}
               title="No tienes clases inscritas"
               message="Explora el catálogo para encontrar clases que te interesen."
-              action={<Button onClick={() => setVista('catalogo')}>Ver Catálogo</Button>}
+              action={<Button onClick={() => setVista('catalogo')}>Ver catálogo</Button>}
             />
           ) : (
-            <Stack direction="row" gap={16} grow minChild={280}>
-              {misClases.map(clase => (
-                <Card key={clase.id} title={clase.nombre} action={getEstatusBadge(clase.estatus)}>
-                  <Stack gap={12}>
-                    <Text variant="overline" muted>{clase.disciplina}</Text>
-                    <Dato icon={<User size={16} />}>{clase.instructor}</Dato>
-                    <Dato icon={<Clock size={16} />}>{clase.horario} · {clase.dias}</Dato>
-                    <Dato icon={<MapPin size={16} />}>{clase.salon}</Dato>
-                    <Dato icon={<Timer size={16} />}>{clase.duracion} · Intensidad {clase.intensidad}</Dato>
-                    <Dato icon={<Info size={14} />}>Materiales: {clase.materiales}</Dato>
-                    <Button variant="error" onClick={() => handleCancelarInscripcion(clase)}>
-                      Cancelar Inscripción
+            <Stack gap={16}>
+              <Alert variant="info">
+                {misClases.length === 1 ? 'Tienes 1 clase inscrita.' : `Tienes ${misClases.length} clases inscritas.`}
+                {proximas[0] && <> Tu próxima clase es <strong>{proximas[0].nombre}</strong>, {cuando(proximas[0]).toLowerCase()} a las {proximas[0].hora_inicio?.slice(0, 5)}.</>}
+              </Alert>
+              <Stack direction="row" gap={16} grow minChild={280}>
+              {[...misClases].sort((a, b) => ordenProxima(a.dia_semana, a.hora_inicio) - ordenProxima(b.dia_semana, b.hora_inicio)).map((clase, i) => (
+                <Card
+                  key={clase.id}
+                  accent={ACENTOS[i % ACENTOS.length]}
+                  footer={
+                    <Button variant="secondary" onClick={() => handleCancelarInscripcion(clase)}>
+                      Cancelar inscripción
                     </Button>
+                  }
+                >
+                  <Stack gap={12}>
+                    <Stack direction="row" gap={8} align="center" justify="between">
+                      <Stack direction="row" gap={12} align="center">
+                        <Avatar name={clase.disciplina} src={fotoClase(clase.disciplina)} size="lg" />
+                        <Stack gap={0}>
+                          <Text variant="subheading">{clase.nombre}</Text>
+                          <Text variant="small" muted>{clase.instructor}</Text>
+                        </Stack>
+                      </Stack>
+                      <Badge variant={cuando(clase) === 'Hoy' ? 'success' : 'ice'}>{cuando(clase)}</Badge>
+                    </Stack>
+                    <Dato icon={<Calendar size={16} />}>{clase.dias} · {clase.horario}</Dato>
+                    <Dato icon={<Timer size={16} />}>{clase.duracion}</Dato>
+                    <Dato icon={<MapPin size={16} />}>{clase.salon}</Dato>
                   </Stack>
                 </Card>
               ))}
+              </Stack>
             </Stack>
           )
         )}
@@ -330,7 +359,7 @@ function Clases() {
         {/* ===== CATÁLOGO ===== */}
         {vista === 'catalogo' && (
           <Stack gap={16}>
-            {/* Botón filtros */}
+            {/* Filtros (deporte e instructor) */}
             <Stack direction="row" gap={8} align="center">
               <Button variant={activeFilterCount > 0 ? 'primary' : 'secondary'} onClick={handleOpenFiltros}>
                 <Filter size={16} />
@@ -342,53 +371,69 @@ function Clases() {
               )}
             </Stack>
 
-            {/* Grid de clases */}
-            <Stack direction="row" gap={16} grow minChild={280}>
-              {catalogoFiltrado.map(clase => {
-                const yaInscrito = misInscripcionIds.has(Number(clase.sesion_id))
-                return (
-                  <Card key={clase.id} title={clase.nombre} action={getCupoIndicator(clase.cupos)}>
-                    <Stack gap={12}>
-                      <Stack direction="row">
-                        <Badge variant="info">{clase.dias}</Badge>
-                      </Stack>
-                      <Text variant="small" muted>{clase.descripcion}</Text>
-                      <Stack direction="row" gap={8} align="center">
-                        <Avatar name={clase.instructor} src={clase.instructor_foto} />
-                        <Text variant="small" as="span">{clase.instructor || 'Por asignar'}</Text>
-                      </Stack>
-                      <Dato icon={<Clock size={14} />}>{clase.horario}</Dato>
-                      <Dato icon={<Calendar size={14} />}>{clase.dias}</Dato>
-                      <Dato icon={<MapPin size={14} />}>{clase.salon}</Dato>
-                      <Dato icon={<Timer size={14} />}>{clase.duracion}</Dato>
-                      <Dato icon={<Info size={14} />}>{clase.materiales}</Dato>
+            {/* Día de la semana */}
+            <DayStrip ariaLabel="Día de la semana" days={semana} value={diaElegido} onChange={handleElegirDia} />
 
-                      {/* Botón según estado */}
-                      {yaInscrito ? (
-                        <Button variant="secondary" disabled>
-                          <CheckCircle size={16} /> Ya inscrito
-                        </Button>
-                      ) : clase.cupos?.disponibles === 0 ? (
-                        <Button disabled>
-                          Clase Llena
-                        </Button>
-                      ) : (
-                        <Button onClick={() => handleInscribirse(clase)}>
-                          <Zap size={16} /> Inscribirme
-                        </Button>
-                      )}
-                    </Stack>
-                  </Card>
-                )
-              })}
-            </Stack>
+            {/* Mazo de clases */}
+            {catalogoFiltrado.length > 0 && (
+              <>
+                <StackDeck ariaLabel="Clases del club">
+                  {catalogoFiltrado.map(clase => {
+                    const estado = estadoDe(clase)
+                    const minutos = minutosDeClase(clase.horario.slice(0, 5), clase.horario.slice(8, 13))
+                    return (
+                      <EventCard
+                        key={clase.id}
+                        gradient="clases"
+                        as={estado === 'disponible' ? 'button' : 'div'}
+                        kicker={clase.dias}
+                        icon={iconoDisciplina(clase.disciplina)}
+                        photo={fotoClase(clase.disciplina)}
+                        day={clase.horario.slice(0, 5)}
+                        month={minutos ? `${minutos} min` : undefined}
+                        title={clase.nombre}
+                        description={`${clase.instructor} · ${clase.salon}`}
+                        progress={{ value: clase.cupos.total - clase.cupos.disponibles, max: clase.cupos.total, label: 'Cupo' }}
+                        status={estado === 'llena' ? <Badge variant="danger">Lleno</Badge> : undefined}
+                        cta={CTA[estado]}
+                        onClick={estado === 'disponible' ? () => handleInscribirse(clase) : undefined}
+                        aria-label={`${clase.nombre}, ${clase.dias} ${clase.horario}. ${CTA[estado]}`}
+                      />
+                    )
+                  })}
+                </StackDeck>
+                <Text variant="caption" muted align="center">
+                  {catalogoFiltrado.length} {catalogoFiltrado.length === 1 ? 'clase' : 'clases'} · desliza para ver más
+                </Text>
+              </>
+            )}
 
             {catalogoFiltrado.length === 0 && (
               <EmptyState
                 title="No se encontraron clases"
-                message="Intenta con otros filtros o limpia los actuales."
-                action={activeFilterCount > 0 ? <Button variant="secondary" onClick={handleLimpiarFiltros}>Limpiar filtros</Button> : undefined}
+                message="Prueba con otro día o limpia los filtros."
+                action={(activeFilterCount > 0 || diaElegido) ? (
+                  <Button variant="secondary" onClick={() => setFiltros({ disciplinas: [], dias: [], instructores: [] })}>
+                    Ver todas las clases
+                  </Button>
+                ) : undefined}
               />
+            )}
+
+            {/* Próximas clases del socio */}
+            {proximas.length > 0 && (
+              <Stack gap={12}>
+                <Text variant="subheading">Tus próximas clases</Text>
+                {proximas.map(c => (
+                  <AvatarRow
+                    key={c.id}
+                    avatar={<Avatar name={c.disciplina} src={fotoClase(c.disciplina)} size="lg" />}
+                    title={c.nombre}
+                    meta={detalleClase(c)}
+                    action={<Badge variant="success">Inscrito</Badge>}
+                  />
+                ))}
+              </Stack>
             )}
           </Stack>
         )}
@@ -399,14 +444,14 @@ function Clases() {
         <Modal
           isOpen
           onClose={() => setShowModalInscripcion(false)}
-          title="Confirmar Inscripción"
+          title="Confirmar inscripción"
           footer={
             <>
               <Button variant="secondary" onClick={() => setShowModalInscripcion(false)}>
                 Cancelar
               </Button>
               <Button onClick={handleConfirmarInscripcion} disabled={saving}>
-                {saving ? 'Inscribiendo...' : 'Confirmar Inscripción'}
+                {saving ? 'Inscribiendo...' : 'Confirmar inscripción'}
               </Button>
             </>
           }
@@ -416,10 +461,7 @@ function Clases() {
             <Alert variant={feedbackModal.tipo === 'error' ? 'error' : 'success'}>{feedbackModal.msg}</Alert>
           )}
 
-          <Stack gap={4} align="start">
-            <Text variant="subheading">{claseSeleccionada.nombre}</Text>
-            <Badge variant="info">{claseSeleccionada.disciplina}</Badge>
-          </Stack>
+          <Text variant="subheading">{claseSeleccionada.nombre}</Text>
 
           <Stack direction="row" gap={12} align="center">
             <Avatar name={claseSeleccionada.instructor} src={claseSeleccionada.instructor_foto} size="lg" />
@@ -433,12 +475,6 @@ function Clases() {
             <Dato icon={<Clock size={18} />}><strong>Horario:</strong> {claseSeleccionada.horario} · {claseSeleccionada.dias}</Dato>
             <Dato icon={<MapPin size={18} />}><strong>Ubicación:</strong> {claseSeleccionada.salon}</Dato>
             <Dato icon={<Timer size={18} />}><strong>Duración:</strong> {claseSeleccionada.duracion}</Dato>
-            <Dato icon={<Zap size={18} />}><strong>Intensidad:</strong> {claseSeleccionada.intensidad}</Dato>
-          </Stack>
-
-          <Stack gap={4}>
-            <Text variant="small"><strong>Materiales necesarios:</strong></Text>
-            <Text variant="small" muted>{claseSeleccionada.materiales}</Text>
           </Stack>
 
           <Text variant="small">
@@ -449,24 +485,16 @@ function Clases() {
 
       {/* ===== MODAL: CONFIRMACIÓN EXITOSA ===== */}
       {showModalConfirmacion && (
-        <Modal
+        <ConfirmDialog
           isOpen
-          onClose={() => setShowModalConfirmacion(false)}
-          title="¡Inscripción Exitosa!"
-          footer={
-            <Button onClick={() => {
-              setShowModalConfirmacion(false)
-              setVista('mis-clases')
-            }}>
-              Ver Mis Clases
-            </Button>
-          }
-        >
-          <Alert variant="success">
-            Te has inscrito correctamente en <strong>{claseSeleccionada?.nombre}</strong>
-          </Alert>
-          <Text variant="small" muted>Puedes ver tus clases inscritas en la pestaña "Mis Clases"</Text>
-        </Modal>
+          hideCancel
+          icon={<Check size={24} />}
+          title="¡Inscripción exitosa!"
+          message={claseSeleccionada ? `${claseSeleccionada.nombre} · ${claseSeleccionada.dias} ${claseSeleccionada.horario} · ${claseSeleccionada.salon}` : undefined}
+          confirmLabel="Listo"
+          onConfirm={() => setShowModalConfirmacion(false)}
+          onCancel={() => setShowModalConfirmacion(false)}
+        />
       )}
 
       {/* ===== MODAL: BAJA ===== */}
@@ -484,44 +512,37 @@ function Clases() {
         />
       )}
 
-      {/* ===== PANEL: FILTROS ===== */}
+      {/* ===== HOJA: FILTROS ===== */}
       {showFiltros && (
         <Modal
           isOpen
+          variant="sheet"
           onClose={() => setShowFiltros(false)}
           closeOnOverlayClick
           title="Filtros"
           footer={
             <>
-              <Button variant="secondary" onClick={handleLimpiarTmp}>Limpiar</Button>
               <Button onClick={handleAplicarFiltros}>
                 Aplicar filtros{tmpFilterCount > 0 ? ` (${tmpFilterCount})` : ''}
               </Button>
+              <Button variant="secondary" onClick={handleLimpiarTmp}>Limpiar</Button>
             </>
           }
         >
           <Stack gap={8}>
-            <Text variant="overline" muted>Disciplina</Text>
+            <Text variant="overline" muted>Deporte</Text>
             <Stack direction="row" gap={8} wrap>
+              <Chip
+                selected={filtrosTmp.disciplinas.length === 0}
+                onClick={() => setFiltrosTmp(prev => ({ ...prev, disciplinas: [] }))}
+              >
+                Todos
+              </Chip>
               {disciplinas.map(d => (
                 <Chip
                   key={d.disciplina_id}
                   selected={filtrosTmp.disciplinas.includes(d.nombre)}
                   onClick={() => toggleChip('disciplinas', d.nombre)}
-                >
-                  {d.nombre}
-                </Chip>
-              ))}
-            </Stack>
-          </Stack>
-          <Stack gap={8}>
-            <Text variant="overline" muted>Día de la semana</Text>
-            <Stack direction="row" gap={8} wrap>
-              {DIAS_SEMANA.map(d => (
-                <Chip
-                  key={d.valor}
-                  selected={filtrosTmp.dias.includes(String(d.valor))}
-                  onClick={() => toggleChip('dias', String(d.valor))}
                 >
                   {d.nombre}
                 </Chip>

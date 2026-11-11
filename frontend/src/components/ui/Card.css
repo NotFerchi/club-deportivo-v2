@@ -72,3 +72,21 @@
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .ui-card--glass { background: rgb(255 255 255 / 0.92); }
 }
+
+/* Barra de color a la izquierda (acento por categoría) */
+.ui-card--accent { border-left: 4px solid var(--ui-card-accent, var(--color-brand-navy)); }
+.ui-card--accent-blue   { --ui-card-accent: var(--blue-500); }
+.ui-card--accent-violet { --ui-card-accent: var(--violet-500); }
+.ui-card--accent-green  { --ui-card-accent: var(--green-500); }
+.ui-card--accent-amber  { --ui-card-accent: var(--amber-500); }
+.ui-card--accent-cyan   { --ui-card-accent: var(--cyan-500); }
+
+.ui-card__footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-8);
+    margin: 0 var(--space-24);
+    padding: var(--space-16) 0;
+    border-top: 1px solid var(--color-border-default);
+}

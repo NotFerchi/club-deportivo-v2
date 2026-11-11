@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SocioLayout from '../../../components/SocioLayout';
-import { Alert, Badge, Button, ErrorState, LoadingState, PageHeader, Stack, Table, Text } from '../../../components/ui';
+import { Alert, Avatar, AvatarRow, Badge, Button, EmptyState, ErrorState, LoadingState, PageHeader, Stack } from '../../../components/ui';
 import EvaluarClaseModal from '../../../components/evaluaciones-ui/EvaluarClaseModal';
 import {
   horaCorta,
@@ -67,70 +67,34 @@ export default function Evaluaciones() {
     }
     const clase = evaluando;
     setEvaluando(null);
-    setAviso(`¡Gracias! Tu evaluación de ${clase.disciplina} se registró.`);
+    setAviso(`Tu evaluación de ${clase.disciplina} se registró. Tu opinión ayuda a mantener la excelencia y mejorar las clases del club.`);
     recargar();
   };
 
   const evaluacionDe = (clase) => evaluadas.find((e) => Number(e.sesion_id) === Number(clase.sesion_id));
 
-  const columnas = [
-    {
-      key: 'clase',
-      header: 'Clase',
-      render: (c) => (
-        <Stack gap={0}>
-          <span>{c.disciplina}</span>
-          <Text variant="caption" muted as="span">
-            {nombreDia(c.dia_semana)} · {horaCorta(c.hora_inicio)} - {horaCorta(c.hora_fin)} · {c.espacio}
-          </Text>
-        </Stack>
-      ),
-    },
-    {
-      key: 'instructor',
-      header: 'Instructor',
-      render: (c) => (sinInstructor(c) ? <Text variant="caption" muted as="span">Por asignar</Text> : c.instructor),
-    },
-    {
-      key: 'estado',
-      header: 'Este mes',
-      render: (c) => {
-        const hecha = evaluacionDe(c);
-        if (hecha) return <Badge variant="success">Evaluada · {hecha.calificacion}/5</Badge>;
-        if (sinInstructor(c)) return <Badge>Sin instructor</Badge>;
-        return <Badge variant="warning">Pendiente</Badge>;
-      },
-    },
-    {
-      key: 'accion',
-      header: 'Acción',
-      render: (c) => {
-        if (evaluacionDe(c)) {
-          return <Text variant="caption" muted as="span">Podrás evaluar de nuevo el próximo mes</Text>;
-        }
-        return (
-          <Button variant="secondary" disabled={sinInstructor(c)} onClick={() => { setAviso(null); setEvaluando(c); }}>
-            Evaluar
-          </Button>
-        );
-      },
-    },
-  ];
+  // Lo que va a la derecha de cada clase: ya evaluada este mes, sin instructor (no se puede) o el botón.
+  const accionDe = (c) => {
+    if (evaluacionDe(c)) return <Badge variant="success">Ya evaluada este mes</Badge>;
+    if (sinInstructor(c)) return <Button variant="secondary" disabled>Por asignar</Button>;
+    return <Button onClick={() => { setAviso(null); setEvaluando(c); }}>Evaluar</Button>;
+  };
 
   return (
     <SocioLayout activeTab="evaluar" title="Club Social | Evaluaciones">
       <Stack gap={24}>
         <PageHeader
           title="Evaluar instructores"
+          overline="Tu opinión cuenta"
           subtitle={`Califica las clases en las que estás inscrito. Evaluaciones de ${nombreMes(periodo)}.`}
         />
 
         <Alert variant="info">
-          Tu evaluación es anónima: el instructor ve la calificación y el comentario, pero no quién la hizo.
+          Tu evaluación es anónima: el instructor ve la calificación, pero no quién la hizo.
           Puedes evaluar cada clase una vez al mes.
         </Alert>
 
-        {aviso && <Alert variant="success">{aviso}</Alert>}
+        {aviso && <Alert variant="success" title="¡Gracias por tu evaluación!">{aviso}</Alert>}
 
         {!socioId && (
           <Alert variant="warning">No encontramos tu registro de socio. Cierra sesión e inicia de nuevo.</Alert>
@@ -140,16 +104,27 @@ export default function Evaluaciones() {
 
         {socioId && cargando && !error && <LoadingState rows={3} label="Cargando tus clases…" />}
 
-        {socioId && !cargando && !error && (
-          <Table
-            columns={columnas}
-            data={clases}
-            getRowKey={(c) => c.sesion_id}
-            minWidth={640}
-            emptyTitle="Aún no tienes clases confirmadas"
-            emptyMessage="Inscríbete a una clase para poder evaluar a su instructor."
-            emptyAction={<Button variant="secondary" onClick={() => navigate('/clases')}>Ver clases</Button>}
+        {socioId && !cargando && !error && clases.length === 0 && (
+          <EmptyState
+            title="Aún no tienes clases confirmadas"
+            message="Inscríbete a una clase para poder evaluar a su instructor."
+            action={<Button variant="secondary" onClick={() => navigate('/clases')}>Ver clases</Button>}
           />
+        )}
+
+        {socioId && !cargando && !error && clases.length > 0 && (
+          <Stack gap={12}>
+            {clases.map((c) => (
+              <AvatarRow
+                key={c.sesion_id}
+                avatar={<Avatar name={sinInstructor(c) ? '' : c.instructor} src={c.instructor_foto} size="lg" />}
+                title={c.disciplina}
+                subtitle={sinInstructor(c) ? 'Por asignar' : c.instructor}
+                meta={`${nombreDia(c.dia_semana)} · ${horaCorta(c.hora_inicio)} - ${horaCorta(c.hora_fin)} · ${c.espacio}`}
+                action={accionDe(c)}
+              />
+            ))}
+          </Stack>
         )}
       </Stack>
 

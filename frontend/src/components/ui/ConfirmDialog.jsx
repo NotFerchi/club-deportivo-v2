@@ -23,6 +23,7 @@ import './ConfirmDialog.css';
  *   confirmLabel - default "Confirmar"; cancelLabel - default "Cancelar"
  *   destructive  - true: icono de papelera y botón rojo
  *   loading      - true deshabilita ambos botones mientras se procesa
+ *   hideCancel   - true oculta el botón de cancelar (aviso con un solo botón, p. ej. "Listo")
  *   icon         - nodo para reemplazar el icono; opcional
  *   children     - contenido extra bajo el mensaje (p. ej. un campo de motivo); opcional
  */
@@ -36,6 +37,7 @@ export function ConfirmDialog({
   cancelLabel = 'Cancelar',
   destructive = false,
   loading = false,
+  hideCancel = false,
   icon,
   children,
 }) {
@@ -49,7 +51,7 @@ export function ConfirmDialog({
         {message && <p className="ui-confirm__message">{message}</p>}
         {children}
         <div className="ui-confirm__actions">
-          <Button variant="secondary" onClick={onCancel} disabled={loading}>{cancelLabel}</Button>
+          {!hideCancel && <Button variant="secondary" onClick={onCancel} disabled={loading}>{cancelLabel}</Button>}
           <Button variant={destructive ? 'error' : 'primary'} onClick={onConfirm} disabled={loading}>{confirmLabel}</Button>
         </div>
       </div>

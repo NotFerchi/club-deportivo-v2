@@ -49,3 +49,4 @@ export { StepSection } from './StepSection';
 export { SelectTile } from './SelectTile';
 export { ActionBar } from './ActionBar';
 export { AvatarRow } from './AvatarRow';
+export { DayStrip } from './DayStrip';

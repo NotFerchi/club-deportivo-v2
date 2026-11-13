@@ -6,3 +6,8 @@ import { cleanup } from '@testing-library/react';
 afterEach(() => {
   cleanup();
 });
+
+// jsdom no implementa scrollIntoView; Select lo usa para mantener visible la opción activa.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}

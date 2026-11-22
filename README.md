@@ -71,6 +71,14 @@ npm run dev
 ```
 El frontend corre en `http://localhost:3001` y espera al backend en `http://localhost:3000`.
 
+### 5. Pruebas del frontend
+Las pruebas de los componentes del kit UI (`frontend/src/components/ui/__tests__`) usan Vitest y Testing Library en un DOM simulado (jsdom). No llaman a la API, así que no necesitan el backend ni el `.env`.
+```bash
+cd frontend
+npm test            # corre todas las pruebas una vez
+npm run test:watch  # modo vigilancia: vuelve a correr al guardar
+```
+
 ### Reglas del proyecto
 * Ninguna credencial va en el código fuente: todo se lee con `process.env.*`.
 * `.env` está en `.gitignore`; solo `.env.example` se versiona en el repositorio.

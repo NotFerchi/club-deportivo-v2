@@ -35,6 +35,17 @@ app.use(require('../middleware/errorHandler'));
 const rows = (list) => ({ rows: list, rowCount: list.length });
 const ERROR_HANDLER = { ok: false, error: 'Error interno del servidor' };
 
+// Body completo que manda el modal "Editar sesión" del coordinador (GestionDisciplinas.jsx)
+const SESION_VALIDA = {
+  disciplina_id: 1,
+  espacio_id: 2,
+  instructor_id: 3,
+  dia_semana: 4,
+  hora_inicio: '08:00',
+  hora_fin: '09:00',
+  cupo_maximo: 15
+};
+
 let db;
 let log;
 let consoleSpies;
@@ -63,6 +74,7 @@ function route(q) {
   // sesiones
   if (q.includes('as inscritos_actuales')) return rows(db.sesiones);
   if (q.includes('as cupo_actual FROM sesiones_programadas sp')) return rows(db.sesionesDia);
+  if (q.startsWith('SELECT 1 FROM sesiones_programadas WHERE sesion_id = $1')) return rows(db.sesionExiste);
   if (q.startsWith('SELECT sesion_id FROM sesiones_programadas')) return rows(db.conflicto);
   if (q.startsWith('INSERT INTO sesiones_programadas')) return rows([{ sesion_id: 55 }]);
   if (q.startsWith('UPDATE sesiones_programadas')) return rows([]);
@@ -91,6 +103,7 @@ beforeEach(() => {
     sesiones: [{ sesion_id: 1 }],
     sesionesDia: [{ sesion_id: 2 }],
     conflicto: [],
+    sesionExiste: [{ '?column?': 1 }],
     logs: [{ log_id: 1 }],
     logsTabla: [{ log_id: 2 }],
     statsAcciones: [{ accion: 'login', total: '5' }],
@@ -301,8 +314,9 @@ describe('/api/sesiones', () => {
     expect(ultimoError()).toBe('ERROR');
   });
 
-  it('PUT /:id y DELETE /:id (sin validar existencia)', async () => {
-    let res = await request(app).put('/api/sesiones/7').send({ disciplina_id: 1, activo: false });
+  // U5-05 (COORD): el PUT ya valida el body completo y la existencia; antes aceptaba un body parcial.
+  it('PUT /:id y DELETE /:id (el DELETE sin validar existencia)', async () => {
+    let res = await request(app).put('/api/sesiones/7').send(SESION_VALIDA);
     expect(res.body).toEqual({ message: 'Sesión actualizada correctamente' });
 
     res = await request(app).delete('/api/sesiones/7');
@@ -310,7 +324,7 @@ describe('/api/sesiones', () => {
     expect(log).toMatchSnapshot();
 
     db.falla = { sql: 'UPDATE sesiones' };
-    res = await request(app).put('/api/sesiones/7').send({});
+    res = await request(app).put('/api/sesiones/7').send(SESION_VALIDA);
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: 'Error al actualizar sesión' });
 
@@ -325,6 +339,75 @@ describe('/api/sesiones', () => {
 });
 
 // ── /api/logs ────────────────────────────────────────────────────────────────
+
+// ── PUT /api/sesiones/:id: bug COORD de U5-05 ────────────────────────────────
+
+describe('PUT /api/sesiones/:id (COORD, U5-05)', () => {
+  /** Columnas de sesiones_programadas según migrations/schema.sql (el esquema real de Neon). */
+  function columnasSesiones() {
+    const fs = require('fs');
+    const path = require('path');
+    const sql = fs.readFileSync(path.join(__dirname, '../../migrations/schema.sql'), 'utf8');
+    const cuerpo = sql.match(/CREATE TABLE sesiones_programadas \(([\s\S]*?)\n\);/)[1];
+    return cuerpo
+      .split('\n')
+      .map((l) => l.trim().split(/\s+/)[0])
+      .filter(Boolean);
+  }
+
+  it('el UPDATE solo escribe columnas que existen en sesiones_programadas', async () => {
+    const res = await request(app).put('/api/sesiones/7').send({ ...SESION_VALIDA, activo: true });
+    expect(res.status).toBe(200);
+
+    const update = log.map(([, sql]) => sql).find((q) => q.startsWith('UPDATE sesiones_programadas'));
+    const asignadas = [...update.matchAll(/(\w+) = \$\d+/g)].map((m) => m[1]).filter((c) => c !== 'sesion_id');
+    const columnas = columnasSesiones();
+    expect(columnas).toContain('cupo_maximo');
+    expect(asignadas.filter((c) => !columnas.includes(c))).toEqual([]);
+  });
+
+  it.each([
+    ['falta un campo', { ...SESION_VALIDA, espacio_id: undefined }, 'Todos los campos de la sesión son requeridos'],
+    ['cupo vacío (NaN → null)', { ...SESION_VALIDA, cupo_maximo: null }, 'Todos los campos de la sesión son requeridos'],
+    ['id no numérico', { ...SESION_VALIDA, disciplina_id: 'x' }, 'disciplina_id, espacio_id, instructor_id y cupo_maximo deben ser enteros positivos'],
+    ['cupo 0', { ...SESION_VALIDA, cupo_maximo: 0 }, 'disciplina_id, espacio_id, instructor_id y cupo_maximo deben ser enteros positivos'],
+    ['día 8', { ...SESION_VALIDA, dia_semana: 8 }, 'dia_semana debe ser un entero entre 1 y 7'],
+    ['hora mal escrita', { ...SESION_VALIDA, hora_inicio: '8am' }, 'hora_inicio y hora_fin deben tener formato HH:MM'],
+    ['fin antes del inicio', { ...SESION_VALIDA, hora_inicio: '10:00', hora_fin: '09:00' }, 'La hora de fin debe ser mayor a la hora de inicio']
+  ])('%s → 400 sin tocar la BD', async (_caso, body, error) => {
+    const res = await request(app).put('/api/sesiones/7').send(body);
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error });
+    expect(log).toEqual([]);
+  });
+
+  it('id de la ruta inválido → 400', async () => {
+    const res = await request(app).put('/api/sesiones/abc').send(SESION_VALIDA);
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'id debe ser un entero positivo' });
+    expect(log).toEqual([]);
+  });
+
+  it('sesión inexistente → 404 sin UPDATE', async () => {
+    db.sesionExiste = [];
+    const res = await request(app).put('/api/sesiones/7').send(SESION_VALIDA);
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Sesión no encontrada' });
+    expect(log.some(([, sql]) => sql.startsWith('UPDATE'))).toBe(false);
+  });
+
+  it('choque con OTRA sesión del espacio → 400; la búsqueda excluye a la propia sesión', async () => {
+    db.conflicto = [{ sesion_id: 9 }];
+    const res = await request(app).put('/api/sesiones/7').send(SESION_VALIDA);
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Ya existe una sesión en este espacio y horario' });
+
+    const [, sql, params] = log.find(([, q]) => q.startsWith('SELECT sesion_id FROM sesiones_programadas'));
+    expect(sql).toContain('AND sesion_id <> $5');
+    expect(params).toEqual([2, 4, '08:00', '09:00', 7]);
+    expect(log.some(([, q]) => q.startsWith('UPDATE'))).toBe(false);
+  });
+});
 
 describe('/api/logs', () => {
   it('POST / registra (con y sin body)', async () => {

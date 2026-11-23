@@ -1,4 +1,5 @@
-// Valida las consultas reales de los servicios de torneos (y de evaluaciones, E4) contra una base real, SIN ESCRIBIR NADA.
+// Valida las consultas reales de los servicios de torneos (y de evaluaciones, E4, y las de los bugs de U5-05:
+// sesiones, sanciones y ludoteca) contra una base real, SIN ESCRIBIR NADA.
 //
 //   node scripts/validarConsultas.js --principal   → DATABASE_URL de backend/.env
 //   node scripts/validarConsultas.js --branch      → NEON_BRANCH_URL de backend/.env.paso7
@@ -130,6 +131,9 @@ const encuentroService = cargar('../src/services/encuentroService');
 const categoriaService = cargar('../src/services/categoriaService');
 const logService = cargar('../src/services/logService');
 const evaluacionService = cargar('../src/services/evaluacionService');
+const sesionService = cargar('../src/services/sesionService');
+const sancionService = cargar('../src/services/sancionService');
+const ludotecaService = cargar('../src/services/ludotecaService');
 const { bloquearTorneo } = cargar('../src/services/torneoComun');
 const { logAudit } = cargar('../src/utils/auditLogger');
 
@@ -353,6 +357,38 @@ async function main() {
     await paso('E4 GET /instructor/:id/promedio?periodo como staff', () =>
       evaluacionService.promedioDeInstructor(staff, instructor.instructor_id, '2026-10'), {
       omitir: sinEvaluaciones || sinDatos(instructor, 'instructores')
+    });
+
+    // U5-05: consultas de los bugs de las pruebas integrales (U4-07)
+    const sesion = await muestra(
+      `SELECT sesion_id, disciplina_id, espacio_id, instructor_id, dia_semana, cupo_maximo,
+              to_char(hora_inicio, 'HH24:MI') AS hora_inicio, to_char(hora_fin, 'HH24:MI') AS hora_fin
+         FROM sesiones_programadas
+        WHERE instructor_id IS NOT NULL AND cupo_maximo > 0 AND hora_inicio < hora_fin
+        ORDER BY sesion_id LIMIT 1`
+    );
+    // COORD: el UPDATE escribía la columna `activo`, que sesiones_programadas no tiene
+    await paso('U5-05 PUT /api/sesiones/:id (existencia + choque + solo EXPLAIN del UPDATE)', () => {
+      const { sesion_id, ...body } = sesion;
+      return sesionService.actualizarSesion(sesion_id, body);
+    }, { omitir: noExiste(sesionService.actualizarSesion, 'actualizarSesion') || sinDatos(sesion, 'sesiones con instructor') });
+
+    // SAN-04: el conteo del historial y la lista del socio con el mismo criterio de "activa"
+    const socioSancionado = await muestra('SELECT socio_id FROM sanciones ORDER BY sancion_id DESC LIMIT 1');
+    await paso('U5-05 GET /api/sanciones/socio/:id (campo activa)', () => sancionService.sancionesDeSocio(socioSancionado.socio_id), {
+      omitir: sinDatos(socioSancionado, 'sanciones')
+    });
+    await paso('U5-05 GET /api/socios/:id/sanciones (total_sanciones_activas)', () =>
+      sancionService.historialCompletoSocio(socioSancionado.socio_id), { omitir: sinDatos(socioSancionado, 'sanciones') });
+
+    // LUD-05: entrada activa del mismo niño antes de insertar (staff y recepción)
+    const padre = await muestra('SELECT socio_id FROM socios ORDER BY socio_id LIMIT 1');
+    const nino = { nombre_hijo: '__validador__', fecha_nacimiento: '2021-01-01' };
+    await paso('U5-05 POST /api/ludoteca/entrada (entrada activa + solo EXPLAIN del INSERT)', () =>
+      ludotecaService.registrarEntradaStaff(padre.socio_id, nino), { omitir: sinDatos(padre, 'socios') });
+    await paso('U5-05 POST /api/recepcion/ludoteca (entrada activa + solo EXPLAIN del INSERT)', () =>
+      ludotecaService.entradaRecepcion({ socioId: padre.socio_id, nombreHijo: nino.nombre_hijo, fechaNacimiento: nino.fecha_nacimiento }), {
+      omitir: sinDatos(padre, 'socios')
     });
   } finally {
     await real.query('ROLLBACK').catch(() => {});

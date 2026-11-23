@@ -76,7 +76,7 @@ describe('migraciones de U5-05', () => {
   const leer = (archivo) => fs.readFileSync(path.join(MIGRACIONES, archivo), 'utf8');
   const sinComentarios = (sql) => sql.replace(/--[^\n]*/g, '').replace(/\s+/g, ' ');
 
-  it.each(['Agregar_unico_entrada_activa_ludoteca.sql'])(
+  it.each(['Agregar_resultado_final_participantes.sql', 'Agregar_unico_entrada_activa_ludoteca.sql'])(
     '%s existe, está en migracionesPosteriores y corre después de schema.sql',
     (archivo) => {
       expect(fs.existsSync(path.join(MIGRACIONES, archivo))).toBe(true);
@@ -86,6 +86,13 @@ describe('migraciones de U5-05', () => {
       expect(plan.indexOf(archivo)).toBeGreaterThan(plan.indexOf('schema.sql'));
     }
   );
+
+  // Bug 5: GET /torneos/:id/participantes lee pt.resultado_final, que solo existía en los CREATE TABLE
+  it('resultado_final: ADD COLUMN IF NOT EXISTS con el tipo de production (VARCHAR(100), nullable)', () => {
+    expect(sinComentarios(leer('Agregar_resultado_final_participantes.sql'))).toContain(
+      'ALTER TABLE participantes_torneo ADD COLUMN IF NOT EXISTS resultado_final VARCHAR(100);'
+    );
+  });
 
   // LUD-05: una sola entrada activa por niño; el nombre del índice es el que ludotecaService traduce a 409
   it('entrada activa única: índice único parcial con el nombre que traduce ludotecaService', () => {

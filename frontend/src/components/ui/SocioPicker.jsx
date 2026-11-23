@@ -34,6 +34,10 @@ import './SocioPicker.css';
  *   emptyMessage - texto sin resultados (default "No se encontraron socios")
  *   id, className
  */
+
+/** "No. 1822 · detalle", solo con las partes que haya (sin número no empieza con " · "). */
+const metaDe = (item) => [item.numero ? `No. ${item.numero}` : '', item.detalle].filter(Boolean).join(' · ');
+
 export function SocioPicker({
   value = null,
   onChange,
@@ -139,7 +143,7 @@ export function SocioPicker({
           <Avatar name={value.nombre} size="sm" />
           <span className="ui-socio-picker__info">
             <span className="ui-socio-picker__name">{value.nombre}</span>
-            <span className="ui-socio-picker__meta">{value.numero ? `No. ${value.numero}` : ''}{value.detalle ? ` · ${value.detalle}` : ''}</span>
+            <span className="ui-socio-picker__meta">{metaDe(value)}</span>
           </span>
           {!disabled && (
             <button
@@ -210,7 +214,7 @@ export function SocioPicker({
                     <Avatar name={socio.nombre} size="sm" />
                     <span className="ui-socio-picker__info">
                       <span className="ui-socio-picker__name">{socio.nombre}</span>
-                      <span className="ui-socio-picker__meta">{socio.numero ? `No. ${socio.numero}` : ''}{socio.detalle ? ` · ${socio.detalle}` : ''}</span>
+                      <span className="ui-socio-picker__meta">{metaDe(socio)}</span>
                     </span>
                     {socio.estado && <Badge variant={socio.estadoVariant || 'success'}>{socio.estado}</Badge>}
                   </li>

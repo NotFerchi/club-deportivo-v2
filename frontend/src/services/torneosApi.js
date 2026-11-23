@@ -22,6 +22,14 @@ export function listarMisParticipaciones() {
   return apiRequest('/torneos/mis-participaciones');
 }
 
+/**
+ * GET /api/torneos/visitas-vigentes?q= (personal) → visitas vigentes registradas hoy en recepción cuyo
+ * nombre contiene `q`: [{ visita_id, nombre_completo, hora_entrada, mayor_16, anfitrion }] (máx. 20).
+ */
+export function buscarVisitasVigentes(q) {
+  return apiRequest(`/torneos/visitas-vigentes?q=${encodeURIComponent(q)}`);
+}
+
 /** POST /api/torneos/:id/inscribir-me (§3.6). El socio sale del token; no lleva body. */
 export function inscribirme(torneoId) {
   return apiRequest(`/torneos/${torneoId}/inscribir-me`, { method: 'POST' });

@@ -1445,7 +1445,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio / visita no encontrados, c
   ],
   [
     "client",
-    "SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE",
+    "SELECT vigente, fecha_visita::text AS fecha_visita FROM visitas WHERE visita_id = $1",
     [
       20,
     ],
@@ -1486,7 +1486,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio / visita no encontrados, c
   ],
   [
     "client",
-    "SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE",
+    "SELECT vigente, fecha_visita::text AS fecha_visita FROM visitas WHERE visita_id = $1",
     [
       20,
     ],
@@ -1569,7 +1569,7 @@ exports[`POST /api/torneos/:torneo_id/inscribir socio, visita y externo → 201 
   ],
   [
     "client",
-    "SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE",
+    "SELECT vigente, fecha_visita::text AS fecha_visita FROM visitas WHERE visita_id = $1",
     [
       20,
     ],

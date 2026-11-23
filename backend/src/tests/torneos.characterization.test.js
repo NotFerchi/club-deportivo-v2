@@ -58,7 +58,7 @@ function route(q) {
   if (q.startsWith('UPDATE participantes_torneo SET categoria_id')) return rows([]);
   if (q.startsWith('SELECT pt.participante_id, pt.torneo_id')) return rows(db.participantes);
   if (q.startsWith('SELECT * FROM socios')) return rows(db.socio);
-  if (q.startsWith('SELECT * FROM visitas')) return rows(db.visita);
+  if (q.startsWith('SELECT vigente, fecha_visita::text AS fecha_visita FROM visitas')) return rows(db.visita);
   if (q.startsWith('SELECT categoria_id, activo FROM categorias_torneo')) return rows(db.categoria);
   if (q.startsWith('SELECT participante_id FROM participantes_torneo WHERE torneo_id = $1 AND (socio_id'))
     return rows(db.duplicado);
@@ -132,7 +132,7 @@ beforeEach(() => {
       { participante_id: 2, nombre_participante: 'Beto' }
     ],
     socio: [{ socio_id: 10 }],
-    visita: [{ visita_id: 20 }],
+    visita: [{ vigente: true, fecha_visita: '2026-01-15' }],
     categoria: [{ categoria_id: 3, activo: true }],
     duplicado: [],
     existente: [],
@@ -808,13 +808,14 @@ describe('POST /api/torneos/:torneo_id/inscribir', () => {
 
     db.visita = [];
     res = await inscribir({ visita_id: 20, categoria_id: 3 });
-    expect(res.body).toEqual({ error: 'Visita no encontrada o no vigente' });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Visita no encontrada' });
 
     res = await inscribir({ nombre_externo: 'Juan', categoria_id: 5 });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'La categoría debe ser la del torneo' });
 
-    db.visita = [{ visita_id: 20 }];
+    db.visita = [{ vigente: true, fecha_visita: '2026-01-15' }];
     db.duplicado = [{ participante_id: 1 }];
     res = await inscribir({ visita_id: 20, categoria_id: 3 });
     expect(res.status).toBe(409);

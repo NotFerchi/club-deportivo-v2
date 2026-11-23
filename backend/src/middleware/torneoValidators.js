@@ -154,6 +154,17 @@ function reglaNombreCategoria(req) {
   return null;
 }
 
+/** GET /visitas-vigentes: `q` requerido, de 2 a 150 caracteres (visitas.nombre_completo VARCHAR(150)). */
+const MIN_BUSQUEDA_VISITA = 2;
+const MAX_BUSQUEDA_VISITA = 150;
+const busquedaVisitas = validateInput((req) => {
+  const { q } = req.query;
+  const texto = typeof q === 'string' ? q.trim() : '';
+  if (texto.length < MIN_BUSQUEDA_VISITA) return bad(`q debe tener al menos ${MIN_BUSQUEDA_VISITA} caracteres`);
+  if (texto.length > MAX_BUSQUEDA_VISITA) return bad(maximo(MAX_BUSQUEDA_VISITA));
+  return null;
+});
+
 /** GET /categorias: `activas` opcional, 'true' o 'false'. */
 const filtroCategorias = validateInput((req) => {
   const { activas } = req.query;
@@ -255,6 +266,7 @@ module.exports = {
   inscribirParticipante,
   desinscribir,
   filtroCategorias,
+  busquedaVisitas,
   crearCategoria,
   renombrarCategoria,
   categoriaId,

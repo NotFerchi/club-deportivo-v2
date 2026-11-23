@@ -57,7 +57,7 @@ async function insertarRegistro(
   observaciones,
   returning = RETURNING_ENTRADA
 ) {
-  const result = await pool.query(
+  const result = await insertarEntrada(
     `INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones)
          VALUES ($1, $2, $3, NOW() AT TIME ZONE '${LUDOTECA_TIME_ZONE}', $4)${returning}`,
     [socioPadreId, nombreHijo.trim(), fechaNacimiento, String(observaciones || '').trim() || null]
@@ -111,6 +111,42 @@ async function bloquearRegistro(client, registroId) {
 function exigirSinSalida(registro) {
   if (registro.hora_salida !== null) {
     throw new ServiceError(409, { error: 'Este niño ya tiene salida registrada' });
+  }
+}
+
+// ── Entrada activa única (LUD-05) ────────────────────────────────────────────
+
+const ERROR_ENTRADA_ACTIVA = 'Este niño ya tiene una entrada activa en la ludoteca';
+// Índice único parcial de migrations/Agregar_unico_entrada_activa_ludoteca.sql
+const INDICE_ENTRADA_ACTIVA = 'uq_registro_ludoteca_entrada_activa';
+
+/**
+ * 409 si el niño (mismo socio padre y nombre, sin distinguir mayúsculas ni espacios) ya tiene
+ * una entrada sin salida. Lo usan las entradas del socio, del staff y de recepción.
+ */
+async function exigirSinEntradaActiva(socioPadreId, nombreHijo) {
+  const activo = await pool.query(
+    `SELECT registro_id FROM registro_ludoteca
+         WHERE socio_padre_id = $1 AND LOWER(TRIM(nombre_hijo)) = LOWER($2) AND hora_salida IS NULL`,
+    [socioPadreId, String(nombreHijo ?? '').trim()]
+  );
+  if (activo.rowCount > 0) {
+    throw new ServiceError(409, { error: ERROR_ENTRADA_ACTIVA });
+  }
+}
+
+/**
+ * Inserta en registro_ludoteca; si dos entradas del mismo niño llegan a la vez, el índice único
+ * rechaza la segunda (23505) y se responde el mismo 409 que la validación.
+ */
+async function insertarEntrada(sql, params) {
+  try {
+    return await pool.query(sql, params);
+  } catch (error) {
+    if (error.code === '23505' && error.constraint === INDICE_ENTRADA_ACTIVA) {
+      throw new ServiceError(409, { error: ERROR_ENTRADA_ACTIVA });
+    }
+    throw error;
   }
 }
 
@@ -226,6 +262,7 @@ async function registrarEntradaStaff(socioPadreId, { nombre_hijo, fecha_nacimien
   if (socio.rowCount === 0) {
     throw new ServiceError(400, { error: 'El socio padre no existe' });
   }
+  await exigirSinEntradaActiva(socioPadreId, nombre_hijo);
   return insertarRegistro(socioPadreId, nombre_hijo, fecha_nacimiento, observaciones);
 }
 
@@ -246,15 +283,7 @@ async function registrarEntradaSocio(usuarioId, { nombre_hijo, fecha_nacimiento,
     throw new ServiceError(403, { error: 'Solo los socios pueden registrar entradas' });
   }
 
-  const activo = await pool.query(
-    `SELECT registro_id FROM registro_ludoteca
-         WHERE socio_padre_id = $1 AND LOWER(nombre_hijo) = LOWER($2) AND hora_salida IS NULL`,
-    [socioPadreId, nombre_hijo.trim()]
-  );
-  if (activo.rowCount > 0) {
-    throw new ServiceError(409, { error: 'Este niño ya tiene una entrada activa en la ludoteca' });
-  }
-
+  await exigirSinEntradaActiva(socioPadreId, nombre_hijo);
   return insertarRegistro(socioPadreId, nombre_hijo, fecha_nacimiento, observaciones);
 }
 
@@ -391,7 +420,8 @@ async function activosRecepcion() {
 async function entradaRecepcion(body) {
   requireBodyOrEscalate(body);
   const { socioId, nombreHijo, fechaNacimiento, observaciones } = body;
-  const result = await pool.query(
+  await exigirSinEntradaActiva(socioId, nombreHijo);
+  const result = await insertarEntrada(
     `INSERT INTO registro_ludoteca (
                     socio_padre_id,
                     nombre_hijo,

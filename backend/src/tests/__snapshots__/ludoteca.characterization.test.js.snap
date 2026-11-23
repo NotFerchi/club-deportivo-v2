@@ -263,6 +263,14 @@ exports[`POST / (alias con socio_id / nombre_nino) registra la entrada y audita 
   ],
   [
     "pool",
+    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(TRIM(nombre_hijo)) = LOWER($2) AND hora_salida IS NULL",
+    [
+      10,
+      "Leo",
+    ],
+  ],
+  [
+    "pool",
     "INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones) VALUES ($1, $2, $3, NOW() AT TIME ZONE 'America/Mexico_City', $4) RETURNING registro_id, socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, observaciones",
     [
       10,
@@ -461,6 +469,14 @@ exports[`POST /entrada registra la entrada y audita 1`] = `
   ],
   [
     "pool",
+    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(TRIM(nombre_hijo)) = LOWER($2) AND hora_salida IS NULL",
+    [
+      10,
+      "Leo",
+    ],
+  ],
+  [
+    "pool",
     "INSERT INTO registro_ludoteca (socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones) VALUES ($1, $2, $3, NOW() AT TIME ZONE 'America/Mexico_City', $4) RETURNING registro_id, socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, TO_CHAR(hora_entrada, 'YYYY-MM-DD"T"HH24:MI:SS') AS hora_entrada_local, observaciones",
     [
       10,
@@ -490,7 +506,7 @@ exports[`POST /socio/entrada validaciones, 403 sin socio, 409 niño activo, alta
   ],
   [
     "pool",
-    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(nombre_hijo) = LOWER($2) AND hora_salida IS NULL",
+    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(TRIM(nombre_hijo)) = LOWER($2) AND hora_salida IS NULL",
     [
       10,
       "Leo",
@@ -505,7 +521,7 @@ exports[`POST /socio/entrada validaciones, 403 sin socio, 409 niño activo, alta
   ],
   [
     "pool",
-    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(nombre_hijo) = LOWER($2) AND hora_salida IS NULL",
+    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(TRIM(nombre_hijo)) = LOWER($2) AND hora_salida IS NULL",
     [
       10,
       "Leo",
@@ -530,7 +546,7 @@ exports[`POST /socio/entrada validaciones, 403 sin socio, 409 niño activo, alta
   ],
   [
     "pool",
-    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(nombre_hijo) = LOWER($2) AND hora_salida IS NULL",
+    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(TRIM(nombre_hijo)) = LOWER($2) AND hora_salida IS NULL",
     [
       10,
       "Leo",

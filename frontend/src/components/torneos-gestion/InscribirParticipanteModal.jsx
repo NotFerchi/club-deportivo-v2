@@ -137,6 +137,8 @@ function InscribirParticipanteModal({ torneo, socios, categorias, onClose, onIns
         placeholder="Buscar visita por nombre"
         helperText="Solo visitas registradas hoy en recepción y que siguen en el club"
         emptyMessage="No hay visitas vigentes de hoy con ese nombre"
+        variant="solid"
+        withinDialog
       />
     );
   } else {

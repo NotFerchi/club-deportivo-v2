@@ -15,8 +15,20 @@ import { createPortal } from 'react-dom';
  *   maxHeight - alto máximo en px (default 288)
  *   align     - 'stretch' (default: mismo ancho que el ancla) | 'end' (alineado al borde derecho del
  *               ancla, con el ancho que pida su CSS; útil para menús abiertos desde un botón chico)
+ *   boundary  - 'viewport' (default) | 'dialog': con 'dialog', el espacio arriba/abajo se mide contra el
+ *               [role="dialog"] que contiene al ancla, para que el panel no se salga del Modal
  */
-export function FloatingPanel({ anchorRef, open, panelRef, className, maxHeight = 288, align = 'stretch', children, ...rest }) {
+export function FloatingPanel({
+  anchorRef,
+  open,
+  panelRef,
+  className,
+  maxHeight = 288,
+  align = 'stretch',
+  boundary = 'viewport',
+  children,
+  ...rest
+}) {
   const [style, setStyle] = useState(null);
 
   useLayoutEffect(() => {
@@ -28,8 +40,17 @@ export function FloatingPanel({ anchorRef, open, panelRef, className, maxHeight 
       const rect = anchor.getBoundingClientRect();
       const gap = 4;
       const margin = 12;
-      const below = window.innerHeight - rect.bottom - margin;
-      const above = rect.top - margin;
+      // Límites verticales: la ventana o, con boundary 'dialog', el diálogo que contiene al ancla
+      let limiteArriba = 0;
+      let limiteAbajo = window.innerHeight;
+      const dialogo = boundary === 'dialog' ? anchor.closest('[role="dialog"]') : null;
+      if (dialogo) {
+        const caja = dialogo.getBoundingClientRect();
+        limiteArriba = Math.max(0, caja.top);
+        limiteAbajo = Math.min(window.innerHeight, caja.bottom);
+      }
+      const below = limiteAbajo - rect.bottom - margin;
+      const above = rect.top - limiteArriba - margin;
       const openUp = below < Math.min(maxHeight, 160) && above > below;
       const available = Math.max(96, openUp ? above : below);
       setStyle({
@@ -47,7 +68,7 @@ export function FloatingPanel({ anchorRef, open, panelRef, className, maxHeight 
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
     };
-  }, [open, anchorRef, maxHeight, align]);
+  }, [open, anchorRef, maxHeight, align, boundary]);
 
   if (!open || !style) return null;
 

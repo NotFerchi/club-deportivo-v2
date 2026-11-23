@@ -32,6 +32,9 @@ import './SocioPicker.css';
  *   minChars     - mínimo de caracteres para buscar (default 2)
  *   debounceMs   - espera antes de llamar a onSearch (default 300)
  *   emptyMessage - texto sin resultados (default "No se encontraron socios")
+ *   variant      - panel de resultados: 'glass' (default, vidrio) | 'solid' (fondo opaco con sombra,
+ *                  para cuando debajo hay texto que no debe transparentarse, p. ej. dentro de un Modal)
+ *   withinDialog - true: el panel no baja (ni sube) más allá del Modal que lo contiene
  *   id, className
  */
 
@@ -53,6 +56,8 @@ export function SocioPicker({
   minChars = 2,
   debounceMs = 300,
   emptyMessage = 'No se encontraron socios',
+  variant = 'glass',
+  withinDialog = false,
   id,
   className,
 }) {
@@ -189,7 +194,13 @@ export function SocioPicker({
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
         />
-        <FloatingPanel anchorRef={controlRef} panelRef={panelRef} open={showPanel} className="ui-socio-picker__panel">
+        <FloatingPanel
+          anchorRef={controlRef}
+          panelRef={panelRef}
+          open={showPanel}
+          boundary={withinDialog ? 'dialog' : 'viewport'}
+          className={variant === 'solid' ? 'ui-socio-picker__panel ui-socio-picker__panel--solid' : 'ui-socio-picker__panel'}
+        >
           <>
             {loading ? (
               <p className="ui-socio-picker__status" role="status">Buscando…</p>

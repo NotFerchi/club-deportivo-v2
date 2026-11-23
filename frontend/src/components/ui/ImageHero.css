@@ -1,21 +1,27 @@
-/* ImageHero — solo tokens (src/styles/tokens.css) */
+/* ImageHero — solo tokens (src/styles/tokens.css)
+   Clases propias ui-image-hero* (U5-05, COORD-03): antes compartía .ui-hero* con HeroCard y, como este
+   archivo se carga después, su `display: flex` rompía la rejilla de HeroCard (título vertical en celular).
+   Lo que ImageHero heredaba de HeroCard por ese choque (padding, sombra, alineación y margen/tracking del
+   título) queda escrito aquí para que se vea igual; solo se quita el punto duplicado de la pastilla. */
 
-.ui-hero {
+.ui-image-hero {
     position: relative;
     isolation: isolate;
     display: flex;
     align-items: flex-end;
+    padding: var(--space-32);
     overflow: hidden;
     border-radius: var(--ui-radius-card);
     background: var(--color-brand-navy);
     color: var(--on-photo-text);
+    box-shadow: var(--ui-shadow-xl);
     font-family: var(--font-sans);
 }
 
-.ui-hero--lg { min-height: 200px; }
-.ui-hero--sm { min-height: 128px; }
+.ui-image-hero--lg { min-height: 200px; }
+.ui-image-hero--sm { min-height: 128px; }
 
-.ui-hero__photo {
+.ui-image-hero__photo {
     position: absolute;
     inset: 0;
     z-index: -2;
@@ -25,7 +31,7 @@
 }
 
 /* velo: deja ver la foto arriba y oscurece abajo, donde va el texto */
-.ui-hero::after {
+.ui-image-hero::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -33,21 +39,23 @@
     background: var(--scrim-photo-bottom);
 }
 
-.ui-hero__content {
+.ui-image-hero__content {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    justify-content: flex-end;
     gap: var(--space-8);
+    min-width: 0;
     padding: var(--space-24);
 }
 
-.ui-hero--sm .ui-hero__content {
+.ui-image-hero--sm .ui-image-hero__content {
     gap: var(--space-6);
     padding: var(--space-16);
 }
 
-.ui-hero__eyebrow,
-.ui-hero__meta {
+.ui-image-hero__eyebrow,
+.ui-image-hero__meta {
     display: inline-flex;
     align-items: center;
     gap: var(--space-6);
@@ -59,36 +67,47 @@
     backdrop-filter: var(--glass-dark-blur);
 }
 
-.ui-hero__eyebrow {
+.ui-image-hero__eyebrow {
+    margin-bottom: auto;
     font: var(--font-overline);
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
 
-.ui-hero__dot {
+.ui-image-hero__dot {
     width: 6px;
     height: 6px;
     border-radius: var(--ui-radius-full);
     background: var(--color-accent);
 }
 
-.ui-hero__meta {
+.ui-image-hero__meta {
     font: var(--font-label-sm);
 }
 
-.ui-hero__title {
-    margin: 0;
+.ui-image-hero__title {
+    margin: var(--space-24) 0 0;
     font: var(--font-display-section);
+    letter-spacing: var(--tracking-display-section);
     color: var(--on-photo-text);
     text-shadow: var(--text-shadow-on-gradient);
+    overflow-wrap: anywhere;
 }
 
-.ui-hero--sm .ui-hero__title {
+.ui-image-hero--sm .ui-image-hero__title {
     font: var(--font-heading-h2);
 }
 
-@media (max-width: 768px) {
-    .ui-hero--lg .ui-hero__title {
+@media (max-width: 1024px) {
+    .ui-image-hero {
+        padding: var(--space-24);
+    }
+
+    .ui-image-hero__title {
+        letter-spacing: var(--tracking-heading-h1);
+    }
+
+    .ui-image-hero--lg .ui-image-hero__title {
         font: var(--font-heading-h1);
     }
 }

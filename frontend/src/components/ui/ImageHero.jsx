@@ -22,20 +22,20 @@ import './ImageHero.css';
  */
 export function ImageHero({ image, eyebrow, title, size = 'lg', as, children, className }) {
   const Title = as || (size === 'sm' ? 'p' : 'h1');
-  const classes = ['ui-hero', `ui-hero--${size === 'sm' ? 'sm' : 'lg'}`, className].filter(Boolean).join(' ');
+  const classes = ['ui-image-hero', `ui-image-hero--${size === 'sm' ? 'sm' : 'lg'}`, className].filter(Boolean).join(' ');
 
   return (
     <section className={classes}>
-      {image && <img className="ui-hero__photo" src={image} alt="" />}
-      <div className="ui-hero__content">
+      {image && <img className="ui-image-hero__photo" src={image} alt="" />}
+      <div className="ui-image-hero__content">
         {eyebrow && (
-          <span className="ui-hero__eyebrow">
-            <span className="ui-hero__dot" aria-hidden="true" />
+          <span className="ui-image-hero__eyebrow">
+            <span className="ui-image-hero__dot" aria-hidden="true" />
             {eyebrow}
           </span>
         )}
-        <Title className="ui-hero__title">{title}</Title>
-        {children && <span className="ui-hero__meta">{children}</span>}
+        <Title className="ui-image-hero__title">{title}</Title>
+        {children && <span className="ui-image-hero__meta">{children}</span>}
       </div>
     </section>
   );

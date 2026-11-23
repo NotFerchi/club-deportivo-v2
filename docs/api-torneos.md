@@ -20,7 +20,7 @@ Este documento fija qué endpoints hay que construir o cambiar para cerrar los f
 | F-09 | Programar fecha y hora de los encuentros | **Backend** + interfaz | Endpoint nuevo `PATCH /api/encuentros/:encuentro_id/horario` (§3.10). Campo en `MatchEditPanel` |
 | F-03 | Reporte y resultados en la UI | **Interfaz** | Consume `GET /api/torneos/:torneo_id/reporte`, que ya existe (§5). Reutilizar `ResultadosTorneo` |
 | F-05 | Arbitraje desde el panel del instructor | **Interfaz** (decisión de producto) | Consume `PATCH /api/encuentros/:encuentro_id/resultado`, que ya admite el rol `instructor` (§5). Si se decide quitar el rol, el único cambio de backend es sacar `instructor` del `checkRole` de esa ruta |
-| F-10 | Inscribir visitas desde la UI | **Interfaz** | Consume `POST /api/torneos/:torneo_id/inscribir` con `visita_id`, que ya existe (§3.5). Opción "Visita" en `InscribirModal` |
+| F-10 | Inscribir visitas desde la UI | **Interfaz** + backend (E2.9 · SC-04) | Consume `POST /api/torneos/:torneo_id/inscribir` con `visita_id` (§3.5) y el buscador `GET /api/torneos/visitas-vigentes` (§3.13). Opción "Visita" en `InscribirParticipanteModal` (pestaña Inscritos del personal) |
 
 **Resumen:** 7 faltantes requieren backend (F-01, F-02, F-04, F-06, F-07, F-08, F-09); 3 son solo de interfaz (F-03, F-05, F-10). F-01, F-02, F-07, F-08 y F-09 también llevan trabajo de interfaz.
 
@@ -243,13 +243,14 @@ Response 409:
 | **Método** | `POST` |
 | **Ruta** | `/api/torneos/:torneo_id/inscribir` |
 | **Roles** | `admin`, `gerente`, `coordinador` |
-| **Body** | Exactamente uno de `socio_id`, `visita_id` o `nombre_externo` (≤ 150). Opcionales: `categoria_id` (si viene, debe ser la del torneo) y `equipo_id`. F-10 usa `visita_id`, que ya funciona |
+| **Body** | Exactamente uno de `socio_id`, `visita_id` o `nombre_externo` (≤ 150). Opcionales: `categoria_id` (si viene, debe ser la del torneo) y `equipo_id`. F-10 usa `visita_id` |
+| **Visita** *(E2.9 · SC-04)* | La visita es el pase registrado en recepción. **Solo se inscribe el mismo día en que se registró y mientras siga vigente**: 400 si no existe; 409 si ya se cerró (salida o cierre del club) o si `fecha_visita` no es hoy en México. No se exige `mayor_16`. Una misma visita no se inscribe dos veces en el mismo torneo (409, respaldado por el índice único `(torneo_id, visita_id)`). Las visitas inscribibles se buscan con §3.13 |
 | **Regla** | Con la fila del torneo bloqueada, en este orden: existe → `Abierto` → *(nuevo)* fecha de inscripción vigente → tiene categoría → modalidad → *(nuevo)* cupo disponible → duplicados. *(E2.4)* El cupo se cuenta dentro de la misma transacción, después de bloquear la fila del torneo (`FOR UPDATE`) y antes del `INSERT`, así que dos inscripciones simultáneas no lo rebasan. Sin cupo (`NULL`) no se cuenta. Responde 409 cuando los inscritos llegan al cupo, con el mismo criterio (`hayCupo` de `torneoComun.js`) que `admite_inscripcion` |
 | **Respuesta 201** | `{ "participante_id": <id> }` |
-| **400** | `Debe especificar exactamente un tipo de participante` · `torneo_id debe ser un entero valido` · `socio_id debe ser un entero valido` · `visita_id debe ser un entero valido` · `Máximo 150 caracteres` · `categoria_id debe ser un entero valido` · `equipo_id debe ser un entero valido` · `La categoría debe ser la del torneo` · `En un torneo por equipos solo se inscriben equipos (nombre_externo)` · `Socio no encontrado o inactivo` · `Visita no encontrada o no vigente` |
+| **400** | `Debe especificar exactamente un tipo de participante` · `torneo_id debe ser un entero valido` · `socio_id debe ser un entero valido` · `visita_id debe ser un entero valido` · `Máximo 150 caracteres` · `categoria_id debe ser un entero valido` · `equipo_id debe ser un entero valido` · `La categoría debe ser la del torneo` · `En un torneo por equipos solo se inscriben equipos (nombre_externo)` · `Socio no encontrado o inactivo` · *(E2.9)* `Visita no encontrada` |
 | **403** | `No tienes permisos para esta acción` |
 | **404** | `Torneo no encontrado` |
-| **409** | `El torneo no está abierto para inscripciones` · `Este torneo no tiene categoría asignada` · `Este participante ya está inscrito en el torneo` · *(nuevo, F-07)* `Las inscripciones de este torneo están cerradas` (hoy está fuera del periodo de inscripción) · *(nuevo, E2.4)* `El torneo ya alcanzó su cupo máximo` |
+| **409** | `El torneo no está abierto para inscripciones` · `Este torneo no tiene categoría asignada` · `Este participante ya está inscrito en el torneo` · *(nuevo, F-07)* `Las inscripciones de este torneo están cerradas` (hoy está fuera del periodo de inscripción) · *(nuevo, E2.4)* `El torneo ya alcanzó su cupo máximo` · *(E2.9)* `La visita ya no está vigente (pase cerrado o de otro día)` |
 
 Request (visita, F-10):
 
@@ -556,6 +557,42 @@ Response 200:
 ]
 ```
 
+### 3.13 Buscar visitas inscribibles — Nuevo (E2.9 · SC-04, U5-06)
+
+| | |
+|---|---|
+| **Método** | `GET` |
+| **Ruta** | `/api/torneos/visitas-vigentes?q=` |
+| **Roles** | `admin`, `gerente`, `coordinador` |
+| **Body** | Ninguno. `q` requerido, de 2 a 150 caracteres (sin contar espacios de los extremos) |
+| **Regla** | Solo lectura. Visitas con `vigente = TRUE` y `fecha_visita` = hoy en México cuyo `nombre_completo` contiene `q` (sin distinguir mayúsculas; `%` y `_` se buscan tal cual), por nombre, hasta 20. Son las mismas visitas que acepta §3.5. Lee `visitas` directamente: no usa `/api/recepcion/visitas/activas`, que lee primero `pases` (devuelve `pase_id` como `visita_id`) y además cierra visitas vencidas. No se exige `mayor_16`: el campo viene para que la interfaz marque "Menor de 16" |
+| **Respuesta 200** | `[{ "visita_id", "nombre_completo", "hora_entrada", "mayor_16", "anfitrion" }]`; `anfitrion` es el nombre del socio que la invitó o `null` |
+| **400** | `q debe tener al menos 2 caracteres` · `Máximo 150 caracteres` |
+| **403** | `No tienes permisos para esta acción` |
+| **404** | — |
+| **409** | — |
+
+Request:
+
+```http
+GET /api/torneos/visitas-vigentes?q=laura
+Authorization: Bearer eyJhbGciOi...
+```
+
+Response 200:
+
+```json
+[
+  {
+    "visita_id": 312,
+    "nombre_completo": "Laura Méndez Ruiz",
+    "hora_entrada": "2026-11-23T20:39:12.000Z",
+    "mayor_16": true,
+    "anfitrion": "Roberto Hernández"
+  }
+]
+```
+
 ---
 
 ## 4. Auditoría de las acciones (F-04)
@@ -654,3 +691,5 @@ Son las reglas que la auditoría dejó abiertas y que aquí se fijan. Si alguna 
 ## 7. Colección de Postman (E2.11)
 
 `docs/postman/torneos.json` (colección v2.1) cubre los 24 endpoints de este contrato, con un caso exitoso y uno de error en cada uno, y pruebas (`pm.test`) del status y del mensaje. `docs/postman/torneos.postman_environment.json` es la plantilla del entorno: `baseUrl`, ids y fechas, y las credenciales de staff, instructor y socio **vacías**, que se llenan solo en el entorno local y nunca se suben. *(E2.4)* Además trae 7 casos de cupo: crear con cupo (201) y fuera de rango (400), editar el cupo (200) y bajarlo de los inscritos (409), las dos inscripciones con el torneo lleno (409) y el listado con `admite_inscripcion = false` para ese mismo torneo; usan `torneo_lleno_id`, un torneo `Abierto`, en periodo, con 5 o más inscritos y `cupo_maximo` igual a ellos. La carpeta "0. Autenticación" guarda `token`, `token_instructor` y `token_socio`; "Crear torneo" y "Crear categoría" guardan sus ids. Si cambia un endpoint, se cambia también la colección.
+
+*(E2.9 · SC-04, U5-06)* La carpeta "3. Inscripciones" trae 13 casos de visitas en torneos: inscripción por el staff de un socio (201, y se desinscribe para dejar libre "Inscribirme"), de una visita (201) y la misma visita otra vez (409); socio y visita juntos (400), ningún participante (400), visita inexistente (400) y visita cerrada (409); el buscador `GET /torneos/visitas-vigentes` (200 y 400 con `q` corto). Registran dos visitas por recepción (`POST /recepcion/visitas`, con `socio_id` como anfitrión) y cierran la segunda (`PUT /recepcion/visitas/:id/salida`); guardan `visita_id`, `visita_cerrada_id` y `participante_socio_id`. Una visita solo se inscribe el día en que se registró.

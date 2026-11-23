@@ -247,6 +247,19 @@ describe('detalles de consultas por socio', () => {
     expect(res.body).toEqual({ tiene_sancion: true });
   });
 
+  // SAN-04 (U5-05): una sanción "Activa" con fecha_fin vencida no es activa. El conteo del historial
+  // debe usar el mismo criterio que el campo `activa` de cada sanción (estado + fecha_fin).
+  it('SAN-04: total_sanciones_activas usa el mismo criterio que el campo activa', async () => {
+    await request(app).get('/api/socios/10/sanciones');
+    const sqls = log.map(([, sql]) => sql);
+    const lista = sqls.find((q) => q.includes(' as activa,'));
+    const conteo = sqls.find((q) => q.includes('as total_sanciones_activas'));
+    const criterioActiva = lista.match(/\((LOWER\(s\.estado.+?)\) as activa,/)[1];
+
+    expect(criterioActiva).toContain('fecha_fin');
+    expect(conteo).toContain(`COUNT(*) FILTER (WHERE ${criterioActiva})::int as total_sanciones_activas`);
+  });
+
   it('historial sin fila de totales → ceros', async () => {
     db.totales = [];
     const res = await request(app).get('/api/socios/10/sanciones');

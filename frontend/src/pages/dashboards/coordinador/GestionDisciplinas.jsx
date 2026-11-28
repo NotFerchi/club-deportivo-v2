@@ -172,13 +172,15 @@ function ModalEditarSesion({ sesion, onClose, onActualizada }) {
   const handleSubmit = async () => {
     setError(null);
     const { disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo } = form;
-    if (!disciplina_id || !espacio_id || !instructor_id || !dia_semana || !hora_inicio || !hora_fin) {
+    if (!disciplina_id || !espacio_id || !instructor_id || !dia_semana || !hora_inicio || !hora_fin || !cupo_maximo) {
       setError('Todos los campos son requeridos'); return;
     }
+    if (!(parseInt(cupo_maximo) > 0)) { setError('El cupo máximo debe ser mayor a 0'); return; }
     if (hora_inicio >= hora_fin) { setError('La hora de fin debe ser mayor a la hora de inicio'); return; }
 
     setCargando(true);
     try {
+      // Body completo que valida PUT /sesiones/:id (sin `activo`: la tabla no tiene esa columna)
       await apiRequest(`/sesiones/${sesion.sesion_id}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -188,7 +190,6 @@ function ModalEditarSesion({ sesion, onClose, onActualizada }) {
           dia_semana:    parseInt(dia_semana),
           hora_inicio, hora_fin,
           cupo_maximo:  parseInt(cupo_maximo),
-          activo:        true,
         })
       });
       onActualizada();

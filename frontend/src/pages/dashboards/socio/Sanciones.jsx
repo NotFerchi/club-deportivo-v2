@@ -6,6 +6,7 @@ import {
   AlertCircle as AlertIcon, Ban
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api'
+import { sancionesActivas as filtrarSancionesActivas, hayActivaGraveOModerada } from '../../../utils/sanciones'
 import { Alert, Badge, Button, Card, EmptyState, ErrorState, LoadingState, Modal, PageHeader, Stack, StatCard, Text } from '../../../components/ui'
 
 // color de estatus → variante de Badge del kit
@@ -44,9 +45,9 @@ function Sanciones() {
       const data = await apiRequest(`/sanciones/socio/${socioId}`)
       const lista = Array.isArray(data) ? data : []
       setSanciones(lista)
-      // Usar el campo booleano `activa` calculado en backend (considera estado + fecha_fin)
-      const activas = lista.filter(s => s.activa === true)
-      if (activas.some(s => s.gravedad === 'Grave' || s.gravedad === 'Moderada')) {
+      // Mismo criterio que Inicio: el campo `activa` del backend (SAN-04)
+      const activas = filtrarSancionesActivas(lista)
+      if (hayActivaGraveOModerada(activas)) {
         setEstadoCuenta('sancionado')
       } else if (activas.length > 0) {
         setEstadoCuenta('advertencia')
@@ -102,8 +103,8 @@ function Sanciones() {
   }
 
   const estatusColor = getEstatusColor()
-  const sancionesActivas = sanciones.filter(s => s.activa === true).length
-  const sancionesResueltas = sanciones.filter(s => s.activa !== true).length
+  const sancionesActivas = filtrarSancionesActivas(sanciones).length
+  const sancionesResueltas = sanciones.length - sancionesActivas
 
   return (
     <SocioLayout activeTab="sanciones" title="Club Social | Estado de Cuenta">

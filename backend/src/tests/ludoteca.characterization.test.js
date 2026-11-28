@@ -87,7 +87,7 @@ function route(q) {
     return rows([{ hora_salida: '2026-09-30T12:30:00', duracion_minutos: db.duracion }]);
   if (q.startsWith('INSERT INTO sanciones')) return rows([]);
   if (q.startsWith('SELECT registro_id, nombre_hijo, fecha_nacimiento, TO_CHAR')) return rows(db.misRegistros);
-  if (q.startsWith('SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(nombre_hijo)'))
+  if (q.startsWith('SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(TRIM(nombre_hijo))'))
     return rows(db.ninoActivo);
   if (q.startsWith('SELECT registro_id, nombre_hijo, hora_entrada FROM registro_ludoteca'))
     return rows(db.registroActivoQr);
@@ -227,6 +227,28 @@ describe.each([
       detalles: 'Entrada de ludoteca registrada'
     });
     expect(log).toMatchSnapshot();
+  });
+
+  // LUD-05 (U5-05): el staff no puede registrar dos veces la entrada del mismo niño
+  it('LUD-05: el niño ya tiene una entrada activa → 409 sin insertar', async () => {
+    db.ninoActivo = [{ registro_id: 5 }];
+    const res = await post(valido);
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Este niño ya tiene una entrada activa en la ludoteca' });
+    expect(log.some(([, q]) => q.startsWith('INSERT'))).toBe(false);
+    expect(logAudit).not.toHaveBeenCalled();
+    const [, , params] = log.find(([, q]) => q.includes('FROM registro_ludoteca WHERE socio_padre_id = $1'));
+    expect(params).toEqual([10, 'Leo']);
+  });
+
+  it('LUD-05: dos entradas a la vez → el índice único (23505) también responde 409', async () => {
+    db.insertError = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+      constraint: 'uq_registro_ludoteca_entrada_activa'
+    });
+    const res = await post(valido);
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Este niño ya tiene una entrada activa en la ludoteca' });
   });
 
   it('socio inexistente, FK 23503 y error genérico', async () => {

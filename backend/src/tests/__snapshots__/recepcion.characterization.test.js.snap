@@ -1550,6 +1550,14 @@ exports[`ludoteca de recepción activos, entrada y salida con errores 1`] = `
   ],
   [
     "pool",
+    "SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1 AND LOWER(TRIM(nombre_hijo)) = LOWER($2) AND hora_salida IS NULL",
+    [
+      10,
+      "Leo",
+    ],
+  ],
+  [
+    "pool",
     "INSERT INTO registro_ludoteca ( socio_padre_id, nombre_hijo, fecha_nacimiento, hora_entrada, observaciones ) VALUES ($1, $2, $3, NOW() AT TIME ZONE 'America/Mexico_City', $4) RETURNING registro_id",
     [
       10,

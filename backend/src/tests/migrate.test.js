@@ -69,6 +69,42 @@ describe('planMigraciones', () => {
   });
 });
 
+// U5-05: migraciones de los bugs de las pruebas integrales. Dependen de tablas de schema.sql, así que
+// van en migracionesPosteriores (con --todas corren después de schema.sql) y son idempotentes.
+describe('migraciones de U5-05', () => {
+  const MIGRACIONES = path.join(__dirname, '../../migrations');
+  const leer = (archivo) => fs.readFileSync(path.join(MIGRACIONES, archivo), 'utf8');
+  const sinComentarios = (sql) => sql.replace(/--[^\n]*/g, '').replace(/\s+/g, ' ');
+
+  it.each(['Agregar_resultado_final_participantes.sql', 'Agregar_unico_entrada_activa_ludoteca.sql'])(
+    '%s existe, está en migracionesPosteriores y corre después de schema.sql',
+    (archivo) => {
+      expect(fs.existsSync(path.join(MIGRACIONES, archivo))).toBe(true);
+      expect(MIGRACIONES_POSTERIORES).toContain(archivo);
+      const plan = planMigraciones(OPCION_TODAS);
+      expect(plan.filter((f) => f === archivo)).toHaveLength(1);
+      expect(plan.indexOf(archivo)).toBeGreaterThan(plan.indexOf('schema.sql'));
+    }
+  );
+
+  // Bug 5: GET /torneos/:id/participantes lee pt.resultado_final, que solo existía en los CREATE TABLE
+  it('resultado_final: ADD COLUMN IF NOT EXISTS con el tipo de production (VARCHAR(100), nullable)', () => {
+    expect(sinComentarios(leer('Agregar_resultado_final_participantes.sql'))).toContain(
+      'ALTER TABLE participantes_torneo ADD COLUMN IF NOT EXISTS resultado_final VARCHAR(100);'
+    );
+  });
+
+  // LUD-05: una sola entrada activa por niño; el nombre del índice es el que ludotecaService traduce a 409
+  it('entrada activa única: índice único parcial con el nombre que traduce ludotecaService', () => {
+    expect(sinComentarios(leer('Agregar_unico_entrada_activa_ludoteca.sql'))).toContain(
+      'CREATE UNIQUE INDEX IF NOT EXISTS uq_registro_ludoteca_entrada_activa ON registro_ludoteca (socio_padre_id, LOWER(TRIM(nombre_hijo))) WHERE hora_salida IS NULL;'
+    );
+    expect(fs.readFileSync(path.join(__dirname, '../services/ludotecaService.js'), 'utf8')).toContain(
+      "INDICE_ENTRADA_ACTIVA = 'uq_registro_ludoteca_entrada_activa'"
+    );
+  });
+});
+
 describe('migrate.js como proceso', () => {
   const correr = (...args) =>
     spawnSync(process.execPath, [SCRIPT, ...args], {

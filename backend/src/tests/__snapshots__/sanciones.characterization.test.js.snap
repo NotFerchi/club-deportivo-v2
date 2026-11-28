@@ -150,7 +150,7 @@ exports[`GET /api/socios/:id/sanciones socio dueño → permitido; socio ajeno �
   ],
   [
     "pool",
-    "SELECT COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('activo', 'activa'))::int as total_sanciones_activas, COUNT(*)::int as total_sanciones_historico FROM sanciones WHERE socio_id = $1",
+    "SELECT COUNT(*) FILTER (WHERE LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE))::int as total_sanciones_activas, COUNT(*)::int as total_sanciones_historico FROM sanciones s WHERE s.socio_id = $1",
     [
       10,
     ],
@@ -192,7 +192,7 @@ exports[`GET /api/socios/:id/sanciones staff → consulta sin verificar dueño 2
   ],
   [
     "pool",
-    "SELECT COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('activo', 'activa'))::int as total_sanciones_activas, COUNT(*)::int as total_sanciones_historico FROM sanciones WHERE socio_id = $1",
+    "SELECT COUNT(*) FILTER (WHERE LOWER(s.estado::text) IN ('activa', 'activo') AND (s.fecha_fin IS NULL OR s.fecha_fin >= CURRENT_DATE))::int as total_sanciones_activas, COUNT(*)::int as total_sanciones_historico FROM sanciones s WHERE s.socio_id = $1",
     [
       10,
     ],

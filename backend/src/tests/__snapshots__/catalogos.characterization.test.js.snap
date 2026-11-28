@@ -325,21 +325,38 @@ exports[`/api/sesiones POST / crea, conflicto, 500 y sin body 1`] = `
 ]
 `;
 
-exports[`/api/sesiones PUT /:id y DELETE /:id (sin validar existencia) 1`] = `
+exports[`/api/sesiones PUT /:id y DELETE /:id (el DELETE sin validar existencia) 1`] = `
 [
   [
     "pool",
-    "UPDATE sesiones_programadas SET disciplina_id = $1, espacio_id = $2, instructor_id = $3, dia_semana = $4, hora_inicio = $5, hora_fin = $6, cupo_maximo = $7, activo = $8 WHERE sesion_id = $9",
+    "SELECT 1 FROM sesiones_programadas WHERE sesion_id = $1",
+    [
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "SELECT sesion_id FROM sesiones_programadas WHERE espacio_id = $1 AND dia_semana = $2 AND (hora_inicio, hora_fin) OVERLAPS ($3::time, $4::time) AND sesion_id <> $5",
+    [
+      2,
+      4,
+      "08:00",
+      "09:00",
+      7,
+    ],
+  ],
+  [
+    "pool",
+    "UPDATE sesiones_programadas SET disciplina_id = $1, espacio_id = $2, instructor_id = $3, dia_semana = $4, hora_inicio = $5, hora_fin = $6, cupo_maximo = $7 WHERE sesion_id = $8",
     [
       1,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      false,
-      "7",
+      2,
+      3,
+      4,
+      "08:00",
+      "09:00",
+      15,
+      7,
     ],
   ],
   [

@@ -3,6 +3,7 @@ import SocioLayout from '../../components/SocioLayout'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, AlertTriangle, Ban, Trophy, Clock, Baby, CalendarDays, ShieldAlert, Camera } from 'lucide-react'
 import { apiRequest, API_BASE_URL } from '../../services/api'
+import { sancionesActivas as filtrarSancionesActivas, hayActivaGraveOModerada } from '../../utils/sanciones'
 import { useNotification } from '../../context/NotificationContext'
 import { Alert, Avatar, Badge, Button, Card, EmptyState, LoadingState, PageHeader, Stack, StatCard, Text } from '../../components/ui'
 
@@ -101,16 +102,13 @@ export default function DashboardSocio() {
     finally { setSubiendoFoto(false) }
   }
 
-  const sancionesActivas = sanciones.filter(s =>
-    String(s.estado).toLowerCase() === 'activa' ||
-    String(s.estado).toLowerCase() === 'activo'
-  )
+  // Mismo criterio que Estado de Cuenta: el campo `activa` del backend (SAN-04)
+  const sancionesActivas = filtrarSancionesActivas(sanciones)
   const niosActivos    = ludoteca.filter(r => r.estado === 'activo')
   const torneosActivos = torneos.filter(t => t.estado !== 'Finalizado')
 
-  const estadoCuenta = sancionesActivas.some(s =>
-    ['grave','moderada'].includes(String(s.gravedad).toLowerCase())
-  ) ? 'sancionado' : sancionesActivas.length > 0 ? 'advertencia' : 'activo'
+  const estadoCuenta = hayActivaGraveOModerada(sancionesActivas)
+    ? 'sancionado' : sancionesActivas.length > 0 ? 'advertencia' : 'activo'
 
   const fechaLabel = new Date().toLocaleDateString('es-MX', {
     weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Mexico_City'

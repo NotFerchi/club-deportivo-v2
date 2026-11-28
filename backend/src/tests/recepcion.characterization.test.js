@@ -48,7 +48,7 @@ let consoleSpies;
 
 function route(q) {
   if (db.pasesFaltante && /\b(FROM|INTO|UPDATE) pases\b/.test(q)) throw faltaPases();
-  if (db.fallaEn && q.includes(db.fallaEn)) throw new Error('boom');
+  if (db.fallaEn && q.includes(db.fallaEn)) throw db.errorFalla || new Error('boom');
   if (
     [
       'BEGIN',
@@ -118,6 +118,7 @@ function route(q) {
 
   // Ludoteca (recepción)
   if (q.startsWith('SELECT rl.registro_id, rl.nombre_hijo, rl.fecha_nacimiento')) return rows(db.ludoteca);
+  if (q.startsWith('SELECT registro_id FROM registro_ludoteca WHERE socio_padre_id = $1')) return rows(db.ninoActivo);
   if (q.startsWith('INSERT INTO registro_ludoteca')) return rows([{ registro_id: 70 }]);
   if (q.startsWith('UPDATE registro_ludoteca SET hora_salida')) return rows(db.ludotecaSalida);
 
@@ -180,6 +181,7 @@ beforeEach(() => {
     visita: [{ visita_id: 1, vigente: true }],
     ludoteca: [{ registro_id: 1 }],
     ludotecaSalida: [{ registro_id: 1 }],
+    ninoActivo: [],
     clases: [{ sesion_id: 1 }],
     alumnos: [{ reserva_id: 1 }],
     reservaAsistencia: [{ reserva_id: 9, estado: 'Confirmada', hora_fin: '23:00:00', no_show: false }],
@@ -675,6 +677,30 @@ describe('ludoteca de recepción', () => {
 
     res = await request(app).post('/api/recepcion/ludoteca/entrada');
     expect(res.body).toEqual({ ok: false, error: 'Error interno del servidor' });
+  });
+
+  // LUD-05 (U5-05): misma regla que la entrada del staff y del socio
+  it('LUD-05: el niño ya tiene una entrada activa → 409 sin insertar', async () => {
+    db.ninoActivo = [{ registro_id: 5 }];
+    const res = await post('/ludoteca/entrada', {
+      socioId: 10,
+      nombreHijo: ' Leo ',
+      fechaNacimiento: '2021-01-01'
+    });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Este niño ya tiene una entrada activa en la ludoteca' });
+    expect(log.some(([, q]) => q.startsWith('INSERT INTO registro_ludoteca'))).toBe(false);
+  });
+
+  it('LUD-05: el índice único (23505) → 409', async () => {
+    db.fallaEn = 'INSERT INTO registro_ludoteca';
+    db.errorFalla = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+      constraint: 'uq_registro_ludoteca_entrada_activa'
+    });
+    const res = await post('/ludoteca/entrada', { socioId: 10, nombreHijo: 'Leo', fechaNacimiento: '2021-01-01' });
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: 'Este niño ya tiene una entrada activa en la ludoteca' });
   });
 });
 

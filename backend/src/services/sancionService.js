@@ -5,6 +5,15 @@ const { enTransaccion } = require('./transaction');
 const { addDaysISO, getTableColumns, gravedadDias, localTodayISO, normalizeGravedad } = require('../utils/adminRules');
 
 const activeEstadoSql = "LOWER(s.estado::text) IN ('activa', 'activo')";
+
+/**
+ * Único criterio de "sanción activa" (SAN-04): estado Activa/Activo y sin vencer
+ * (fecha_fin vacía o de hoy en adelante). Lo usan la lista (campo `activa`), los conteos
+ * y la verificación, para que Inicio y Estado de Cuenta muestren el mismo número.
+ */
+function sancionActivaSql(fechaFinExpr) {
+  return `${activeEstadoSql} AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE)`;
+}
 const staffRoles = ['recepcion', 'coordinador', 'admin', 'gerente'];
 const rolesResolucion = ['admin', 'coordinador'];
 
@@ -107,7 +116,7 @@ function getSancionesSelect({
             ${gravedadExpr} as gravedad,
             ${fechaInicioExpr} as fecha_inicio,
             ${fechaFinExpr} as fecha_fin,
-            ${includeActiva ? `(${activeEstadoSql} AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE))` : 'false'} as activa,
+            ${includeActiva ? `(${sancionActivaSql(fechaFinExpr)})` : 'false'} as activa,
             soc.numero_socio,
             soc.tipo as tipo_socio,
             TRIM(CONCAT_WS(' ', u.nombres, u.apellido_paterno)) as socio_nombre,
@@ -149,7 +158,7 @@ async function getHistorialSocio(socioId) {
   const result = await pool.query(
     `SELECT
             COUNT(*)::int as total,
-            COUNT(*) FILTER (WHERE ${activeEstadoSql} AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE))::int as activas,
+            COUNT(*) FILTER (WHERE ${sancionActivaSql(fechaFinExpr)})::int as activas,
             COUNT(*) FILTER (WHERE ${gravedadExpr} = 'Grave')::int as graves
          FROM sanciones s
          WHERE s.socio_id = $1`,
@@ -328,7 +337,7 @@ async function sancionesDeSocio(socioId) {
   const { gravedadExpr, fechaInicioExpr, fechaFinExpr } = await getSancionColumnInfo();
   const result = await pool.query(
     `SELECT s.*, ${gravedadExpr} as gravedad, ${fechaInicioExpr} as fecha_inicio, ${fechaFinExpr} as fecha_fin,
-                    (${activeEstadoSql} AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE)) as activa,
+                    (${sancionActivaSql(fechaFinExpr)}) as activa,
                     soc.numero_socio,
                     u.nombres || ' ' || COALESCE(u.apellido_paterno, '') as socio_nombre
                  FROM sanciones s
@@ -347,8 +356,7 @@ async function tieneSancionActiva(socioId) {
     `SELECT COUNT(*) as total
                  FROM sanciones s
                  WHERE s.socio_id = $1
-                   AND ${activeEstadoSql}
-                   AND (${fechaFinExpr} IS NULL OR ${fechaFinExpr} >= CURRENT_DATE)`,
+                   AND ${sancionActivaSql(fechaFinExpr)}`,
     [socioId]
   );
   return parseInt(result.rows[0].total, 10) > 0;
@@ -366,10 +374,10 @@ async function historialCompletoSocio(socioId) {
 
   const totals = await pool.query(
     `SELECT
-                    COUNT(*) FILTER (WHERE LOWER(estado::text) IN ('activo', 'activa'))::int as total_sanciones_activas,
+                    COUNT(*) FILTER (WHERE ${sancionActivaSql(fechaFinExpr)})::int as total_sanciones_activas,
                     COUNT(*)::int as total_sanciones_historico
-                 FROM sanciones
-                 WHERE socio_id = $1`,
+                 FROM sanciones s
+                 WHERE s.socio_id = $1`,
     [socioId]
   );
 

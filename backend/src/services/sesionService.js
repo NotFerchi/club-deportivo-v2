@@ -118,18 +118,67 @@ async function crearSesion(body) {
   return result.rows[0].sesion_id;
 }
 
-/** Reemplaza todos los campos de la sesión (no verifica que exista). */
-async function actualizarSesion(id, body) {
-  const { disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo, activo } =
-    requireBodyOrEscalate(body);
+const CAMPOS_SESION = ['disciplina_id', 'espacio_id', 'instructor_id', 'dia_semana', 'hora_inicio', 'hora_fin', 'cupo_maximo'];
+const HORA_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+const esEnteroPositivo = (v) => Number.isInteger(v) && v > 0;
+const conSegundos = (hora) => (hora.length === 5 ? `${hora}:00` : hora);
+
+/** Valida el body completo de la sesión (sin tocar la BD); 400 con mensaje claro si algo falla. */
+function validarSesion(body) {
+  if (CAMPOS_SESION.some((c) => body[c] === undefined || body[c] === null || body[c] === '')) {
+    throw new ServiceError(400, { error: 'Todos los campos de la sesión son requeridos' });
+  }
+  const { disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo } = body;
+  if (![disciplina_id, espacio_id, instructor_id, cupo_maximo].every(esEnteroPositivo)) {
+    throw new ServiceError(400, {
+      error: 'disciplina_id, espacio_id, instructor_id y cupo_maximo deben ser enteros positivos'
+    });
+  }
+  if (!Number.isInteger(dia_semana) || dia_semana < 1 || dia_semana > 7) {
+    throw new ServiceError(400, { error: 'dia_semana debe ser un entero entre 1 y 7' });
+  }
+  if (!HORA_RE.test(String(hora_inicio)) || !HORA_RE.test(String(hora_fin))) {
+    throw new ServiceError(400, { error: 'hora_inicio y hora_fin deben tener formato HH:MM' });
+  }
+  if (conSegundos(hora_inicio) >= conSegundos(hora_fin)) {
+    throw new ServiceError(400, { error: 'La hora de fin debe ser mayor a la hora de inicio' });
+  }
+}
+
+/**
+ * Reemplaza los campos de la sesión. Valida el body completo (400), que exista (404) y que no
+ * choque con OTRA sesión del mismo espacio y día (400, igual que al crear).
+ * sesiones_programadas no tiene columna `activo` (U5-05, bug COORD): no se escribe.
+ */
+async function actualizarSesion(idParam, body) {
+  requireBodyOrEscalate(body);
+  validarSesion(body);
+  const id = Number(idParam); // entero positivo: validado en la ruta
+  const { disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo } = body;
+
+  const existe = await pool.query('SELECT 1 FROM sesiones_programadas WHERE sesion_id = $1', [id]);
+  if (existe.rowCount === 0) throw new ServiceError(404, { error: 'Sesión no encontrada' });
+
+  const conflicto = await pool.query(
+    `
+            SELECT sesion_id FROM sesiones_programadas
+            WHERE espacio_id = $1 AND dia_semana = $2
+            AND (hora_inicio, hora_fin) OVERLAPS ($3::time, $4::time)
+            AND sesion_id <> $5
+        `,
+    [espacio_id, dia_semana, hora_inicio, hora_fin, id]
+  );
+  if (conflicto.rows.length > 0) {
+    throw new ServiceError(400, { error: 'Ya existe una sesión en este espacio y horario' });
+  }
 
   await pool.query(
     `UPDATE sesiones_programadas
                  SET disciplina_id = $1, espacio_id = $2, instructor_id = $3,
                      dia_semana = $4, hora_inicio = $5, hora_fin = $6,
-                     cupo_maximo = $7, activo = $8
-                 WHERE sesion_id = $9`,
-    [disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo, activo, id]
+                     cupo_maximo = $7
+                 WHERE sesion_id = $8`,
+    [disciplina_id, espacio_id, instructor_id, dia_semana, hora_inicio, hora_fin, cupo_maximo, id]
   );
 }
 

@@ -1,0 +1,45 @@
+# Render Blueprint: backend de la SIMULACIÓN (U5-07). Guía y lista de variables: docs/simulacion/despliegue.md
+#
+# Los valores con `sync: false` no se guardan aquí: Render los pide al crear el servicio desde este archivo
+# (New → Blueprint) y se capturan en su panel. Nunca pongas secretos en este archivo.
+#
+# Importante: NO definas NEON_DATABASE_URL en Render. src/config/database.js la usa antes que DATABASE_URL.
+# Sin GMAIL_USER ni GMAIL_APP_PASSWORD a propósito: la simulación no manda correos (el envío del QR de una
+# visita responde con un aviso de "servicio de correo no configurado").
+services:
+  - type: web
+    name: club-deportivo-api-simulacion
+    runtime: node
+    plan: free
+    region: ohio # misma región de AWS que Neon (us-east-2)
+    rootDir: backend
+    branch: develop
+    autoDeploy: false # se despliega a mano: la simulación no cambia sola a mitad de la semana
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      # ── Secretos: los captura el responsable en el panel de Render ──
+      - key: DATABASE_URL # URL del branch de Neon simulacion-u5 (la misma que SIMULACION_DATABASE_URL)
+        sync: false
+      - key: JWT_SECRET # nuevo, distinto al de production
+        sync: false
+      - key: QR_SECRET # nuevo, distinto al de production
+        sync: false
+      # ── Públicas ──
+      - key: CORS_ORIGIN # URL del frontend en Vercel, p. ej. https://club-simulacion.vercel.app
+        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "24"
+      - key: CLUB_HORA_CIERRE
+        value: "22:00"
+      - key: RESERVAS_DURACION_MINUTOS
+        value: "60"
+      - key: RESERVAS_MAX_ACTIVAS_SOCIO
+        value: "2"
+      - key: RESERVAS_MISMO_DIA
+        value: "true"
+      - key: RESERVAS_PERMITIR_PASADAS
+        value: "false"

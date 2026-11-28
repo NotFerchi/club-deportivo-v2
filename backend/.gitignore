@@ -4,5 +4,8 @@ node_modules
 
 /src/generated/prisma
 
-# URL del branch de prueba de Neon (paso 7): nunca subir
-.env.paso7
+# Variables de entorno de cualquier destino (.env.paso7, .env.simulacion, ...): nunca subir.
+# Solo las plantillas (.env.example, .env.simulacion.example) van al repo.
+.env.*
+!.env.example
+!.env.simulacion.example

@@ -135,6 +135,7 @@ const sesionService = cargar('../src/services/sesionService');
 const sancionService = cargar('../src/services/sancionService');
 const ludotecaService = cargar('../src/services/ludotecaService');
 const { bloquearTorneo } = cargar('../src/services/torneoComun');
+const { hoyEnClub } = cargar('../src/services/torneoFechas');
 const { logAudit } = cargar('../src/utils/auditLogger');
 
 // ── Pasos ────────────────────────────────────────────────────────────────────
@@ -228,6 +229,34 @@ async function main() {
       }), { omitir: sinDatos(torneo, 'torneos') });
     await paso('bloquearTorneo (inscripciones y cambios de estado)', () => bloquearTorneo(poolFalso, torneo.torneo_id), {
       omitir: sinDatos(torneo, 'torneos')
+    });
+
+    // Visitas en torneos (E2.9 · SC-04). La base puede no tener visitas vigentes de hoy ni torneos abiertos:
+    // el torneo y la visita se simulan para recorrer todas las consultas; el INSERT solo pasa por EXPLAIN.
+    const omitirVisitas = noExiste(participanteService.buscarVisitasVigentes, 'buscarVisitasVigentes');
+    const visita = await muestra('SELECT visita_id FROM visitas ORDER BY visita_id DESC LIMIT 1');
+    await paso('E2.9 GET /visitas-vigentes?q', () => participanteService.buscarVisitasVigentes('a_%'), { omitir: omitirVisitas });
+    await paso('E2.9 POST /:id/inscribir con visita_id (solo EXPLAIN del INSERT)', () =>
+      participanteService.inscribirParticipante(torneo.torneo_id, { visita_id: visita.visita_id }), {
+      omitir: omitirVisitas || sinDatos(torneo, 'torneos') || sinDatos(visita, 'visitas'),
+      simular: [
+        {
+          si: (q) => q.startsWith('SELECT estado, categoria_id, tipo_torneo'),
+          filas: () => [
+            {
+              estado: 'Abierto',
+              categoria_id: torneo.categoria_id ?? 1,
+              tipo_torneo: 'Individual',
+              fecha_inicio: null,
+              fecha_inicio_inscripcion: null,
+              fecha_fin_inscripcion: null,
+              cupo_maximo: null
+            }
+          ]
+        },
+        { si: (q) => q.startsWith('SELECT vigente, fecha_visita'), filas: () => [{ vigente: true, fecha_visita: hoyEnClub() }] },
+        { si: (q) => q.startsWith('SELECT participante_id FROM participantes_torneo'), filas: () => [] }
+      ]
     });
 
     // Categorías (E2.6)

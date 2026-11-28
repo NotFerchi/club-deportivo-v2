@@ -1412,6 +1412,664 @@
           }
         },
         {
+          "name": "Inscribir (staff) socio — 201 (E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) pm.environment.set('participante_socio_id', pm.response.json().participante_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/torneos/{{torneo_id}}/inscribir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "torneos",
+                "{{torneo_id}}",
+                "inscribir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"socio_id\": \"{{socio_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Desinscribir al socio — 200 (deja libre \"Inscribirme\")",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/torneos/{{torneo_id}}/participantes/{{participante_socio_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "torneos",
+                "{{torneo_id}}",
+                "participantes",
+                "{{participante_socio_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registrar visita en recepción — 201 (prerrequisito E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) pm.environment.set('visita_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recepcion/visitas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recepcion",
+                "visitas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_pase\": \"visita\",\n  \"socio_id\": \"{{socio_id}}\",\n  \"nombre_completo\": \"Visita Postman {{$timestamp}}\",\n  \"telefono\": \"5512345678\",\n  \"mayor_16\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Buscar visitas vigentes — 200 (E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('arreglo con la visita registrada hoy', () => {",
+                  "  const ids = pm.response.json().map((v) => String(v.visita_id));",
+                  "  pm.expect(ids).to.include(String(pm.environment.get('visita_id')));",
+                  "});",
+                  "pm.test('campos del buscador', () => pm.expect(pm.response.json()[0]).to.have.all.keys('visita_id', 'nombre_completo', 'hora_entrada', 'mayor_16', 'anfitrion'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/torneos/visitas-vigentes?q=Visita Postman",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "torneos",
+                "visitas-vigentes"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Visita Postman"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar visitas vigentes — 400 q corto (E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje de error', () => pm.expect(pm.response.json().error).to.eql(\"q debe tener al menos 2 caracteres\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/torneos/visitas-vigentes?q=a",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "torneos",
+                "visitas-vigentes"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inscribir (staff) visita — 201 (E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('trae participante_id', () => pm.expect(pm.response.json()).to.have.property('participante_id'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/torneos/{{torneo_id}}/inscribir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "torneos",
+                "{{torneo_id}}",
+                "inscribir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visita_id\": \"{{visita_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Inscribir (staff) visita — 409 ya inscrita (E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('mensaje de error', () => pm.expect(pm.response.json().error).to.eql(\"Este participante ya está inscrito en el torneo\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/torneos/{{torneo_id}}/inscribir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "torneos",
+                "{{torneo_id}}",
+                "inscribir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visita_id\": \"{{visita_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Inscribir (staff) — 400 socio y visita (E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje de error', () => pm.expect(pm.response.json().error).to.eql(\"Debe especificar exactamente un tipo de participante\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/torneos/{{torneo_id}}/inscribir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "torneos",
+                "{{torneo_id}}",
+                "inscribir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"socio_id\": \"{{socio_id}}\",\n  \"visita_id\": \"{{visita_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Inscribir (staff) — 400 ningún participante (E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje de error', () => pm.expect(pm.response.json().error).to.eql(\"Debe especificar exactamente un tipo de participante\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/torneos/{{torneo_id}}/inscribir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "torneos",
+                "{{torneo_id}}",
+                "inscribir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Inscribir (staff) visita — 400 inexistente (E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje de error', () => pm.expect(pm.response.json().error).to.eql(\"Visita no encontrada\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/torneos/{{torneo_id}}/inscribir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "torneos",
+                "{{torneo_id}}",
+                "inscribir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visita_id\": 2147483000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registrar 2ª visita en recepción — 201 (prerrequisito E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code < 300) pm.environment.set('visita_cerrada_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recepcion/visitas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recepcion",
+                "visitas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_pase\": \"visita\",\n  \"socio_id\": \"{{socio_id}}\",\n  \"nombre_completo\": \"Visita Postman cerrada {{$timestamp}}\",\n  \"telefono\": \"5512345678\",\n  \"mayor_16\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registrar salida de la 2ª visita — 200 (prerrequisito E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/recepcion/visitas/{{visita_cerrada_id}}/salida",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recepcion",
+                "visitas",
+                "{{visita_cerrada_id}}",
+                "salida"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inscribir (staff) visita — 409 no vigente (E2.9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('mensaje de error', () => pm.expect(pm.response.json().error).to.eql(\"La visita ya no está vigente (pase cerrado o de otro día)\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/torneos/{{torneo_id}}/inscribir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "torneos",
+                "{{torneo_id}}",
+                "inscribir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visita_id\": \"{{visita_cerrada_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Inscribir (staff) — 409 cupo lleno (E2.4)",
           "event": [
             {

@@ -192,6 +192,14 @@ const torneosController = {
     }
   },
 
+  getVisitasVigentes: async (req, res) => {
+    try {
+      res.json(await participanteService.buscarVisitasVigentes(req.query.q));
+    } catch (error) {
+      handleError(res, error, 'Error al buscar visitas:', 'Error al buscar visitas');
+    }
+  },
+
   getBracket: async (req, res) => {
     try {
       res.json(await bracketService.obtenerBracket(req.params.torneo_id));

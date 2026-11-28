@@ -25,6 +25,14 @@ router.patch(
   torneosController.desactivarCategoria
 );
 router.get('/mis-participaciones', verifyToken, torneosController.getMisParticipaciones);
+// Visitas inscribibles (vigentes y de hoy) para el modal de inscripción del personal (E2.9 · SC-04)
+router.get(
+  '/visitas-vigentes',
+  verifyToken,
+  checkRole(staffRoles),
+  validar.busquedaVisitas,
+  torneosController.getVisitasVigentes
+);
 router.get('/:torneo_id/participantes', verifyToken, validar.torneoId(), torneosController.getParticipantes);
 router.get('/:torneo_id/bracket', verifyToken, validar.torneoId(), torneosController.getBracket);
 router.get('/:torneo_id/reporte', verifyToken, validar.torneoIdConAcento(), torneosController.getReporte);

@@ -19,7 +19,8 @@ import { cupoDe } from './torneoVista';
 import InscribirParticipanteModal from './InscribirParticipanteModal';
 
 const MINIMO = 4; // mismo mínimo que mostraba el modal de inscritos (lo confirma el backend: se_realiza)
-const VARIANTE_TIPO = { Socio: 'ice', Visita: 'success', Externo: 'neutral' };
+// Visita en azul hielo (U5-06). Socio en info: sky ya lo usan "Temporada" e "Inscripciones abiertas" en esta pantalla
+const VARIANTE_TIPO = { Socio: 'info', Visita: 'ice', Externo: 'neutral' };
 
 function BotonQuitar({ participante, quitando, onQuitar }) {
   const ocupado = quitando === participante.participante_id;

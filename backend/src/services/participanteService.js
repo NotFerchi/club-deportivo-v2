@@ -2,13 +2,19 @@ const pool = require('../config/database');
 const ServiceError = require('./serviceError');
 const { enTransaccion } = require('./transaction');
 const { admiteInscripciones } = require('./torneoEstados');
-const { COLUMNAS_FECHAS_TORNEO, ERROR_INSCRIPCIONES_CERRADAS, enPeriodoInscripcion } = require('./torneoFechas');
+const {
+  COLUMNAS_FECHAS_TORNEO,
+  ERROR_INSCRIPCIONES_CERRADAS,
+  enPeriodoInscripcion,
+  hoyEnClub
+} = require('./torneoFechas');
 const {
   ERROR_CUPO_LLENO,
   ERROR_PARTICIPANTE_DUPLICADO,
   ERROR_SOCIO_NO_VALIDO,
   ERROR_TORNEO_SIN_CATEGORIA,
-  ERROR_VISITA_NO_VALIDA,
+  ERROR_VISITA_NO_ENCONTRADA,
+  ERROR_VISITA_NO_VIGENTE,
   bloquearTorneo,
   contarInscritos,
   esIdValido,
@@ -38,6 +44,23 @@ async function validarCupo(client, torneoId, torneo) {
   if (torneo.cupo_maximo === null || torneo.cupo_maximo === undefined) return;
   const inscritos = await contarInscritos(client, torneoId);
   if (!hayCupo(inscritos, torneo.cupo_maximo)) throw new ServiceError(409, { error: ERROR_CUPO_LLENO });
+}
+
+/**
+ * La visita (el pase de recepción) solo se inscribe el mismo día en que se registró y mientras siga
+ * vigente: 400 si no existe, 409 si ya se cerró o es de otro día. "Hoy" es la fecha del club (México);
+ * el pool fija esa zona en la sesión, así que fecha_visita (CURRENT_DATE al registrarla) es comparable.
+ */
+async function validarVisita(client, visitaId) {
+  const { rows, rowCount } = await client.query(
+    'SELECT vigente, fecha_visita::text AS fecha_visita FROM visitas WHERE visita_id = $1',
+    [visitaId]
+  );
+  if (rowCount === 0) throw badRequest(ERROR_VISITA_NO_ENCONTRADA);
+  const [visita] = rows;
+  if (visita.vigente !== true || visita.fecha_visita !== hoyEnClub()) {
+    throw new ServiceError(409, { error: ERROR_VISITA_NO_VIGENTE });
+  }
 }
 
 // ── Consulta ─────────────────────────────────────────────────────────────────
@@ -120,6 +143,37 @@ async function misParticipaciones(user) {
   return result.rows;
 }
 
+const LIMITE_BUSQUEDA_VISITAS = 20;
+
+/** Escapa \ % y _ para buscar el texto tal cual con ILIKE. */
+const escaparLike = (texto) => texto.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+/**
+ * Buscador de visitas inscribibles (E2.9 · SC-04): vigentes y de hoy (México), por nombre.
+ * Solo lectura: consulta `visitas` directamente (el endpoint de recepción puede devolver ids de
+ * `pases` y además cierra visitas vencidas). `q` validado en la ruta (2 a 150 caracteres).
+ */
+async function buscarVisitasVigentes(q) {
+  const result = await pool.query(
+    `SELECT
+           v.visita_id,
+           v.nombre_completo,
+           v.hora_entrada,
+           COALESCE(v.mayor_16, TRUE) AS mayor_16,
+           NULLIF(TRIM(CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, ''))), '') AS anfitrion
+         FROM visitas v
+         LEFT JOIN socios s ON s.socio_id = v.socio_id
+         LEFT JOIN usuarios u ON u.usuario_id = s.usuario_id
+         WHERE v.vigente = TRUE
+           AND v.fecha_visita = $1::date
+           AND v.nombre_completo ILIKE $2
+         ORDER BY v.nombre_completo, v.visita_id
+         LIMIT ${LIMITE_BUSQUEDA_VISITAS}`,
+    [hoyEnClub(), `%${escaparLike(q.trim())}%`]
+  );
+  return result.rows;
+}
+
 // ── Inscripción ──────────────────────────────────────────────────────────────
 
 /**
@@ -129,6 +183,7 @@ async function misParticipaciones(user) {
  * fuera del periodo de inscripción (F-07) o si no tiene categoría,
  * 400 si categoria_id no es la del torneo (B-14) o si es por equipos y no se inscribe un equipo (B-15),
  * 409 si ya alcanzó su cupo (E2.4) y 409 si el socio, la visita o el externo (por nombre normalizado) ya está inscrito.
+ * Visita (E2.9 · SC-04): 400 si no existe y 409 si no está vigente o no es de hoy (validarVisita).
  * El participante siempre queda con la categoría del torneo.
  */
 async function inscribirParticipante(torneoIdParam, body) {
@@ -161,10 +216,7 @@ async function inscribirParticipante(torneoIdParam, body) {
       if (socio.rowCount === 0) throw badRequest(ERROR_SOCIO_NO_VALIDO);
     }
 
-    if (visitaId !== null) {
-      const visita = await client.query('SELECT * FROM visitas WHERE visita_id = $1 AND vigente = TRUE', [visitaId]);
-      if (visita.rowCount === 0) throw badRequest(ERROR_VISITA_NO_VALIDA);
-    }
+    if (visitaId !== null) await validarVisita(client, visitaId);
 
     if (socioId !== null || visitaId !== null) {
       const participanteExistente = await client.query(
@@ -190,12 +242,19 @@ async function inscribirParticipante(torneoIdParam, body) {
       }
     }
 
-    const result = await client.query(
-      `INSERT INTO participantes_torneo (torneo_id, socio_id, visita_id, nombre_externo, equipo_id, categoria_id)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           RETURNING participante_id`,
-      [torneoId, socioId, visitaId, nombreExterno, equipoId, categoriaId]
-    );
+    let result;
+    try {
+      result = await client.query(
+        `INSERT INTO participantes_torneo (torneo_id, socio_id, visita_id, nombre_externo, equipo_id, categoria_id)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING participante_id`,
+        [torneoId, socioId, visitaId, nombreExterno, equipoId, categoriaId]
+      );
+    } catch (error) {
+      // Índices únicos (torneo_id, socio_id) y (torneo_id, visita_id): respaldo del chequeo de arriba
+      if (error?.code === '23505') throw new ServiceError(409, { error: ERROR_PARTICIPANTE_DUPLICADO });
+      throw error;
+    }
 
     return result.rows[0].participante_id;
   });
@@ -284,6 +343,7 @@ async function desinscribirParticipante(torneoIdParam, participanteIdParam) {
 module.exports = {
   listarParticipantes,
   misParticipaciones,
+  buscarVisitasVigentes,
   inscribirParticipante,
   inscribirSocioPropio,
   desinscribirParticipante

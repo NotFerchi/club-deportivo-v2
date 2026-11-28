@@ -5,7 +5,10 @@ const ERROR_DISCIPLINA_NO_EXISTE = 'La disciplina no existe';
 const ERROR_FECHAS_TORNEO = 'La fecha de fin no puede ser menor que la fecha de inicio';
 const ERROR_TIPO_PARTICIPANTE = 'Debe especificar exactamente un tipo de participante';
 const ERROR_SOCIO_NO_VALIDO = 'Socio no encontrado o inactivo';
-const ERROR_VISITA_NO_VALIDA = 'Visita no encontrada o no vigente';
+// Visita (E2.9 · SC-04): el "pase" registrado en recepción. Solo vale el día en que se registró y
+// mientras siga vigente (recepción la cierra al registrar la salida o a la hora de cierre).
+const ERROR_VISITA_NO_ENCONTRADA = 'Visita no encontrada';
+const ERROR_VISITA_NO_VIGENTE = 'La visita ya no está vigente (pase cerrado o de otro día)';
 const ERROR_CATEGORIA_NO_EXISTE = 'La categoría no existe';
 const ERROR_PARTICIPANTE_DUPLICADO = 'Este participante ya está inscrito en el torneo';
 const ERROR_CATEGORIA_REQUERIDA = 'categoria_id es requerido';
@@ -91,7 +94,8 @@ module.exports = {
   ERROR_FECHAS_TORNEO,
   ERROR_TIPO_PARTICIPANTE,
   ERROR_SOCIO_NO_VALIDO,
-  ERROR_VISITA_NO_VALIDA,
+  ERROR_VISITA_NO_ENCONTRADA,
+  ERROR_VISITA_NO_VIGENTE,
   ERROR_CATEGORIA_NO_EXISTE,
   ERROR_PARTICIPANTE_DUPLICADO,
   ERROR_CATEGORIA_REQUERIDA,
